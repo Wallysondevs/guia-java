@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java var — inferência de tipo de variáveis locais | Guia Java</title>
+<meta name="description" content="A palavra var do Java (Java 10+): o compilador descobre o tipo da variável pelo valor. Onde pode e onde não pode usar, os erros reais (var sem valor, var = null, var em atributos e parâmetros) e boas práticas, com saídas do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">var</span> <span class="versao">Java 10+</span></h1>
+
+<p class="intro">Até aqui, toda variável começou com o tipo escrito por você: <code>int idade = 29;</code>. Desde o Java 10 existe um atalho: escrever <code>var</code> no lugar do tipo e deixar o compilador <strong>descobrir</strong> o tipo olhando o valor. Nesta aula você vai ver como o <code>var</code> funciona, onde ele pode e onde não pode ser usado, e quando ele deixa o código melhor ou pior.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é <strong>inferência de tipo</strong> e como o <code>var</code> funciona.</li>
+  <li>Que o <code>var</code> não cria uma variável "sem tipo": o tipo continua fixo.</li>
+  <li>Os lugares onde o <code>var</code> é proibido, com os erros reais do <code>javac</code>.</li>
+  <li>Boas práticas: quando o <code>var</code> ajuda e quando atrapalha.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: o Java lê a etiqueta por você</h2>
+<p>Quando você entrega um pacote nos Correios com uma garrafa dentro, o atendente não precisa que você escreva "GARRAFA" na caixa: ele vê a garrafa e já escolhe a embalagem certa. Com o <code>var</code> é assim: o compilador olha o valor do lado direito do <code>=</code> e escolhe o tipo da variável. Esse trabalho de "deduzir o tipo" se chama <strong>inferência de tipo</strong> (<em>type inference</em>).</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        var nome = "Ana";
+        var idade = 29;
+        var altura = 1.65;
+        var inicial = 'A';
+        var populacao = 8100000000L;
+        var aprovada = true;
+        System.out.println(nome + " " + idade + " " + altura + " " + inicial + " " + populacao + " " + aprovada);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Ana 29 1.65 A 8100000000 true</pre>
+
+<dl class="anatomy">
+  <dt>var</dt><dd>No lugar do tipo: "compilador, descubra o tipo pelo valor". Vem de <em>variable</em>, "variável".</dd>
+  <dt>idade</dt><dd>O nome, como sempre.</dd>
+  <dt>=</dt><dd>Recebe.</dd>
+  <dt>29</dt><dd>O valor. Como <code>29</code> é um literal <code>int</code>, a variável será <code>int</code>.</dd>
+</dl>
+
+<p>O tipo escolhido é sempre o tipo do valor, pelas regras que você viu nas aulas anteriores:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Com <code>var</code></th><th>É o mesmo que</th><th>Por quê</th></tr>
+<tr><td><code>var nome = "Ana";</code></td><td><code>String nome = "Ana";</code></td><td>Aspas duplas: <code>String</code></td></tr>
+<tr><td><code>var idade = 29;</code></td><td><code>int idade = 29;</code></td><td>Inteiro sem sufixo: <code>int</code></td></tr>
+<tr><td><code>var altura = 1.65;</code></td><td><code>double altura = 1.65;</code></td><td>Número com ponto: <code>double</code></td></tr>
+<tr><td><code>var inicial = 'A';</code></td><td><code>char inicial = 'A';</code></td><td>Aspas simples: <code>char</code></td></tr>
+<tr><td><code>var populacao = 8100000000L;</code></td><td><code>long populacao = 8100000000L;</code></td><td>Sufixo <code>L</code>: <code>long</code></td></tr>
+<tr><td><code>var aprovada = true;</code></td><td><code>boolean aprovada = true;</code></td><td><code>true</code>/<code>false</code>: <code>boolean</code></td></tr>
+</table>
+</div>
+
+<h3>Vendo o tipo escolhido no JShell</h3>
+<p>No <a href="jshell.html">JShell</a>, o comando <code>/vars</code> lista as variáveis com o tipo que o Java escolheu:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; var nome = "Ana"
+nome ==&gt; "Ana"
+
+jshell&gt; var idade = 29
+idade ==&gt; 29
+
+jshell&gt; var preco = 9.90
+preco ==&gt; 9.9
+
+jshell&gt; var grande = 10L
+grande ==&gt; 10
+
+jshell&gt; /vars
+|    String nome = "Ana"
+|    int idade = 29
+|    double preco = 9.9
+|    long grande = 10
+
+jshell&gt; /exit
+|  Goodbye</pre>
+
+<hr>
+
+<h2><code>var</code> não é "sem tipo"</h2>
+<p>Quem conhece JavaScript ou Python pode achar que <code>var</code> cria uma variável que aceita qualquer coisa. <strong>Não cria.</strong> O tipo é decidido <strong>uma vez</strong>, na compilação, e nunca mais muda. O <code>var</code> só poupa você de escrever o tipo; o resultado é idêntico a ter escrito.</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        var idade = 29;
+        idade = "trinta";
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: String cannot be converted to int
+        idade = "trinta";
+                ^
+1 error</pre>
+
+<p>Na linha 3, <code>idade</code> virou <code>int</code> para sempre. Na linha 4, guardar um texto nela dá o mesmo erro que daria com <code>int idade</code>. Do mesmo jeito, <code>var x = 5;</code> seguido de <code>x = 2.5;</code> dá <code>possible lossy conversion from double to int</code>.</p>
+
+<div class="warning">
+<strong>Cuidado com o tipo que você "pediu" sem perceber</strong>
+<p><code>var preco = 10;</code> cria um <code>int</code>, não um <code>double</code>. Se depois você fizer <code>preco = preco / 4;</code>, o resultado é a divisão inteira, <code>2</code>, e não <code>2.5</code>. Com <code>var</code>, o valor inicial decide tudo: se a variável vai guardar decimais, escreva <code>var preco = 10.0;</code> (ou simplesmente <code>double preco = 10;</code>).</p>
+</div>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int var = 5;
+        System.out.println(var);
+        var preco = 10;
+        preco = preco / 4;
+        System.out.println(preco);
+        var preco2 = 10.0;
+        System.out.println(preco2 / 4);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+5                  « int var = 5; (curiosidade explicada adiante)
+2                  « var preco = 10; preco = preco / 4;
+2.5                « var preco2 = 10.0; preco2 / 4</pre>
+
+<div class="tryjava" data-goal="compila,out:Banana 6 4.5 true,src:\bvar\s+fruta\b,src:\bvar\s+quantidade\b,src:\bvar\s+preco\b,src:\bvar\s+maduras\b">
+<p class="try-task"><strong>Missão:</strong> reescreva as quatro declarações usando <code>var</code> no lugar do tipo. A saída deve continuar <code>Banana 6 4.5 true</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String fruta = "Banana";
+        int quantidade = 6;
+        double preco = 4.5;
+        boolean maduras = true;
+        System.out.println(fruta + " " + quantidade + " " + preco + " " + maduras);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        var fruta = "Banana";
+        var quantidade = 6;
+        var preco = 4.5;
+        var maduras = true;
+        System.out.println(fruta + " " + quantidade + " " + preco + " " + maduras);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Onde pode e onde não pode</h2>
+<p>O nome oficial do recurso é "inferência de tipo de <strong>variáveis locais</strong>". Ou seja: o <code>var</code> só vale para variáveis declaradas <strong>dentro de um método</strong> (como o <code>main</code>), e só quando há um valor do qual deduzir o tipo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Pode?</th><th>Erro real</th></tr>
+<tr><td>Variável local com valor: <code>var n = 10;</code></td><td>Sim</td><td></td></tr>
+<tr><td>Variável do <a href="for.html">for</a> e do <a href="for-each.html">for-each</a>: <code>for (var i = 0; …)</code></td><td>Sim</td><td></td></tr>
+<tr><td>Sem valor: <code>var total;</code></td><td>Não</td><td><code>cannot use 'var' on variable without initializer</code></td></tr>
+<tr><td>Valor <code>null</code>: <code>var cliente = null;</code></td><td>Não</td><td><code>variable initializer is 'null'</code></td></tr>
+<tr><td>Várias numa linha: <code>var a = 1, b = 2;</code></td><td>Não</td><td><code>'var' is not allowed in a compound declaration</code></td></tr>
+<tr><td>Array com chaves: <code>var notas = {7, 8, 9};</code></td><td>Não</td><td><code>array initializer needs an explicit target-type</code></td></tr>
+<tr><td>Atributo (fora do método, dentro da classe)</td><td>Não</td><td><code>'var' is not allowed here</code></td></tr>
+<tr><td>Parâmetro de método: <code>void saudar(var nome)</code></td><td>Não</td><td><code>'var' is not allowed here</code></td></tr>
+</table>
+</div>
+
+<p>Todos esses erros têm a mesma raiz: o compilador precisa de um valor <strong>com tipo claro</strong>, na mesma linha, para escolher o tipo. Veja cada um em <a href="#erros">Quando dá errado</a>.</p>
+
+<h3>Curiosidade: <code>var</code> não é palavra reservada</h3>
+<p>Para não quebrar programas antigos que tinham variáveis chamadas <code>var</code>, o Java tornou <code>var</code> um "nome de tipo reservado", e não uma palavra-chave como <code>int</code>. Por isso <code>int var = 5;</code> ainda compila (foi o <code>5</code> da saída acima). Funciona, mas não faça isso: confunde qualquer leitor.</p>
+
+<div class="note">
+<strong>E em versões antigas do Java?</strong>
+<p>O <code>var</code> surgiu no <strong>Java 10</strong> (2018). Em projetos presos ao Java 8, ele não existe: o <code>javac</code> procura uma classe chamada <code>var</code> e responde <code>cannot find symbol</code>. Nesses projetos, escreva o tipo. O guia ensina o Java 25, em que o <code>var</code> funciona normalmente (veja <a href="versoes.html">Versões e LTS</a>).</p>
+</div>
+
+<hr>
+
+<h2>Boas práticas: quando usar</h2>
+<p>O <code>var</code> é uma ferramenta de <strong>legibilidade</strong>. A regra de ouro: use quando o tipo fica <strong>óbvio</strong> lendo a linha; evite quando o leitor teria de adivinhar.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Bom uso</th><th>Por quê</th></tr>
+<tr><td><code>var leitor = new Scanner(System.in);</code></td><td>O tipo já aparece à direita (<code>new Scanner</code>); escrever <code>Scanner leitor = new Scanner(…)</code> repete a palavra.</td></tr>
+<tr><td><code>var nome = "Ana";</code></td><td>Aspas = texto. Ninguém tem dúvida.</td></tr>
+<tr><td><code>var mapa = new HashMap&lt;String, List&lt;Integer&gt;&gt;();</code></td><td>Tipos longos de <a href="hashmap.html">coleções</a>: o <code>var</code> evita escrever duas vezes.</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Evite</th><th>Por quê</th><th>Prefira</th></tr>
+<tr><td><code>var resultado = calcular();</code></td><td>Que tipo <code>calcular()</code> devolve? Só abrindo outro arquivo para saber.</td><td><code>double resultado = calcular();</code></td></tr>
+<tr><td><code>var preco = 10;</code></td><td>Vira <code>int</code>; se a intenção era decimal, é um erro escondido.</td><td><code>double preco = 10;</code></td></tr>
+<tr><td><code>var x = 0L;</code></td><td>O <code>L</code> é fácil de não ver.</td><td><code>long x = 0;</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Dica para iniciantes</strong>
+<p>Enquanto você está aprendendo, <strong>escreva os tipos</strong>. Ver <code>int</code>, <code>double</code> e <code>String</code> em cada linha ajuda a fixar o que cada variável guarda e a entender os erros do <code>javac</code>. Use o <code>var</code> quando o tipo for longo e repetido, como nos exemplos com <code>new</code>.</p>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>var</code> sem valor: "cannot infer type for local variable total"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        var total;
+        total = 10;
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot infer type for local variable total
+        var total;
+            ^
+  (cannot use 'var' on variable without initializer)
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "não consigo inferir o tipo da variável local total (não se pode usar var numa variável sem inicializador)". O compilador decide o tipo na <strong>linha da declaração</strong>; ele não olha as linhas seguintes.</p>
+<p><strong>Como consertar:</strong> dê o valor na mesma linha (<code>var total = 10;</code>) ou escreva o tipo (<code>int total;</code>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>var</code> com <code>null</code>: "variable initializer is 'null'"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        var cliente = null;
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot infer type for local variable cliente
+        var cliente = null;
+            ^
+  (variable initializer is 'null')
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>null</code> ("nenhum objeto") serve para qualquer tipo de referência, então não diz <strong>qual</strong> tipo a variável deve ter.</p>
+<p><strong>Como consertar:</strong> escreva o tipo: <code>String cliente = null;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>var</code> fora de um método: "'var' is not allowed here"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    var contador = 0;
+
+    public static void main(String[] args) {
+        System.out.println("oi");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:2: error: 'var' is not allowed here
+    var contador = 0;
+    ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "var não é permitido aqui". A linha 2 está dentro da classe, mas fora de qualquer método: é um <strong>atributo</strong> (<a href="atributos.html">Atributos</a>), e atributos sempre exigem o tipo escrito. A mesma mensagem aparece em parâmetros de métodos: <code>static void saudar(var nome)</code>.</p>
+<p><strong>Como consertar:</strong> escreva o tipo: <code>int contador = 0;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"'var' is not allowed in a compound declaration"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: 'var' is not allowed in a compound declaration
+        var a = 1, b = 2;
+        ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "declaração composta" é a de várias variáveis na mesma linha, separadas por vírgula. Com <code>var</code>, é uma por linha.</p>
+<p><strong>Como consertar:</strong> <code>var a = 1;</code> e <code>var b = 2;</code> em linhas separadas, ou <code>int a = 1, b = 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"array initializer needs an explicit target-type"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot infer type for local variable notas
+        var notas = {7, 8, 9};
+            ^
+  (array initializer needs an explicit target-type)
+1 error</pre>
+<p><strong>O que quer dizer:</strong> as chaves <code>{7, 8, 9}</code> criam um <a href="arrays.html">array</a>, mas só quando o tipo está escrito à esquerda. Sozinhas, não dizem se é um array de <code>int</code>, de <code>long</code> ou de <code>double</code>.</p>
+<p><strong>Como consertar:</strong> <code>int[] notas = {7, 8, 9};</code> ou <code>var notas = new int[] {7, 8, 9};</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="erro-javac:cannot infer type">
+<p class="try-task"><strong>Missão (provoque o erro):</strong> altere a linha do <code>var</code> para que o <code>javac</code> responda <code>cannot infer type for local variable</code>. Há duas formas vistas nesta aula; qualquer uma vale.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        var cidade = "Recife";
+        System.out.println(cidade);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        var cidade = null;
+        System.out.println(cidade);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Tipo inferido</th><th>Observação</th></tr>
+<tr><td><code>var n = 10;</code></td><td><code>int</code></td><td>Inteiro sem sufixo</td></tr>
+<tr><td><code>var n = 10L;</code></td><td><code>long</code></td><td></td></tr>
+<tr><td><code>var x = 10.0;</code></td><td><code>double</code></td><td><code>var x = 10;</code> seria <code>int</code></td></tr>
+<tr><td><code>var f = 1.5f;</code></td><td><code>float</code></td><td></td></tr>
+<tr><td><code>var c = 'A';</code></td><td><code>char</code></td><td></td></tr>
+<tr><td><code>var s = "Ana";</code></td><td><code>String</code></td><td></td></tr>
+<tr><td><code>var b = true;</code></td><td><code>boolean</code></td><td></td></tr>
+<tr><td><code>var sc = new Scanner(System.in);</code></td><td><code>Scanner</code></td><td>O tipo que vem depois de <code>new</code></td></tr>
+<tr><td><code>var x;</code> / <code>var x = null;</code></td><td>—</td><td>Não compila</td></tr>
+<tr><td><code>var</code> em atributo ou parâmetro</td><td>—</td><td>Não compila</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Inferência</h3>
+<p>Complete com a palavra que deixa o compilador descobrir o tipo:</p>
+<div class="ex-code"><input data-answer="var" aria-label="palavra"> cidade = "Recife";</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o tipo?</h3>
+<p>Em <code>var media = 7.5;</code>, que tipo a variável <code>media</code> recebe?</p>
+<div class="ex-code"><input data-answer="double" aria-label="tipo"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Forçar long</h3>
+<p>Complete para <code>contador</code> ser um <code>long</code>:</p>
+<div class="ex-code">var contador = 0<input data-answer="L|l" aria-label="sufixo">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destas linhas compila?</p>
+<label><input type="radio" name="q4"> <code>var total;</code></label>
+<label><input type="radio" name="q4"> <code>var cliente = null;</code></label>
+<label><input type="radio" name="q4"> <code>var cliente = "Ana";</code></label>
+<label><input type="radio" name="q4"> <code>var a = 1, b = 2;</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Depois de <code>var idade = 29;</code>, o que acontece com <code>idade = "trinta";</code>?</p>
+<label><input type="radio" name="q5"> Compila: com <code>var</code> a variável aceita qualquer coisa.</label>
+<label><input type="radio" name="q5"> Não compila: <code>idade</code> é <code>int</code> para sempre.</label>
+<label><input type="radio" name="q5"> Compila, mas dá erro ao executar.</label>
+<label><input type="radio" name="q5"> Compila e <code>idade</code> vira <code>String</code>.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Desde qual versão do Java existe o <code>var</code>?</p>
+<label><input type="radio" name="q6"> Java 1.0</label>
+<label><input type="radio" name="q6"> Java 8</label>
+<label><input type="radio" name="q6"> Java 21</label>
+<label><input type="radio" name="q6"> Java 10</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>var</code> (Java 10+) deixa o compilador deduzir o tipo pelo valor: <code>var idade = 29;</code> é exatamente <code>int idade = 29;</code>.</li>
+  <li>O tipo continua fixo: <code>var</code> não cria variável "sem tipo".</li>
+  <li>Só para variáveis <strong>locais</strong> (dentro de métodos), com valor na mesma linha. Não vale sem valor, com <code>null</code>, em várias numa linha, com <code>{…}</code> de array, em atributos nem em parâmetros.</li>
+  <li>Use quando o tipo é óbvio na linha (<code>var leitor = new Scanner(System.in);</code>); escreva o tipo quando ele ajuda a entender.</li>
+  <li>Cuidado: <code>var preco = 10;</code> é <code>int</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
