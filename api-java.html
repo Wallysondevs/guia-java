@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Biblioteca Padrão — os pacotes da API e o Javadoc | Guia Java</title>
+<meta name="description" content="A biblioteca padrão do Java: os pacotes mais usados (java.lang, java.util, java.time, java.nio.file, java.math, java.util.stream), como ler a documentação oficial (Javadoc da Oracle) e como explorar classes com o JShell e o javap. Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">A Biblioteca Padrão</span></h1>
+
+<p class="intro">Quando você instala o JDK, não recebe só o compilador: vem junto uma biblioteca com milhares de classes prontas, para texto, listas, datas, arquivos, contas com dinheiro, internet e muito mais. Ela se chama <strong>biblioteca padrão</strong> ou <strong>API do Java</strong>. Ninguém decora essa biblioteca. O que todo programador sabe é <strong>onde procurar</strong>: em que pacote fica cada assunto e como ler a documentação. É isso que esta aula ensina.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma API e o que vem dentro do JDK.</li>
+  <li>Os pacotes mais usados e o que há em cada um (com uma tabela para consulta).</li>
+  <li>Como ler uma página da documentação oficial, o <strong>Javadoc</strong>.</li>
+  <li>Como explorar classes no terminal, com o <code>jshell</code> e o <code>javap</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula continua a anterior, <a href="pacotes.html">Pacotes e import</a>: lá você aprendeu o que é um pacote; aqui você conhece os pacotes que já vêm com o Java.</p>
+
+<hr>
+
+<h2>A ideia: uma caixa de ferramentas que vem com o JDK</h2>
+<p>Imagine que a Ana comprou uma casa e, junto com a chave, ganhou uma oficina completa: martelo, chaves de fenda, furadeira, trena, tudo organizado em gavetas com etiqueta. Ela não precisa fabricar um martelo para pendurar um quadro; precisa saber em que gaveta ele está.</p>
+<p>A biblioteca padrão é essa oficina. As <strong>gavetas</strong> são os pacotes (<code>java.util</code>, <code>java.time</code>…), as <strong>ferramentas</strong> são as classes (<code>ArrayList</code>, <code>LocalDate</code>…) e o <strong>manual</strong> é o Javadoc.</p>
+
+<p><strong>API</strong> é a sigla de <em>Application Programming Interface</em>, "interface de programação de aplicações": o conjunto de classes e métodos que alguém deixou pronto para outros programadores usarem. "A API do Java" é a biblioteca padrão; "a API do JUnit" é a biblioteca do JUnit; e assim por diante.</p>
+
+<h3>Do tamanho de uma cidade</h3>
+<p>No Java moderno, os pacotes ficam agrupados em <strong>módulos</strong> (veja <a href="modulos.html">Módulos</a>). O JDK 25 da Ana tem 69 deles:</p>
+
+<pre class="term">$ java --list-modules | wc -l
+69
+$ java --list-modules | head -5
+java.base@25.0.4.1
+java.compiler@25.0.4.1
+java.datatransfer@25.0.4.1
+java.desktop@25.0.4.1
+java.instrument@25.0.4.1</pre>
+
+<p>O <code>--list-modules</code> lista os módulos; o <code>| wc -l</code> conta as linhas, e o <code>| head -5</code> mostra só as cinco primeiras (recursos do terminal Linux, não do Java). O mais importante é o primeiro: <strong><code>java.base</code></strong>, o módulo básico, que todo programa usa. Quase tudo desta aula está nele.</p>
+
+<hr>
+
+<h2>Os pacotes mais usados</h2>
+<p>De todos esses pacotes, um punhado aparece em quase todo programa. Esta tabela é para você voltar sempre que precisar:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pacote</th><th>Para quê</th><th>Classes que você vai usar</th><th>Aula</th></tr>
+<tr><td><code>java.lang</code></td><td>O básico da linguagem. <strong>Não precisa de import.</strong></td><td><code>String</code>, <code>Math</code>, <code>System</code>, <code>Integer</code>, <code>Double</code>, <code>StringBuilder</code>, <code>Object</code>, <code>Thread</code></td><td><a href="strings.html">Strings</a>, <a href="math.html">Math</a>, <a href="wrappers.html">Wrappers</a>, <a href="object.html">Object</a></td></tr>
+<tr><td><code>java.util</code></td><td>Utilidades: coleções, teclado, números aleatórios</td><td><code>ArrayList</code>, <code>List</code>, <code>HashMap</code>, <code>HashSet</code>, <code>Scanner</code>, <code>Random</code>, <code>Arrays</code>, <code>Collections</code>, <code>Optional</code></td><td><a href="colecoes.html">Coleções</a>, <a href="scanner.html">Scanner</a>, <a href="aleatorios.html">Aleatórios</a></td></tr>
+<tr><td><code>java.time</code></td><td>Datas, horas, durações</td><td><code>LocalDate</code>, <code>LocalTime</code>, <code>LocalDateTime</code>, <code>Duration</code>, <code>Period</code></td><td><a href="datas.html">Datas e Horas</a></td></tr>
+<tr><td><code>java.nio.file</code></td><td>Arquivos e pastas</td><td><code>Files</code>, <code>Path</code></td><td><a href="arquivos.html">Ler e Escrever Arquivos</a></td></tr>
+<tr><td><code>java.io</code></td><td>Entrada e saída "clássica" (anterior ao <code>nio</code>)</td><td><code>IOException</code>, <code>BufferedReader</code>, <code>PrintStream</code></td><td><a href="arquivos.html">Arquivos</a>, <a href="checked-unchecked.html">Checked × Unchecked</a></td></tr>
+<tr><td><code>java.math</code></td><td>Números grandes e contas exatas</td><td><code>BigDecimal</code>, <code>BigInteger</code></td><td><a href="bigdecimal.html">BigDecimal</a></td></tr>
+<tr><td><code>java.util.stream</code></td><td>Processar coleções em etapas</td><td><code>Stream</code>, <code>Collectors</code>, <code>IntStream</code></td><td><a href="streams.html">Streams</a>, <a href="collectors.html">Collectors</a></td></tr>
+<tr><td><code>java.util.function</code></td><td>Tipos para lambdas</td><td><code>Function</code>, <code>Predicate</code>, <code>Consumer</code>, <code>Supplier</code></td><td><a href="interfaces-funcionais.html">Interfaces Funcionais</a></td></tr>
+<tr><td><code>java.util.regex</code></td><td>Expressões regulares</td><td><code>Pattern</code>, <code>Matcher</code></td><td><a href="regex.html">Regex</a></td></tr>
+<tr><td><code>java.util.concurrent</code></td><td>Tarefas em paralelo</td><td><code>ExecutorService</code>, <code>Executors</code></td><td><a href="executors.html">ExecutorService</a></td></tr>
+<tr><td><code>java.text</code></td><td>Formatar números e datas (antigo)</td><td><code>NumberFormat</code>, <code>DecimalFormat</code></td><td><a href="formatacao.html">Formatar Texto</a></td></tr>
+<tr><td><code>java.net.http</code></td><td>Acessar a internet (HTTP)</td><td><code>HttpClient</code>, <code>HttpRequest</code></td><td>—</td></tr>
+<tr><td><code>java.sql</code></td><td>Bancos de dados (JDBC)</td><td><code>Connection</code>, <code>ResultSet</code></td><td>—</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Repare nos subpacotes</strong>
+<p><code>java.util</code>, <code>java.util.stream</code>, <code>java.util.function</code> e <code>java.util.regex</code> são quatro pacotes <strong>diferentes</strong>. Um <code>import java.util.*;</code> não traz os outros três (você viu isso em <a href="pacotes.html">Pacotes e import</a>).</p>
+</div>
+
+<h3>Um passeio por seis gavetas</h3>
+<p>Para ver a biblioteca trabalhando, a Ana escreveu um programa que usa uma ferramenta de cada pacote principal. Não se preocupe em entender cada linha agora: cada uma tem uma aula própria. Repare nos <code>import</code> do topo, um para cada classe de fora de <code>java.lang</code>.</p>
+
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        // java.lang: sem import
+        String nome = "Ana";
+        System.out.println(nome.toUpperCase() + " " + Math.max(3, 9));
+
+        // java.util: listas e utilitários
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("uva", "maçã", "banana"));
+        Collections.sort(frutas);
+        System.out.println(frutas);
+
+        // java.time: datas
+        LocalDate prova = LocalDate.of(2026, 10, 16);
+        System.out.println(prova + " -&gt; " + prova.plusDays(7) + " " + prova.getDayOfWeek());
+
+        // java.math: contas exatas
+        System.out.println(0.1 + 0.2);
+        System.out.println(new BigDecimal("0.1").add(new BigDecimal("0.2")));
+
+        // java.util.stream: processar coleções
+        System.out.println(frutas.stream().filter(f -&gt; f.length() &gt; 3).map(String::toUpperCase).toList());
+
+        // java.nio.file: arquivos
+        Path arquivo = Path.of("compras.txt");
+        Files.writeString(arquivo, "pão\nleite\n");
+        System.out.println(Files.readAllLines(arquivo));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+ANA 9                            « java.lang: String e Math
+[banana, maçã, uva]              « java.util: a lista em ordem
+2026-10-16 -&gt; 2026-10-23 FRIDAY  « java.time: uma semana depois; 16/10/2026 é sexta
+0.30000000000000004              « double: conta com erro de arredondamento
+0.3                              « java.math: BigDecimal acerta
+[BANANA, MAÇÃ]                   « java.util.stream: só as frutas com mais de 3 letras
+[pão, leite]                     « java.nio.file: gravou e leu o arquivo
+$ cat compras.txt
+pão
+leite</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha da saída</th><th>Quem fez</th><th>Pacote</th></tr>
+<tr><td><code>ANA 9</code></td><td><code>toUpperCase()</code> e <code>Math.max</code></td><td><code>java.lang</code></td></tr>
+<tr><td><code>[banana, maçã, uva]</code></td><td><code>ArrayList</code>, <code>List.of</code>, <code>Collections.sort</code></td><td><code>java.util</code></td></tr>
+<tr><td><code>2026-10-16 -&gt; 2026-10-23 FRIDAY</code></td><td><code>LocalDate.of</code>, <code>plusDays</code>, <code>getDayOfWeek</code></td><td><code>java.time</code></td></tr>
+<tr><td><code>0.3</code></td><td><code>BigDecimal.add</code></td><td><code>java.math</code></td></tr>
+<tr><td><code>[BANANA, MAÇÃ]</code></td><td><code>stream().filter(…).map(…)</code></td><td><code>java.util.stream</code></td></tr>
+<tr><td><code>[pão, leite]</code></td><td><code>Files.writeString</code>, <code>Files.readAllLines</code></td><td><code>java.nio.file</code></td></tr>
+</table>
+</div>
+
+<p>O <code>throws Exception</code> no <code>main</code> está ali porque mexer em arquivos pode dar erro (disco cheio, sem permissão), e o Java obriga a declarar isso. Você vai entender o motivo em <a href="throw-throws.html">throw e throws</a>.</p>
+
+<div class="tryjava" data-goal="out:59.70,src:BigDecimal">
+<p class="try-task"><strong>Missão:</strong> a Ana vendeu 3 camisetas de R$ 19,90. Com <code>double</code>, a conta pode sair "torta"; com <code>BigDecimal</code> (pacote <code>java.math</code>), sai exata. Acrescente o <code>import</code> que falta e complete a linha do <code>total</code> com <code>preco.multiply(quantidade)</code>. A saída deve ser <code>59.70</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        BigDecimal preco = new BigDecimal("19.90");
+        BigDecimal quantidade = new BigDecimal("3");
+        BigDecimal total = preco; // troque por preco.multiply(quantidade)
+        System.out.println(total);
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal preco = new BigDecimal("19.90");
+        BigDecimal quantidade = new BigDecimal("3");
+        BigDecimal total = preco.multiply(quantidade);
+        System.out.println(total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O manual: a documentação oficial (Javadoc)</h2>
+<p>Toda classe da biblioteca tem uma página de documentação, escrita pelos próprios autores, em inglês. O conjunto dessas páginas se chama <strong>Javadoc</strong> (o nome da ferramenta que as gera a partir de comentários no código; você vai usá-la em <a href="javadoc.html">Javadoc</a>). A documentação do Java 25 fica no site da Oracle:</p>
+
+<p><code>https://docs.oracle.com/en/java/javase/25/docs/api/</code></p>
+
+<p>Troque o <code>25</code> pela versão que você usa (<code>21</code>, <code>17</code>…). Na página inicial há uma <strong>caixa de busca</strong> (<em>Search</em>) no topo: digite o nome da classe, como <code>Math</code>, e escolha <code>java.lang.Math</code> na lista. Ninguém navega pelo índice; todo mundo usa a busca.</p>
+
+<h3>As partes de uma página</h3>
+<p>Toda página de classe tem a mesma estrutura. Usando a de <code>Math</code> como exemplo, de cima para baixo:</p>
+
+<ol class="passo">
+  <li><strong>O endereço</strong>: <code>java.base › java.lang › Math</code>, ou seja, módulo, pacote e classe. É daqui que você tira o <code>import</code> (a não ser que seja <code>java.lang</code>).</li>
+  <li><strong>A herança</strong>: <code>java.lang.Object</code> → <code>java.lang.Math</code>. Mostra de quem a classe herda (veja <a href="heranca.html">Herança</a>).</li>
+  <li><strong>A declaração</strong>: <code>public final class Math extends Object</code>. Você já sabe ler: pública, <a href="final.html">final</a> (não pode ser herdada).</li>
+  <li><strong>Description</strong> ("descrição"): o que a classe faz, em texto corrido, às vezes com exemplos. No fim, <strong>Since: 1.0</strong> diz em que versão do Java ela apareceu.</li>
+  <li><strong>Field Summary</strong> ("resumo dos campos"): os atributos públicos, como <code>PI</code> e <code>E</code>.</li>
+  <li><strong>Constructor Summary</strong> ("resumo dos construtores"): como criar objetos. A página de <code>Math</code> não tem essa seção, porque não dá para criar um <code>Math</code> (veja <a href="static.html">static</a>).</li>
+  <li><strong>Method Summary</strong> ("resumo dos métodos"): uma tabela com todos os métodos. É a parte que você mais vai usar.</li>
+  <li><strong>Field Details</strong> e <strong>Method Details</strong>: a explicação completa de cada atributo e de cada método.</li>
+</ol>
+
+<h3>Lendo a tabela de métodos</h3>
+<p>A tabela do <em>Method Summary</em> tem três colunas, e acima dela há abas para filtrar (<em>All Methods</em>, <em>Static Methods</em>, <em>Instance Methods</em>, <em>Concrete Methods</em>…). Uma linha dela fica assim:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Modifier and Type</th><th>Method</th><th>Description</th></tr>
+<tr><td><code>static double</code></td><td><code>sqrt(double a)</code></td><td>Returns the correctly rounded positive square root of a <code>double</code> value.</td></tr>
+<tr><td><code>static int</code></td><td><code>max(int a, int b)</code></td><td>Returns the greater of two <code>int</code> values.</td></tr>
+</table>
+</div>
+
+<dl class="anatomy">
+  <dt>Modifier and Type</dt><dd>"Modificador e tipo". <code>static</code> diz que você chama pela classe (<code>Math.sqrt</code>); se não houver <code>static</code>, chama por um objeto (<code>texto.length()</code>). <code>double</code> é o tipo do valor devolvido.</dd>
+  <dt>Method</dt><dd>O nome e os parâmetros, com tipos e nomes: <code>sqrt</code> recebe um <code>double</code>.</dd>
+  <dt>Description</dt><dd>A primeira frase da explicação. Clique no nome do método para ver o resto.</dd>
+</dl>
+
+<p>Com essa linha você já consegue escrever a chamada: <code>double r = Math.sqrt(81);</code>. Repare que <code>max</code> aparece <strong>quatro</strong> vezes na tabela, uma para cada tipo (<code>int</code>, <code>long</code>, <code>float</code>, <code>double</code>): é a <a href="sobrecarga.html">sobrecarga</a>.</p>
+
+<h3>Lendo o detalhe de um método</h3>
+<p>Clicando em <code>sqrt</code>, você chega ao <em>Method Details</em>:</p>
+
+<pre class="file" data-file="Javadoc de Math.sqrt (trecho)">public static double sqrt(double a)
+
+Returns the correctly rounded positive square root of a double value. Special cases:
+  • If the argument is NaN or less than zero, then the result is NaN.
+  • If the argument is positive infinity, then the result is positive infinity.
+  • If the argument is positive zero or negative zero, then the result is the same as the argument.
+
+Parameters:
+    a - a value.
+Returns:
+    the positive square root of a. If the argument is NaN or less than zero, the result is NaN.
+</pre>
+
+<p>A parte que separa quem lê a documentação de quem não lê são os <strong>casos especiais</strong>. Ali está escrito que a raiz de um número negativo não dá erro: devolve <code>NaN</code> (<em>Not a Number</em>, "não é um número"; veja <a href="decimais.html">double e float</a>). Os rótulos que você vai encontrar nos detalhes:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Rótulo</th><th>Tradução</th><th>O que diz</th></tr>
+<tr><td><strong>Parameters:</strong></td><td>Parâmetros</td><td>O que cada parâmetro significa</td></tr>
+<tr><td><strong>Returns:</strong></td><td>Devolve</td><td>O que o método devolve</td></tr>
+<tr><td><strong>Throws:</strong></td><td>Lança</td><td>Que <a href="excecoes.html">exceções</a> ele pode lançar, e quando (ex.: <code>substring</code> lança <code>IndexOutOfBoundsException</code> se os índices estiverem fora do texto)</td></tr>
+<tr><td><strong>Since:</strong></td><td>Desde</td><td>A versão do Java em que apareceu. Se for maior que a sua, você não tem o método</td></tr>
+<tr><td><strong>Deprecated</strong></td><td>Obsoleto</td><td>Ainda existe, mas não deve ser usado; o texto diz o que usar no lugar</td></tr>
+<tr><td><strong>See Also:</strong></td><td>Veja também</td><td>Métodos e classes relacionados</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Não lê inglês?</strong>
+<p>A documentação oficial só existe em inglês. Com o tempo, o vocabulário se repete muito (<em>returns</em>, <em>argument</em>, <em>specified</em>, <em>if … then</em>) e fica fácil. Até lá, use o tradutor do navegador na página: ele traduz o texto e mantém o código. As páginas de <a href="ref-string.html">Métodos de String</a> e <a href="ref-math.html">Métodos de Math</a> deste guia resumem em português as classes mais usadas.</p>
+</div>
+
+<hr>
+
+<h2>Explorando no terminal</h2>
+<p>A documentação é ótima, mas às vezes é mais rápido perguntar ao próprio JDK. Há duas ferramentas para isso.</p>
+
+<h3>O JShell: completar com <kbd>Tab</kbd></h3>
+<p>O <a href="jshell.html">JShell</a> é o melhor lugar para "brincar" com uma classe nova. Digite o nome da classe, um ponto, o começo do método e aperte <kbd>Tab</kbd>: ele mostra as opções. Aperte <kbd>Tab</kbd> depois do parêntese e ele mostra a assinatura; aperte de novo e ele mostra a documentação, ali mesmo:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; Math.s                                   « aqui a Ana apertou Tab
+scalb(           signum(          sin(             sinh(
+sqrt(            subtractExact(
+jshell&gt; Math.sqrt(                                « completou e apertou Tab de novo
+Signatures:
+double Math.sqrt(double a)
+
+&lt;press tab again to see documentation&gt;
+jshell&gt; Math.sqrt(                                « mais um Tab
+double Math.sqrt(double a)
+Returns the correctly rounded positive square root of a double value.Special
+cases:
+  * If the argument is NaN or less than zero, then the result is NaN.
+  * If the argument is positive infinity, then the result is positive infinity.
+  * If the argument is positive zero or negative zero, then the result is the
+    same as the argument.
+Otherwise, the result is the double value closest to
+the true mathematical square root of the argument value.
+
+Parameters:
+a - a value.
+
+Returns:
+the positive square root of a . If the argument is NaN or less than zero, the
+result is NaN.
+
+&lt;press tab again to see all possible completions; total possible completions: 1.407&gt;</pre>
+
+<p><em>Signatures</em> = "assinaturas" (o tipo de retorno, o nome e os parâmetros); <em>press tab again to see documentation</em> = "aperte Tab de novo para ver a documentação". É o mesmo texto do site, sem sair do terminal. Funciona com qualquer coisa: <code>"banana".</code> + <kbd>Tab</kbd> mostra todos os métodos de <code>String</code>.</p>
+
+<p>No JShell do Java 25 ainda há uma vantagem: o comando <code>/imports</code> mostra que ele já começa com o módulo <code>java.base</code> inteiro importado. Então <code>LocalDate</code> e <code>BigDecimal</code> funcionam sem <code>import</code>:</p>
+
+<pre class="term">$ jshell -q
+jshell&gt; /imports
+|    import java.base
+jshell&gt; LocalDate.of(2026, 10, 16).plusMonths(1)
+$1 ==&gt; 2026-11-16
+jshell&gt; LocalDate.of(2026, 10, 16).getDayOfWeek()
+$2 ==&gt; FRIDAY
+jshell&gt; new BigDecimal("19.90").multiply(new BigDecimal("3"))
+$3 ==&gt; 59.70
+jshell&gt; /exit</pre>
+
+<p>O <code>-q</code> (de <em>quiet</em>, "quieto") só esconde a mensagem de boas-vindas. Lembre-se: num arquivo <code>.java</code> comum, os <code>import</code> continuam necessários.</p>
+
+<div class="tryjshell" data-goal="out:FRIDAY">
+<p class="try-task"><strong>Missão:</strong> use o JShell para descobrir em que dia da semana cai o Natal de 2026. Digite <code>import java.time.LocalDate</code> e depois <code>LocalDate.of(2026, 12, 25).getDayOfWeek()</code>. A resposta vem em inglês (<code>MONDAY</code>, <code>TUESDAY</code>…).</p>
+<pre class="solucao">import java.time.LocalDate
+LocalDate.of(2026, 12, 25).getDayOfWeek()</pre>
+</div>
+
+<h3>O <code>javap</code>: a lista de métodos de uma classe</h3>
+<p>O <code>javap</code> (de <em>Java</em> + <em>p</em> de <em>print</em>, "imprimir") vem no JDK e mostra o "esqueleto" de uma classe compilada: atributos e métodos, sem o código de dentro. A opção <code>-public</code> mostra só o que é público, que é o que você pode usar:</p>
+
+<pre class="term">$ javap -public java.lang.Math | grep " max\| sqrt\| round"
+  public static double sqrt(double);
+  public static int round(float);
+  public static long round(double);
+  public static int max(int, int);
+  public static long max(long, long);
+  public static float max(float, float);
+  public static double max(double, double);
+$ javap java.time.LocalDate | grep " now\| plusDays\| getDayOfWeek\| of("
+  public static java.time.LocalDate now();
+  public static java.time.LocalDate now(java.time.ZoneId);
+  public static java.time.LocalDate now(java.time.Clock);
+  public static java.time.LocalDate of(int, java.time.Month, int);
+  public static java.time.LocalDate of(int, int, int);
+  public java.time.DayOfWeek getDayOfWeek();
+  public java.time.LocalDate plusDays(long);</pre>
+
+<p>O <code>grep</code> (do terminal) filtra só as linhas com aqueles nomes; sem ele, a lista de <code>Math</code> passa de cem linhas. Leia cada linha como na tabela do Javadoc: <code>public static int round(float)</code> é um método da classe, que recebe um <code>float</code> e devolve um <code>int</code>. Repare que <code>LocalDate.now()</code> é <code>static</code> (chama pela classe) e <code>getDayOfWeek()</code> não é (chama por uma data). O <code>javap</code> não mostra explicações, só as assinaturas: é uma cola rápida.</p>
+
+<hr>
+
+<h2>Biblioteca padrão × bibliotecas de terceiros</h2>
+<p>Nem tudo vem no JDK. Testes automáticos (JUnit), leitura de JSON, acesso a bancos específicos, gráficos modernos: isso vem de <strong>bibliotecas de terceiros</strong>, feitas pela comunidade ou por empresas, que você baixa e acrescenta ao projeto. Quem cuida disso são as ferramentas <a href="maven.html">Maven</a> e <a href="gradle.html">Gradle</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Biblioteca padrão</th><th>Bibliotecas de terceiros</th></tr>
+<tr><td>Onde está</td><td>Dentro do JDK</td><td>Baixada da internet (repositório Maven Central)</td></tr>
+<tr><td>Pacotes</td><td><code>java.*</code>, <code>javax.*</code>, <code>jdk.*</code></td><td>O domínio do autor: <code>org.junit…</code>, <code>com.google…</code></td></tr>
+<tr><td>Documentação</td><td>docs.oracle.com</td><td>O site de cada projeto (no mesmo formato Javadoc)</td></tr>
+<tr><td>Precisa instalar?</td><td>Não</td><td>Sim, pelo Maven ou Gradle</td></tr>
+</table>
+</div>
+
+<p>A regra de ouro: antes de procurar uma biblioteca de fora (ou de escrever do zero), confira se a biblioteca padrão já resolve. Ela resolve muito mais do que parece.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … class LocalDate" num arquivo, mas no JShell funcionava</strong>
+<p><strong>O que aconteceu:</strong> o JShell do Java 25 já começa com <code>java.base</code> importado; um arquivo <code>.java</code> só tem <code>java.lang</code> de graça.</p>
+<p><strong>Como resolver:</strong> acrescente o import (<code>import java.time.LocalDate;</code>). O pacote está no topo da página do Javadoc.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol" com um método que você viu na documentação</strong>
+<p><strong>O que aconteceu:</strong> quase sempre é <strong>versão</strong>. Você leu a documentação do Java 25, mas compila com um JDK mais antigo (ou o contrário). Exemplo: <code>Stream.toList()</code> só existe desde o Java 16; <code>String.repeat</code>, desde o 11.</p>
+<p><strong>Como resolver:</strong> veja o <strong>Since:</strong> do método e confira a sua versão com <code>java -version</code>. Abra a documentação da versão que você usa (troque o número no endereço).</p>
+</div>
+
+<div class="cenario">
+<strong>"non-static method … cannot be referenced from a static context" ao usar a API</strong>
+<p><strong>O que aconteceu:</strong> você chamou pelo nome da classe um método que não é <code>static</code>, como <code>String.length()</code> ou <code>LocalDate.getDayOfWeek()</code>.</p>
+<p><strong>Como resolver:</strong> olhe a coluna <em>Modifier and Type</em>: sem <code>static</code>, o método precisa de um objeto (<code>"Ana".length()</code>, <code>data.getDayOfWeek()</code>). Veja <a href="static.html">static</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que você quer</th><th>Onde procurar</th></tr>
+<tr><td>Texto, contas, conversões</td><td><code>java.lang</code>: <code>String</code>, <code>Math</code>, <code>Integer</code></td></tr>
+<tr><td>Listas, mapas, conjuntos, teclado, sorteio</td><td><code>java.util</code></td></tr>
+<tr><td>Datas e horas</td><td><code>java.time</code></td></tr>
+<tr><td>Arquivos</td><td><code>java.nio.file</code> (<code>Files</code>, <code>Path</code>)</td></tr>
+<tr><td>Dinheiro, números enormes</td><td><code>java.math</code></td></tr>
+<tr><td>Filtrar e transformar coleções</td><td><code>java.util.stream</code></td></tr>
+<tr><td>A documentação de uma classe</td><td><code>docs.oracle.com/en/java/javase/25/docs/api/</code> → Search</td></tr>
+<tr><td>Ver métodos e documentação no terminal</td><td><code>jshell</code> + <kbd>Tab</kbd> (duas vezes para a documentação)</td></tr>
+<tr><td>Ver as assinaturas de uma classe</td><td><code>javap -public pacote.Classe</code></td></tr>
+<tr><td>Ver os módulos do JDK</td><td><code>java --list-modules</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual pacote?</h3>
+<p>A classe <code>LocalDate</code> fica no pacote:</p>
+<div class="ex-code"><input data-answer="java.time" aria-label="pacote"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O import do Scanner</h3>
+<p>Complete o import da classe que lê do teclado:</p>
+<div class="ex-code">import <input data-answer="java.util.Scanner|java.util.*" aria-label="classe">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Ler a tabela</h3>
+<p>No Javadoc de <code>String</code>, uma linha do <em>Method Summary</em> diz: <code>static String</code> | <code>valueOf(int i)</code>. Complete a chamada que transforma o número 42 em texto:</p>
+<div class="ex-code">String s = <input data-answer="String.valueOf(42)" aria-label="chamada">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Que pacote você procuraria para fazer contas com dinheiro sem erros de arredondamento?</p>
+<label><input type="radio" name="q4"> <code>java.lang</code></label>
+<label><input type="radio" name="q4"> <code>java.util</code></label>
+<label><input type="radio" name="q4"> <code>java.math</code></label>
+<label><input type="radio" name="q4"> <code>java.text</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Na documentação de um método, o que diz a linha <strong>Since: 11</strong>?</p>
+<label><input type="radio" name="q5"> Que o método tem 11 parâmetros</label>
+<label><input type="radio" name="q5"> Que ele existe a partir do Java 11</label>
+<label><input type="radio" name="q5"> Que ele foi removido no Java 11</label>
+<label><input type="radio" name="q5"> Que ele é rápido</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. No JShell, como ver a documentação de <code>Math.sqrt</code>?</p>
+<label><input type="radio" name="q6"> Digitar <code>Math.sqrt(</code> e apertar <kbd>Tab</kbd> duas vezes</label>
+<label><input type="radio" name="q6"> Digitar <code>/doc Math</code></label>
+<label><input type="radio" name="q6"> Rodar <code>javac -doc</code></label>
+<label><input type="radio" name="q6"> Não é possível; só no site</label>
+</div>
+
+<div class="tryjava" data-goal="out:2026-11-15,src:import\s+java\.time">
+<p class="try-task"><strong>Missão final:</strong> a matrícula da Ana vence 30 dias depois de 16/10/2026. Use <code>LocalDate.of(2026, 10, 16)</code> e o método <code>plusDays</code> (que você viu no <code>javap</code>) para mostrar a data de vencimento. Não esqueça o <code>import</code>. A saída deve ser <code>2026-11-15</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        // crie a data e mostre a data 30 dias depois
+    }
+}
+</pre>
+<pre class="solucao">import java.time.LocalDate;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate matricula = LocalDate.of(2026, 10, 16);
+        System.out.println(matricula.plusDays(30));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O JDK traz uma biblioteca enorme, organizada em módulos e pacotes. O módulo <code>java.base</code> tem o essencial.</li>
+  <li>Os pacotes do dia a dia: <code>java.lang</code> (sem import), <code>java.util</code>, <code>java.time</code>, <code>java.nio.file</code>, <code>java.math</code>, <code>java.util.stream</code>.</li>
+  <li>A documentação oficial (Javadoc) fica em <code>docs.oracle.com/en/java/javase/25/docs/api/</code>. Use a busca, leia o <em>Method Summary</em> e os detalhes: <em>Parameters</em>, <em>Returns</em>, <em>Throws</em>, <em>Since</em>.</li>
+  <li><code>static</code> na coluna <em>Modifier and Type</em> = chame pela classe; sem <code>static</code> = chame por um objeto.</li>
+  <li>No terminal: <code>jshell</code> + <kbd>Tab</kbd> mostra métodos, assinaturas e documentação; <code>javap -public</code> lista as assinaturas.</li>
+  <li>O que não está no JDK vem de bibliotecas de terceiros, pelo Maven ou Gradle.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
