@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Encapsulamento — private, getters e setters | Guia Java</title>
+<meta name="description" content="Encapsulamento em Java: por que esconder os dados (a conta com saldo negativo), atributos private com getters e setters, validação no setter, convenção getNome/isAtivo, classes imutáveis sem setters e o record como atalho, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Encapsulamento (get e set)</span></h1>
+
+<p class="intro"><strong>Encapsular</strong> é guardar algo numa cápsula: os dados de um objeto ficam escondidos lá dentro, e o mundo de fora só consegue lê-los ou mudá-los pelos métodos que a classe oferece. É o primeiro pilar da orientação a objetos e a razão de existirem os famosos <strong>getters</strong> e <strong>setters</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que problema o encapsulamento resolve (a conta com saldo negativo).</li>
+  <li>O padrão do Java: atributos <code>private</code> + métodos <code>get</code> e <code>set</code> públicos.</li>
+  <li>Como <strong>validar</strong> no setter e quando é melhor ter métodos como <code>depositar</code> em vez de <code>setSaldo</code>.</li>
+  <li>A convenção de nomes: <code>getNome</code>, <code>setNome</code>, <code>isAtivo</code>.</li>
+  <li>Classes <strong>imutáveis</strong> (sem setters, com <code>final</code>) e o <code>record</code> como atalho.</li>
+</ul>
+</div>
+
+<p>Esta aula junta três anteriores: <a href="metodos-objeto.html">Métodos de Objeto</a>, <a href="this.html">this</a> e <a href="modificadores.html">Modificadores de Acesso</a>.</p>
+
+<hr>
+
+<h2>O problema: a conta com saldo negativo</h2>
+<p>O banco da Ana usa a classe <code>Conta</code> com atributos abertos, como nas primeiras aulas de objetos. Qualquer parte do programa mexe neles diretamente:</p>
+
+<pre class="file" data-file="Main.java">class Conta {
+    String titular;
+    double saldo;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta();
+        c.titular = "Ana";
+        c.saldo = 100;
+        c.saldo = c.saldo - 600;
+        c.titular = "";
+        System.out.println("Titular: [" + c.titular + "]  Saldo: " + c.saldo);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Titular: []  Saldo: -500.0       « uma conta sem dono e com 500 negativos</pre>
+
+<p>O Java não reclamou de nada: compilou e rodou. Mas a conta ficou num estado <strong>inválido</strong>: sacaram 600 de quem tinha 100, e o titular virou um texto vazio. Num sistema grande, com centenas de classes mexendo em <code>saldo</code>, descobrir <strong>quem</strong> fez isso é um pesadelo.</p>
+<p>O problema não é a conta: é que <strong>ela não tem como se defender</strong>. Qualquer um escreve qualquer valor nos atributos dela.</p>
+
+<hr>
+
+<h2>A ideia: a cápsula e o balcão</h2>
+<p>Pense no caixa de um banco. Você não entra no cofre: fala com o atendente no balcão. Ele confere se o seu saque cabe no saldo, se a assinatura confere, e só então mexe no cofre. O cofre fica fechado; o balcão é a única passagem, e a passagem tem regras.</p>
+<ul>
+  <li>O <strong>cofre</strong> são os atributos, marcados com <code>private</code>.</li>
+  <li>O <strong>balcão</strong> são os métodos <code>public</code>: <code>getSaldo()</code> para consultar, <code>depositar()</code> e <code>sacar()</code> para mudar, cada um com as suas conferências.</li>
+</ul>
+
+<hr>
+
+<h2>A conta encapsulada</h2>
+
+<pre class="file" data-file="Main.java">class Conta {
+    private String titular;
+    private double saldo;
+
+    public Conta(String titular) {
+        setTitular(titular);
+    }
+
+    public String getTitular() {
+        return titular;
+    }
+
+    public void setTitular(String titular) {
+        if (titular == null || titular.isBlank()) {
+            System.out.println("Titular inválido; mantido: " + this.titular);
+            return;
+        }
+        this.titular = titular;
+    }
+
+    public double getSaldo() {
+        return saldo;
+    }
+
+    public void depositar(double valor) {
+        if (valor &lt;= 0) {
+            System.out.println("Depósito inválido: " + valor);
+            return;
+        }
+        saldo += valor;
+    }
+
+    public boolean sacar(double valor) {
+        if (valor &lt;= 0 || valor &gt; saldo) {
+            System.out.println("Saque recusado: " + valor);
+            return false;
+        }
+        saldo -= valor;
+        return true;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta("Ana");
+        c.depositar(100);
+        c.sacar(600);
+        c.depositar(-50);
+        c.setTitular("");
+        c.setTitular("Ana Souza");
+        System.out.println(c.getTitular() + ": " + c.getSaldo());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Saque recusado: 600.0
+Depósito inválido: -50.0
+Titular inválido; mantido: Ana
+Ana Souza: 100.0          « a conta continua válida</pre>
+
+<p>As mesmas tentativas do exemplo anterior agora são <strong>barradas</strong>. Peça por peça:</p>
+
+<dl class="anatomy">
+  <dt>private String titular; private double saldo;</dt><dd>O cofre. De fora da classe, <code>c.saldo = -500</code> nem compila (<code>saldo has private access in Conta</code>).</dd>
+  <dt>public String getTitular()</dt><dd>Um <strong>getter</strong> ("pegador"): devolve o valor do atributo. Só leitura.</dd>
+  <dt>public void setTitular(String titular)</dt><dd>Um <strong>setter</strong> ("definidor"): recebe um valor novo e, <strong>se ele for válido</strong>, guarda no atributo. Aqui, recusa <code>null</code> e textos em branco (<code>isBlank()</code>, veja <a href="metodos-string.html">Métodos de String</a>).</dd>
+  <dt>this.titular = titular;</dt><dd>O padrão da aula <a href="this.html">this</a>: parâmetro e atributo com o mesmo nome.</dd>
+  <dt>setTitular(titular); no construtor</dt><dd>O construtor reaproveita o setter, para que a mesma regra valha desde o nascimento do objeto.</dd>
+  <dt>public double getSaldo()</dt><dd>Getter do saldo. Repare: <strong>não existe <code>setSaldo</code></strong>.</dd>
+  <dt>depositar e sacar</dt><dd>As únicas formas de mudar o saldo, cada uma com a sua regra de negócio.</dd>
+</dl>
+
+<h3>Nem todo atributo precisa de setter</h3>
+<p>Um erro comum é criar, por reflexo, um <code>get</code> e um <code>set</code> para cada atributo. Um <code>setSaldo(double)</code> público deixaria qualquer um escrever <code>c.setSaldo(1000000)</code>: o atributo estaria privado só no nome. Pergunte sempre: <strong>como esse dado muda no mundo real?</strong> Saldo muda por depósito e saque, então a classe oferece <code>depositar</code> e <code>sacar</code>. O número da conta nunca muda, então não tem setter nenhum.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Atributo</th><th>Getter?</th><th>Setter?</th><th>Por quê</th></tr>
+<tr><td><code>titular</code></td><td>Sim</td><td>Sim, com validação</td><td>O nome pode ser corrigido, mas nunca vazio</td></tr>
+<tr><td><code>saldo</code></td><td>Sim</td><td>Não: <code>depositar</code>/<code>sacar</code></td><td>Muda só por operações com regras</td></tr>
+<tr><td><code>numero</code> da conta</td><td>Sim</td><td>Não</td><td>Definido no construtor e nunca muda</td></tr>
+<tr><td><code>senha</code></td><td>Não</td><td><code>trocarSenha(antiga, nova)</code></td><td>Ninguém de fora precisa ler a senha</td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:Nota recusada: 12.0,out:Nota recusada: -1.0,out:Carla: 9.5,src:private\s+double\s+nota,src:public\s+void\s+setNota\s*\(\s*double">
+<p class="try-task"><strong>Missão:</strong> complete o <code>setNota</code> da classe <code>Aluno</code>: ele só deve aceitar notas de 0 a 10. Para valores fora disso, imprima <code>Nota recusada: </code> seguido do valor e não mude nada. O <code>main</code> tenta 12, -1 e 9.5.</p>
+<pre class="script">class Aluno {
+    private String nome;
+    private double nota;
+
+    public Aluno(String nome) {
+        this.nome = nome;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public double getNota() {
+        return nota;
+    }
+
+    public void setNota(double nota) {
+        // valide aqui
+        this.nota = nota;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno a = new Aluno("Carla");
+        a.setNota(12);
+        a.setNota(-1);
+        a.setNota(9.5);
+        System.out.println(a.getNome() + ": " + a.getNota());
+    }
+}
+</pre>
+<pre class="solucao">class Aluno {
+    private String nome;
+    private double nota;
+
+    public Aluno(String nome) {
+        this.nome = nome;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public double getNota() {
+        return nota;
+    }
+
+    public void setNota(double nota) {
+        if (nota &lt; 0 || nota &gt; 10) {
+            System.out.println("Nota recusada: " + nota);
+            return;
+        }
+        this.nota = nota;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno a = new Aluno("Carla");
+        a.setNota(12);
+        a.setNota(-1);
+        a.setNota(9.5);
+        System.out.println(a.getNome() + ": " + a.getNota());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Recusar com aviso ou com exceção?</h2>
+<p>Nos exemplos acima, o setter imprime um aviso e ignora o valor. É simples e bom para aprender, mas tem um defeito: quem chamou pode não perceber que nada aconteceu. Em programas reais, o costume é <strong>lançar uma exceção</strong>: o programa para (a menos que alguém trate o problema) e a mensagem diz exatamente o que houve.</p>
+
+<pre class="file" data-file="Main.java">class Conta {
+    private double saldo;
+
+    public void depositar(double valor) {
+        if (valor &lt;= 0) {
+            throw new IllegalArgumentException("Depósito inválido: " + valor);
+        }
+        saldo += valor;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta();
+        c.depositar(100);
+        c.depositar(-50);
+        System.out.println("Esta linha não roda");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.IllegalArgumentException: Depósito inválido: -50.0
+	at Conta.depositar(Main.java:6)
+	at Main.main(Main.java:16)</pre>
+
+<p><code>IllegalArgumentException</code> quer dizer "argumento inválido", e o stack trace mostra o caminho: o <code>main</code> (linha 16) chamou <code>depositar</code>, que lançou o erro na linha 6. Lançar e tratar exceções é assunto de <a href="throw-throws.html">throw e throws</a> e <a href="try-catch.html">try e catch</a>. Por enquanto, saiba que é a forma profissional de um setter dizer "não".</p>
+
+<hr>
+
+<h2>A convenção de nomes</h2>
+<p>Os nomes de getters e setters seguem uma convenção antiga do Java (das "JavaBeans"). Bibliotecas, frameworks e IDEs dependem dela, então vale seguir à risca:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Atributo</th><th>Getter</th><th>Setter</th></tr>
+<tr><td><code>String nome</code></td><td><code>String getNome()</code></td><td><code>void setNome(String nome)</code></td></tr>
+<tr><td><code>double precoUnitario</code></td><td><code>double getPrecoUnitario()</code></td><td><code>void setPrecoUnitario(double precoUnitario)</code></td></tr>
+<tr><td><code>boolean ativo</code></td><td><code>boolean <strong>is</strong>Ativo()</code></td><td><code>void setAtivo(boolean ativo)</code></td></tr>
+<tr><td>(calculado, sem atributo)</td><td><code>double getMedia()</code></td><td>—</td></tr>
+</table>
+</div>
+
+<ul>
+  <li><code>get</code> + nome do atributo com a primeira letra maiúscula; sem parâmetros; devolve o tipo do atributo.</li>
+  <li><code>set</code> + nome com maiúscula; um parâmetro do tipo do atributo; devolve <code>void</code>.</li>
+  <li>Para <code>boolean</code>, o getter usa <strong><code>is</code></strong> ("é"): <code>isAtivo()</code> lê como uma pergunta, "está ativo?".</li>
+  <li>Um getter pode devolver algo <strong>calculado</strong>: <code>getMedia()</code> não precisa de um atributo <code>media</code>.</li>
+</ul>
+
+<pre class="file" data-file="Main.java">class Aluno {
+    private String nome;
+    private boolean ativo;
+    private double nota1;
+    private double nota2;
+
+    public Aluno(String nome) {
+        this.nome = nome;
+        this.ativo = true;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
+    }
+
+    public void setNotas(double nota1, double nota2) {
+        this.nota1 = nota1;
+        this.nota2 = nota2;
+    }
+
+    public double getMedia() {
+        return (nota1 + nota2) / 2;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno a = new Aluno("Bruno");
+        a.setNotas(8, 7);
+        System.out.println(a.getNome() + " ativo? " + a.isAtivo() + ", média " + a.getMedia());
+        a.setAtivo(false);
+        System.out.println(a.getNome() + " ativo? " + a.isAtivo());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Bruno ativo? true, média 7.5
+Bruno ativo? false</pre>
+
+<p>A grande vantagem aparece com o tempo: se amanhã a Ana decidir guardar as notas num array em vez de <code>nota1</code> e <code>nota2</code>, só o <strong>interior</strong> da classe muda. Quem usa <code>getMedia()</code> nem fica sabendo. É isso que "esconder os detalhes" compra: liberdade para mudar por dentro sem quebrar quem está de fora.</p>
+
+<hr>
+
+<h2>Classes imutáveis: sem setters</h2>
+<p>Alguns objetos nunca deveriam mudar depois de criados: um CPF, uma data de nascimento, uma coordenada. Para eles, a melhor proteção é a <strong>imutabilidade</strong>: atributos <code>private final</code>, preenchidos no construtor, e nenhum setter.</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">class Cpf {
+    private final String numero;
+
+    public Cpf(String numero) {
+        this.numero = numero;
+    }
+
+    public String getNumero() {
+        return numero;
+    }
+
+    public void trocar(String novo) {
+        numero = novo;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Cpf cpf = new Cpf("123.456.789-09");
+        System.out.println(cpf.getNumero());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:13: error: cannot assign a value to final variable numero
+        numero = novo;
+        ^
+1 error</pre>
+
+<p>O <code>final</code> ("final, definitivo") diz que o atributo recebe valor <strong>uma única vez</strong>, no construtor. Até um método da própria classe é impedido de trocá-lo: "não é possível atribuir um valor à variável final <code>numero</code>". Sem o método <code>trocar</code>, a classe compila e o CPF fica imutável para sempre. Mais sobre a palavra em <a href="final.html">final</a>.</p>
+
+<p>Objetos imutáveis são mais simples de entender (o valor que você leu agora é o mesmo de amanhã) e seguros de compartilhar. A <code>String</code> do Java é imutável pelo mesmo motivo.</p>
+
+<h3>O atalho: <code>record</code> <span class="versao">Java 16+</span></h3>
+<p>Escrever atributos <code>private final</code>, construtor e getters à mão para uma classe que só carrega dados é trabalhoso. O <code>record</code> faz tudo isso numa linha:</p>
+
+<pre class="file" data-file="Main.java">record Fruta(String nome, double preco) {}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta("maçã", 7.9);
+        System.out.println(maca.nome());
+        System.out.println(maca.preco());
+        System.out.println(maca);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+maçã
+7.9
+Fruta[nome=maçã, preco=7.9]     « o record também cria um toString legível</pre>
+
+<p>A linha <code>record Fruta(String nome, double preco) {}</code> cria uma classe com dois atributos <code>private final</code>, um construtor que recebe os dois, os "getters" <code>nome()</code> e <code>preco()</code> (sem o prefixo <code>get</code>) e mais alguns métodos úteis. Tentar mudar um campo dá o erro que você já conhece:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:6: error: preco has private access in Fruta
+        maca.preco = 5.0;
+            ^
+1 error</pre>
+
+<p>Records têm uma aula própria: <a href="records.html">Records</a>.</p>
+
+<hr>
+
+<h2>Formas diferentes de proteger os dados</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como fica</th><th>Quando usar</th></tr>
+<tr><td>Atributos abertos</td><td><code>double saldo;</code></td><td>Só em exemplos e protótipos rápidos</td></tr>
+<tr><td><code>private</code> + getter + setter com validação</td><td><code>getNome()</code>, <code>setNome(…)</code></td><td>Dados que podem mudar livremente, desde que válidos</td></tr>
+<tr><td><code>private</code> + getter + métodos de negócio</td><td><code>getSaldo()</code>, <code>depositar(…)</code>, <code>sacar(…)</code></td><td>Dados que mudam por operações com regras</td></tr>
+<tr><td><code>private final</code> + getter, sem setter</td><td>classe <code>Cpf</code></td><td>Dados que nunca mudam (imutáveis)</td></tr>
+<tr><td><code>record</code></td><td><code>record Fruta(String nome, double preco) {}</code></td><td>Classes imutáveis que só carregam dados</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"… has private access in …"</strong>
+<p><strong>O que aconteceu:</strong> o código de fora tentou usar um atributo privado diretamente (<code>c.saldo</code>).</p>
+<p><strong>Como resolver:</strong> use o getter (<code>c.getSaldo()</code>) ou o método de negócio (<code>c.depositar(…)</code>). Se nenhum método faz o que você precisa, pergunte se a classe <strong>deveria</strong> permitir aquilo antes de criar um setter.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … symbol: variable getSaldo" (faltaram os parênteses)</strong>
+<pre class="term">$ javac Main.java
+Main.java:12: error: cannot find symbol
+        System.out.println(c.getSaldo);
+                            ^
+  symbol:   variable getSaldo
+  location: variable c of type Conta
+1 error</pre>
+<p><strong>O que aconteceu:</strong> sem parênteses, o Java procura um <strong>atributo</strong> chamado <code>getSaldo</code> (repare: <code>symbol: variable</code>). Getter é método.</p>
+<p><strong>Como resolver:</strong> <code>c.getSaldo()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O setter "não funciona" (o valor não muda)</strong>
+<p><strong>O que aconteceu:</strong> quase sempre é o bug clássico da aula <a href="this.html#bug">this</a>: <code>public void setNome(String nome) { nome = nome; }</code>. O parâmetro faz sombra no atributo, e nada muda. Outra possibilidade: a validação recusou o valor em silêncio.</p>
+<p><strong>Como resolver:</strong> <code>this.nome = nome;</code>. E faça o setter avisar (mensagem ou exceção) quando recusar algo.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot assign a value to final variable …"</strong>
+<p><strong>O que aconteceu:</strong> algum código (até da própria classe) tentou mudar um atributo <code>final</code> fora do construtor.</p>
+<p><strong>Como resolver:</strong> se o valor deve mesmo mudar, tire o <code>final</code> e crie um método com validação. Se não deve, crie um objeto novo com o valor novo, em vez de alterar o antigo.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>private Tipo campo;</code></td><td>Atributo escondido; só a classe mexe</td></tr>
+<tr><td><code>public Tipo getCampo() { return campo; }</code></td><td>Getter: leitura</td></tr>
+<tr><td><code>public boolean isAtivo() { return ativo; }</code></td><td>Getter de <code>boolean</code></td></tr>
+<tr><td><code>public void setCampo(Tipo campo) { /* valida */ this.campo = campo; }</code></td><td>Setter: escrita com validação</td></tr>
+<tr><td><code>throw new IllegalArgumentException("…");</code></td><td>Recusa um valor inválido interrompendo o programa</td></tr>
+<tr><td><code>private final Tipo campo;</code></td><td>Atributo que só recebe valor no construtor</td></tr>
+<tr><td><code>record Nome(Tipo a, Tipo b) {}</code></td><td>Classe imutável pronta, com getters <code>a()</code> e <code>b()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: a lâmpada encapsulada</h2>
+<div class="tryjava" data-goal="out:Ligada? true,out:Potência recusada: 500,out:Potência: 60,src:private\s+boolean\s+ligada,src:private\s+int\s+potencia,src:boolean\s+isLigada\s*\(\s*\)">
+<p class="try-task"><strong>Missão:</strong> complete a classe <code>Lampada</code>: atributos <code>private boolean ligada</code> e <code>private int potencia</code>; métodos <code>ligar()</code>, <code>isLigada()</code>, <code>getPotencia()</code> e <code>setPotencia(int potencia)</code>, que só aceita de 1 a 200 (fora disso, imprime <code>Potência recusada: </code> e o valor). O <code>main</code> está pronto.</p>
+<pre class="script">class Lampada {
+    // atributos e métodos aqui
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Lampada sala = new Lampada();
+        sala.setPotencia(60);
+        sala.setPotencia(500);
+        sala.ligar();
+        System.out.println("Ligada? " + sala.isLigada());
+        System.out.println("Potência: " + sala.getPotencia());
+    }
+}
+</pre>
+<pre class="solucao">class Lampada {
+    private boolean ligada;
+    private int potencia;
+
+    public void ligar() {
+        this.ligada = true;
+    }
+
+    public boolean isLigada() {
+        return ligada;
+    }
+
+    public int getPotencia() {
+        return potencia;
+    }
+
+    public void setPotencia(int potencia) {
+        if (potencia &lt; 1 || potencia &gt; 200) {
+            System.out.println("Potência recusada: " + potencia);
+            return;
+        }
+        this.potencia = potencia;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Lampada sala = new Lampada();
+        sala.setPotencia(60);
+        sala.setPotencia(500);
+        sala.ligar();
+        System.out.println("Ligada? " + sala.isLigada());
+        System.out.println("Potência: " + sala.getPotencia());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O nome do getter</h3>
+<p>Qual é o getter do atributo <code>String email</code>? (só o nome com os parênteses)</p>
+<div class="ex-code"><input data-answer="getEmail()" aria-label="getter"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Getter de boolean</h3>
+<p>E o getter do atributo <code>boolean matriculado</code>?</p>
+<div class="ex-code"><input data-answer="isMatriculado()" aria-label="getter"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O corpo do setter</h3>
+<p>Complete a última linha do <code>setEmail(String email)</code>, que guarda o parâmetro no atributo:</p>
+<div class="ex-code"><input data-answer="this.email = email;|this.email=email;" aria-label="instrução"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual é a melhor forma de mudar o saldo de uma conta encapsulada?</p>
+<label><input type="radio" name="q4"> Deixar <code>saldo</code> público.</label>
+<label><input type="radio" name="q4"> Métodos como <code>depositar(valor)</code> e <code>sacar(valor)</code>, com regras.</label>
+<label><input type="radio" name="q4"> Um <code>setSaldo(double)</code> público sem validação.</label>
+<label><input type="radio" name="q4"> Não deixar o saldo mudar nunca.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que torna um objeto imutável?</p>
+<label><input type="radio" name="q5"> Ter só atributos <code>public</code>.</label>
+<label><input type="radio" name="q5"> Ter um setter para cada atributo.</label>
+<label><input type="radio" name="q5"> Ser criado com <code>new</code>.</label>
+<label><input type="radio" name="q5"> Atributos <code>private final</code> preenchidos no construtor e nenhum método que os mude.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Para <code>record Ponto(int x, int y) {}</code>, como se lê o <code>x</code> de um ponto <code>p</code>?</p>
+<label><input type="radio" name="q6"> <code>p.x()</code></label>
+<label><input type="radio" name="q6"> <code>p.getX()</code></label>
+<label><input type="radio" name="q6"> <code>p.x</code></label>
+<label><input type="radio" name="q6"> <code>Ponto.x</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Encapsular</strong> é esconder os atributos (<code>private</code>) e expor só métodos com regras (<code>public</code>). O objeto passa a se defender de valores inválidos.</li>
+  <li><strong>Getter</strong> lê (<code>getNome()</code>, <code>isAtivo()</code> para <code>boolean</code>); <strong>setter</strong> escreve com validação (<code>setNome(…)</code>, com <code>this.nome = nome</code>).</li>
+  <li>Nem todo atributo precisa de setter: prefira métodos de negócio (<code>depositar</code>, <code>sacar</code>) quando a mudança tem regras.</li>
+  <li>Para recusar um valor, imprimir um aviso é simples; lançar <code>IllegalArgumentException</code> é o jeito profissional.</li>
+  <li><strong>Imutável</strong>: <code>private final</code> + construtor + só getters. Atalho: <code>record</code>.</li>
+  <li>Com os detalhes escondidos, você pode mudar o interior da classe sem quebrar quem a usa.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
