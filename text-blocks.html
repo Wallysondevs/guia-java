@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Text Blocks — textos de várias linhas com """ | Guia Java</title>
+<meta name="description" content="Text blocks em Java (Java 15+): textos de várias linhas com três aspas, como o Java decide a margem (indentação), a barra no fim da linha, o \s, formatted() e exemplos com JSON e HTML, com saídas reais e erros do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Text Blocks</span> <span class="versao">Java 15+</span></h1>
+
+<p class="intro">Escrever um texto de várias linhas com aspas comuns é sofrido: um <code>\n</code> no fim de cada linha, um <code>+</code> no começo da próxima, uma barra antes de cada aspa. O <strong>text block</strong> ("bloco de texto") resolve isso: você abre com três aspas, escreve o texto do jeito que ele deve sair, e fecha com três aspas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um text block com <code>"""</code> e as regras de abertura e fechamento.</li>
+  <li>Como o Java decide quanto da indentação é "margem" do código e quanto é parte do texto.</li>
+  <li>Como controlar a quebra no fim: o <code>"""</code> na linha de baixo ou colado no texto.</li>
+  <li>A barra <code>\</code> no fim da linha (juntar linhas) e o <code>\s</code> (manter um espaço).</li>
+  <li>Como preencher um text block com valores usando <code>formatted()</code>, com exemplos de JSON e HTML.</li>
+</ul>
+</div>
+
+<p>Text blocks existem desde o <strong>Java 15</strong> (2020). Em projetos presos ao Java 8 ou 11, a alternativa é a concatenação com <code>\n</code>, que você vai ver logo abaixo para comparar.</p>
+
+<hr>
+
+<h2>Antes e depois</h2>
+<p>A Ana quer guardar uma quadrinha numa variável. Com o que você aprendeu em <a href="concatenacao.html">Concatenação</a> e <a href="escapes.html">Caracteres Especiais</a>, seria assim (variável <code>antigo</code>). Com um text block, assim (variável <code>novo</code>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String antigo = "Batatinha quando nasce\n"
+                + "espalha a rama pelo chão\n"
+                + "menininha quando dorme\n"
+                + "põe a mão no coração\n";
+        String novo = """
+                Batatinha quando nasce
+                espalha a rama pelo chão
+                menininha quando dorme
+                põe a mão no coração
+                """;
+        System.out.print(novo);
+        System.out.println(antigo.equals(novo));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Batatinha quando nasce
+espalha a rama pelo chão
+menininha quando dorme
+põe a mão no coração
+true       « as duas Strings são idênticas</pre>
+
+<p>O <code>equals</code> deu <code>true</code>: o text block é só <strong>outro jeito de escrever</strong> uma String. Depois de compilado, não há diferença nenhuma; todos os métodos de <a href="metodos-string.html">Métodos de String</a> funcionam igual.</p>
+
+<dl class="anatomy">
+  <dt>"""</dt><dd>Três aspas duplas <strong>abrem</strong> o bloco. Depois delas, nada na mesma linha: o texto começa na linha de baixo.</dd>
+  <dt>Batatinha quando nasce …</dt><dd>O conteúdo, escrito como deve aparecer. Cada <kbd>Enter</kbd> vira um <code>\n</code>.</dd>
+  <dt>"""; (na última linha)</dt><dd>Três aspas <strong>fecham</strong> o bloco. Como estão na linha de baixo, a última linha do texto também termina com <code>\n</code>.</dd>
+  <dt>System.out.print(novo)</dt><dd>Usamos <code>print</code> (sem "ln") porque o texto já termina com quebra de linha. Com <code>println</code>, apareceria uma linha em branco a mais.</dd>
+</dl>
+
+<hr>
+
+<h2>A margem: quanto da indentação fica?</h2>
+<p>Repare que, no código, as linhas da quadrinha têm 16 espaços na frente (para ficarem alinhadas com o resto do programa), mas na saída não têm nenhum. O Java tirou esses espaços sozinho. Como ele sabe quais espaços tirar?</p>
+
+<p>A regra: o Java olha <strong>todas as linhas do bloco, incluindo a linha do <code>"""</code> de fechamento</strong>, e acha a que está <strong>mais à esquerda</strong>. Essa linha define a <strong>margem</strong>. Os espaços até a margem são da "arrumação do código" (o nome técnico é <em>indentação incidental</em>) e são removidos de todas as linhas. O que passar da margem é parte do texto.</p>
+
+<p>É como uma folha de caderno com a linha vermelha da margem: tudo que está à esquerda dela não conta; o que está à direita, conta, incluindo os recuos.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String a = """
+                Ana
+                  Bruno
+                Carla
+                """;
+        String b = """
+                Ana
+                  Bruno
+                Carla
+            """;
+        String c = """
+                Ana
+                  Bruno
+                Carla""";
+        System.out.print(a);
+        System.out.println("---");
+        System.out.print(b);
+        System.out.println("---");
+        System.out.print(c);
+        System.out.println("|fim");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Ana
+  Bruno       « os 2 espaços a mais que a margem ficaram
+Carla
+---
+    Ana       « o """ estava 4 espaços mais à esquerda: a margem recuou
+      Bruno
+    Carla
+---
+Ana
+  Bruno
+Carla|fim     « sem quebra no fim: o """ estava colado no texto</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Bloco</th><th>Linha mais à esquerda</th><th>Resultado</th></tr>
+<tr><td><code>a</code></td><td><code>Ana</code>, <code>Carla</code> e o <code>"""</code>, empatados (16 espaços)</td><td>Margem em 16: <code>Ana</code> sem recuo, <code>Bruno</code> com 2 espaços.</td></tr>
+<tr><td><code>b</code></td><td>O <code>"""</code> de fechamento (12 espaços)</td><td>Margem em 12: todas as linhas ganham 4 espaços na frente.</td></tr>
+<tr><td><code>c</code></td><td><code>Ana</code> e <code>Carla</code> (16)</td><td>Igual ao <code>a</code>, mas sem a quebra de linha final, porque o <code>"""</code> está na mesma linha de <code>Carla</code>.</td></tr>
+</table>
+</div>
+
+<p>Ou seja, a posição do <code>"""</code> de fechamento é o seu "controle": <strong>alinhado com o texto</strong>, nenhum recuo extra; <strong>mais à esquerda</strong>, o texto inteiro ganha recuo; <strong>colado na última linha</strong>, sem quebra no fim.</p>
+
+<div class="warning">
+<strong>Não misture tabs e espaços</strong>
+<p>A conta da margem é feita caractere por caractere: um tab conta como <strong>um</strong> caractere, igual a um espaço. Se umas linhas forem recuadas com tab e outras com espaços, o resultado fica estranho. Configure o editor para usar só espaços (as IDEs já fazem isso).</p>
+</div>
+
+<div class="tryjava" data-goal="out:Cardápio do dia,out:  - Feijão,src:&quot;&quot;&quot;">
+<p class="try-task"><strong>Missão:</strong> reescreva o cardápio como um <strong>text block</strong>. A saída deve continuar igual: o título sem recuo e cada item com <strong>dois espaços</strong> antes do traço.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String cardapio = "Cardápio do dia\n"
+                + "  - Arroz\n"
+                + "  - Feijão\n"
+                + "  - Salada\n";
+        System.out.print(cardapio);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String cardapio = """
+                Cardápio do dia
+                  - Arroz
+                  - Feijão
+                  - Salada
+                """;
+        System.out.print(cardapio);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Barra no fim da linha, <code>\s</code>, aspas e espaços</h2>
+<p>Dentro de um text block, as <a href="escapes.html">sequências de escape</a> continuam funcionando, e há duas novidades:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String uma = """
+                Esta frase é bem comprida, mas eu quero \
+                que ela saia numa linha só.
+                """;
+        System.out.print(uma);
+        String espacos = """
+                nome:   
+                nota:\s
+                """;
+        System.out.print(espacos.replace(" ", "·"));
+        String aspas = """
+                Ela disse "oi" e 'tchau'.
+                Três aspas: \"""
+                Tab:\tfim
+                """;
+        System.out.print(aspas);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Esta frase é bem comprida, mas eu quero que ela saia numa linha só.
+nome:          « os 3 espaços do fim da linha sumiram
+nota:·         « o \s virou um espaço (trocado por · para ficar visível)
+Ela disse "oi" e 'tchau'.
+Três aspas: """
+Tab:	fim</pre>
+
+<dl class="anatomy">
+  <dt>\ (no fim da linha)</dt><dd>Uma barra como <strong>último</strong> caractere da linha "cancela" a quebra: a linha de baixo continua na mesma linha do texto. Útil para frases longas que você quer quebrar só no código. <span class="versao">Java 15+</span></dd>
+  <dt>espaços no fim da linha</dt><dd>O Java <strong>remove</strong> os espaços que sobram no fim de cada linha (muitos editores os deixam sem você perceber). A linha <code>nome:   </code> virou <code>nome:</code>.</dd>
+  <dt>\s</dt><dd>Um espaço que <strong>não</strong> é removido (<em>space</em>). Use no fim da linha quando o espaço importa. <span class="versao">Java 15+</span></dd>
+  <dt>"oi" e 'tchau'</dt><dd>Aspas simples e duplas não precisam de barra: o bloco só termina em <strong>três</strong> aspas seguidas.</dd>
+  <dt>\"""</dt><dd>Para ter três aspas dentro do texto, escape a primeira.</dd>
+  <dt>\t</dt><dd>Os escapes comuns (<code>\t</code>, <code>\n</code>, <code>\\</code>…) funcionam como nas Strings normais.</dd>
+</dl>
+
+<hr>
+
+<h2>Preencher com valores: <code>formatted()</code></h2>
+<p>Text blocks são ótimos como <strong>modelos</strong>: um texto fixo com "buracos" a preencher. Os buracos são marcados com <code>%s</code> (um texto), <code>%d</code> (um número inteiro) ou <code>%.1f</code> (um decimal com 1 casa), e o método <code>formatted(…)</code> preenche na ordem. Essas marcações são as mesmas do <code>printf</code>, que tem aula própria em <a href="formatacao.html">Formatar Texto</a>.</p>
+
+<h3>Exemplo: JSON</h3>
+<p><strong>JSON</strong> é um formato de texto muito usado para trocar dados entre programas (por exemplo, entre um site e um servidor). Ele usa muitas aspas duplas, e é aí que o text block brilha: nenhuma barra.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        int idade = 30;
+        double nota = 9.5;
+        String json = """
+                {
+                  "nome": "%s",
+                  "idade": %d,
+                  "nota": %.1f
+                }
+                """.formatted(nome, idade, nota);
+        System.out.print(json);
+        String certo = """
+                {"nome": "%s", "nota": %s}
+                """.formatted(nome, nota);
+        System.out.print(certo);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+{
+  "nome": "Ana",
+  "idade": 30,
+  "nota": 9,5          « vírgula! JSON exige ponto
+}
+{"nome": "Ana", "nota": 9.5}</pre>
+
+<dl class="anatomy">
+  <dt>"""…""".formatted(nome, idade, nota)</dt><dd>O text block é uma String, então dá para chamar <code>formatted</code> direto no <code>"""</code> de fechamento. <code>nome</code> entra no <code>%s</code>, <code>idade</code> no <code>%d</code> e <code>nota</code> no <code>%.1f</code>.</dd>
+  <dt>9,5</dt><dd>Uma surpresa real: o computador da Ana está em português (<code>pt_BR</code>), e o <code>%.1f</code> segue o costume do país, com <strong>vírgula</strong> decimal. Para gente, ótimo; para JSON, errado.</dd>
+  <dt>"nota": %s</dt><dd>Com <code>%s</code>, o número vira texto do jeito do Java (o mesmo do <code>println</code>), sempre com <strong>ponto</strong>: <code>9.5</code>. Outra saída é fixar o idioma, assunto de <a href="formatacao.html">Formatar Texto</a>.</dd>
+</dl>
+
+<h3>Exemplo: HTML</h3>
+<p>HTML, a linguagem das páginas web, também é cheio de aspas e de recuos. Com text block, o código Java fica com a mesma cara da página:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String titulo = "Frutas da feira";
+        String fruta1 = "maçã";
+        String fruta2 = "banana";
+        String html = """
+                &lt;html&gt;
+                  &lt;body&gt;
+                    &lt;h1&gt;%s&lt;/h1&gt;
+                    &lt;ul class="lista"&gt;
+                      &lt;li&gt;%s&lt;/li&gt;
+                      &lt;li&gt;%s&lt;/li&gt;
+                    &lt;/ul&gt;
+                  &lt;/body&gt;
+                &lt;/html&gt;
+                """.formatted(titulo, fruta1, fruta2);
+        System.out.print(html);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+&lt;html&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Frutas da feira&lt;/h1&gt;
+    &lt;ul class="lista"&gt;
+      &lt;li&gt;maçã&lt;/li&gt;
+      &lt;li&gt;banana&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</pre>
+
+<p>Os recuos internos (2, 4, 6 espaços além da margem) foram preservados, e as aspas de <code>class="lista"</code> entraram sem barra nenhuma.</p>
+
+<hr>
+
+<h2>Text block ou String comum?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Texto curto, uma linha</td><td>String comum: <code>"Olá, Ana"</code></td></tr>
+<tr><td>Texto de várias linhas (mensagens, menus, poemas)</td><td>Text block</td></tr>
+<tr><td>Texto com muitas aspas (JSON, HTML, SQL)</td><td>Text block</td></tr>
+<tr><td>Modelo a ser preenchido</td><td>Text block + <code>formatted()</code></td></tr>
+<tr><td>Frase longa que deve sair numa linha só</td><td>Text block com <code>\</code> no fim das linhas, ou concatenação com <code>+</code></td></tr>
+<tr><td>Projeto em Java 8 ou 11</td><td>Concatenação com <code>\n</code> (text blocks não existem lá)</td></tr>
+</table>
+</div>
+
+<p>Como o resultado é uma String comum, dá para usar todos os métodos nele:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String lista = """
+                maçã
+                banana
+                uva
+                """;
+        System.out.println(lista.length());
+        System.out.println(lista.lines().count());
+        System.out.println(lista.contains("banana"));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+16       « 4 + 6 + 3 letras e 3 quebras de linha
+3        « lines() separa o texto em linhas
+true</pre>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> mude a posição do <code>"""</code> de fechamento (mais para a esquerda, colado na última linha) e acrescente recuos em algumas linhas. Veja como a saída muda.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String menu = """
+                1. Novo jogo
+                2. Continuar
+                  2.1 Último salvo
+                3. Sair
+                """;
+        System.out.print(menu);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: illegal text block open delimiter sequence, missing line terminator</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String texto = """Olá""";
+        System.out.println(texto);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal text block open delimiter sequence, missing line terminator
+        String texto = """Olá""";
+                          ^
+Main.java:3: error: illegal text block open delimiter sequence, missing line terminator
+        String texto = """Olá""";
+                                ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> depois do <code>"""</code> de abertura tem de vir uma quebra de linha ("sequência de abertura de text block ilegal, falta o fim de linha"). Text block não serve para texto de uma linha só, nem pode começar na mesma linha das aspas.</p>
+<p><strong>Como resolver:</strong> para uma linha, use aspas comuns: <code>"Olá"</code>. Para várias, passe o texto para a linha de baixo do <code>"""</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: unclosed text block</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String texto = """
+                Olá, mundo
+                ;
+        System.out.println(texto);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: unclosed text block
+        String texto = """
+                       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> faltou o <code>"""</code> de fechamento ("text block não fechado"). O <code>javac</code> leu o resto do arquivo inteiro como texto e chegou ao fim sem achar as três aspas. O <code>^</code> aponta onde o bloco abriu.</p>
+<p><strong>Como resolver:</strong> feche com <code>""";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Apareceu uma linha em branco a mais</strong>
+<p><strong>O que aconteceu:</strong> o text block terminava com quebra de linha (o <code>"""</code> estava na linha de baixo) e foi impresso com <code>println</code>, que acrescenta outra.</p>
+<p><strong>Como resolver:</strong> use <code>print</code>, ou cole o <code>"""</code> no fim da última linha.</p>
+</div>
+
+<div class="cenario">
+<strong>O texto saiu todo recuado para a direita</strong>
+<p><strong>O que aconteceu:</strong> o <code>"""</code> de fechamento ficou mais à esquerda que o texto, e a margem foi calculada a partir dele.</p>
+<p><strong>Como resolver:</strong> alinhe o <code>"""</code> de fechamento com a primeira coluna do texto.</p>
+</div>
+
+<div class="cenario">
+<strong>Número com vírgula no JSON</strong>
+<p><strong>O que aconteceu:</strong> <code>%f</code>/<code>%.1f</code> no <code>formatted</code> seguem o idioma do sistema; em <code>pt_BR</code>, a vírgula.</p>
+<p><strong>Como resolver:</strong> use <code>%s</code> para o número, ou formate com um idioma fixo (veja <a href="formatacao.html">Formatar Texto</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Efeito</th></tr>
+<tr><td><code>"""</code> + quebra de linha</td><td>Abre o bloco (o texto começa na linha seguinte)</td></tr>
+<tr><td><code>"""</code> sozinho na última linha</td><td>Fecha; o texto termina com <code>\n</code>; a posição dele entra no cálculo da margem</td></tr>
+<tr><td><code>texto"""</code></td><td>Fecha sem <code>\n</code> no fim</td></tr>
+<tr><td><code>\</code> no fim da linha</td><td>Junta com a linha de baixo (sem quebra)</td></tr>
+<tr><td><code>\s</code></td><td>Um espaço que não é removido</td></tr>
+<tr><td><code>\"""</code></td><td>Três aspas dentro do texto</td></tr>
+<tr><td><code>"""…""".formatted(a, b)</code></td><td>Preenche os <code>%s</code>, <code>%d</code>… do modelo</td></tr>
+<tr><td><code>texto.lines()</code></td><td>As linhas do texto, uma a uma</td></tr>
+<tr><td><code>texto.stripIndent()</code></td><td>Aplica a mesma regra de margem a uma String qualquer</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:&quot;produto&quot;: &quot;Café&quot;,out:&quot;quantidade&quot;: 2,src:&quot;&quot;&quot;,src:formatted">
+<p class="try-task"><strong>Missão final:</strong> monte o JSON de um pedido com um text block e <code>formatted</code>, usando as variáveis. A saída deve ter quatro linhas: <code>{</code>, depois <code>"produto": "Café",</code> e <code>"quantidade": 2</code> (as duas com 2 espaços de recuo) e por fim <code>}</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String produto = "Café";
+        int quantidade = 2;
+        // crie o text block e mostre com System.out.print
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String produto = "Café";
+        int quantidade = 2;
+        String pedido = """
+                {
+                  "produto": "%s",
+                  "quantidade": %d
+                }
+                """.formatted(produto, quantidade);
+        System.out.print(pedido);
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. Abrir o bloco</h3>
+<p>Quantas aspas duplas abrem um text block?</p>
+<div class="ex-code"><input data-answer="3|três" aria-label="quantidade"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Um espaço que fica</h3>
+<p>Qual escape mantém um espaço no fim de uma linha do text block?</p>
+<div class="ex-code"><input data-answer="\s" aria-label="escape"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que define a margem (os espaços que são removidos) de um text block?</p>
+<label><input type="radio" name="q3"> Sempre 4 espaços.</label>
+<label><input type="radio" name="q3"> A primeira linha do texto.</label>
+<label><input type="radio" name="q3"> A linha mais à esquerda, contando também a do <code>"""</code> de fechamento.</label>
+<label><input type="radio" name="q3"> A posição do <code>"""</code> de abertura.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. O text block abaixo termina com quebra de linha?</p>
+<pre class="file">String s = """
+        oi
+        tchau""";</pre>
+<label><input type="radio" name="q4"> Não, porque o <code>"""</code> está colado em <code>tchau</code>.</label>
+<label><input type="radio" name="q4"> Sim, sempre.</label>
+<label><input type="radio" name="q4"> Não compila.</label>
+<label><input type="radio" name="q4"> Só se usar <code>println</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Um text block com a linha <code>Ana</code> e o <code>"""</code> de fechamento na linha de baixo é comparado com <code>equals</code> à String <code>"Ana\n"</code>. O resultado é…</p>
+<label><input type="radio" name="q5"> <code>false</code>, porque text block é outro tipo.</label>
+<label><input type="radio" name="q5"> <code>true</code>: o text block é uma String comum.</label>
+<label><input type="radio" name="q5"> Erro de compilação.</label>
+<label><input type="radio" name="q5"> Depende da versão do Java.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Text block: <code>"""</code>, quebra de linha, o texto, <code>"""</code>. Existe desde o Java 15 e resulta numa String comum.</li>
+  <li>A margem é a linha mais à esquerda (incluindo o <code>"""</code> de fechamento); o que passa dela vira recuo no texto.</li>
+  <li><code>"""</code> na linha de baixo = termina com <code>\n</code>; colado na última linha = sem <code>\n</code>.</li>
+  <li>Espaços no fim das linhas são removidos; <code>\s</code> mantém um. <code>\</code> no fim da linha junta com a próxima.</li>
+  <li>Aspas não precisam de barra; só <code>\"""</code>.</li>
+  <li><code>formatted()</code> transforma o text block num modelo; cuidado com <code>%f</code> e a vírgula do <code>pt_BR</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
