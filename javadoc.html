@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Javadoc — documentar o código e ler a API | Guia Java</title>
+<meta name="description" content="Comentários de documentação /** */, as tags @param, @return, @throws, @see e {@code}, gerar o site da documentação com javadoc -d (com os avisos reais &quot;warning: no comment&quot;), comentários em Markdown /// e como ler a documentação oficial da API do Java.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Javadoc</span></h1>
+
+<p class="intro">Toda a documentação oficial do Java, aquela que explica o que faz cada método de <code>String</code>, <code>Math</code> ou <code>ArrayList</code>, foi escrita <strong>dentro do código-fonte</strong>, em comentários especiais, e transformada num site pela ferramenta <code>javadoc</code>. Você pode fazer o mesmo com as suas classes, e precisa saber ler esse formato para usar a biblioteca do Java.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <code>//</code>, <code>/* */</code> e o comentário de documentação <code>/** */</code>.</li>
+  <li>Onde pôr um comentário de documentação e como escrevê-lo.</li>
+  <li>As tags <code>@param</code>, <code>@return</code>, <code>@throws</code>, <code>@see</code>, <code>@since</code> e os trechos <code>{@code}</code> e <code>{@link}</code>.</li>
+  <li>Gerar o site com <code>javadoc -d doc …</code> e entender os avisos (<code>warning: no comment</code>) e erros.</li>
+  <li>Os comentários em Markdown com <code>///</code> (Java 23+).</li>
+  <li>Ler a documentação oficial da API.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: o manual que mora junto com a máquina</h2>
+<p>Pense no manual de um eletrodoméstico. Se ele fica numa gaveta separada, logo fica desatualizado: o fabricante muda um botão e esquece de mudar o manual. O Javadoc põe o manual <strong>colado</strong> em cada peça: o comentário fica logo acima do método que ele descreve. Quem muda o método vê o comentário na hora e o atualiza junto.</p>
+<p>Esse comentário tem dois públicos:</p>
+<ul>
+  <li><strong>Quem usa</strong> a sua classe (outra pessoa, ou você daqui a seis meses): lê o site gerado, ou a caixinha de ajuda que a IDE mostra ao passar o mouse sobre o método.</li>
+  <li><strong>A ferramenta <code>javadoc</code></strong>: lê os comentários e gera páginas HTML com índice, busca e links.</li>
+</ul>
+
+<h3>Três tipos de comentário</h3>
+<p>Você conheceu os comentários em <a href="comentarios.html">Comentários</a>. O terceiro tipo é o desta aula:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Nome</th><th>Para quem</th></tr>
+<tr><td><code>// …</code></td><td>Comentário de linha</td><td>Quem lê o código: explica um detalhe da implementação</td></tr>
+<tr><td><code>/* … */</code></td><td>Comentário de bloco</td><td>Quem lê o código: explicações mais longas</td></tr>
+<tr><td><code>/** … */</code></td><td>Comentário de <strong>documentação</strong> (Javadoc)</td><td>Quem <strong>usa</strong> a classe: o que ela faz, não como</td></tr>
+</table>
+</div>
+<p>A única diferença visível é o segundo asterisco: <code>/**</code>. Para o compilador, os três são ignorados; para o <code>javadoc</code>, só o terceiro conta, e só quando está <strong>imediatamente antes</strong> de uma classe, um construtor, um método ou um atributo.</p>
+
+<hr>
+
+<h2>1. O primeiro comentário de documentação</h2>
+<pre class="file" data-file="Conta.java (trecho)">/**
+ * Coloca dinheiro na conta.
+ *
+ * @param valor quanto depositar; precisa ser maior que zero
+ * @throws IllegalArgumentException se {@code valor} for zero ou negativo
+ */
+public void depositar(double valor) {
+</pre>
+
+<dl class="anatomy">
+  <dt>/**</dt><dd>Abre o comentário de documentação. Fica sozinho na linha.</dd>
+  <dt> * Coloca dinheiro na conta.</dt><dd>A <strong>descrição</strong>. A primeira frase (até o primeiro ponto) é o <strong>resumo</strong>, que aparece nas tabelas do site; capriche nela. Os <code>*</code> no começo das linhas são só enfeite (o <code>javadoc</code> os ignora), mas são o costume.</dd>
+  <dt> *</dt><dd>Uma linha vazia separa a descrição das <strong>tags</strong>.</dd>
+  <dt>@param valor …</dt><dd>Descreve o parâmetro <code>valor</code>: o nome tem de ser <strong>igual</strong> ao do método.</dd>
+  <dt>@throws IllegalArgumentException …</dt><dd>Descreve uma exceção que o método pode lançar, e quando.</dd>
+  <dt>{@code valor}</dt><dd>Mostra <code>valor</code> com fonte de código no site.</dd>
+  <dt> */</dt><dd>Fecha o comentário, logo antes do método.</dd>
+</dl>
+
+<div class="tip">
+<strong>Descreva o que faz, não como faz</strong>
+<p>"Coloca dinheiro na conta" ajuda quem usa. "Soma <code>valor</code> ao atributo <code>saldo</code> com <code>+=</code>" não ajuda: isso está no código, e muda se a implementação mudar. Explique o comportamento visível: o que entra, o que sai, o que pode dar errado.</p>
+</div>
+
+<h3>As tags principais</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tag</th><th>Onde</th><th>O que descreve</th></tr>
+<tr><td><code>@param nome descrição</code></td><td>métodos e construtores</td><td>Um parâmetro (uma tag para cada, na ordem)</td></tr>
+<tr><td><code>@return descrição</code></td><td>métodos que não são <code>void</code></td><td>O que o método devolve</td></tr>
+<tr><td><code>@throws Tipo descrição</code></td><td>métodos e construtores</td><td>Uma exceção possível e quando acontece (<code>@exception</code> é o nome antigo)</td></tr>
+<tr><td><code>@see referência</code></td><td>qualquer lugar</td><td>"Veja também": outro método ou classe</td></tr>
+<tr><td><code>@since versão</code></td><td>qualquer lugar</td><td>Desde que versão existe</td></tr>
+<tr><td><code>@author nome</code></td><td>classes</td><td>Quem escreveu</td></tr>
+<tr><td><code>@deprecated motivo</code></td><td>qualquer lugar</td><td>"Não use mais", e o que usar no lugar (junto com a anotação <code>@Deprecated</code>; veja <a href="anotacoes.html">Anotações</a>)</td></tr>
+<tr><td><code>{@code texto}</code></td><td>dentro do texto</td><td>Mostra <code>texto</code> como código (e sem interpretar <code>&lt;</code> como HTML)</td></tr>
+<tr><td><code>{@link Classe#metodo}</code></td><td>dentro do texto</td><td>Um link para outra parte da documentação</td></tr>
+</table>
+</div>
+<p>Dentro da descrição vale HTML simples: <code>&lt;p&gt;</code> para começar um parágrafo novo, <code>&lt;ul&gt;&lt;li&gt;</code> para listas.</p>
+
+<div class="tryjava" data-goal="out:R$ 4\,50,src:/\*\*[\s\S]*@param valor[\s\S]*@return[\s\S]*\*/\s*static String formatar">
+<p class="try-task"><strong>Missão:</strong> escreva o comentário de documentação do método <code>formatar</code>, logo acima dele: uma frase de resumo, um <code>@param valor</code> e um <code>@return</code>. O programa precisa continuar mostrando <code>R$ 4,50</code>.</p>
+<pre class="script">public class Main {
+
+    static String formatar(double valor) {
+        return String.format("R$ %.2f", valor);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(formatar(4.5));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+
+    /**
+     * Formata um valor em reais, com duas casas decimais.
+     *
+     * @param valor o valor a formatar
+     * @return o texto formatado, como {@code R$ 4,50}
+     */
+    static String formatar(double valor) {
+        return String.format("R$ %.2f", valor);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(formatar(4.5));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Gerar a documentação: <code>javadoc -d</code></h2>
+<p>A Ana começou a documentar a classe <code>Conta</code> (a mesma de <a href="junit.html">Testes com JUnit</a>), mas só escreveu dois comentários: o da classe e o do <code>depositar</code>, ainda sem <code>@param</code>.</p>
+
+<pre class="file" data-file="src/br/com/ana/banco/Conta.java">package br.com.ana.banco;
+
+/**
+ * Uma conta bancária simples, com titular e saldo.
+ */
+public class Conta {
+    private final String titular;
+    private double saldo;
+
+    public Conta(String titular) {
+        this.titular = titular;
+    }
+
+    public String getTitular() {
+        return titular;
+    }
+
+    public double getSaldo() {
+        return saldo;
+    }
+
+    /**
+     * Coloca dinheiro na conta.
+     */
+    public void depositar(double valor) {
+        if (valor &lt;= 0) {
+            throw new IllegalArgumentException("Valor inválido: " + valor);
+        }
+        saldo += valor;
+    }
+
+    public void sacar(double valor) {
+        if (valor &lt;= 0) {
+            throw new IllegalArgumentException("Valor inválido: " + valor);
+        }
+        if (valor &gt; saldo) {
+            throw new IllegalStateException("Saldo insuficiente");
+        }
+        saldo -= valor;
+    }
+}
+</pre>
+
+<pre class="term">$ javadoc -d doc src/br/com/ana/banco/Conta.java
+Loading source file src/br/com/ana/banco/Conta.java...
+Constructing Javadoc information...
+Creating destination directory: "doc/"
+Building index for all the packages and classes...
+Standard Doclet version 25.0.4.1+1-LTS
+Building tree for all the packages and classes...
+Generating doc/br/com/ana/banco/Conta.html...
+src/br/com/ana/banco/Conta.java:25: warning: no @param for valor
+    public void depositar(double valor) {
+                ^
+src/br/com/ana/banco/Conta.java:10: warning: no comment
+    public Conta(String titular) {
+           ^
+src/br/com/ana/banco/Conta.java:18: warning: no comment
+    public double getSaldo() {
+                  ^
+src/br/com/ana/banco/Conta.java:14: warning: no comment
+    public String getTitular() {
+                  ^
+src/br/com/ana/banco/Conta.java:32: warning: no comment
+    public void sacar(double valor) {
+                ^
+Generating doc/br/com/ana/banco/package-summary.html...
+Generating doc/br/com/ana/banco/package-tree.html...
+Generating doc/overview-tree.html...
+Generating doc/allclasses-index.html...
+Building index for all classes...
+Generating doc/allpackages-index.html...
+Generating doc/index-all.html...
+Generating doc/search.html...
+Generating doc/index.html...
+Generating doc/help-doc.html...
+5 warnings
+$ echo $?
+0</pre>
+
+<dl class="anatomy">
+  <dt>javadoc</dt><dd>A ferramenta do JDK (vem junto com o <code>javac</code>).</dd>
+  <dt>-d doc</dt><dd><em>Destination</em>: a pasta onde o site será criado. Sem o <code>-d</code>, os arquivos HTML se espalham na pasta atual.</dd>
+  <dt>src/br/com/ana/banco/Conta.java</dt><dd>Os arquivos a documentar (pode ser vários, ou <code>*.java</code>).</dd>
+  <dt>Generating …</dt><dd>Cada página criada: uma por classe (<code>Conta.html</code>), uma por pacote, índices, busca.</dd>
+  <dt>warning: no comment</dt><dd>"Sem comentário": um item <code>public</code> sem <code>/** */</code>. O construtor, os dois <code>get</code> e o <code>sacar</code>.</dd>
+  <dt>warning: no @param for valor</dt><dd>O <code>depositar</code> tem comentário, mas não descreve o parâmetro <code>valor</code>.</dd>
+  <dt>5 warnings / código 0</dt><dd>São <strong>avisos</strong>: o site foi gerado mesmo assim, só com buracos.</dd>
+</dl>
+
+<p>O formato dos avisos é o mesmo dos erros do <code>javac</code> (veja <a href="erros-compilacao.html">Lendo Erros do javac</a>): <code>arquivo:linha: warning: mensagem</code>, a linha do código e um <code>^</code> apontando. Repare que os atributos <code>private</code> (<code>titular</code>, <code>saldo</code>) não geraram aviso: por padrão, o <code>javadoc</code> documenta só o que é <code>public</code> e <code>protected</code>, que é o que quem usa a classe consegue ver (veja <a href="modificadores.html">Modificadores de Acesso</a>).</p>
+
+<h3>A classe toda documentada</h3>
+<pre class="file" data-file="src/br/com/ana/banco/Conta.java">package br.com.ana.banco;
+
+/**
+ * Uma conta bancária simples, com titular e saldo.
+ *
+ * &lt;p&gt;A conta começa com saldo zero. Depósitos e saques
+ * precisam ser positivos, e o saldo nunca fica negativo.
+ *
+ * @author Ana
+ * @since 1.0
+ */
+public class Conta {
+    private final String titular;
+    private double saldo;
+
+    /**
+     * Cria uma conta vazia para o titular informado.
+     *
+     * @param titular o nome de quem é dono da conta
+     */
+    public Conta(String titular) {
+        this.titular = titular;
+    }
+
+    /**
+     * Devolve o nome do titular.
+     *
+     * @return o nome do dono da conta
+     */
+    public String getTitular() {
+        return titular;
+    }
+
+    /**
+     * Devolve o saldo atual.
+     *
+     * @return o saldo, em reais; nunca é negativo
+     */
+    public double getSaldo() {
+        return saldo;
+    }
+
+    /**
+     * Coloca dinheiro na conta.
+     *
+     * @param valor quanto depositar; precisa ser maior que zero
+     * @throws IllegalArgumentException se {@code valor} for zero ou negativo
+     */
+    public void depositar(double valor) {
+        if (valor &lt;= 0) {
+            throw new IllegalArgumentException("Valor inválido: " + valor);
+        }
+        saldo += valor;
+    }
+
+    /**
+     * Tira dinheiro da conta.
+     *
+     * @param valor quanto sacar; precisa ser maior que zero
+     * @throws IllegalArgumentException se {@code valor} for zero ou negativo
+     * @throws IllegalStateException se {@code valor} for maior que o saldo
+     * @see #depositar(double)
+     */
+    public void sacar(double valor) {
+        if (valor &lt;= 0) {
+            throw new IllegalArgumentException("Valor inválido: " + valor);
+        }
+        if (valor &gt; saldo) {
+            throw new IllegalStateException("Saldo insuficiente");
+        }
+        saldo -= valor;
+    }
+}
+</pre>
+
+<p>Agora o <code>javadoc</code> não reclama de nada. A opção <code>-quiet</code> ("quieto") esconde as linhas <code>Loading…</code>/<code>Generating…</code> e deixa só avisos e erros; sem nenhum, não aparece nada:</p>
+<pre class="term">$ rm -r doc
+$ javadoc -d doc src/br/com/ana/banco/Conta.java
+Loading source file src/br/com/ana/banco/Conta.java...
+Constructing Javadoc information...
+Creating destination directory: "doc/"
+Building index for all the packages and classes...
+Standard Doclet version 25.0.4.1+1-LTS
+Building tree for all the packages and classes...
+Generating doc/br/com/ana/banco/Conta.html...
+Generating doc/br/com/ana/banco/package-summary.html...
+…                                                    « as mesmas páginas de antes, sem nenhum warning
+Generating doc/help-doc.html...
+$ javadoc -quiet -d doc src/br/com/ana/banco/Conta.java
+$ echo $?
+0</pre>
+
+<h3>O site gerado</h3>
+<pre class="term">$ ls doc
+allclasses-index.html
+allpackages-index.html
+br
+element-list
+help-doc.html
+index-all.html
+index.html
+legal
+member-search-index.js
+module-search-index.js
+overview-tree.html
+package-search-index.js
+resource-files
+script-files
+search.html
+tag-search-index.js
+type-search-index.js</pre>
+<p>Abra <code>doc/index.html</code> no navegador (no Linux: <code>xdg-open doc/index.html</code>). Você verá um site com a mesma cara da documentação oficial do Java: o pacote <code>br.com.ana.banco</code>, a classe <code>Conta</code> com a descrição, um resumo do construtor e dos métodos (com a primeira frase de cada comentário), e, mais abaixo, os detalhes de cada método com as seções <em>Parameters</em>, <em>Returns</em>, <em>Throws</em> e <em>See Also</em> montadas a partir das suas tags. Há também uma caixa de busca no alto.</p>
+
+<h3>Documentar um pacote inteiro</h3>
+<p>Em vez de listar arquivos, dá para indicar a pasta dos fontes (<code>-sourcepath</code>) e o nome do pacote:</p>
+<pre class="term">$ javadoc -d doc -sourcepath src br.com.ana.banco
+Loading source files for package br.com.ana.banco...
+Constructing Javadoc information...
+…</pre>
+<p>Em projetos <a href="maven.html">Maven</a>, quem faz isso é o plugin <code>maven-javadoc-plugin</code> (<code>mvn javadoc:javadoc</code>); no <a href="gradle.html">Gradle</a>, a tarefa <code>./gradlew javadoc</code>.</p>
+
+<hr>
+
+<h2>3. Comentários em Markdown: <code>///</code> <span class="versao">Java 23+</span></h2>
+<p>Desde o Java 23, você pode escrever a documentação em <strong>Markdown</strong> (o formato de texto simples usado em sites como o GitHub), começando cada linha com <code>///</code> em vez de usar <code>/** */</code>. Código vai entre crases, em vez de <code>{@code}</code>; as tags <code>@param</code> e <code>@return</code> continuam iguais:</p>
+<pre class="file" data-file="Moeda.java">/// Formata valores em reais.
+///
+/// Exemplo: `Moeda.formatar(4.5)` devolve `R$ 4,50`.
+public class Moeda {
+
+    /// Cria o utilitário (não é preciso: os métodos são estáticos).
+    public Moeda() {
+    }
+
+    /// Formata um valor com duas casas decimais.
+    ///
+    /// @param valor o valor em reais
+    /// @return o texto formatado, como `R$ 4,50`
+    public static String formatar(double valor) {
+        return String.format("R$ %.2f", valor);
+    }
+}
+</pre>
+<pre class="term">$ javadoc -quiet -d doc Moeda.java
+$ echo $?
+0
+$ grep -o "&lt;code&gt;R\$ 4,50&lt;/code&gt;" doc/Moeda.html | head -2
+&lt;code&gt;R$ 4,50&lt;/code&gt;                « as crases viraram código no HTML
+&lt;code&gt;R$ 4,50&lt;/code&gt;</pre>
+<p>Em código anterior ao Java 23 (e na maior parte do código que você vai ler), o formato é o <code>/** */</code>; os dois funcionam no JDK 25. Escolha um e use sempre o mesmo no projeto.</p>
+
+<hr>
+
+<h2>4. Ler a documentação oficial da API</h2>
+<p>A biblioteca do Java (veja <a href="api-java.html">A Biblioteca Padrão</a>) tem milhares de classes, e ninguém decora. O que todo programador faz é <strong>consultar</strong> a documentação, que fica em:</p>
+<p><code>https://docs.oracle.com/en/java/javase/25/docs/api/</code></p>
+<p>Ela foi gerada pelo mesmo <code>javadoc</code>, a partir dos comentários do código-fonte do JDK. O código-fonte vem junto com o JDK, no arquivo <code>lib/src.zip</code>, e dá para ver o comentário original do <code>charAt</code> da <code>String</code>:</p>
+
+<pre class="term">$ unzip -p /opt/jdk-25/lib/src.zip java.base/java/lang/String.java | grep -n -B18 "public char charAt(int index)"
+1604-    /**
+1605-     * Returns the {@code char} value at the
+1606-     * specified index. An index ranges from {@code 0} to
+1607-     * {@code length() - 1}. The first {@code char} value of the sequence
+1608-     * is at index {@code 0}, the next at index {@code 1},
+1609-     * and so on, as for array indexing.
+1610-     *
+1611-     * &lt;p&gt;If the {@code char} value specified by the index is a
+1612-     * &lt;a href="Character.html#unicode"&gt;surrogate&lt;/a&gt;, the surrogate
+1613-     * value is returned.
+1614-     *
+1615-     * @param      index   the index of the {@code char} value.
+1616-     * @return     the {@code char} value at the specified index of this string.
+1617-     *             The first {@code char} value is at index {@code 0}.
+1618-     * @throws     IndexOutOfBoundsException  if the {@code index}
+1619-     *             argument is negative or not less than the length of this
+1620-     *             string.
+1621-     */
+1622:    public char charAt(int index) {</pre>
+
+<p>Exatamente as mesmas tags que você usou na <code>Conta</code>. No site, esse comentário vira a entrada do método <code>charAt</code> da página da <code>String</code>. Como ler uma entrada de método:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte da página</th><th>O que diz (no <code>charAt</code>)</th></tr>
+<tr><td>Assinatura: <code>public char charAt(int index)</code></td><td>Recebe um <code>int</code>, devolve um <code>char</code>; é de objeto (não tem <code>static</code>), então se usa <code>texto.charAt(0)</code>.</td></tr>
+<tr><td>Descrição</td><td>Devolve o caractere na posição; as posições vão de 0 a <code>length() - 1</code>.</td></tr>
+<tr><td><em>Parameters</em></td><td><code>index</code>: a posição.</td></tr>
+<tr><td><em>Returns</em></td><td>O <code>char</code> naquela posição.</td></tr>
+<tr><td><em>Throws</em></td><td><code>IndexOutOfBoundsException</code> se o índice for negativo ou não for menor que o tamanho. Ou seja: <code>"Ana".charAt(3)</code> quebra.</td></tr>
+<tr><td><em>Since</em> (em outros métodos)</td><td>A versão do Java em que o método apareceu. Útil para saber se você pode usá-lo, por exemplo, num sistema com Java 11.</td></tr>
+</table>
+</div>
+
+<h3>Como navegar</h3>
+<ol class="passo">
+  <li>Use a <strong>caixa de busca</strong> (<em>Search</em>) no alto: digite <code>String</code> e escolha <code>java.lang.String</code>; ou digite o nome de um método, como <code>charAt</code>.</li>
+  <li>Na página da classe, leia a descrição do topo (muitas trazem exemplos de uso).</li>
+  <li>Vá ao <em>Method Summary</em>, a tabela com todos os métodos e o resumo de cada um. É o lugar para descobrir "existe um método que faz…?".</li>
+  <li>Clique no método para ver os detalhes: parâmetros, retorno, exceções.</li>
+  <li>Repare em <em>Methods declared in class …</em>: os métodos herdados (veja <a href="heranca.html">Herança</a>) aparecem listados separadamente.</li>
+</ol>
+<p>A organização é por <strong>módulo</strong> (<code>java.base</code> tem o essencial; veja <a href="modulos.html">Módulos</a>), depois <strong>pacote</strong> (<code>java.lang</code>, <code>java.util</code>…), depois <strong>classe</strong>. A documentação está em inglês; o tradutor do navegador ajuda, mas os nomes de métodos e as tags (<em>Parameters</em>, <em>Returns</em>) você logo reconhece. Nas IDEs, o mesmo texto aparece ao passar o mouse sobre um método (ou com <kbd>Ctrl</kbd>+<kbd>Q</kbd> no IntelliJ).</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: @param name not found</code></strong>
+<p>A Ana mudou o nome no <code>@param</code> do <code>sacar</code> para <code>quantia</code>, mas o parâmetro continua se chamando <code>valor</code>:</p>
+<pre class="term">$ javadoc -quiet -d doc src/br/com/ana/banco/Conta.java
+src/br/com/ana/banco/Conta.java:59: error: @param name not found
+     * @param quantia quanto sacar; precisa ser maior que zero
+              ^
+src/br/com/ana/banco/Conta.java:64: warning: no @param for valor
+    public void sacar(double valor) {
+                ^
+1 error
+1 warning
+$ echo $?
+1</pre>
+<p><strong>O que aconteceu:</strong> o nome do <code>@param</code> tem de ser igual ao do parâmetro. Este é um <strong>erro</strong> (não um aviso): o código de saída é 1. Acontece muito quando se renomeia um parâmetro e se esquece o comentário. <strong>Como resolver:</strong> deixe os nomes iguais.</p>
+</div>
+
+<div class="cenario">
+<strong><code>warning: use of default constructor, which does not provide a comment</code></strong>
+<pre class="term">$ javadoc -quiet -d doc Moeda.java
+Moeda.java:4: warning: use of default constructor, which does not provide a comment
+public class Moeda {
+       ^
+1 warning</pre>
+<p><strong>O que aconteceu:</strong> a classe não declara construtor, então o Java cria um construtor público vazio (o "construtor padrão", veja <a href="construtores.html">Construtores</a>), que entra na documentação sem descrição. <strong>Como resolver:</strong> declare o construtor e documente-o (como na <code>Moeda</code> com <code>///</code>), ou torne-o <code>private</code> se a classe só tem métodos <code>static</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O comentário não aparece no site</strong>
+<p><strong>O que aconteceu:</strong> uma destas três: começou com <code>/*</code> (um asterisco só); há algo entre o comentário e o método (um <code>import</code>, outro comentário… anotações como <code>@Override</code> podem ficar no meio); ou o item não é <code>public</code>/<code>protected</code>. <strong>Como resolver:</strong> confira o <code>/**</code> e a posição. Para incluir itens privados, use <code>javadoc -private</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Item</th><th>O que faz</th></tr>
+<tr><td><code>/** … */</code></td><td>Comentário de documentação, logo antes do item</td></tr>
+<tr><td><code>/// …</code></td><td>Comentário de documentação em Markdown (Java 23+)</td></tr>
+<tr><td><code>@param</code>, <code>@return</code>, <code>@throws</code></td><td>Parâmetros, retorno, exceções</td></tr>
+<tr><td><code>@see</code>, <code>@since</code>, <code>@author</code>, <code>@deprecated</code></td><td>Veja também, versão, autor, "não use mais"</td></tr>
+<tr><td><code>{@code …}</code>, <code>{@link …}</code></td><td>Código e link no meio do texto</td></tr>
+<tr><td><code>javadoc -d doc Arquivo.java</code></td><td>Gera o site na pasta <code>doc</code></td></tr>
+<tr><td><code>javadoc -d doc -sourcepath src pacote</code></td><td>Gera para um pacote inteiro</td></tr>
+<tr><td><code>javadoc -quiet …</code></td><td>Mostra só avisos e erros</td></tr>
+<tr><td><code>javadoc -private …</code></td><td>Inclui também os itens privados</td></tr>
+<tr><td><code>docs.oracle.com/en/java/javase/25/docs/api/</code></td><td>A documentação oficial do Java 25</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Abrir o comentário</h3>
+<p>Complete com o que abre um comentário de documentação:</p>
+<div class="ex-code"><input data-answer="/**" aria-label="abertura"><br> * Calcula a média das notas.<br> */</div>
+</div>
+
+<div class="exercise">
+<h3>2. A tag do retorno</h3>
+<p>Complete a tag que descreve o que o método devolve:</p>
+<div class="ex-code"> * <input data-answer="@return" aria-label="tag"> a média, entre 0 e 10</div>
+</div>
+
+<div class="exercise">
+<h3>3. Gerar o site</h3>
+<p>Complete para gerar a documentação de <code>Agenda.java</code> na pasta <code>docs</code>:</p>
+<div class="ex-code">javadoc <input data-answer="-d docs" aria-label="opção"> Agenda.java</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O <code>javadoc</code> terminou com <code>4 warnings</code> e código 0. O que aconteceu?</p>
+<label><input type="radio" name="q4"> Nada foi gerado.</label>
+<label><input type="radio" name="q4"> O código Java tem 4 erros de compilação.</label>
+<label><input type="radio" name="q4"> O site foi gerado, mas há itens sem comentário ou tags faltando.</label>
+<label><input type="radio" name="q4"> O <code>javadoc</code> corrigiu 4 comentários sozinho.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual comentário o <code>javadoc</code> usa para documentar o método logo abaixo?</p>
+<label><input type="radio" name="q5"> <code>/** Devolve o saldo. */</code></label>
+<label><input type="radio" name="q5"> <code>/* Devolve o saldo. */</code></label>
+<label><input type="radio" name="q5"> <code>// Devolve o saldo.</code></label>
+<label><input type="radio" name="q5"> Nenhum: o <code>javadoc</code> lê só o código.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Na documentação de um método, a seção <em>Throws</em> diz <code>IndexOutOfBoundsException</code> "if the index argument is negative". O que isso significa para você?</p>
+<label><input type="radio" name="q6"> Que o método nunca lança exceções.</label>
+<label><input type="radio" name="q6"> Que passar um índice negativo faz o método lançar essa exceção.</label>
+<label><input type="radio" name="q6"> Que o método só aceita índices negativos.</label>
+<label><input type="radio" name="q6"> Que você precisa de um <code>import</code> para usá-lo.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Saldo insuficiente,src:@throws\s+IllegalStateException,src:@param\s+valor">
+<p class="try-task"><strong>Missão final:</strong> documente o método <code>sacar</code> com uma frase de resumo, <code>@param valor</code> e <code>@throws IllegalStateException</code> dizendo quando ela acontece. O programa deve continuar mostrando <code>Saldo insuficiente</code>.</p>
+<pre class="script">public class Main {
+    static double saldo = 100.0;
+
+    static void sacar(double valor) {
+        if (valor &gt; saldo) {
+            throw new IllegalStateException("Saldo insuficiente");
+        }
+        saldo -= valor;
+    }
+
+    public static void main(String[] args) {
+        try {
+            sacar(500.0);
+        } catch (IllegalStateException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static double saldo = 100.0;
+
+    /**
+     * Tira dinheiro do saldo.
+     *
+     * @param valor quanto sacar
+     * @throws IllegalStateException se {@code valor} for maior que o saldo
+     */
+    static void sacar(double valor) {
+        if (valor &gt; saldo) {
+            throw new IllegalStateException("Saldo insuficiente");
+        }
+        saldo -= valor;
+    }
+
+    public static void main(String[] args) {
+        try {
+            sacar(500.0);
+        } catch (IllegalStateException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>/** */</code> logo antes de uma classe, construtor, método ou atributo é um comentário de documentação; <code>//</code> e <code>/* */</code> não entram na documentação.</li>
+  <li>A primeira frase é o resumo. Depois, as tags: <code>@param</code> (uma por parâmetro, com o nome exato), <code>@return</code>, <code>@throws</code>, <code>@see</code>, <code>@since</code>. No texto: <code>{@code}</code> e <code>{@link}</code>.</li>
+  <li>Descreva o que o método faz para quem usa, não como foi implementado.</li>
+  <li><code>javadoc -d doc Arquivos.java</code> gera o site; <code>warning: no comment</code> e <code>no @param</code> são avisos (o site sai com buracos); <code>@param name not found</code> é erro.</li>
+  <li>Por padrão, só itens <code>public</code> e <code>protected</code> são documentados.</li>
+  <li>Java 23+: comentários em Markdown com <code>///</code>.</li>
+  <li>A documentação oficial (<code>docs.oracle.com/en/java/javase/25/docs/api/</code>) é feita do mesmo jeito: leia a assinatura, a descrição, <em>Parameters</em>, <em>Returns</em> e <em>Throws</em>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
