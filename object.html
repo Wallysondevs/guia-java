@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java A Classe Object — toString, equals, hashCode e getClass | Guia Java</title>
+<meta name="description" content="A classe Object, mãe de todas as classes Java: o toString padrão (Aluno@5d20e46, explicado), equals padrão (==) × sobrescrito, hashCode e o contrato com equals (com um HashSet dando resultado errado de verdade) e getClass. Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">A Classe Object</span></h1>
+
+<p class="intro">Em <a href="heranca.html">Herança</a> você viu que toda classe, no fim da escada, herda de <code>java.lang.Object</code>. Isso quer dizer que todo objeto Java, de qualquer classe, já nasce com alguns métodos. Três deles você vai sobrescrever o tempo todo: <code>toString</code>, <code>equals</code> e <code>hashCode</code>. E os dois últimos têm uma regra que, quando quebrada, faz coleções como o <code>HashSet</code> darem respostas erradas sem nenhuma mensagem de erro. Esta aula fecha o grupo "Herança e Polimorfismo" explicando cada um.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Quais métodos todo objeto herda de <code>Object</code>.</li>
+  <li>O que significa o <code>Aluno@5d20e46</code> do <code>toString</code> padrão.</li>
+  <li>A diferença entre <code>==</code> e <code>equals</code>, e como sobrescrever o <code>equals</code>.</li>
+  <li>O que é o <code>hashCode</code>, o contrato entre ele e o <code>equals</code>, e o que acontece quando o contrato é quebrado.</li>
+  <li>Para que serve o <code>getClass()</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: o "kit básico" de todo objeto</h2>
+<p>Quando você compra um celular, qualquer marca, ele vem com o básico: liga, desliga, mostra a hora. Cada fabricante pode caprichar mais em cada função, mas o básico está sempre lá. A classe <code>Object</code> é o kit básico de todo objeto Java. Os métodos que ele traz:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Para quê</th><th>Costuma ser sobrescrito?</th></tr>
+<tr><td><code>String toString()</code></td><td>O objeto como texto</td><td><strong>Sim</strong>, quase sempre</td></tr>
+<tr><td><code>boolean equals(Object o)</code></td><td>"Este objeto é igual àquele?"</td><td><strong>Sim</strong>, em classes de dados</td></tr>
+<tr><td><code>int hashCode()</code></td><td>Um número que resume o objeto, usado por <code>HashSet</code> e <code>HashMap</code></td><td><strong>Sim</strong>, sempre junto com o <code>equals</code></td></tr>
+<tr><td><code>Class&lt;?&gt; getClass()</code></td><td>A classe do objeto</td><td>Não (é <code>final</code>)</td></tr>
+<tr><td><code>clone()</code></td><td>Copiar o objeto</td><td>Raramente; prefira um construtor de cópia</td></tr>
+<tr><td><code>wait()</code>, <code>notify()</code>, <code>notifyAll()</code></td><td>Coordenação entre threads</td><td>Não (veja <a href="sincronizacao.html">synchronized</a>)</td></tr>
+<tr><td><code>finalize()</code></td><td>Antigo; obsoleto (<em>deprecated</em>) desde o Java 9</td><td>Não use</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2><code>toString()</code>: o que é <code>Aluno@5d20e46</code>?</h2>
+<p>Uma classe sem <code>toString()</code> próprio usa o de <code>Object</code>. O resultado é aquele texto estranho que você já viu:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno ana = new Aluno("Ana", 123);
+        System.out.println(ana);
+        System.out.println(ana.toString());
+        System.out.println(ana.getClass().getName());
+        System.out.println(ana.hashCode());
+        System.out.println(Integer.toHexString(ana.hashCode()));
+    }
+}
+
+class Aluno {
+    String nome;
+    int matricula;
+
+    Aluno(String nome, int matricula) {
+        this.nome = nome;
+        this.matricula = matricula;
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Aluno@5d20e46            « o println chama o toString()
+Aluno@5d20e46            « a mesma coisa, chamado à mão
+Aluno                    « o nome da classe
+97652294                 « o hashCode, em decimal
+5d20e46                  « o mesmo número, em hexadecimal</pre>
+
+<p>As três últimas linhas desmontam a primeira. O <code>toString()</code> de <code>Object</code> é, literalmente:</p>
+
+<pre class="file" data-file="Object.java (trecho)">return getClass().getName() + "@" + Integer.toHexString(hashCode());
+</pre>
+
+<dl class="anatomy">
+  <dt>Aluno</dt><dd>O nome completo da classe (com o pacote, se houver: <code>br.com.ana.Aluno</code>; veja <a href="pacotes.html">Pacotes</a>).</dd>
+  <dt>@</dt><dd>Só um separador.</dd>
+  <dt>5d20e46</dt><dd>O <code>hashCode()</code> do objeto, escrito em <strong>hexadecimal</strong> (base 16, com os dígitos 0–9 e a–f). <code>5d20e46</code> em hexadecimal é <code>97652294</code> em decimal.</dd>
+</dl>
+
+<p>Não é um "endereço de memória", como muita gente diz: é um número de identificação que a JVM inventa para o objeto. Ele pode mudar de uma execução para outra e de uma máquina para outra; não tente usá-lo para nada. A solução é sobrescrever o <code>toString()</code> com algo útil, como você aprendeu em <a href="sobrescrita.html">Sobrescrita</a>:</p>
+
+<pre class="file" data-file="Aluno.java">    @Override
+    public String toString() {
+        return nome + " (matrícula " + matricula + ")";
+    }
+</pre>
+
+<div class="tryjava" data-goal="out:Dom Casmurro\, de Machado de Assis,src:public\s+String\s+toString">
+<p class="try-task"><strong>Missão:</strong> rode e veja o <code>Livro@…</code>. Depois sobrescreva <code>toString()</code> em <code>Livro</code> para que o <code>println</code> mostre <code>Dom Casmurro, de Machado de Assis</code> (título, vírgula, "de" e o autor).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Livro livro = new Livro("Dom Casmurro", "Machado de Assis");
+        System.out.println(livro);
+    }
+}
+
+class Livro {
+    String titulo;
+    String autor;
+
+    Livro(String titulo, String autor) {
+        this.titulo = titulo;
+        this.autor = autor;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Livro livro = new Livro("Dom Casmurro", "Machado de Assis");
+        System.out.println(livro);
+    }
+}
+
+class Livro {
+    String titulo;
+    String autor;
+
+    Livro(String titulo, String autor) {
+        this.titulo = titulo;
+        this.autor = autor;
+    }
+
+    @Override
+    public String toString() {
+        return titulo + ", de " + autor;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>equals</code>: igual ou o mesmo?</h2>
+<p>"Igual" tem dois sentidos. Duas notas de 10 reais são <strong>iguais</strong> (valem o mesmo), mas não são <strong>a mesma</strong> nota (cada uma tem o seu número de série). Em Java:</p>
+<ul>
+  <li><code>a == b</code> pergunta: "<code>a</code> e <code>b</code> são <strong>o mesmo</strong> objeto?" (apontam para o mesmo lugar da memória?)</li>
+  <li><code>a.equals(b)</code> pergunta: "<code>a</code> e <code>b</code> são <strong>iguais</strong>?", e quem decide o que é "igual" é a classe.</li>
+</ul>
+
+<p>O problema: o <code>equals</code> que vem de <code>Object</code> não sabe nada sobre alunos, e simplesmente faz <code>==</code>. Veja:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno a1 = new Aluno("Ana", 123);
+        Aluno a2 = new Aluno("Ana", 123);
+        Aluno a3 = a1;
+        System.out.println(a1 == a2);
+        System.out.println(a1.equals(a2));
+        System.out.println(a1 == a3);
+        System.out.println(a1.equals(a3));
+
+        String s1 = new String("Ana");
+        String s2 = new String("Ana");
+        System.out.println(s1 == s2);
+        System.out.println(s1.equals(s2));
+    }
+}
+
+class Aluno {
+    String nome;
+    int matricula;
+
+    Aluno(String nome, int matricula) {
+        this.nome = nome;
+        this.matricula = matricula;
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+false        « a1 == a2: dois objetos diferentes
+false        « a1.equals(a2): o equals de Object é o mesmo que ==
+true         « a1 == a3: a3 aponta para o mesmo objeto que a1
+true
+false        « duas Strings diferentes na memória…
+true         « …mas a String sobrescreveu o equals: compara o texto</pre>
+
+<p>As duas últimas linhas mostram a diferença: a classe <code>String</code> sobrescreveu o <code>equals</code> para comparar as letras (por isso, na aula de <a href="strings.html">Strings</a>, a regra é "compare textos com <code>equals</code>, nunca com <code>==</code>"). O <code>Aluno</code> não sobrescreveu, então duas fichas idênticas da Ana são "diferentes".</p>
+
+<h3>Sobrescrevendo o <code>equals</code></h3>
+<p>Para a escola da Ana, dois alunos são o mesmo aluno quando têm a mesma <strong>matrícula</strong>. A forma padrão de escrever:</p>
+
+<pre class="file" data-file="Aluno.java">    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Aluno outro)) return false;
+        return matricula == outro.matricula;
+    }
+</pre>
+
+<dl class="anatomy">
+  <dt>public boolean equals(Object o)</dt><dd>A assinatura tem que ser exatamente esta: o parâmetro é <code>Object</code>, não <code>Aluno</code>. Com <code>Aluno</code>, seria uma <a href="sobrecarga.html">sobrecarga</a>, não uma sobrescrita (e o <code>@Override</code> acusaria).</dd>
+  <dt>if (this == o) return true;</dt><dd>Atalho: se é o mesmo objeto, é igual.</dd>
+  <dt>if (!(o instanceof Aluno outro)) return false;</dt><dd>Se <code>o</code> não é um <code>Aluno</code> (ou é <code>null</code>), não é igual. Se for, cria a variável <code>outro</code>, já convertida (o <a href="polimorfismo.html"><code>instanceof</code> com padrão</a>).</dd>
+  <dt>return matricula == outro.matricula;</dt><dd>A regra de igualdade da classe. Para comparar textos aqui dentro, use <code>equals</code> (ou <code>Objects.equals(a, b)</code>, que aceita <code>null</code>).</dd>
+</dl>
+
+<p>Com isso, <code>a1.equals(a2)</code> passa a dar <code>true</code>. Mas a história não acabou: falta o <code>hashCode</code>, e o próximo exemplo mostra por quê.</p>
+
+<hr>
+
+<h2><code>hashCode</code> e o contrato com <code>equals</code></h2>
+<p>O <code>hashCode()</code> devolve um <code>int</code> que "resume" o objeto. Coleções como <code>HashSet</code> e <code>HashMap</code> usam esse número para guardar os objetos em <strong>gavetas</strong>: em vez de comparar um objeto novo com todos os outros, elas calculam o <code>hashCode</code>, vão direto à gaveta daquele número e só ali usam o <code>equals</code>. É isso que as deixa rápidas.</p>
+
+<p>Para funcionar, existe uma regra, chamada de <strong>contrato</strong>:</p>
+
+<div class="note">
+<strong>O contrato <code>equals</code> × <code>hashCode</code></strong>
+<p><strong>Se <code>a.equals(b)</code> é <code>true</code>, então <code>a.hashCode()</code> tem que ser igual a <code>b.hashCode()</code>.</strong> (O contrário não é exigido: objetos diferentes podem, por acaso, ter o mesmo hashCode.) Consequência prática: <strong>sobrescreveu <code>equals</code>, sobrescreva <code>hashCode</code></strong>, usando os mesmos atributos.</p>
+</div>
+
+<h3>O que acontece quando o contrato é quebrado</h3>
+<p>A Ana sobrescreveu o <code>equals</code> (por matrícula) e esqueceu o <code>hashCode</code>. Ela coloca a mesma aluna duas vezes num <a href="hashset.html"><code>HashSet</code></a>, um conjunto que <strong>não aceita repetidos</strong>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno a1 = new Aluno("Ana", 123);
+        Aluno a2 = new Aluno("Ana", 123);
+        System.out.println("equals: " + a1.equals(a2));
+
+        Set&lt;Aluno&gt; turma = new HashSet&lt;&gt;();
+        turma.add(a1);
+        turma.add(a2);
+        System.out.println("Tamanho do conjunto: " + turma.size());
+        System.out.println("Contém a Ana? " + turma.contains(new Aluno("Ana", 123)));
+    }
+}
+
+class Aluno {
+    String nome;
+    int matricula;
+
+    Aluno(String nome, int matricula) {
+        this.nome = nome;
+        this.matricula = matricula;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Aluno outro)) return false;
+        return matricula == outro.matricula;
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+equals: true                     « o equals diz que são a mesma aluna…
+Tamanho do conjunto: 2           « …mas o conjunto "sem repetidos" guardou as duas!
+Contém a Ana? false              « e nem acha a Ana</pre>
+
+<p>Nenhum erro, nenhuma exceção: só respostas erradas. O que aconteceu: <code>a1</code> e <code>a2</code> usaram o <code>hashCode</code> de <code>Object</code>, que é diferente para cada objeto. O <code>HashSet</code> colocou cada uma numa gaveta diferente e nunca chegou a chamar o <code>equals</code> para compará-las. No <code>contains</code>, a terceira "Ana" foi procurada numa terceira gaveta, vazia.</p>
+
+<p>O conserto é um <code>hashCode</code> baseado no mesmo atributo do <code>equals</code>:</p>
+
+<pre class="file" data-file="Aluno.java">    @Override
+    public int hashCode() {
+        return Integer.hashCode(matricula);
+    }
+</pre>
+
+<pre class="term">$ java Main.java
+equals: true
+Tamanho do conjunto: 1           « agora sim
+Contém a Ana? true</pre>
+
+<p>Agora alunos com a mesma matrícula caem na mesma gaveta, e lá o <code>equals</code> decide. Quando a igualdade usa vários atributos, o jeito mais simples é <code>java.util.Objects.hash</code>, que combina todos:</p>
+
+<pre class="file" data-file="Aluno.java">    @Override
+    public int hashCode() {
+        return Objects.hash(nome, matricula);    // com import java.util.Objects;
+    }
+</pre>
+
+<div class="tip">
+<strong>Não quer escrever nada disso?</strong>
+<p>Os <a href="records.html">records</a> geram <code>equals</code>, <code>hashCode</code> e <code>toString</code> corretos, usando todos os componentes. E os editores (IntelliJ: <em>Generate → equals() and hashCode()</em>; VS Code: <em>Source Action</em>) escrevem os dois métodos juntos para uma classe comum. Gere os dois sempre <strong>juntos</strong>, com os mesmos atributos.</p>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você sobrescreveu…</th><th>Resultado num <code>HashSet</code>/<code>HashMap</code></th></tr>
+<tr><td>Nenhum dos dois</td><td>Cada objeto é único (igualdade por <code>==</code>). Consistente, mas "Anas" iguais contam como diferentes.</td></tr>
+<tr><td>Só <code>equals</code></td><td><strong>Errado</strong>: repetidos no conjunto, <code>contains</code> e <code>get</code> falham. (O caso da Ana.)</td></tr>
+<tr><td>Só <code>hashCode</code></td><td>Inútil: mesma gaveta, mas o <code>equals</code> de <code>Object</code> ainda diz "diferentes".</td></tr>
+<tr><td>Os dois, com os mesmos atributos</td><td><strong>Correto</strong></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2><code>getClass()</code>: de que classe é este objeto?</h2>
+<p>O <code>getClass()</code> devolve um objeto do tipo <code>Class</code> que descreve a classe <strong>real</strong> do objeto, não o tipo da variável. Ele já apareceu no <code>toString</code> padrão e em <a href="heranca.html">Herança</a>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Animal a = new Cachorro();
+        System.out.println(a.getClass().getName());
+        System.out.println(a.getClass().getSimpleName());
+        System.out.println(a instanceof Animal);
+        System.out.println(a.getClass() == Animal.class);
+        System.out.println(a.getClass() == Cachorro.class);
+        System.out.println("texto".getClass().getName());
+    }
+}
+
+class Animal {
+}
+
+class Cachorro extends Animal {
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Cachorro                « getName(): nome completo (aqui sem pacote)
+Cachorro                « getSimpleName(): sem o pacote
+true                    « instanceof aceita subclasses
+false                   « getClass() é exato: Cachorro não é Animal.class
+true
+java.lang.String        « com pacote, o nome completo aparece</pre>
+
+<dl class="anatomy">
+  <dt>Cachorro.class</dt><dd>Escrever <code>NomeDaClasse.class</code> dá o objeto <code>Class</code> daquela classe, para comparar.</dd>
+  <dt>getName() × getSimpleName()</dt><dd>Com e sem o pacote: <code>java.lang.String</code> × <code>String</code>.</dd>
+</dl>
+
+<p>A diferença em relação ao <code>instanceof</code> está nas duas linhas do meio: <code>instanceof Animal</code> responde "é um animal, de qualquer tipo?"; <code>getClass() == Animal.class</code> responde "é exatamente da classe <code>Animal</code>?". No dia a dia, prefira <code>instanceof</code>. O <code>getClass()</code> aparece em mensagens, em logs e é a porta de entrada da <a href="reflexao.html">Reflexão</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Aparece <code>NomeDaClasse@1a2b3c</code> na tela</strong>
+<p><strong>O que aconteceu:</strong> o objeto não tem <code>toString()</code> próprio. Acontece também com arrays: <code>println(notas)</code> mostra algo como <code>[I@…</code> (para arrays, use <code>Arrays.toString(notas)</code>; veja <a href="classe-arrays.html">A Classe Arrays</a>).</p>
+<p><strong>Como resolver:</strong> sobrescreva <code>public String toString()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>equals</code> dá <code>false</code> para objetos com os mesmos dados</strong>
+<p><strong>O que aconteceu:</strong> a classe não sobrescreveu <code>equals</code>, e o de <code>Object</code> compara com <code>==</code>. Outra causa: o método foi escrito como <code>equals(Aluno o)</code> (sobrecarga), e as coleções continuam chamando o <code>equals(Object)</code> herdado.</p>
+<p><strong>Como resolver:</strong> sobrescreva <code>public boolean equals(Object o)</code>, com <code>@Override</code> para o compilador conferir a assinatura.</p>
+</div>
+
+<div class="cenario">
+<strong><code>HashSet</code> com repetidos, <code>contains</code> ou <code>HashMap.get</code> não acham o objeto</strong>
+<p><strong>O que aconteceu:</strong> o contrato foi quebrado: <code>equals</code> sobrescrito sem <code>hashCode</code> (ou os dois usando atributos diferentes). Outra causa: um atributo usado no <code>hashCode</code> mudou depois de o objeto entrar no conjunto, e ele ficou "na gaveta errada".</p>
+<p><strong>Como resolver:</strong> sobrescreva <code>hashCode</code> com os mesmos atributos do <code>equals</code> (<code>Objects.hash(…)</code>); use atributos que não mudam (<code>final</code>), ou use um record.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Padrão de <code>Object</code></th><th>Como sobrescrever</th></tr>
+<tr><td><code>toString()</code></td><td><code>Classe@hashEmHexadecimal</code></td><td><code>@Override public String toString() { return …; }</code></td></tr>
+<tr><td><code>equals(Object o)</code></td><td>Igual a <code>==</code></td><td><code>this == o</code> → <code>instanceof</code> → comparar os atributos</td></tr>
+<tr><td><code>hashCode()</code></td><td>Um número por objeto</td><td><code>Objects.hash(atributos do equals)</code></td></tr>
+<tr><td><code>getClass()</code></td><td>A classe real do objeto</td><td>Não pode (é <code>final</code>)</td></tr>
+<tr><td><code>a == b</code></td><td colspan="2">O mesmo objeto? (não pode ser mudado)</td></tr>
+<tr><td><code>Objects.equals(a, b)</code></td><td colspan="2">Compara com <code>equals</code>, aceitando <code>null</code> dos dois lados</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A assinatura certa</h3>
+<p>Complete a assinatura do <code>equals</code> que sobrescreve o de <code>Object</code>:</p>
+<div class="ex-code">public boolean equals(<input data-answer="Object o|Object obj|Object outro" aria-label="parâmetro">) { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Hexadecimal</h3>
+<p>O <code>toString</code> padrão mostrou <code>Produto@1f</code>. Qual é o <code>hashCode()</code> desse objeto, em decimal?</p>
+<div class="ex-code"><input data-answer="31" aria-label="número"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O par</h3>
+<p>Sobrescreveu <code>equals</code>? Então qual outro método de <code>Object</code> precisa sobrescrever?</p>
+<div class="ex-code"><input data-answer="hashCode|hashCode()" aria-label="método"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>String a = new String("oi"); String b = new String("oi");</code> O que <code>a == b</code> e <code>a.equals(b)</code> valem?</p>
+<label><input type="radio" name="q4"> <code>true</code> e <code>true</code></label>
+<label><input type="radio" name="q4"> <code>false</code> e <code>true</code></label>
+<label><input type="radio" name="q4"> <code>true</code> e <code>false</code></label>
+<label><input type="radio" name="q4"> <code>false</code> e <code>false</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Uma classe sobrescreveu só o <code>equals</code>. Dois objetos "iguais" são postos num <code>HashSet</code>. O que é mais provável?</p>
+<label><input type="radio" name="q5"> Erro de compilação</label>
+<label><input type="radio" name="q5"> Uma exceção ao chamar <code>add</code></label>
+<label><input type="radio" name="q5"> O conjunto fica com os dois, como se fossem diferentes</label>
+<label><input type="radio" name="q5"> O conjunto fica com um só</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. <code>Animal a = new Gato();</code> Qual expressão vale <code>true</code>?</p>
+<label><input type="radio" name="q6"> <code>a.getClass() == Gato.class</code></label>
+<label><input type="radio" name="q6"> <code>a.getClass() == Animal.class</code></label>
+<label><input type="radio" name="q6"> <code>a.getClass().getSimpleName().equals("Animal")</code></label>
+<label><input type="radio" name="q6"> <code>a.getClass() == Object.class</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Tamanho do conjunto: 1,out:Contém a Ana? true,src:int\s+hashCode">
+<p class="try-task"><strong>Missão final:</strong> o <code>Aluno</code> tem <code>equals</code> por matrícula, mas o <code>HashSet</code> está guardando a Ana duas vezes. Rode e confira o tamanho <code>2</code>. Depois sobrescreva <code>public int hashCode()</code> usando a matrícula (<code>Integer.hashCode(matricula)</code> ou <code>Objects.hash(matricula)</code>, com o import). A saída deve ter <code>Tamanho do conjunto: 1</code> e <code>Contém a Ana? true</code>.</p>
+<pre class="script">import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno a1 = new Aluno("Ana", 123);
+        Aluno a2 = new Aluno("Ana", 123);
+        System.out.println("equals: " + a1.equals(a2));
+
+        Set&lt;Aluno&gt; turma = new HashSet&lt;&gt;();
+        turma.add(a1);
+        turma.add(a2);
+        System.out.println("Tamanho do conjunto: " + turma.size());
+        System.out.println("Contém a Ana? " + turma.contains(new Aluno("Ana", 123)));
+    }
+}
+
+class Aluno {
+    String nome;
+    int matricula;
+
+    Aluno(String nome, int matricula) {
+        this.nome = nome;
+        this.matricula = matricula;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Aluno outro)) return false;
+        return matricula == outro.matricula;
+    }
+}
+</pre>
+<pre class="solucao">import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno a1 = new Aluno("Ana", 123);
+        Aluno a2 = new Aluno("Ana", 123);
+        System.out.println("equals: " + a1.equals(a2));
+
+        Set&lt;Aluno&gt; turma = new HashSet&lt;&gt;();
+        turma.add(a1);
+        turma.add(a2);
+        System.out.println("Tamanho do conjunto: " + turma.size());
+        System.out.println("Contém a Ana? " + turma.contains(new Aluno("Ana", 123)));
+    }
+}
+
+class Aluno {
+    String nome;
+    int matricula;
+
+    Aluno(String nome, int matricula) {
+        this.nome = nome;
+        this.matricula = matricula;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Aluno outro)) return false;
+        return matricula == outro.matricula;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(matricula);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Toda classe herda de <code>Object</code> os métodos <code>toString</code>, <code>equals</code>, <code>hashCode</code> e <code>getClass</code> (entre outros).</li>
+  <li>O <code>toString</code> padrão é <code>Classe@hashCodeEmHexadecimal</code>; sobrescreva para mostrar algo útil.</li>
+  <li><code>==</code> pergunta "é o mesmo objeto?"; <code>equals</code> pergunta "são iguais?". O <code>equals</code> padrão faz <code>==</code>; sobrescreva com <code>equals(Object o)</code>.</li>
+  <li>Contrato: objetos <code>equals</code> precisam ter o mesmo <code>hashCode</code>. Sobrescreveu um, sobrescreva o outro, com os mesmos atributos. Senão, <code>HashSet</code> e <code>HashMap</code> erram em silêncio.</li>
+  <li><code>getClass()</code> dá a classe exata do objeto; <code>instanceof</code> aceita subclasses.</li>
+  <li>Records já trazem <code>equals</code>, <code>hashCode</code> e <code>toString</code> prontos e corretos.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
