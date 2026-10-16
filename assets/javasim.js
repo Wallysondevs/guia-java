@@ -10005,9 +10005,6 @@
     Array.prototype.forEach.call(document.querySelectorAll(".tryjshell"), function (b) { try { if (JavaSim.montarTryjshell) JavaSim.montarTryjshell(b); } catch (e) { if (typeof console !== "undefined") console.error(e); } });
   }
   JavaSim.montarTudo = montarTudo;
-  if (typeof document !== "undefined") {
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", montarTudo); else montarTudo();
-  }
 
   /* =====================================================================
      21. JShell
@@ -10483,6 +10480,12 @@
     }
     iniciar();
   };
+
+  global.JavaSim = JavaSim;
+  // montagem automática: só depois de tudo definido (o site.js injeta este arquivo com o DOM pronto)
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", montarTudo); else montarTudo();
+  }
   global.JavaSim = JavaSim;
   if (typeof module !== "undefined" && module.exports) {
     module.exports = JavaSim;

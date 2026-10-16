@@ -34,7 +34,9 @@ public class Bateria {
                 int s = arq.indexOf('\u001c');
                 if (s < 0) continue;
                 String nome = arq.substring(0, s);
-                Files.writeString(dir.resolve(nome), arq.substring(s + 1));
+                Path destino = dir.resolve(nome);
+                if (destino.getParent() != null) Files.createDirectories(destino.getParent());
+                Files.writeString(destino, arq.substring(s + 1));
                 fontes.add(nome);
             }
             StringBuilder res = new StringBuilder();
