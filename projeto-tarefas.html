@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Projeto Tarefas com Maven — linha de comando, CSV, streams e JAR | Guia Java</title>
+<meta name="description" content="Projeto passo a passo: um gerenciador de tarefas de linha de comando em Java com Maven. Subcomandos add, list e done lidos de args, arquivo CSV sem bibliotecas externas, streams para filtrar e um JAR executável (java -jar tarefas.jar list). Saídas reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Tarefas com Maven</span></h1>
+
+<p class="intro">O último projeto é um programa "de verdade", do tipo que se usa no terminal todo dia: um gerenciador de tarefas. Nada de menu nem de perguntas: você diz o que quer <strong>na própria linha de comando</strong> (<code>tarefas add "Comprar pão"</code>, <code>tarefas list</code>, <code>tarefas done 1</code>), ele faz e termina. As tarefas ficam num arquivo CSV, e o programa inteiro vira um único <strong>JAR executável</strong>.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Ler <a href="args.html">argumentos da linha de comando</a> e montar subcomandos com <a href="switch-expressoes.html">switch</a>.</li>
+  <li>Avisar erros como um programa de terminal: <code>System.err</code> e código de saída com <code>System.exit</code>.</li>
+  <li>Um <a href="records.html">record</a> que vira linha de CSV e volta, com <a href="arquivos.html">Files</a> (sem bibliotecas externas).</li>
+  <li><a href="streams.html">Streams</a> para filtrar e contar.</li>
+  <li>Organizar o projeto com <a href="maven.html">Maven</a> e gerar um <a href="jar.html">JAR</a> executável.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>O programa pronto. Depois de criar um <strong>alias</strong> (um apelido do Bash), a Ana usa o <code>tarefas</code> de qualquer pasta, como se fosse um comando do sistema:</p>
+
+<pre class="term" data-cwd="~/java/tarefas">$ java -jar target/tarefas.jar list
+[x] 1. Comprar pão
+[ ] 2. Estudar streams; capítulo 3
+[ ] 3. Pagar a conta de luz
+3 tarefa(s), 2 pendente(s).
+$ alias tarefas='java -jar ~/java/tarefas/target/tarefas.jar'
+$ cd
+$ tarefas done 2
+Concluída: [x] 2. Estudar streams; capítulo 3
+$ tarefas list --pendentes
+[ ] 3. Pagar a conta de luz
+3 tarefa(s), 1 pendente(s).
+$ tarefas
+Uso: tarefas add "descrição" | list [--pendentes|--feitas] | done NÚMERO</pre>
+
+<ol class="passo">
+  <li><a href="#etapa1">O projeto e os argumentos</a> (<code>args</code>).</li>
+  <li><a href="#etapa2">Os subcomandos</a> (<code>switch</code>, <code>System.err</code>, <code>System.exit</code>).</li>
+  <li><a href="#etapa3">Guardar em CSV</a> (record <code>Tarefa</code>, classe <code>Arquivo</code>).</li>
+  <li><a href="#etapa4">Concluir e filtrar</a> (<code>done</code>, streams).</li>
+  <li><a href="#etapa5">O JAR executável</a> (<code>maven-jar-plugin</code>, <code>java -jar</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Você vai usar <a href="maven.html">Maven</a> (como no <a href="projeto-banco.html">projeto do banco</a>), <a href="args.html">args</a>, <a href="streams.html">Streams</a> e, para o CSV, o que viu no <a href="projeto-agenda.html">projeto da agenda</a>. A estrutura:</p>
+
+<pre class="term">$ mkdir -p java/tarefas/src/main/java/br/com/ana/tarefas
+$ cd java/tarefas</pre>
+
+<div class="warning">
+<strong>As missões simulam a linha de comando</strong>
+<p>O editor do guia não roda Maven. As caixas <em>Experimente</em> usam programas de um arquivo só, e os argumentos da linha de comando vêm prontos na missão (como se você tivesse digitado <code>java Main.java list</code>). As saídas de <code>mvn</code> e <code>java -jar</code> desta página são reais, da máquina da Ana.</p>
+</div>
+
+<hr>
+
+<h2 id="etapa1">Etapa 1 · O projeto e os argumentos</h2>
+<p>Primeiro, o <code>pom.xml</code> mais simples possível (sem dependências: este projeto não usa bibliotecas externas):</p>
+
+<pre class="file" data-file="pom.xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;groupId&gt;br.com.ana&lt;/groupId&gt;
+    &lt;artifactId&gt;tarefas&lt;/artifactId&gt;
+    &lt;version&gt;1.0&lt;/version&gt;
+
+    &lt;properties&gt;
+        &lt;maven.compiler.release&gt;25&lt;/maven.compiler.release&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+    &lt;/properties&gt;
+
+&lt;/project&gt;
+</pre>
+
+<p>E uma classe que só mostra o que recebeu. Todo <code>main</code> recebe <code>String[] args</code>: um array com as palavras digitadas depois do nome da classe.</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/tarefas/App.java">package br.com.ana.tarefas;
+
+public class App {
+    public static void main(String[] args) {
+        System.out.println("Recebi " + args.length + " argumento(s):");
+        for (int i = 0; i &lt; args.length; i++) {
+            System.out.println("args[" + i + "] = " + args[i]);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/tarefas">$ mvn -q compile
+$ java -cp target/classes br.com.ana.tarefas.App add "Comprar pão"
+Recebi 2 argumento(s):
+args[0] = add
+args[1] = Comprar pão
+$ java -cp target/classes br.com.ana.tarefas.App add Comprar pão
+Recebi 3 argumento(s):
+args[0] = add
+args[1] = Comprar
+args[2] = pão                             « sem aspas, cada palavra é um argumento
+$ java -cp target/classes br.com.ana.tarefas.App
+Recebi 0 argumento(s):</pre>
+
+<p>Quem corta a linha em argumentos é o <strong>Bash</strong>, não o Java: ele separa nos espaços, e as aspas juntam o que está dentro num argumento só (veja <a href="args.html">Argumentos da Linha de Comando</a>). Por isso o programa vai pedir a descrição entre aspas. O <code>args[0]</code> será sempre o <strong>subcomando</strong> (<code>add</code>, <code>list</code>, <code>done</code>), do mesmo jeito que <code>git commit</code> ou <code>apt install</code>.</p>
+
+<div class="cenario">
+<strong>Quando dá errado: ler <code>args[0]</code> sem argumentos</strong>
+<p>Se o programa fizer <code>String comando = args[0];</code> direto e a pessoa não digitar nada:</p>
+<pre class="term" data-cwd="~/java/tarefas">$ java -cp target/classes br.com.ana.tarefas.App
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+	at br.com.ana.tarefas.App.main(App.java:5)</pre>
+<p>"Índice 0 fora dos limites para tamanho 0": o array <code>args</code> existe, mas está vazio. Confira <code>args.length</code> antes de ler qualquer posição.</p>
+</div>
+
+<div class="tryjava" data-args="list" data-goal="out:Comando: list">
+<p class="try-task"><strong>Missão (etapa 1):</strong> a missão roda o programa como <code>java Main.java list</code>. Se não houver argumentos, mostre <code>Sem comando</code>; se houver, mostre <code>Comando: </code> seguido de <code>args[0]</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Recebi " + args.length + " argumento(s).");
+        // se não houver argumentos, mostre "Sem comando";
+        // se houver, mostre "Comando: " seguido do primeiro argumento
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Recebi " + args.length + " argumento(s).");
+        if (args.length == 0) {
+            System.out.println("Sem comando");
+        } else {
+            System.out.println("Comando: " + args[0]);
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa2">Etapa 2 · Os subcomandos</h2>
+<p>Agora o <code>args[0]</code> escolhe o que fazer. Programas de terminal seguem duas convenções que vamos respeitar:</p>
+<ul>
+  <li><strong>Mensagens de erro vão para a saída de erro</strong>, <code>System.err</code>, e não para a saída normal, <code>System.out</code>. Assim, quem redireciona a saída para um arquivo (<code>&gt; lista.txt</code>) não mistura erros com dados.</li>
+  <li><strong>O código de saída diz se deu certo</strong>: 0 é sucesso, qualquer outro número é erro. Scripts e o próprio Bash (<code>&amp;&amp;</code>, <code>if</code>) olham esse número. <code>System.exit(1)</code> termina o programa na hora, com o código 1.</li>
+</ul>
+
+<pre class="file" data-file="src/main/java/br/com/ana/tarefas/App.java">package br.com.ana.tarefas;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class App {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            uso();
+            System.exit(1);
+        }
+        List&lt;String&gt; tarefas = new ArrayList&lt;&gt;();
+
+        switch (args[0]) {
+            case "add" -&gt; {
+                tarefas.add(args[1]);
+                System.out.println("Adicionada: " + args[1]);
+            }
+            case "list" -&gt; {
+                for (String t : tarefas) {
+                    System.out.println(t);
+                }
+                System.out.println(tarefas.size() + " tarefa(s).");
+            }
+            default -&gt; {
+                System.err.println("Comando desconhecido: " + args[0]);
+                uso();
+                System.exit(1);
+            }
+        }
+    }
+
+    static void uso() {
+        System.err.println("Uso: tarefas add \"descrição\" | list");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/tarefas">$ java -cp target/classes br.com.ana.tarefas.App add "Comprar pão"
+Adicionada: Comprar pão
+$ java -cp target/classes br.com.ana.tarefas.App list
+0 tarefa(s).                              « cadê o pão?
+$ java -cp target/classes br.com.ana.tarefas.App
+Uso: tarefas add "descrição" | list
+$ echo $?
+1                                         « o código de saída do último comando
+$ java -cp target/classes br.com.ana.tarefas.App apagar
+Comando desconhecido: apagar
+Uso: tarefas add "descrição" | list
+$ echo $?
+1</pre>
+
+<p>O <code>echo $?</code> é do Bash: mostra o código de saída do comando anterior. E o pão sumiu: cada <code>java …</code> é um programa novo, que começa com a lista vazia e a perde ao terminar. Para lembrar entre uma execução e outra, só gravando num arquivo, na próxima etapa.</p>
+
+<div class="tryjava" data-args="apagar" data-goal="err:Comando desconhecido: apagar,exit:1">
+<p class="try-task"><strong>Missão (etapa 2):</strong> a missão roda <code>java Main.java apagar</code>, e o programa termina calado, com código 0, como se tivesse dado certo. Acrescente um <code>default</code> que escreve <code>Comando desconhecido: apagar</code> em <code>System.err</code> e sai com <code>System.exit(1)</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.err.println("Uso: tarefas add \"descrição\" | list");
+            System.exit(1);
+        }
+        switch (args[0]) {
+            case "add" -&gt; System.out.println("Adicionar: " + args[1]);
+            case "list" -&gt; System.out.println("Listar");
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.err.println("Uso: tarefas add \"descrição\" | list");
+            System.exit(1);
+        }
+        switch (args[0]) {
+            case "add" -&gt; System.out.println("Adicionar: " + args[1]);
+            case "list" -&gt; System.out.println("Listar");
+            default -&gt; {
+                System.err.println("Comando desconhecido: " + args[0]);
+                System.exit(1);
+            }
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa3">Etapa 3 · Guardar em CSV</h2>
+<p>CSV (<em>comma-separated values</em>, "valores separados por vírgula") é o formato de planilha mais simples: uma linha por registro, campos separados por um caractere. Como em português a vírgula aparece nos textos, usamos <code>;</code>. Cada tarefa vira uma linha <code>id;feita;descrição</code>:</p>
+
+<pre class="file" data-file="~/tarefas.csv">1;false;Comprar pão
+2;false;Estudar streams; capítulo 3
+</pre>
+
+<p>A tarefa é um record que sabe virar linha e voltar:</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/tarefas/Tarefa.java">package br.com.ana.tarefas;
+
+public record Tarefa(int id, String descricao, boolean feita) {
+
+    public String paraLinha() {
+        return id + ";" + feita + ";" + descricao;
+    }
+
+    public static Tarefa deLinha(String linha) {
+        String[] partes = linha.split(";", 3);
+        return new Tarefa(Integer.parseInt(partes[0]), partes[2], Boolean.parseBoolean(partes[1]));
+    }
+
+    @Override
+    public String toString() {
+        return (feita ? "[x] " : "[ ] ") + id + ". " + descricao;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>paraLinha()</dt><dd>Junta os campos com <code>;</code>. A descrição fica por <strong>último</strong> de propósito (veja <code>split</code> abaixo).</dd>
+  <dt>static Tarefa deLinha(String linha)</dt><dd>Um método <code>static</code> que <strong>fabrica</strong> uma tarefa a partir de uma linha. É chamado pelo nome do tipo: <code>Tarefa.deLinha(…)</code>.</dd>
+  <dt>linha.split(";", 3)</dt><dd>Corta em no máximo <strong>3</strong> pedaços: id, feita e "todo o resto". Se a descrição tiver <code>;</code> (como <code>Estudar streams; capítulo 3</code>), ela fica inteira no terceiro pedaço.</dd>
+  <dt>Integer.parseInt / Boolean.parseBoolean</dt><dd>Convertem o texto <code>"1"</code> no <code>int</code> 1 e <code>"true"</code> no <code>boolean</code> true (<a href="wrappers.html">wrappers</a>).</dd>
+  <dt>toString()</dt><dd>O record já tem um <code>toString</code>, mas aqui escrevemos o nosso: <code>[ ] 1. Comprar pão</code>, ou <code>[x]</code> se estiver feita.</dd>
+</dl>
+
+<p>A leitura e gravação do arquivo ficam numa classe separada, para o <code>App</code> não se preocupar com isso:</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/tarefas/Arquivo.java">package br.com.ana.tarefas;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Arquivo {
+    private final Path caminho;
+
+    public Arquivo(Path caminho) {
+        this.caminho = caminho;
+    }
+
+    public List&lt;Tarefa&gt; carregar() throws IOException {
+        List&lt;Tarefa&gt; tarefas = new ArrayList&lt;&gt;();
+        if (Files.exists(caminho)) {
+            for (String linha : Files.readAllLines(caminho)) {
+                if (!linha.isBlank()) {
+                    tarefas.add(Tarefa.deLinha(linha));
+                }
+            }
+        }
+        return tarefas;
+    }
+
+    public void salvar(List&lt;Tarefa&gt; tarefas) throws IOException {
+        List&lt;String&gt; linhas = new ArrayList&lt;&gt;();
+        for (Tarefa t : tarefas) {
+            linhas.add(t.paraLinha());
+        }
+        Files.write(caminho, linhas);
+    }
+}
+</pre>
+
+<p>Os dois métodos declaram <code>throws IOException</code>: em vez de tratar o erro aqui, deixam o <code>App</code> decidir. E o <code>App</code> decide deixar a exceção subir (<code>main(…) throws IOException</code>): se o disco falhar, o programa termina com o erro na tela, o que é razoável para uma ferramenta de terminal.</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/tarefas/App.java">package br.com.ana.tarefas;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+
+public class App {
+    static final Path CAMINHO = Path.of(System.getProperty("user.home"), "tarefas.csv");
+
+    public static void main(String[] args) throws IOException {
+        if (args.length == 0) {
+            uso();
+            System.exit(1);
+        }
+        Arquivo arquivo = new Arquivo(CAMINHO);
+        List&lt;Tarefa&gt; tarefas = arquivo.carregar();
+
+        switch (args[0]) {
+            case "add" -&gt; adicionar(tarefas, args, arquivo);
+            case "list" -&gt; listar(tarefas);
+            default -&gt; {
+                System.err.println("Comando desconhecido: " + args[0]);
+                uso();
+                System.exit(1);
+            }
+        }
+    }
+
+    static void adicionar(List&lt;Tarefa&gt; tarefas, String[] args, Arquivo arquivo) throws IOException {
+        if (args.length &lt; 2) {
+            System.err.println("Uso: tarefas add \"descrição\"");
+            System.exit(1);
+        }
+        int id = tarefas.size() + 1;
+        Tarefa nova = new Tarefa(id, args[1], false);
+        tarefas.add(nova);
+        arquivo.salvar(tarefas);
+        System.out.println("Adicionada: " + nova);
+    }
+
+    static void listar(List&lt;Tarefa&gt; tarefas) {
+        for (Tarefa t : tarefas) {
+            System.out.println(t);
+        }
+        System.out.println(tarefas.size() + " tarefa(s).");
+    }
+
+    static void uso() {
+        System.err.println("Uso: tarefas add \"descrição\" | list");
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>System.getProperty("user.home")</code></td><td>A pasta pessoal de quem roda o programa (<code>/home/ana</code>). O arquivo fica sempre em <code>~/tarefas.csv</code>, não importa de que pasta o comando foi chamado.</td></tr>
+<tr><td><code>Path.of(pasta, "tarefas.csv")</code></td><td>Junta os pedaços do caminho com a barra certa para o sistema.</td></tr>
+<tr><td><code>case "add" -&gt; adicionar(tarefas, args, arquivo);</code></td><td>Cada subcomando vira um método. O <code>main</code> só carrega, escolhe e chama.</td></tr>
+<tr><td><code>int id = tarefas.size() + 1;</code></td><td>Numera as tarefas 1, 2, 3… Funciona porque não existe remoção (veja os desafios).</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/tarefas">$ java -cp target/classes br.com.ana.tarefas.App add "Comprar pão"
+Adicionada: [ ] 1. Comprar pão
+$ java -cp target/classes br.com.ana.tarefas.App add "Estudar streams; capítulo 3"
+Adicionada: [ ] 2. Estudar streams; capítulo 3
+$ java -cp target/classes br.com.ana.tarefas.App list
+[ ] 1. Comprar pão
+[ ] 2. Estudar streams; capítulo 3
+2 tarefa(s).                              « agora o pão ficou
+$ cat ~/tarefas.csv
+1;false;Comprar pão
+2;false;Estudar streams; capítulo 3
+$ java -cp target/classes br.com.ana.tarefas.App add
+Uso: tarefas add "descrição"</pre>
+
+<div class="tryjava" data-goal="out:[ ] 2. Estudar streams; capítulo 3">
+<p class="try-task"><strong>Missão (etapa 3):</strong> este programa lê duas linhas de CSV, mas a segunda tarefa aparece cortada: <code>[ ] 2. Estudar streams</code>. Conserte o <code>split</code> para a descrição chegar inteira, com o <code>; capítulo 3</code>.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; linhas = List.of(
+                "1;true;Comprar pão",
+                "2;false;Estudar streams; capítulo 3");
+        for (String linha : linhas) {
+            System.out.println(deLinha(linha));
+        }
+    }
+
+    static Tarefa deLinha(String linha) {
+        String[] partes = linha.split(";");
+        return new Tarefa(Integer.parseInt(partes[0]), partes[2], Boolean.parseBoolean(partes[1]));
+    }
+}
+
+record Tarefa(int id, String descricao, boolean feita) {
+    @Override
+    public String toString() {
+        return (feita ? "[x] " : "[ ] ") + id + ". " + descricao;
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; linhas = List.of(
+                "1;true;Comprar pão",
+                "2;false;Estudar streams; capítulo 3");
+        for (String linha : linhas) {
+            System.out.println(deLinha(linha));
+        }
+    }
+
+    static Tarefa deLinha(String linha) {
+        String[] partes = linha.split(";", 3);
+        return new Tarefa(Integer.parseInt(partes[0]), partes[2], Boolean.parseBoolean(partes[1]));
+    }
+}
+
+record Tarefa(int id, String descricao, boolean feita) {
+    @Override
+    public String toString() {
+        return (feita ? "[x] " : "[ ] ") + id + ". " + descricao;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa4">Etapa 4 · Concluir e filtrar</h2>
+<p>Duas novidades: o subcomando <code>done</code> e os filtros do <code>list</code> (<code>--pendentes</code> e <code>--feitas</code>), feitos com <strong>streams</strong>. Primeiro, o record ganha um método que devolve uma cópia "concluída" (records são imutáveis, então não dá para mudar o <code>feita</code> da tarefa existente):</p>
+
+<pre class="file" data-file="Tarefa.java">    public Tarefa concluida() {
+        return new Tarefa(id, descricao, true);
+    }
+</pre>
+
+<p>O <code>listar</code> com filtros:</p>
+
+<pre class="file" data-file="App.java">    static void listar(List&lt;Tarefa&gt; tarefas, String[] args) {
+        String filtro = args.length &gt; 1 ? args[1] : "--todas";
+        List&lt;Tarefa&gt; escolhidas = switch (filtro) {
+            case "--pendentes" -&gt; tarefas.stream().filter(t -&gt; !t.feita()).toList();
+            case "--feitas" -&gt; tarefas.stream().filter(Tarefa::feita).toList();
+            default -&gt; tarefas;
+        };
+        escolhidas.forEach(System.out::println);
+        long pendentes = tarefas.stream().filter(t -&gt; !t.feita()).count();
+        System.out.println(tarefas.size() + " tarefa(s), " + pendentes + " pendente(s).");
+    }
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>tarefas.stream()</code></td><td>Abre um "fluxo" com os itens da lista, um atrás do outro, para passar por etapas.</td></tr>
+<tr><td><code>.filter(t -&gt; !t.feita())</code></td><td>Deixa passar só os itens em que a condição é verdadeira. <code>t -&gt; !t.feita()</code> é uma <a href="lambdas.html">lambda</a>: "dada uma tarefa t, ela <strong>não</strong> está feita?".</td></tr>
+<tr><td><code>.filter(Tarefa::feita)</code></td><td>O mesmo, ao contrário, com uma <a href="method-references.html">referência de método</a>: "chame <code>feita()</code> em cada tarefa".</td></tr>
+<tr><td><code>.toList()</code></td><td>Junta o que sobrou numa lista nova (que não pode ser alterada). A lista original não muda.</td></tr>
+<tr><td><code>.count()</code></td><td>Conta quantos itens passaram. Devolve <code>long</code>.</td></tr>
+<tr><td><code>escolhidas.forEach(System.out::println)</code></td><td>Para cada tarefa, chama <code>System.out.println</code>.</td></tr>
+</table>
+</div>
+
+<p>E o <code>concluir</code>, que acha a tarefa pelo número e põe a cópia concluída no lugar com <code>set</code>:</p>
+
+<pre class="file" data-file="App.java">    static void concluir(List&lt;Tarefa&gt; tarefas, String[] args, Arquivo arquivo) throws IOException {
+        if (args.length &lt; 2) {
+            System.err.println("Uso: tarefas done NÚMERO");
+            System.exit(1);
+        }
+        int id;
+        try {
+            id = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            System.err.println("O número da tarefa deve ser um número: " + args[1]);
+            System.exit(1);
+            return;
+        }
+        for (int i = 0; i &lt; tarefas.size(); i++) {
+            if (tarefas.get(i).id() == id) {
+                Tarefa feita = tarefas.get(i).concluida();
+                tarefas.set(i, feita);
+                arquivo.salvar(tarefas);
+                System.out.println("Concluída: " + feita);
+                return;
+            }
+        }
+        System.err.println("Não existe a tarefa " + id + ".");
+        System.exit(1);
+    }
+</pre>
+
+<p>Repare no <code>return;</code> logo depois de <code>System.exit(1)</code> dentro do <code>catch</code>. Ele nunca roda (o <code>exit</code> encerra o programa antes), mas o compilador não sabe disso: sem ele, reclamaria que <code>id</code> pode não ter valor na linha do <code>for</code> (<code>variable id might not have been initialized</code>). E no <code>main</code>, o <code>switch</code> ganha <code>case "done" -&gt; concluir(tarefas, args, arquivo);</code> e o <code>listar</code> passa a receber <code>args</code>.</p>
+
+<pre class="term" data-cwd="~/java/tarefas">$ java -cp target/classes br.com.ana.tarefas.App add "Pagar a conta de luz"
+Adicionada: [ ] 3. Pagar a conta de luz
+$ java -cp target/classes br.com.ana.tarefas.App done 1
+Concluída: [x] 1. Comprar pão
+$ java -cp target/classes br.com.ana.tarefas.App list
+[x] 1. Comprar pão
+[ ] 2. Estudar streams; capítulo 3
+[ ] 3. Pagar a conta de luz
+3 tarefa(s), 2 pendente(s).
+$ java -cp target/classes br.com.ana.tarefas.App list --pendentes
+[ ] 2. Estudar streams; capítulo 3
+[ ] 3. Pagar a conta de luz
+3 tarefa(s), 2 pendente(s).
+$ java -cp target/classes br.com.ana.tarefas.App list --feitas
+[x] 1. Comprar pão
+3 tarefa(s), 2 pendente(s).
+$ cat ~/tarefas.csv
+1;true;Comprar pão
+2;false;Estudar streams; capítulo 3
+3;false;Pagar a conta de luz
+$ java -cp target/classes br.com.ana.tarefas.App done 9
+Não existe a tarefa 9.
+$ java -cp target/classes br.com.ana.tarefas.App done abc
+O número da tarefa deve ser um número: abc</pre>
+
+<div class="cenario">
+<strong>Quando dá errado: <code>done abc</code> sem o try/catch</strong>
+<p>Na primeira versão do <code>concluir</code>, a Ana escreveu só <code>int id = Integer.parseInt(args[1]);</code>:</p>
+<pre class="term" data-cwd="~/java/tarefas">$ java -cp target/classes br.com.ana.tarefas.App done abc
+Exception in thread "main" java.lang.NumberFormatException: For input string: "abc"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at br.com.ana.tarefas.App.concluir(App.java:59)
+	at br.com.ana.tarefas.App.main(App.java:21)</pre>
+<p>"Erro de formato de número para a entrada "abc"." Para quem usa a ferramenta, um stack trace assusta e não ajuda. O <code>try/catch</code> troca isso por uma frase clara e o código de saída 1.</p>
+</div>
+
+<div class="tryjava" data-goal="out:[ ] 2. Estudar streams,out:[ ] 3. Pagar a conta de luz,out:2 pendente(s).,outre:^(?![\s\S]*\[x\]),src:\.filter\(">
+<p class="try-task"><strong>Missão (etapa 4):</strong> mostre só as tarefas pendentes, com <code>stream().filter(…)</code>, e depois <code>2 pendente(s).</code>, com <code>count()</code>. A tarefa feita (<code>[x]</code>) não pode aparecer.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Tarefa&gt; tarefas = List.of(
+                new Tarefa(1, "Comprar pão", true),
+                new Tarefa(2, "Estudar streams", false),
+                new Tarefa(3, "Pagar a conta de luz", false));
+
+        // mostre só as tarefas pendentes (feita == false) usando stream().filter(...)
+        // e depois a linha "2 pendente(s)." usando count()
+    }
+}
+
+record Tarefa(int id, String descricao, boolean feita) {
+    @Override
+    public String toString() {
+        return (feita ? "[x] " : "[ ] ") + id + ". " + descricao;
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Tarefa&gt; tarefas = List.of(
+                new Tarefa(1, "Comprar pão", true),
+                new Tarefa(2, "Estudar streams", false),
+                new Tarefa(3, "Pagar a conta de luz", false));
+
+        List&lt;Tarefa&gt; pendentes = tarefas.stream().filter(t -&gt; !t.feita()).toList();
+        pendentes.forEach(System.out::println);
+        long quantas = tarefas.stream().filter(t -&gt; !t.feita()).count();
+        System.out.println(quantas + " pendente(s).");
+    }
+}
+
+record Tarefa(int id, String descricao, boolean feita) {
+    @Override
+    public String toString() {
+        return (feita ? "[x] " : "[ ] ") + id + ". " + descricao;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa5">Etapa 5 · O JAR executável</h2>
+<p>Digitar <code>java -cp target/classes br.com.ana.tarefas.App</code> toda vez é cansativo. Um <strong>JAR</strong> junta as classes num arquivo só, e um JAR <strong>executável</strong> já sabe qual é a classe principal. O <code>mvn package</code> gera um JAR, mas sem a classe principal:</p>
+
+<pre class="term" data-cwd="~/java/tarefas">$ mvn -q clean package
+$ ls target
+classes  generated-sources  maven-archiver  maven-status  tarefas-1.0.jar
+$ java -jar target/tarefas-1.0.jar list
+nenhum atributo de manifesto principal em target/tarefas-1.0.jar</pre>
+
+<p>"Nenhum atributo de manifesto principal": falta o <code>Main-Class</code> no arquivo de manifesto do JAR (a explicação completa está em <a href="jar.html">Empacotar em JAR</a>). Quem escreve o manifesto é o plugin <code>maven-jar-plugin</code>; basta configurá-lo no <code>pom.xml</code>, que fica assim:</p>
+
+<pre class="file" data-file="pom.xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;groupId&gt;br.com.ana&lt;/groupId&gt;
+    &lt;artifactId&gt;tarefas&lt;/artifactId&gt;
+    &lt;version&gt;1.0&lt;/version&gt;
+
+    &lt;properties&gt;
+        &lt;maven.compiler.release&gt;25&lt;/maven.compiler.release&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+    &lt;/properties&gt;
+
+    &lt;build&gt;
+        &lt;finalName&gt;tarefas&lt;/finalName&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-jar-plugin&lt;/artifactId&gt;
+                &lt;version&gt;3.5.1&lt;/version&gt;
+                &lt;configuration&gt;
+                    &lt;archive&gt;
+                        &lt;manifest&gt;
+                            &lt;mainClass&gt;br.com.ana.tarefas.App&lt;/mainClass&gt;
+                        &lt;/manifest&gt;
+                    &lt;/archive&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+&lt;/project&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;finalName&gt;tarefas&lt;/finalName&gt;</dt><dd>O nome do arquivo gerado: <code>tarefas.jar</code>, em vez de <code>tarefas-1.0.jar</code>.</dd>
+  <dt>maven-jar-plugin 3.5.1</dt><dd>O plugin que monta o JAR (o Maven já o usava; agora nós o configuramos).</dd>
+  <dt>&lt;mainClass&gt;br.com.ana.tarefas.App&lt;/mainClass&gt;</dt><dd>Vira a linha <code>Main-Class: br.com.ana.tarefas.App</code> do manifesto.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/java/tarefas">$ mvn clean package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] -------------------------&lt; br.com.ana:tarefas &gt;-------------------------
+[INFO] Building tarefas 1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Loaded 24119 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO]
+[INFO] --- clean:3.5.0:clean (default-clean) @ tarefas ---
+[INFO] Deleting /home/ana/java/tarefas/target
+[INFO]
+[INFO] --- resources:3.5.0:resources (default-resources) @ tarefas ---
+[INFO] skip non existing resourceDirectory /home/ana/java/tarefas/src/main/resources
+[INFO]
+[INFO] --- compiler:3.16.0:compile (default-compile) @ tarefas ---
+[INFO] Loaded 74 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots.txt)
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 3 source files with javac [debug release 25] to target/classes
+[INFO]
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ tarefas ---
+[INFO] skip non existing resourceDirectory /home/ana/java/tarefas/src/test/resources
+[INFO]
+[INFO] --- compiler:3.16.0:testCompile (default-testCompile) @ tarefas ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- surefire:3.6.0:test (default-test) @ tarefas ---
+[INFO] No tests to run.
+[INFO]
+[INFO] --- jar:3.5.1:jar (default-jar) @ tarefas ---
+[INFO] Building jar: /home/ana/java/tarefas/target/tarefas.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.003 s
+[INFO] Finished at: 2026-10-16T19:02:43-03:00
+[INFO] ------------------------------------------------------------------------
+$ ls target
+classes  generated-sources  maven-archiver  maven-status  tarefas.jar
+$ java -jar target/tarefas.jar list
+[x] 1. Comprar pão
+[ ] 2. Estudar streams; capítulo 3
+[ ] 3. Pagar a conta de luz
+3 tarefa(s), 2 pendente(s).</pre>
+
+<p>O <code>package</code> passou por todas as fases (<code>clean</code>, <code>compile</code>, <code>test</code>, que aqui não tem testes, e <code>jar</code>) e gerou <code>target/tarefas.jar</code>. Esse arquivo é o programa inteiro: copie para qualquer computador com Java 25 e rode com <code>java -jar tarefas.jar</code>.</p>
+
+<p>O último toque é o <strong>alias</strong> do Bash, que transforma o comando comprido em <code>tarefas</code> (a sessão completa está no começo da página). Para o alias valer sempre, coloque a linha <code>alias tarefas='java -jar ~/java/tarefas/target/tarefas.jar'</code> no seu <code>~/.bashrc</code>.</p>
+
+<hr>
+
+<h2>O código completo</h2>
+<p>O <code>pom.xml</code> está na etapa 5 e o <code>Arquivo.java</code> na etapa 3. A versão final dos outros dois:</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/tarefas/Tarefa.java">package br.com.ana.tarefas;
+
+public record Tarefa(int id, String descricao, boolean feita) {
+
+    public Tarefa concluida() {
+        return new Tarefa(id, descricao, true);
+    }
+
+    public String paraLinha() {
+        return id + ";" + feita + ";" + descricao;
+    }
+
+    public static Tarefa deLinha(String linha) {
+        String[] partes = linha.split(";", 3);
+        return new Tarefa(Integer.parseInt(partes[0]), partes[2], Boolean.parseBoolean(partes[1]));
+    }
+
+    @Override
+    public String toString() {
+        return (feita ? "[x] " : "[ ] ") + id + ". " + descricao;
+    }
+}
+</pre>
+<pre class="file" data-file="src/main/java/br/com/ana/tarefas/App.java">package br.com.ana.tarefas;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+
+public class App {
+    static final Path CAMINHO = Path.of(System.getProperty("user.home"), "tarefas.csv");
+
+    public static void main(String[] args) throws IOException {
+        if (args.length == 0) {
+            uso();
+            System.exit(1);
+        }
+        Arquivo arquivo = new Arquivo(CAMINHO);
+        List&lt;Tarefa&gt; tarefas = arquivo.carregar();
+
+        switch (args[0]) {
+            case "add" -&gt; adicionar(tarefas, args, arquivo);
+            case "list" -&gt; listar(tarefas, args);
+            case "done" -&gt; concluir(tarefas, args, arquivo);
+            default -&gt; {
+                System.err.println("Comando desconhecido: " + args[0]);
+                uso();
+                System.exit(1);
+            }
+        }
+    }
+
+    static void adicionar(List&lt;Tarefa&gt; tarefas, String[] args, Arquivo arquivo) throws IOException {
+        if (args.length &lt; 2) {
+            System.err.println("Uso: tarefas add \"descrição\"");
+            System.exit(1);
+        }
+        int id = tarefas.size() + 1;
+        Tarefa nova = new Tarefa(id, args[1], false);
+        tarefas.add(nova);
+        arquivo.salvar(tarefas);
+        System.out.println("Adicionada: " + nova);
+    }
+
+    static void listar(List&lt;Tarefa&gt; tarefas, String[] args) {
+        String filtro = args.length &gt; 1 ? args[1] : "--todas";
+        List&lt;Tarefa&gt; escolhidas = switch (filtro) {
+            case "--pendentes" -&gt; tarefas.stream().filter(t -&gt; !t.feita()).toList();
+            case "--feitas" -&gt; tarefas.stream().filter(Tarefa::feita).toList();
+            default -&gt; tarefas;
+        };
+        escolhidas.forEach(System.out::println);
+        long pendentes = tarefas.stream().filter(t -&gt; !t.feita()).count();
+        System.out.println(tarefas.size() + " tarefa(s), " + pendentes + " pendente(s).");
+    }
+
+    static void concluir(List&lt;Tarefa&gt; tarefas, String[] args, Arquivo arquivo) throws IOException {
+        if (args.length &lt; 2) {
+            System.err.println("Uso: tarefas done NÚMERO");
+            System.exit(1);
+        }
+        int id;
+        try {
+            id = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            System.err.println("O número da tarefa deve ser um número: " + args[1]);
+            System.exit(1);
+            return;
+        }
+        for (int i = 0; i &lt; tarefas.size(); i++) {
+            if (tarefas.get(i).id() == id) {
+                Tarefa feita = tarefas.get(i).concluida();
+                tarefas.set(i, feita);
+                arquivo.salvar(tarefas);
+                System.out.println("Concluída: " + feita);
+                return;
+            }
+        }
+        System.err.println("Não existe a tarefa " + id + ".");
+        System.exit(1);
+    }
+
+    static void uso() {
+        System.err.println("Uso: tarefas add \"descrição\" | list [--pendentes|--feitas] | done NÚMERO");
+    }
+}
+</pre>
+
+<h2>Desafios extras</h2>
+<ol>
+  <li><strong>Remover.</strong> Um subcomando <code>rm NÚMERO</code>. Cuidado: com remoção, <code>tarefas.size() + 1</code> pode repetir um número. Troque por <code>tarefas.stream().mapToInt(Tarefa::id).max().orElse(0) + 1</code> ("o maior id + 1").</li>
+  <li><strong>Buscar.</strong> <code>tarefas find pão</code> mostra as tarefas cuja descrição contém o texto (um <code>filter</code> com <code>contains</code>).</li>
+  <li><strong>Prioridade.</strong> Um campo <code>prioridade</code> (um <a href="enums.html">enum</a> <code>ALTA, MEDIA, BAIXA</code>) no record e no CSV, e o <code>list</code> ordenado por ela com <code>sorted(Comparator.comparing(Tarefa::prioridade))</code>.</li>
+  <li><strong>Testes.</strong> Acrescente o JUnit (como no <a href="projeto-banco.html">projeto do banco</a>) e teste <code>paraLinha</code> e <code>deLinha</code>: uma tarefa que vira linha e volta deve ser igual à original.</li>
+  <li><strong>Arquivo antigo.</strong> O que acontece se o CSV tiver uma linha estragada? Trate como no <a href="projeto-agenda.html#etapa6">projeto da agenda</a>.</li>
+</ol>
+
+<div class="tryjava" data-args="done abc" data-goal="err:O número da tarefa deve ser um número: abc,exit:1">
+<p class="try-task"><strong>Missão final:</strong> a missão roda <code>java Main.java done abc</code> e o programa estoura com <code>NumberFormatException</code>. Trate com <code>try/catch</code>: mostre <code>O número da tarefa deve ser um número: abc</code> em <code>System.err</code> e saia com o código 1.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        if (args.length &lt; 2 || !args[0].equals("done")) {
+            System.err.println("Uso: tarefas done NÚMERO");
+            System.exit(1);
+        }
+        int id = Integer.parseInt(args[1]);
+        System.out.println("Concluir a tarefa " + id);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        if (args.length &lt; 2 || !args[0].equals("done")) {
+            System.err.println("Uso: tarefas done NÚMERO");
+            System.exit(1);
+        }
+        int id;
+        try {
+            id = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            System.err.println("O número da tarefa deve ser um número: " + args[1]);
+            System.exit(1);
+            return;
+        }
+        System.out.println("Concluir a tarefa " + id);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. Quantos itens tem <code>args</code> em <code>java -jar tarefas.jar add Comprar pão</code> (sem aspas)?</p>
+<label><input type="radio" name="q1"> 2</label>
+<label><input type="radio" name="q1"> 3</label>
+<label><input type="radio" name="q1"> 4</label>
+<label><input type="radio" name="q1"> 5</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">2. Por que as mensagens de erro usam <code>System.err</code>?</p>
+<label><input type="radio" name="q2"> Porque <code>System.out</code> não aceita acentos.</label>
+<label><input type="radio" name="q2"> Porque <code>System.err</code> encerra o programa.</label>
+<label><input type="radio" name="q2"> Porque é mais rápido.</label>
+<label><input type="radio" name="q2"> Para separar erros da saída normal, que pode estar sendo redirecionada para um arquivo.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. O que <code>"2;false;Ler; e anotar".split(";", 3)</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>["2", "false", "Ler; e anotar"]</code></label>
+<label><input type="radio" name="q3"> <code>["2", "false", "Ler", " e anotar"]</code></label>
+<label><input type="radio" name="q3"> <code>["2", "false", "Ler"]</code></label>
+<label><input type="radio" name="q3"> Lança uma exceção.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Sem o <code>maven-jar-plugin</code> configurado, <code>java -jar target/tarefas-1.0.jar</code> diz…</p>
+<label><input type="radio" name="q4"> <code>ClassNotFoundException</code></label>
+<label><input type="radio" name="q4"> <code>BUILD FAILURE</code></label>
+<label><input type="radio" name="q4"> <code>nenhum atributo de manifesto principal em target/tarefas-1.0.jar</code></label>
+<label><input type="radio" name="q4"> Nada: funciona normalmente.</label>
+</div>
+
+<div class="exercise">
+<p>Complete o filtro que deixa passar só as tarefas pendentes:</p>
+<div class="ex-code">tarefas.stream().<input data-answer="filter">(t -&gt; !t.feita()).toList()</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>args</code> traz as palavras da linha de comando; o Bash corta nos espaços e as aspas juntam. Confira <code>args.length</code> antes de ler.</li>
+  <li>Subcomandos: <code>switch (args[0])</code>, um método por comando, erros em <code>System.err</code> e <code>System.exit(1)</code>.</li>
+  <li>CSV simples: <code>paraLinha</code>/<code>deLinha</code>, com o campo de texto livre por último e <code>split(";", 3)</code>.</li>
+  <li>Streams: <code>stream().filter(…).toList()</code> para escolher, <code>count()</code> para contar.</li>
+  <li><code>maven-jar-plugin</code> com <code>mainClass</code> + <code>mvn package</code> = JAR executável; <code>java -jar tarefas.jar list</code>.</li>
+</ul>
+<p>Você terminou os projetos do guia. Para consultar algo rápido, use a <a href="ref-palavras-chave.html">Referência</a>; para se testar, faça o <a href="quiz.html">Quiz</a>.</p>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
