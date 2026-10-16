@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Classes e Objetos — class, new, referências e null | Guia Java</title>
+<meta name="description" content="Como criar uma classe e objetos com new em Java, vários objetos, o que é uma referência, == entre objetos, null e o NullPointerException real, e duas classes em arquivos separados (javac *.java) ou no mesmo arquivo.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Classes e Objetos</span></h1>
+
+<p class="intro">Na aula <a href="poo.html">O que é POO</a> você viu a ideia: a classe é o molde e cada objeto é uma coisa feita com ele. Agora é hora de pôr a mão no código: escrever uma classe, criar objetos com <code>new</code>, entender o que a variável realmente guarda (uma <strong>referência</strong>) e o que acontece quando ela não guarda nada (<code>null</code>).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar uma classe e como criar objetos com <code>new</code>, linha por linha.</li>
+  <li>Como criar vários objetos independentes da mesma classe.</li>
+  <li>O que é uma <strong>referência</strong>: por que <code>Fruta b = a;</code> não cria uma fruta nova, e o que o <code>==</code> compara.</li>
+  <li>O que é <code>null</code> e como nasce o <code>NullPointerException</code>.</li>
+  <li>Como organizar duas classes: em <strong>arquivos separados</strong> (<code>javac *.java</code>) ou no mesmo arquivo.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>Declarar uma classe</h2>
+<p>A loja da Ana vende frutas. Toda fruta tem um nome e um preço. Essa é a descrição, o molde:</p>
+
+<pre class="file" data-file="trecho">class Fruta {
+    String nome;
+    double preco;
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class</dt><dd>Palavra que começa a declaração de uma classe ("classe", em inglês).</dd>
+  <dt>Fruta</dt><dd>O nome da classe. Por convenção, começa com <strong>letra maiúscula</strong> e cada palavra nova também: <code>Fruta</code>, <code>ContaBancaria</code>, <code>AlunoBolsista</code> (o estilo se chama <em>PascalCase</em>). É assim que você distingue, de relance, uma classe (<code>Fruta</code>) de uma variável ou método (<code>fruta</code>, <code>mostrar</code>). E o nome vai no <strong>singular</strong>: a classe descreve <em>uma</em> fruta.</dd>
+  <dt>{ … }</dt><dd>O corpo da classe. Tudo o que pertence a ela fica aqui dentro.</dd>
+  <dt>String nome; double preco;</dt><dd>Os <strong>atributos</strong>: variáveis que <strong>cada</strong> fruta vai ter. Sem <code>static</code>: cada objeto terá os seus. Eles são o assunto da aula <a href="atributos.html">Atributos</a>.</dd>
+</dl>
+
+<p>Declarar a classe <strong>não cria fruta nenhuma</strong>. É como desenhar a ficha em branco: ela descreve como as fichas serão, mas ainda não há ficha preenchida. Criar é o próximo passo.</p>
+
+<hr>
+
+<h2>Criar objetos com <code>new</code></h2>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta();
+        maca.nome = "maçã";
+        maca.preco = 7.9;
+
+        Fruta banana = new Fruta();
+        banana.nome = "banana";
+        banana.preco = 3.5;
+
+        System.out.println(maca.nome + " custa " + maca.preco);
+        System.out.println(banana.nome + " custa " + banana.preco);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+maçã custa 7.9
+banana custa 3.5</pre>
+
+<p>A linha mais importante da aula é esta: <code>Fruta maca = new Fruta();</code>. Ela tem quatro partes:</p>
+
+<dl class="anatomy">
+  <dt>Fruta</dt><dd>O <strong>tipo</strong> da variável. Toda classe que você cria vira um tipo novo, como <code>int</code> ou <code>String</code>. Esta variável só aceita frutas.</dd>
+  <dt>maca</dt><dd>O <strong>nome</strong> da variável (minúscula, como toda variável).</dd>
+  <dt>new</dt><dd>"Novo". Pede ao Java que <strong>crie um objeto</strong> na memória. Sem <code>new</code>, nenhum objeto nasce.</dd>
+  <dt>Fruta()</dt><dd>Diz de qual classe é o objeto. Os parênteses chamam o <strong>construtor</strong>, um código que prepara o objeto recém-criado. Esta classe não escreveu nenhum; o Java fornece um vazio. Você vai escrever os seus em <a href="construtores.html">Construtores</a>.</dd>
+</dl>
+
+<p>Depois de criado, o objeto é acessado pelo <strong>ponto</strong>: <code>maca.nome = "maçã"</code> lê-se "o nome da maçã recebe maçã". Cada <code>new</code> cria um objeto <strong>diferente</strong>: <code>maca</code> e <code>banana</code> são duas frutas, cada uma com o seu nome e o seu preço. Mudar uma não afeta a outra.</p>
+
+<h3>E se eu imprimir o objeto?</h3>
+<pre class="term">$ java Main
+maçã custa 7.9
+banana custa 3.5
+Fruta@251a69d7
+Fruta@7344699f</pre>
+<p>Acrescentando <code>System.out.println(maca);</code> e <code>System.out.println(banana);</code>, o Java mostra o <strong>nome da classe</strong>, uma <code>@</code> e um número em hexadecimal que identifica o objeto (o número pode mudar de uma máquina para outra). Repare que os números são diferentes: são dois objetos. Para imprimir algo legível, como <code>maçã (R$ 7.9)</code>, a classe precisa de um método especial, o <code>toString()</code>, que você verá em <a href="object.html">A Classe Object</a>.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> crie uma terceira fruta (uma uva de 12.0) e mostre-a. Depois imprima a variável direto, com <code>System.out.println(uva);</code>, e veja o <code>Fruta@…</code>.</p>
+<pre class="script">class Fruta {
+    String nome;
+    double preco;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta();
+        maca.nome = "maçã";
+        maca.preco = 7.9;
+
+        System.out.println(maca.nome + " custa " + maca.preco);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="referencia">A variável guarda uma referência</h2>
+<p>Aqui está o ponto que mais confunde quem começa. Uma variável de tipo primitivo (<code>int</code>, <code>double</code>) guarda o <strong>próprio valor</strong>. Uma variável de tipo classe <strong>não guarda o objeto</strong>: guarda uma <strong>referência</strong>, o "endereço" de onde o objeto está na memória. Pense no objeto como uma casa e na variável como um papel com o endereço da casa.</p>
+
+<p>Veja o que acontece quando a Ana copia uma variável para outra:</p>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta a = new Fruta();
+        a.nome = "maçã";
+
+        Fruta b = a;
+        b.nome = "pera";
+
+        System.out.println("a = " + a.nome + ", b = " + b.nome);
+        System.out.println(a == b);
+
+        Fruta c = new Fruta();
+        c.nome = "pera";
+        System.out.println(b == c);
+        System.out.println(b.nome.equals(c.nome));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+a = pera, b = pera       « mudou pelo b, apareceu no a
+true                     « a e b apontam para o MESMO objeto
+false                    « b e c são objetos diferentes, mesmo com o mesmo nome
+true                     « os nomes (textos) são iguais</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que acontece</th></tr>
+<tr><td><code>Fruta a = new Fruta();</code></td><td>Uma fruta é criada (casa nº 1). <code>a</code> guarda o endereço "casa nº 1".</td></tr>
+<tr><td><code>Fruta b = a;</code></td><td><strong>Nenhuma fruta nova</strong>. <code>b</code> recebe uma cópia do endereço: agora <code>a</code> e <code>b</code> têm o mesmo papel, "casa nº 1".</td></tr>
+<tr><td><code>b.nome = "pera";</code></td><td>Vai até a casa nº 1 e troca o nome. Como <code>a</code> aponta para a mesma casa, <code>a.nome</code> também é "pera".</td></tr>
+<tr><td><code>a == b</code></td><td>Com objetos, <code>==</code> compara os <strong>endereços</strong>, não o conteúdo. Mesmo endereço: <code>true</code>.</td></tr>
+<tr><td><code>Fruta c = new Fruta();</code></td><td>Um novo <code>new</code>: casa nº 2. Mesmo com o nome igual, <code>b == c</code> é <code>false</code>.</td></tr>
+</table>
+</div>
+
+<p>É a mesma regra que você viu com arrays em <a href="parametros.html#por-valor">Parâmetros</a>: passar um objeto para um método copia a referência, então o método mexe no mesmo objeto. E é por isso que textos se comparam com <code>.equals()</code>, não com <code>==</code> (veja <a href="strings.html">Strings</a>): <code>String</code> também é uma classe.</p>
+
+<div class="tryjava" data-goal="out:a = maçã\, b = pera,src:new\s+Fruta[\s\S]*new\s+Fruta">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>a = pera, b = pera</code>, mas a Ana queria duas frutas diferentes. Mude <strong>uma linha</strong> para que <code>b</code> seja uma fruta nova, e a saída seja <code>a = maçã, b = pera</code>.</p>
+<pre class="script">class Fruta {
+    String nome;
+    double preco;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta a = new Fruta();
+        a.nome = "maçã";
+
+        Fruta b = a;
+        b.nome = "pera";
+
+        System.out.println("a = " + a.nome + ", b = " + b.nome);
+    }
+}
+</pre>
+<pre class="solucao">class Fruta {
+    String nome;
+    double preco;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta a = new Fruta();
+        a.nome = "maçã";
+
+        Fruta b = new Fruta();
+        b.nome = "pera";
+
+        System.out.println("a = " + a.nome + ", b = " + b.nome);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="null"><code>null</code>: a variável que não aponta para nada</h2>
+<p>Uma variável de tipo classe pode guardar um valor especial: <code>null</code> ("nulo"), que quer dizer "nenhum objeto". É o papel em branco, sem endereço. Imprimir <code>null</code> funciona; o problema é tentar <strong>usar</strong> o objeto que não existe:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">class Fruta {
+    String nome;
+    double preco;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta escolhida = null;
+        System.out.println("Escolhida: " + escolhida);
+        escolhida.nome = "uva";
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Escolhida: null
+Exception in thread "main" java.lang.NullPointerException: Cannot assign field "nome" because "&lt;local1&gt;" is null
+	at Main.main(Main.java:10)</pre>
+
+<dl class="anatomy">
+  <dt>Escolhida: null</dt><dd>A linha 9 rodou: imprimir uma referência nula mostra o texto <code>null</code>.</dd>
+  <dt>java.lang.NullPointerException</dt><dd>"Exceção de ponteiro nulo", o famoso <strong>NPE</strong>. Você tentou ir até a casa de um endereço em branco.</dd>
+  <dt>Cannot assign field "nome"</dt><dd>"Não é possível atribuir o campo <code>nome</code>…"</dd>
+  <dt>because "&lt;local1&gt;" is null</dt><dd>"…porque <code>&lt;local1&gt;</code> é nulo". O <code>&lt;local1&gt;</code> é a variável local número 1 do método (a <code>escolhida</code>; a número 0 é o <code>args</code>). O Java não mostra o nome porque, por padrão, o <code>javac</code> não guarda os nomes das variáveis locais no <code>.class</code>.</dd>
+  <dt>at Main.main(Main.java:10)</dt><dd>Onde aconteceu: método <code>main</code>, linha 10. É sempre por aqui que você começa a investigar.</dd>
+</dl>
+
+<p>Compilando com a opção <code>-g</code> (de <em>debug</em>, "depuração"), o <code>javac</code> guarda os nomes, e a mensagem fica mais clara:</p>
+
+<pre class="term">$ javac -g Main.java &amp;&amp; java Main
+Escolhida: null
+Exception in thread "main" java.lang.NullPointerException: Cannot assign field "nome" because "escolhida" is null
+	at Main.main(Main.java:10)</pre>
+
+<p>Para ler um atributo, a mensagem muda de <code>Cannot assign field</code> para <code>Cannot read field</code>; para chamar um método, <code>Cannot invoke "…"</code>. Um caso muito comum: arrays de objetos começam cheios de <code>null</code>, e o <code>new Fruta[3]</code> cria o array, <strong>não</strong> as frutas:</p>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta[] cesta = new Fruta[3];
+        System.out.println(cesta[0]);
+        cesta[0] = new Fruta();
+        cesta[0].nome = "maçã";
+        System.out.println(cesta[0].nome);
+        System.out.println(cesta[1].nome);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+null
+maçã
+Exception in thread "main" java.lang.NullPointerException: Cannot read field "nome" because "&lt;local1&gt;[1]" is null
+	at Main.main(Main.java:13)</pre>
+
+<p>A posição 0 recebeu uma fruta com <code>new</code>; a posição 1 continuou <code>null</code>. O <code>"&lt;local1&gt;[1]"</code> diz exatamente qual posição do array estava vazia.</p>
+
+<div class="note">
+<strong><code>null</code> × "não inicializada"</strong>
+<p>São coisas diferentes. <code>Fruta escolhida = null;</code> é uma variável com valor (o valor "nada"); o erro só aparece ao rodar. Já <code>Fruta escolhida;</code> sem valor nenhum, seguido de <code>escolhida.nome = "uva";</code>, nem compila:</p>
+<pre class="term">$ javac Main.java
+Main.java:9: error: variable escolhida might not have been initialized
+        escolhida.nome = "uva";
+        ^
+1 error</pre>
+</div>
+
+<hr>
+
+<h2 id="arquivos">Onde colocar a classe: arquivos separados ou o mesmo arquivo</h2>
+
+<h3>Forma 1: um arquivo por classe (a forma profissional)</h3>
+<p>Em projetos de verdade, cada classe fica no seu próprio arquivo, com o <strong>mesmo nome</strong> da classe. A Ana criou uma pasta com dois arquivos:</p>
+
+<pre class="file" data-file="Fruta.java">public class Fruta {
+    String nome;
+    double preco;
+}
+</pre>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta();
+        maca.nome = "maçã";
+        maca.preco = 7.9;
+        System.out.println(maca.nome + " custa " + maca.preco);
+    }
+}
+</pre>
+
+<pre class="term">$ ls
+Fruta.java  Main.java
+$ javac *.java
+$ ls
+Fruta.class  Fruta.java  Main.class  Main.java
+$ java Main
+maçã custa 7.9</pre>
+
+<dl class="anatomy">
+  <dt>javac *.java</dt><dd>Compila todos os arquivos <code>.java</code> da pasta (o <code>*</code> é um curinga do terminal: "todos os nomes terminados em <code>.java</code>"). Cada classe vira o seu <code>.class</code>.</dd>
+  <dt>java Main</dt><dd>Roda a classe que tem o <code>main</code>. A JVM encontra <code>Fruta.class</code> sozinha, na mesma pasta, quando precisa dela.</dd>
+</dl>
+
+<p>Na verdade, <code>javac Main.java</code> também funcionaria: ao ver que <code>Main</code> usa <code>Fruta</code>, o <code>javac</code> procura <code>Fruta.java</code> na pasta e compila junto.</p>
+
+<pre class="term">$ rm *.class
+$ javac Main.java
+$ ls
+Fruta.class  Fruta.java  Main.class  Main.java      « a Fruta.class foi compilada automaticamente</pre>
+
+<p>E, a partir do Java 22, o modo "arquivo-fonte" também encontra as outras classes da pasta, sem compilar antes: <span class="versao">Java 22+</span></p>
+
+<pre class="term">$ rm *.class
+$ java Main.java
+maçã custa 7.9</pre>
+
+<h3>Forma 2: as duas classes no mesmo arquivo</h3>
+<p>Foi o que você fez até aqui nesta aula: <code>class Fruta</code> (sem <code>public</code>) e <code>public class Main</code> no mesmo <code>Main.java</code>. A regra é: <strong>um arquivo pode ter várias classes, mas só uma <code>public</code></strong>, e ela dá nome ao arquivo.</p>
+
+<h3>Qual usar?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Vantagens</th><th>Quando usar</th></tr>
+<tr><td>Um arquivo por classe, cada uma <code>public</code></td><td>Fácil de achar cada classe; outras partes do programa (outros <a href="pacotes.html">pacotes</a>) podem usá-la; é o padrão de IDEs, Maven e Gradle</td><td>Qualquer programa de verdade</td></tr>
+<tr><td>Várias classes num arquivo, só uma <code>public</code></td><td>Tudo à vista num lugar só; ótimo para exemplos curtos e para o editor do guia</td><td>Exemplos, exercícios, classes pequenas de apoio</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>NullPointerException</code></strong>
+<pre class="term">$ java Main
+Exception in thread "main" java.lang.NullPointerException: Cannot assign field "nome" because "&lt;local1&gt;" is null
+	at Main.main(Main.java:10)</pre>
+<p><strong>O que aconteceu:</strong> a variável vale <code>null</code> e o programa tentou usar um atributo ou método dela.</p>
+<p><strong>Como resolver:</strong> vá à linha indicada e descubra qual variável está nula (compile com <code>javac -g</code> para ver o nome). Em geral faltou um <code>new</code>, ou um elemento de array ainda não recebeu objeto. Se <code>null</code> é um valor possível, teste antes: <code>if (escolhida != null) { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … symbol: class Fruta"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        Fruta maca = new Fruta();
+        ^
+  symbol:   class Fruta
+  location: class Main
+Main.java:3: error: cannot find symbol
+        Fruta maca = new Fruta();
+                         ^
+  symbol:   class Fruta
+  location: class Main
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> o compilador não encontrou a classe <code>Fruta</code>: não há <code>Fruta.java</code> na pasta, nem uma <code>class Fruta</code> no mesmo arquivo. O erro aparece duas vezes porque <code>Fruta</code> é usada duas vezes na linha (no tipo e no <code>new</code>).</p>
+<p><strong>Como resolver:</strong> confira se o arquivo existe, se está na mesma pasta e se o nome bate exatamente, com maiúsculas (<code>Fruta.java</code>, não <code>fruta.java</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Rodar a classe errada</strong>
+<pre class="term">$ java Fruta
+Erro: o método main não é Fruta na classe javafx.application.Application; defina o método main como:
+   public static void main(String[] args)</pre>
+<p><strong>O que aconteceu:</strong> a Ana mandou rodar <code>Fruta</code>, que não tem <code>main</code>. A frase em português sai embaralhada (é um defeito da tradução do próprio JDK). Em inglês, com <code>LANG=C java Fruta</code>, a mensagem é clara: <code>Error: Main method not found in class Fruta, please define the main method as: public static void main(String[] args)</code>.</p>
+<p><strong>Como resolver:</strong> rode a classe que tem o <code>main</code>: <code>java Main</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"class … is public, should be declared in a file named …"</strong>
+<p><strong>O que aconteceu:</strong> uma classe <code>public</code> está num arquivo com outro nome, ou há duas classes <code>public</code> no mesmo arquivo.</p>
+<p><strong>Como resolver:</strong> deixe só uma <code>public</code> por arquivo, com o mesmo nome do arquivo; tire o <code>public</code> das outras ou mova-as para arquivos próprios. Veja <a href="poo.html">O que é POO</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>class Nome { … }</code></td><td>Declara uma classe (nome em PascalCase, no singular)</td></tr>
+<tr><td><code>Nome var = new Nome();</code></td><td>Cria um objeto e guarda a referência dele em <code>var</code></td></tr>
+<tr><td><code>var.campo</code></td><td>Acessa um atributo do objeto</td></tr>
+<tr><td><code>Nome b = a;</code></td><td>Copia a <strong>referência</strong>: <code>a</code> e <code>b</code> apontam para o mesmo objeto</td></tr>
+<tr><td><code>a == b</code></td><td>Com objetos: <code>true</code> só se for o mesmo objeto</td></tr>
+<tr><td><code>Nome var = null;</code></td><td>Variável sem objeto; usar <code>var.campo</code> dá <code>NullPointerException</code></td></tr>
+<tr><td><code>new Nome[3]</code></td><td>Cria um array com 3 posições <code>null</code> (não cria os objetos)</td></tr>
+<tr><td><code>javac *.java</code></td><td>Compila todas as classes da pasta</td></tr>
+<tr><td><code>javac -g …</code></td><td>Guarda os nomes das variáveis (mensagens de NPE mais claras)</td></tr>
+<tr><td><code>java Main.java</code> com várias classes na pasta</td><td>Roda sem compilar antes <span class="versao">Java 22+</span></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: a classe Livro, em outro arquivo</h2>
+<div class="tryjava" data-goal="out:Dom Casmurro\, de Machado de Assis,out:A Hora da Estrela\, de Clarice Lispector,src:new\s+Livro[\s\S]*new\s+Livro">
+<p class="try-task"><strong>Missão:</strong> esta caixa tem <strong>dois arquivos</strong> (veja as abas). Em <code>Livro.java</code>, complete a classe com os atributos <code>String titulo</code> e <code>String autor</code>. Em <code>Main.java</code>, crie dois livros (<em>Dom Casmurro</em>, de Machado de Assis, e <em>A Hora da Estrela</em>, de Clarice Lispector) e imprima cada um no formato <code>Dom Casmurro, de Machado de Assis</code>.</p>
+<pre class="script" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        // crie os dois livros aqui
+
+    }
+}
+</pre>
+<pre class="script" data-file="Livro.java">public class Livro {
+    // atributos aqui
+}
+</pre>
+<pre class="solucao" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Livro l1 = new Livro();
+        l1.titulo = "Dom Casmurro";
+        l1.autor = "Machado de Assis";
+
+        Livro l2 = new Livro();
+        l2.titulo = "A Hora da Estrela";
+        l2.autor = "Clarice Lispector";
+
+        System.out.println(l1.titulo + ", de " + l1.autor);
+        System.out.println(l2.titulo + ", de " + l2.autor);
+    }
+}
+</pre>
+<pre class="solucao" data-file="Livro.java">public class Livro {
+    String titulo;
+    String autor;
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A palavra que cria</h3>
+<p>Complete para criar um objeto da classe <code>Aluno</code>:</p>
+<div class="ex-code">Aluno a = <input data-answer="new" aria-label="palavra"> Aluno();</div>
+</div>
+
+<div class="exercise">
+<h3>2. Nome do arquivo</h3>
+<p>A classe <code>public class ContaBancaria</code> precisa ficar em qual arquivo?</p>
+<div class="ex-code"><input data-answer="ContaBancaria.java" aria-label="arquivo"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Nenhum objeto</h3>
+<p>Qual valor indica que uma variável de tipo classe não aponta para objeto nenhum?</p>
+<div class="ex-code"><input data-answer="null" aria-label="valor"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Depois de <code>Fruta x = new Fruta(); Fruta y = x; y.preco = 5;</code>, quanto vale <code>x.preco</code>?</p>
+<label><input type="radio" name="q4"> <code>0.0</code></label>
+<label><input type="radio" name="q4"> <code>5.0</code></label>
+<label><input type="radio" name="q4"> <code>null</code></label>
+<label><input type="radio" name="q4"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Quantos objetos <code>Fruta</code> existem depois de <code>Fruta[] f = new Fruta[10];</code>?</p>
+<label><input type="radio" name="q5"> 10</label>
+<label><input type="radio" name="q5"> 1</label>
+<label><input type="radio" name="q5"> 0: só o array foi criado, com 10 posições <code>null</code>.</label>
+<label><input type="radio" name="q5"> 11</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. <code>new Fruta() == new Fruta()</code> vale:</p>
+<label><input type="radio" name="q6"> <code>true</code>, porque os atributos são iguais.</label>
+<label><input type="radio" name="q6"> Erro de compilação.</label>
+<label><input type="radio" name="q6"> <code>NullPointerException</code>.</label>
+<label><input type="radio" name="q6"> <code>false</code>, porque são dois objetos diferentes.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma classe se declara com <code>class Nome { … }</code>; o nome é PascalCase e singular. Declarar não cria objetos.</li>
+  <li><code>new Nome()</code> cria um objeto; cada <code>new</code> é um objeto diferente, com os seus próprios atributos.</li>
+  <li>A variável guarda uma <strong>referência</strong> (o endereço). <code>b = a</code> faz as duas apontarem para o mesmo objeto; <code>==</code> compara referências.</li>
+  <li><code>null</code> = nenhum objeto. Usar um atributo ou método de <code>null</code> causa <code>NullPointerException</code>; a mensagem diz qual variável era nula.</li>
+  <li>Cada classe <code>public</code> fica no arquivo de mesmo nome. Compile tudo com <code>javac *.java</code> e rode a classe do <code>main</code>.</li>
+  <li>Num mesmo arquivo, várias classes, mas só uma <code>public</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
