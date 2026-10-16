@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Sobrescrita — @Override e as regras para sobrescrever | Guia Java</title>
+<meta name="description" content="Sobrescrita de métodos em Java: a subclasse troca a versão herdada de um método. A anotação @Override e o erro que ela pega (method does not override or implement a method from a supertype), as regras de visibilidade e de tipo de retorno, sobrescrita × sobrecarga e o toString sobrescrito. Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Sobrescrita (@Override)</span></h1>
+
+<p class="intro">Todo animal emite um som, mas cada um emite o seu. Se a classe <code>Animal</code> tem um método <code>emitirSom()</code>, o <code>Cachorro</code> herda esse método… e quer trocá-lo por um que late. Trocar a versão herdada de um método se chama <strong>sobrescrever</strong> (em inglês, <em>override</em>). Nesta aula você vai ver como fazer, quais são as regras e por que a anotação <code>@Override</code> deve estar em toda sobrescrita.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é sobrescrever um método e como o Java escolhe qual versão rodar.</li>
+  <li>O que a anotação <code>@Override</code> faz e o erro que ela pega: <code>method does not override or implement a method from a supertype</code>.</li>
+  <li>As regras: mesmo nome e parâmetros, visibilidade igual ou maior, tipo de retorno compatível.</li>
+  <li>A diferença entre <strong>sobrescrita</strong> e <strong>sobrecarga</strong>.</li>
+  <li>Como sobrescrever o <code>toString()</code> para seus objetos aparecerem bonitos no <code>println</code>.</li>
+</ul>
+</div>
+
+<p>Você vai precisar de <a href="heranca.html">Herança</a> (<code>extends</code>) e, para chamar a versão da superclasse, de <a href="super.html">super</a>.</p>
+
+<hr>
+
+<h2>A ideia: a receita da família, com o seu toque</h2>
+<p>A avó da Ana tem uma receita de bolo que passou para toda a família. A mãe usa a receita igualzinha. A Ana usa a mesma receita, mas troca a cobertura por chocolate. O nome continua "bolo da família", e quem pede o bolo à Ana recebe a versão dela.</p>
+<p>Na programação é igual. A superclasse define um método; cada subclasse pode usá-lo como está (herdar) ou escrever a <strong>sua versão</strong>, com o <strong>mesmo nome e os mesmos parâmetros</strong> (sobrescrever). Quando o método é chamado num objeto, roda a versão da classe <strong>daquele objeto</strong>.</p>
+
+<hr>
+
+<h2>Sobrescrevendo <code>emitirSom()</code></h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Animal bicho = new Animal();
+        Cachorro rex = new Cachorro();
+        Gato mimi = new Gato();
+        bicho.emitirSom();
+        rex.emitirSom();
+        mimi.emitirSom();
+    }
+}
+
+class Animal {
+    void emitirSom() {
+        System.out.println("(algum som de animal)");
+    }
+}
+
+class Cachorro extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Au au!");
+    }
+}
+
+class Gato extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Miau!");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>void emitirSom()</dt><dd>No <code>Animal</code>: a versão "padrão", que toda subclasse herda.</dd>
+  <dt>@Override</dt><dd>"Sobrescreve". Uma <strong>anotação</strong> (as palavras com <code>@</code> são anotações, avisos para o compilador; veja <a href="anotacoes.html">Anotações</a>). Ela diz: "este método substitui um herdado; confira".</dd>
+  <dt>void emitirSom()</dt><dd>No <code>Cachorro</code>: exatamente a mesma assinatura (nome + parâmetros), com outro corpo.</dd>
+  <dt>System.out.println("Au au!");</dt><dd>O comportamento novo.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+(algum som de animal)       « o Animal usa a própria versão
+Au au!                      « o Cachorro usa a dele
+Miau!                       « o Gato usa a dele</pre>
+
+<p>A mesma chamada, <code>emitirSom()</code>, teve três resultados, dependendo do objeto. A versão do <code>Animal</code> continua existindo: ela só não é usada pelos objetos que têm a própria. E, se quiser, a subclasse ainda pode chamá-la com <a href="super.html"><code>super.emitirSom()</code></a>.</p>
+
+<p>Isso fica ainda mais interessante quando uma variável do tipo <code>Animal</code> guarda um <code>Cachorro</code>: qual versão roda? Esse é o assunto da próxima aula, <a href="polimorfismo.html">Polimorfismo</a>, e é a razão de a sobrescrita ser tão importante.</p>
+
+<div class="tryjava" data-goal="out:Muu!,src:@Override">
+<p class="try-task"><strong>Missão:</strong> crie a classe <code>Vaca</code>, que herda de <code>Animal</code> e sobrescreve <code>emitirSom()</code> para mostrar <code>Muu!</code>. Use <code>@Override</code>. No <code>main</code>, crie uma vaca e chame o método.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Animal bicho = new Animal();
+        bicho.emitirSom();
+        // crie uma Vaca e chame emitirSom()
+    }
+}
+
+class Animal {
+    void emitirSom() {
+        System.out.println("(algum som de animal)");
+    }
+}
+
+// crie aqui a classe Vaca
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Animal bicho = new Animal();
+        bicho.emitirSom();
+        Vaca mimosa = new Vaca();
+        mimosa.emitirSom();
+    }
+}
+
+class Animal {
+    void emitirSom() {
+        System.out.println("(algum som de animal)");
+    }
+}
+
+class Vaca extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Muu!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>@Override</code>: o seguro contra erros de digitação</h2>
+<p>O <code>@Override</code> é opcional: sem ele, a sobrescrita funciona do mesmo jeito. Então por que usar? Porque ele transforma um erro silencioso num erro de compilação. Veja o que acontece quando a Ana digita <code>emitirSon</code>, com <strong>n</strong>, no <code>Gato</code>, <strong>sem</strong> <code>@Override</code>:</p>
+
+<pre class="file" data-file="Main.java">class Gato extends Animal {
+    void emitirSon() {
+        System.out.println("Miau!");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+(algum som de animal)
+Au au!
+(algum som de animal)       « o gato não miou!</pre>
+
+<p>Nenhum erro. O Java entendeu que <code>emitirSon()</code> é um método <strong>novo</strong> do <code>Gato</code>, que ninguém chama. O <code>mimi.emitirSom()</code> do <code>main</code> usou a versão herdada do <code>Animal</code>. Num programa grande, um bug assim pode levar horas para ser achado. Agora, a mesma digitação errada <strong>com</strong> <code>@Override</code>:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">class Gato extends Animal {
+    @Override
+    void emitirSon() {
+        System.out.println("Miau!");
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:26: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+1 error</pre>
+
+<p>(O número da linha, 26, é o do arquivo completo do começo da aula, com o <code>Gato</code> trocado.) <em>Method does not override or implement a method from a supertype</em> = "o método não sobrescreve nem implementa um método de um supertipo". Traduzindo para a situação: "você disse que isto é uma sobrescrita, mas não existe <code>emitirSon()</code> em nenhuma classe acima". O erro aparece na hora, apontando o lugar exato. A regra prática: <strong>toda sobrescrita leva <code>@Override</code></strong>. Os editores (IntelliJ, VS Code) já escrevem a anotação quando você pede para sobrescrever um método.</p>
+
+<hr>
+
+<h2>As regras da sobrescrita</h2>
+<p>Para um método da subclasse sobrescrever um da superclasse, ele precisa ser "compatível". O compilador confere quatro coisas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Regra</th><th>Pode</th><th>Não pode</th></tr>
+<tr><td>Nome e parâmetros (a <strong>assinatura</strong>)</td><td>Exatamente iguais</td><td>Parâmetros diferentes: aí é outro método (sobrecarga)</td></tr>
+<tr><td>Visibilidade</td><td>Igual ou <strong>maior</strong> (de pacote → <code>public</code>)</td><td>Menor (<code>public</code> → de pacote ou <code>private</code>)</td></tr>
+<tr><td>Tipo de retorno</td><td>O mesmo, ou um subtipo dele</td><td>Um tipo incompatível</td></tr>
+<tr><td>O método da superclasse</td><td>Comum (de instância)</td><td><code>final</code>, <code>private</code> ou <code>static</code></td></tr>
+</table>
+</div>
+
+<h3>Visibilidade: não pode diminuir</h3>
+<p>Se o <code>Animal</code> promete que <code>emitirSom()</code> é <code>public</code> (qualquer um pode chamar), o <code>Cachorro</code> não pode esconder o método. Quem recebe "um animal" confia na promessa da superclasse:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">class Animal {
+    public void emitirSom() {
+        System.out.println("(algum som)");
+    }
+}
+
+class Cachorro extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Au au!");
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:14: error: emitirSom() in Cachorro cannot override emitirSom() in Animal
+    void emitirSom() {
+         ^
+  attempting to assign weaker access privileges; was public
+1 error</pre>
+
+<p>"<code>emitirSom()</code> em <code>Cachorro</code> não pode sobrescrever <code>emitirSom()</code> em <code>Animal</code>: tentativa de atribuir privilégios de acesso mais fracos; era <code>public</code>." O conserto é escrever <code>public void emitirSom()</code> também no <code>Cachorro</code>. Aumentar é permitido: um método sem modificador na superclasse pode virar <code>public</code> na subclasse.</p>
+
+<h3>Tipo de retorno: o mesmo (ou mais específico)</h3>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">class Animal {
+    String nome() {
+        return "animal";
+    }
+}
+
+class Cachorro extends Animal {
+    @Override
+    int nome() {
+        return 42;
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:14: error: nome() in Cachorro cannot override nome() in Animal
+    int nome() {
+        ^
+  return type int is not compatible with String
+Main.java:13: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+2 errors</pre>
+
+<p>"O tipo de retorno <code>int</code> não é compatível com <code>String</code>." Quem chama <code>nome()</code> num animal espera um texto. O segundo erro é consequência do primeiro: como a sobrescrita falhou, o <code>@Override</code> também reclama.</p>
+
+<p>Mas há uma liberdade: o retorno pode ser <strong>mais específico</strong>. Se o <code>Animal</code> tem <code>Animal criarFilhote()</code>, o <code>Cachorro</code> pode declarar <code>Cachorro criarFilhote()</code>, porque todo <code>Cachorro</code> é um <code>Animal</code>. Isso se chama <strong>retorno covariante</strong>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro();
+        Cachorro filhote = rex.criarFilhote();
+        filhote.emitirSom();
+    }
+}
+
+class Animal {
+    Animal criarFilhote() {
+        return new Animal();
+    }
+
+    void emitirSom() {
+        System.out.println("(algum som)");
+    }
+}
+
+class Cachorro extends Animal {
+    @Override
+    Cachorro criarFilhote() {
+        return new Cachorro();
+    }
+
+    @Override
+    void emitirSom() {
+        System.out.println("Au!");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Au!</pre>
+
+<p>Graças ao retorno <code>Cachorro</code>, o <code>main</code> guarda o filhote numa variável <code>Cachorro</code>, sem conversão nenhuma.</p>
+
+<h3>O que não pode ser sobrescrito</h3>
+<ul>
+  <li><strong>Métodos <code>final</code></strong>: travados de propósito (erro <code>overridden method is final</code>; veja <a href="final.html">final</a>).</li>
+  <li><strong>Métodos <code>private</code></strong>: a subclasse nem os enxerga. Um método com o mesmo nome na subclasse é outro método, sem relação; com <code>@Override</code>, dá o erro <code>method does not override…</code>.</li>
+  <li><strong>Métodos <code>static</code></strong>: são da classe, não do objeto (veja <a href="static.html">static</a>). Um <code>static</code> de mesmo nome na subclasse <strong>esconde</strong> o da superclasse, mas não há escolha pelo objeto, e o <code>@Override</code> recusa.</li>
+  <li><strong>Construtores</strong>: não são herdados, então não há o que sobrescrever.</li>
+</ul>
+
+<hr>
+
+<h2>Sobrescrita × sobrecarga</h2>
+<p>Os nomes parecem, e muita gente confunde. A <a href="sobrecarga.html">sobrecarga</a> (<em>overloading</em>) é ter vários métodos com o mesmo nome e <strong>parâmetros diferentes</strong>, como <code>Math.max(int, int)</code> e <code>Math.max(double, double)</code>. A sobrescrita (<em>overriding</em>) é a subclasse <strong>substituir</strong> um método com os <strong>mesmos</strong> parâmetros.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Sobrecarga (<em>overload</em>)</th><th>Sobrescrita (<em>override</em>)</th></tr>
+<tr><td>Onde</td><td>Na mesma classe (ou herdada)</td><td>Numa subclasse</td></tr>
+<tr><td>Parâmetros</td><td><strong>Diferentes</strong></td><td><strong>Iguais</strong></td></tr>
+<tr><td>Resultado</td><td>Métodos novos, que convivem</td><td>A versão nova substitui a herdada</td></tr>
+<tr><td>Quem escolhe</td><td>O compilador, pelos argumentos</td><td>A JVM, pelo objeto (ao rodar)</td></tr>
+<tr><td><code>@Override</code></td><td>Não se aplica (dá erro)</td><td>Sempre use</td></tr>
+</table>
+</div>
+
+<p>Um engano comum: querer sobrescrever, mas mudar os parâmetros. O <code>@Override</code> pega:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:13: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+1 error</pre>
+
+<p>Aqui, o <code>Cachorro</code> escreveu <code>emitirSom(int vezes)</code>, mas o <code>Animal</code> só tem <code>emitirSom()</code>, sem parâmetros. Sem o <code>@Override</code>, o código compilaria, e o <code>Cachorro</code> teria <strong>dois</strong> métodos: o herdado e o novo, sobrecarregado.</p>
+
+<hr>
+
+<h2>Sobrescrevendo <code>toString()</code></h2>
+<p>Este é, de longe, o método mais sobrescrito do Java. Lembra que toda classe herda de <code>Object</code> (veja <a href="heranca.html">Herança</a>)? Um dos métodos que vêm de lá é o <code>toString()</code>, "para texto". O <code>println</code> chama esse método sempre que recebe um objeto, e a concatenação com <code>+</code> também. A versão de <code>Object</code> não é nada amigável:</p>
+
+<pre class="term">$ java Main.java
+Aluno@365c30cc
+Destaque: Aluno@365c30cc</pre>
+
+<p>(O que é esse <code>@365c30cc</code> é explicado em <a href="object.html">A Classe Object</a>.) Sobrescrevendo, a Ana decide como um <code>Aluno</code> vira texto:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno ana = new Aluno("Ana", 9.5);
+        System.out.println(ana);
+        System.out.println("Destaque: " + ana);
+    }
+}
+
+class Aluno {
+    String nome;
+    double nota;
+
+    Aluno(String nome, double nota) {
+        this.nome = nome;
+        this.nota = nota;
+    }
+
+    @Override
+    public String toString() {
+        return nome + " (nota " + nota + ")";
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>@Override</dt><dd>Confere que <code>toString()</code> existe acima (existe, em <code>Object</code>).</dd>
+  <dt>public</dt><dd>Obrigatório: em <code>Object</code>, <code>toString()</code> é <code>public</code>, e a visibilidade não pode diminuir.</dd>
+  <dt>String toString()</dt><dd>Devolve um texto; não recebe nada.</dd>
+  <dt>return nome + " (nota " + nota + ")";</dt><dd>O texto que representa o objeto. O método <strong>devolve</strong> o texto, não imprime.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Ana (nota 9.5)
+Destaque: Ana (nota 9.5)        « o + também usa o toString()</pre>
+
+<p>O esquecimento mais comum é o <code>public</code>. Sem ele, o erro é o da regra de visibilidade, agora com <code>Object</code>:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:19: error: toString() in Aluno cannot override toString() in Object
+    String toString() {
+           ^
+  attempting to assign weaker access privileges; was public
+1 error</pre>
+
+<div class="tip">
+<strong>Toda classe que você cria merece um <code>toString()</code></strong>
+<p>Ele não serve só para mostrar na tela: quando você imprime uma lista de alunos, ou quando um erro mostra um objeto, é o <code>toString()</code> que aparece. Os <a href="records.html">records</a> já vêm com um pronto. Os outros dois métodos de <code>Object</code> que costumam ser sobrescritos, <code>equals</code> e <code>hashCode</code>, ficam para <a href="object.html">A Classe Object</a>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"method does not override or implement a method from a supertype"</strong>
+<pre class="term">$ javac Main.java
+Main.java:26: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o método marcado com <code>@Override</code> não corresponde a nenhum método herdado. Causas: erro de digitação no nome (<code>emitirSon</code>, <code>tostring</code>, <code>ToString</code>), parâmetros diferentes, a classe esqueceu o <code>extends</code>, ou o método da superclasse é <code>private</code> ou <code>static</code>.</p>
+<p><strong>Como resolver:</strong> compare, letra por letra, o nome e os parâmetros com os do método da superclasse. <strong>Não</strong> apague o <code>@Override</code> para o erro sumir: ele está avisando de um bug real.</p>
+</div>
+
+<div class="cenario">
+<strong>"attempting to assign weaker access privileges; was public"</strong>
+<p><strong>O que aconteceu:</strong> a versão da subclasse é menos visível que a da superclasse. É quase sempre o <code>public</code> esquecido em <code>toString()</code>, <code>equals()</code> ou num método de <a href="interfaces.html">interface</a>.</p>
+<p><strong>Como resolver:</strong> use a mesma visibilidade (ou maior) que a superclasse: <code>public String toString()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"return type … is not compatible with …"</strong>
+<p><strong>O que aconteceu:</strong> o tipo de retorno da sobrescrita não é o mesmo nem um subtipo do original.</p>
+<p><strong>Como resolver:</strong> devolva o mesmo tipo. Se precisa devolver outra coisa, o método é outro: dê outro nome.</p>
+</div>
+
+<div class="cenario">
+<strong>Compilou, mas a versão da subclasse não roda</strong>
+<p><strong>O que aconteceu:</strong> sem <code>@Override</code>, um nome digitado errado ou parâmetros diferentes criaram um método novo, e a versão herdada continua sendo chamada.</p>
+<p><strong>Como resolver:</strong> coloque <code>@Override</code>; o compilador vai apontar o problema.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita / termo</th><th>Significado</th></tr>
+<tr><td>Sobrescrever (<em>override</em>)</td><td>A subclasse escreve a sua versão de um método herdado, com a mesma assinatura</td></tr>
+<tr><td><code>@Override</code></td><td>Pede ao compilador para conferir que é mesmo uma sobrescrita</td></tr>
+<tr><td><code>super.metodo()</code></td><td>Chama a versão da superclasse, de dentro da subclasse</td></tr>
+<tr><td>Visibilidade</td><td>Igual ou maior que a original</td></tr>
+<tr><td>Retorno</td><td>O mesmo tipo ou um subtipo (covariante)</td></tr>
+<tr><td>Não sobrescrevíveis</td><td>Métodos <code>final</code>, <code>private</code>, <code>static</code> e construtores</td></tr>
+<tr><td><code>public String toString()</code></td><td>O texto que representa o objeto (usado por <code>println</code> e <code>+</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A anotação</h3>
+<p>Complete a linha que vem antes de um método que sobrescreve outro:</p>
+<div class="ex-code"><input data-answer="@Override" aria-label="anotação"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O toString completo</h3>
+<p>Complete a primeira linha do <code>toString</code> de uma classe:</p>
+<div class="ex-code"><input data-answer="public String toString() {|public String toString(){" aria-label="declaração"> return nome; }</div>
+</div>
+
+<div class="exercise">
+<h3>3. Aumentar a visibilidade</h3>
+<p>Na superclasse, o método é <code>void abrir()</code> (de pacote). Qual modificador a subclasse pode usar para deixá-lo visível a todos?</p>
+<div class="ex-code"><input data-answer="public|protected" aria-label="modificador"> void abrir() { … }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>Animal</code> tem <code>void andar()</code>. <code>Pato</code> (que estende <code>Animal</code>) escreve <code>void andar(int passos)</code>. Isso é…</p>
+<label><input type="radio" name="q4"> Sobrescrita</label>
+<label><input type="radio" name="q4"> Sobrecarga: o Pato fica com os dois métodos</label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> Herança múltipla</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Para que serve o <code>@Override</code>?</p>
+<label><input type="radio" name="q5"> É obrigatório para sobrescrever</label>
+<label><input type="radio" name="q5"> Deixa o método mais rápido</label>
+<label><input type="radio" name="q5"> Impede que subclasses sobrescrevam o método</label>
+<label><input type="radio" name="q5"> Faz o compilador conferir que o método realmente sobrescreve um herdado</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que <code>String toString() { … }</code> (sem <code>public</code>) não compila?</p>
+<label><input type="radio" name="q6"> Porque em <code>Object</code> ele é <code>public</code>, e a sobrescrita não pode diminuir a visibilidade</label>
+<label><input type="radio" name="q6"> Porque <code>toString</code> é <code>final</code></label>
+<label><input type="radio" name="q6"> Porque faltou <code>static</code></label>
+<label><input type="radio" name="q6"> Porque <code>toString</code> deve devolver <code>void</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Café - R$ 18.9,src:@Override">
+<p class="try-task"><strong>Missão final:</strong> a Ana escreveu um <code>toString()</code> para <code>Produto</code>, mas o programa mostra <code>Produto@…</code>. Rode para ver. Coloque <code>@Override</code> em cima do método e rode de novo: o compilador vai apontar o problema. Conserte o nome do método. A saída deve ser <code>Café - R$ 18.9</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Produto cafe = new Produto("Café", 18.90);
+        System.out.println(cafe);
+    }
+}
+
+class Produto {
+    String nome;
+    double preco;
+
+    Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    public String tostring() {
+        return nome + " - R$ " + preco;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Produto cafe = new Produto("Café", 18.90);
+        System.out.println(cafe);
+    }
+}
+
+class Produto {
+    String nome;
+    double preco;
+
+    Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    @Override
+    public String toString() {
+        return nome + " - R$ " + preco;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Sobrescrever é a subclasse escrever a sua versão de um método herdado, com o mesmo nome e os mesmos parâmetros. Roda a versão da classe do objeto.</li>
+  <li>Use <strong>sempre</strong> <code>@Override</code>: sem ele, um nome errado vira um método novo, em silêncio; com ele, vira o erro <code>method does not override or implement a method from a supertype</code>.</li>
+  <li>Regras: visibilidade igual ou maior (<code>weaker access privileges</code>), retorno igual ou mais específico, e nada de sobrescrever métodos <code>final</code>, <code>private</code> ou <code>static</code>.</li>
+  <li>Sobrecarga = parâmetros diferentes, métodos que convivem. Sobrescrita = mesmos parâmetros, versão que substitui.</li>
+  <li>Sobrescreva <code>public String toString()</code> para seus objetos aparecerem como texto legível.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
