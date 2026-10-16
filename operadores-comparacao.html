@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Operadores de Comparação — == != &gt; &lt; &gt;= &lt;= | Guia Java</title>
+<meta name="description" content="Os operadores de comparação do Java (==, !=, &gt;, &lt;, &gt;=, &lt;=): o resultado boolean, comparar números, char e boolean, a armadilha do == com Strings, como comparar double e os erros reais como 18 &lt;= idade &lt; 60, com saídas do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Operadores de Comparação</span></h1>
+
+<p class="intro">Programas tomam decisões o tempo todo: "a nota é suficiente para passar?", "o estoque acabou?", "a senha está certa?". Cada uma dessas perguntas é uma <strong>comparação</strong>, e a resposta é sempre <strong>sim ou não</strong>: <code>true</code> ou <code>false</code>. Nesta aula você vai conhecer os seis operadores de comparação do Java e as armadilhas de comparar textos e números decimais.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os operadores <code>==</code>, <code>!=</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code> e <code>&lt;=</code>.</li>
+  <li>Que toda comparação produz um <code>boolean</code>, que pode ser guardado numa variável.</li>
+  <li>O que dá para comparar: números, <code>char</code> e <code>boolean</code>.</li>
+  <li>Por que <strong>não</strong> usar <code>==</code> com <code>String</code> nem com <code>double</code>.</li>
+  <li>Os erros mais comuns, como <code>18 &lt;= idade &lt; 60</code> e <code>=</code> no lugar de <code>==</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>Os seis operadores</h2>
+<p>São os sinais da matemática da escola, escritos com os caracteres do teclado. A Ana tirou 7 na prova:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int nota = 7;
+        System.out.println(nota == 7);
+        System.out.println(nota != 7);
+        System.out.println(nota &gt; 6);
+        System.out.println(nota &lt; 6);
+        System.out.println(nota &gt;= 7);
+        System.out.println(nota &lt;= 5);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+true               « 7 é igual a 7
+false              « 7 é diferente de 7? não
+true
+false
+true               « 7 é maior OU igual a 7
+false</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Pergunta</th><th>Na matemática</th><th>Exemplo (nota = 7)</th></tr>
+<tr><td><code>==</code></td><td>É igual?</td><td>=</td><td><code>nota == 7</code> → <code>true</code></td></tr>
+<tr><td><code>!=</code></td><td>É diferente?</td><td>≠</td><td><code>nota != 7</code> → <code>false</code></td></tr>
+<tr><td><code>&gt;</code></td><td>É maior?</td><td>&gt;</td><td><code>nota &gt; 6</code> → <code>true</code></td></tr>
+<tr><td><code>&lt;</code></td><td>É menor?</td><td>&lt;</td><td><code>nota &lt; 6</code> → <code>false</code></td></tr>
+<tr><td><code>&gt;=</code></td><td>É maior ou igual?</td><td>≥</td><td><code>nota &gt;= 7</code> → <code>true</code></td></tr>
+<tr><td><code>&lt;=</code></td><td>É menor ou igual?</td><td>≤</td><td><code>nota &lt;= 5</code> → <code>false</code></td></tr>
+</table>
+</div>
+
+<p>Detalhes de escrita que causam erro (todos com a mensagem real em <a href="#erros">Quando dá errado</a>):</p>
+<ul>
+  <li>Igualdade usa <strong>dois</strong> sinais: <code>==</code>. Um só (<code>=</code>) é atribuição, assunto de <a href="operadores-atribuicao.html">Operadores de Atribuição</a>.</li>
+  <li>Os sinais de dois caracteres são escritos <strong>juntos</strong> e na ordem certa: <code>&gt;=</code> e <code>&lt;=</code> (nunca <code>=&gt;</code>, <code>=&lt;</code> ou <code>= =</code>). Dica: leia em voz alta, "maior ou igual": o <code>&gt;</code> vem primeiro.</li>
+  <li><code>!=</code> vem do <code>!</code>, que em Java quer dizer "não": "não igual".</li>
+</ul>
+
+<hr>
+
+<h2>O resultado é um <code>boolean</code></h2>
+<p>Uma comparação não é uma ordem, é uma <strong>pergunta</strong>, e a resposta é um valor do tipo <code>boolean</code> (<a href="char-boolean.html">char e boolean</a>). Como qualquer valor, ele pode ser guardado numa variável, impresso ou usado em outra conta:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 17;
+        double altura = 1.65;
+        boolean maiorDeIdade = idade &gt;= 18;
+        boolean podeBrincar = altura &gt;= 1.40;
+        System.out.println("Maior de idade? " + maiorDeIdade);
+        System.out.println("Pode ir no brinquedo? " + podeBrincar);
+        System.out.println(5 == 5.0);
+        System.out.println('a' &lt; 'b');
+        System.out.println('Z' &lt; 'a');
+        System.out.println('A' == 65);
+        System.out.println(true == false);
+        System.out.println("Resultado: " + (3 &gt; 2));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Maior de idade? false
+Pode ir no brinquedo? true
+true               « 5 == 5.0: o int vira double e os valores são iguais
+true               « 'a' (97) &lt; 'b' (98)
+true               « 'Z' (90) &lt; 'a' (97): maiúsculas vêm antes!
+true               « 'A' é o código 65
+false
+Resultado: true</pre>
+
+<dl class="anatomy">
+  <dt>boolean</dt><dd>O tipo da variável: guarda <code>true</code> ou <code>false</code>.</dd>
+  <dt>maiorDeIdade</dt><dd>Um nome que soa como pergunta.</dd>
+  <dt>=</dt><dd>Atribuição: guarda o resultado da direita.</dd>
+  <dt>idade &gt;= 18</dt><dd>A comparação, calculada primeiro: <code>17 &gt;= 18</code> é <code>false</code>.</dd>
+</dl>
+
+<p>Na última linha, os parênteses em <code>(3 &gt; 2)</code> são necessários: sem eles, o Java tentaria colar <code>"Resultado: " + 3</code> antes de comparar, e o código não compilaria (veja <a href="precedencia.html">Precedência</a>).</p>
+
+<h3>O que dá para comparar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipos</th><th><code>==</code> e <code>!=</code></th><th><code>&gt; &lt; &gt;= &lt;=</code></th><th>Observação</th></tr>
+<tr><td>Números (<code>int</code>, <code>double</code>…), misturados ou não</td><td>Sim</td><td>Sim</td><td>O menor tipo é convertido: <code>5 == 5.0</code> é <code>true</code>. Cuidado com <code>double</code> (abaixo).</td></tr>
+<tr><td><code>char</code></td><td>Sim</td><td>Sim</td><td>Compara os códigos Unicode: <code>'A'</code> &lt; <code>'Z'</code> &lt; <code>'a'</code> &lt; <code>'z'</code>.</td></tr>
+<tr><td><code>boolean</code></td><td>Sim</td><td>Não</td><td><code>true &gt; false</code> não compila.</td></tr>
+<tr><td><code>String</code> e outros objetos</td><td>Compila, mas <strong>engana</strong></td><td>Não</td><td>Use <code>equals</code> e <code>compareTo</code> (abaixo).</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Não compare <code>boolean</code> com <code>true</code></strong>
+<p><code>if (pago == true)</code> funciona, mas é redundante: <code>pago</code> já é <code>true</code> ou <code>false</code>. Escreva <code>if (pago)</code>. Para o contrário, <code>if (!pago)</code> em vez de <code>if (pago == false)</code>. O <code>!</code> está em <a href="operadores-logicos.html">Operadores Lógicos</a>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Pode votar? true,src:&gt;=">
+<p class="try-task"><strong>Missão:</strong> no Brasil, pode votar quem tem <strong>16 anos ou mais</strong>. O programa diz que alguém de 16 anos não pode. Corrija o operador de comparação para mostrar <code>Pode votar? true</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int idade = 16;
+        boolean podeVotar = idade &gt; 16;
+        System.out.println("Pode votar? " + podeVotar);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int idade = 16;
+        boolean podeVotar = idade &gt;= 16;
+        System.out.println("Pode votar? " + podeVotar);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>A armadilha: <code>==</code> com <code>String</code></h2>
+<p>Com tipos primitivos, <code>==</code> compara <strong>valores</strong>. Com objetos, como <code>String</code>, <code>==</code> compara outra coisa: se as duas variáveis apontam para o <strong>mesmo objeto</strong> na memória. Dois textos iguais podem estar em objetos diferentes:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String a = "Ana";
+        String b = "Ana";
+        String c = new String("Ana");
+        System.out.println(a == b);
+        System.out.println(a == c);
+        System.out.println(a.equals(c));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+true               « a e b: por acaso, o mesmo objeto
+false              « a e c: mesmo texto, objetos diferentes!
+true               « equals compara o TEXTO</pre>
+
+<p>O resultado de <code>==</code> depende de <strong>como</strong> a <code>String</code> foi criada, e textos digitados pelo usuário ou lidos de arquivos quase sempre são objetos novos. Por isso a regra é simples: <strong>para comparar textos, use <code>equals</code></strong>: <code>nome.equals("Ana")</code>. A explicação completa, com a "prova real" e o <code>equalsIgnoreCase</code>, está em <a href="strings.html">Strings</a>. E <code>&lt;</code> e <code>&gt;</code> nem compilam com <code>String</code>; para ordem alfabética, existe <code>compareTo</code>, também em <a href="strings.html">Strings</a>.</p>
+
+<div class="warning">
+<strong>Regra de bolso</strong>
+<p>Primitivos (<code>int</code>, <code>double</code>, <code>char</code>, <code>boolean</code>): <code>==</code>. Objetos (<code>String</code> e tudo que começa com maiúscula): <code>equals</code>.</p>
+</div>
+
+<hr>
+
+<h2>Comparar <code>double</code></h2>
+<p>Como você viu em <a href="decimais.html">double e float</a>, contas com decimais acumulam pequenos erros. Uma comparação com <code>==</code> pode falhar mesmo quando "deveria" dar certo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double total = 0.1 + 0.2;
+        System.out.println(total == 0.3);
+        System.out.println(Math.abs(total - 0.3) &lt; 1e-9);
+        double nada = 0.0 / 0;
+        System.out.println(nada == nada);
+        System.out.println(nada != nada);
+        System.out.println(Double.isNaN(nada));
+        System.out.println(0.1 + 0.2 &gt; 0.3);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+false              « 0.30000000000000004 não é 0.3
+true               « com tolerância: "a diferença é menor que 0,000000001?"
+false              « NaN não é igual nem a si mesmo
+true
+true
+true               « 0.1 + 0.2 é (um pouquinho) MAIOR que 0.3</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para saber se…</th><th>Não use</th><th>Use</th></tr>
+<tr><td>dois <code>double</code> são "iguais"</td><td><code>a == b</code></td><td><code>Math.abs(a - b) &lt; 1e-9</code> (a tolerância depende do problema)</td></tr>
+<tr><td>um valor é <code>NaN</code></td><td><code>x == Double.NaN</code> (sempre <code>false</code>)</td><td><code>Double.isNaN(x)</code></td></tr>
+<tr><td>um valor passou de um limite</td><td>—</td><td><code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code> funcionam bem, exceto exatamente na fronteira</td></tr>
+</table>
+</div>
+
+<p><code>1e-9</code> é notação científica: 1 × 10<sup>-9</sup>, ou 0,000000001.</p>
+
+<div class="tryjshell" data-goal="out:false">
+<p class="try-task"><strong>Missão:</strong> confirme no JShell que <code>0.1 + 0.2 == 0.3</code> dá <code>false</code>. Depois teste <code>Math.abs(0.1 + 0.2 - 0.3) &lt; 1e-9</code>.</p>
+<pre class="solucao">0.1 + 0.2 == 0.3</pre>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>18 &lt;= idade &lt; 60</code>: "bad operand types for binary operator '&lt;'"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int idade = 25;
+        System.out.println(18 &lt;= idade &lt; 60);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: bad operand types for binary operator '&lt;'
+        System.out.println(18 &lt;= idade &lt; 60);
+                                       ^
+  first type:  boolean
+  second type: int
+1 error</pre>
+<p><strong>O que quer dizer:</strong> na matemática, "18 ≤ idade &lt; 60" é uma frase só. Em Java, cada operador compara <strong>dois</strong> valores, da esquerda para a direita: primeiro <code>18 &lt;= idade</code> vira <code>true</code>, e depois o Java tentaria <code>true &lt; 60</code>. Os tipos dos dois lados aparecem no erro: <code>first type: boolean</code>, <code>second type: int</code>. Comparar um <code>boolean</code> com um número não faz sentido.</p>
+<p><strong>Como consertar:</strong> faça duas comparações e junte com <code>&amp;&amp;</code> ("e"): <code>idade &gt;= 18 &amp;&amp; idade &lt; 60</code>. O <code>&amp;&amp;</code> é o assunto da próxima aula, <a href="operadores-logicos.html">Operadores Lógicos</a>.</p>
+</div>
+
+<div class="tryjava" data-goal="compila,out:Paga meia? false,src:&amp;&amp;">
+<p class="try-task"><strong>Missão:</strong> o cinema cobra inteira de quem tem de 18 a 59 anos. O programa não compila. Reescreva a comparação com duas partes ligadas por <code>&amp;&amp;</code> para que ele mostre <code>Paga meia? false</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int idade = 25;
+        boolean pagaInteira = 18 &lt;= idade &lt; 60;
+        System.out.println("Paga meia? " + !pagaInteira);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int idade = 25;
+        boolean pagaInteira = idade &gt;= 18 &amp;&amp; idade &lt; 60;
+        System.out.println("Paga meia? " + !pagaInteira);
+    }
+}
+</pre>
+</div>
+
+<div class="cenario">
+<strong>Tipos que não se comparam: "bad operand types for binary operator '=='"</strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: bad operand types for binary operator '=='
+        System.out.println(letra == "a");
+                                 ^
+  first type:  char
+  second type: String
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>letra</code> é um <code>char</code> e <code>"a"</code>, com aspas duplas, é uma <code>String</code>. Tipos sem relação não podem ser comparados. O mesmo erro aparece em <code>nome == idade</code> (<code>String</code> com <code>int</code>), em <code>pago &gt; false</code> (<code>boolean</code> com <code>&gt;</code>) e em <code>"abacaxi" &lt; "banana"</code> (<code>String</code> com <code>&lt;</code>).</p>
+<p><strong>Como consertar:</strong> compare valores do mesmo tipo: <code>letra == 'a'</code>, com aspas simples. Para textos, <code>equals</code> e <code>compareTo</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Sinais na ordem errada: <code>=&gt;</code>, <code>=&lt;</code>, <code>= =</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: illegal start of expression
+        System.out.println(x =&gt; 3);
+                              ^
+1 error</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: illegal start of type
+        System.out.println(x =&lt; 3);
+                                ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o Java leu um <code>=</code> (atribuição) seguido de um <code>&gt;</code> ou <code>&lt;</code> solto, que não podem começar uma expressão. Com espaço no meio, <code>x = = 5</code> também dá <code>illegal start of expression</code>. As mensagens não falam em "operador errado", mas o <code>^</code> aponta para o lugar.</p>
+<p><strong>Como consertar:</strong> <code>&gt;=</code>, <code>&lt;=</code> e <code>==</code>, juntos, com o <code>=</code> sempre por último.</p>
+</div>
+
+<div class="cenario">
+<strong><code>=</code> no lugar de <code>==</code> num <code>if</code>: "int cannot be converted to boolean"</strong>
+<p><strong>O que quer dizer:</strong> <code>if (idade = 18)</code> atribui em vez de comparar, e o resultado (um <code>int</code>) não serve de condição. O erro real está em <a href="operadores-atribuicao.html">Operadores de Atribuição</a>.</p>
+<p><strong>Como consertar:</strong> <code>if (idade == 18)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A comparação de textos deu <code>false</code> com textos iguais</strong>
+<p><strong>O que aconteceu:</strong> você usou <code>==</code> com <code>String</code>. Compila, mas compara se é o mesmo objeto, não o mesmo texto.</p>
+<p><strong>Como consertar:</strong> <code>texto1.equals(texto2)</code>. Veja <a href="strings.html">Strings</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Significado</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>a == b</code></td><td>Igual (primitivos)</td><td><code>7 == 7</code> → <code>true</code></td></tr>
+<tr><td><code>a != b</code></td><td>Diferente</td><td><code>7 != 7</code> → <code>false</code></td></tr>
+<tr><td><code>a &gt; b</code></td><td>Maior</td><td><code>7 &gt; 6</code> → <code>true</code></td></tr>
+<tr><td><code>a &lt; b</code></td><td>Menor</td><td><code>'a' &lt; 'b'</code> → <code>true</code></td></tr>
+<tr><td><code>a &gt;= b</code></td><td>Maior ou igual</td><td><code>7 &gt;= 7</code> → <code>true</code></td></tr>
+<tr><td><code>a &lt;= b</code></td><td>Menor ou igual</td><td><code>7 &lt;= 5</code> → <code>false</code></td></tr>
+<tr><td><code>s1.equals(s2)</code></td><td>Mesmo texto (<code>String</code>)</td><td><code>"Ana".equals(nome)</code></td></tr>
+<tr><td><code>Math.abs(a - b) &lt; tol</code></td><td>"Iguais" para <code>double</code></td><td><code>Math.abs(0.1 + 0.2 - 0.3) &lt; 1e-9</code> → <code>true</code></td></tr>
+<tr><td><code>Double.isNaN(x)</code></td><td><code>x</code> é <code>NaN</code>?</td><td></td></tr>
+<tr><td><code>min &lt;= x &amp;&amp; x &lt;= max</code></td><td>Está entre dois valores</td><td>Veja <a href="operadores-logicos.html">Operadores Lógicos</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Diferente</h3>
+<p>Complete com o operador "diferente de":</p>
+<div class="ex-code">boolean mudou = senhaNova <input data-answer="!=" aria-label="operador"> senhaAntiga;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Aprovação</h3>
+<p>Aprova quem tira 6 <strong>ou mais</strong>. Complete:</p>
+<div class="ex-code">boolean aprovado = nota <input data-answer="&gt;=" aria-label="operador"> 6;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Textos</h3>
+<p>Complete para comparar o <strong>texto</strong> de <code>nome</code> com <code>"Ana"</code>:</p>
+<div class="ex-code">boolean ehAna = nome.<input data-answer="equals" aria-label="método">("Ana");</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual o tipo do resultado de <code>idade &gt; 18</code>?</p>
+<label><input type="radio" name="q4"> <code>int</code></label>
+<label><input type="radio" name="q4"> <code>boolean</code></label>
+<label><input type="radio" name="q4"> <code>String</code></label>
+<label><input type="radio" name="q4"> Depende do valor de <code>idade</code>.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que <code>System.out.println('Z' &lt; 'a');</code> mostra?</p>
+<label><input type="radio" name="q5"> <code>false</code>, porque Z vem depois de A no alfabeto.</label>
+<label><input type="radio" name="q5"> Um erro: não se compara letras.</label>
+<label><input type="radio" name="q5"> <code>Z</code></label>
+<label><input type="radio" name="q5"> <code>true</code>, porque o código de <code>'Z'</code> (90) é menor que o de <code>'a'</code> (97).</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que <code>18 &lt;= idade &lt; 60</code> não compila?</p>
+<label><input type="radio" name="q6"> Porque <code>18 &lt;= idade</code> vira um <code>boolean</code>, que não pode ser comparado com <code>60</code> por <code>&lt;</code>.</label>
+<label><input type="radio" name="q6"> Porque falta espaço entre os operadores.</label>
+<label><input type="radio" name="q6"> Porque <code>&lt;=</code> não existe em Java.</label>
+<label><input type="radio" name="q6"> Porque <code>idade</code> não foi declarada.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">7. Qual o jeito certo de saber se o <code>double</code> <code>total</code> "vale" 0.3?</p>
+<label><input type="radio" name="q7"> <code>total == 0.3</code></label>
+<label><input type="radio" name="q7"> <code>total.equals(0.3)</code></label>
+<label><input type="radio" name="q7"> <code>Math.abs(total - 0.3) &lt; 1e-9</code></label>
+<label><input type="radio" name="q7"> <code>total = 0.3</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Seis operadores: <code>==</code>, <code>!=</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>. Igualdade tem dois sinais; os compostos têm o <code>=</code> por último.</li>
+  <li>Toda comparação dá um <code>boolean</code>, que pode ser guardado: <code>boolean aprovado = nota &gt;= 6;</code>.</li>
+  <li>Números se comparam entre si (<code>5 == 5.0</code> é <code>true</code>); <code>char</code> compara códigos Unicode; <code>boolean</code> só com <code>==</code> e <code>!=</code>.</li>
+  <li><code>String</code>: use <code>equals</code>, não <code>==</code>.</li>
+  <li><code>double</code>: compare com tolerância; <code>NaN</code> se testa com <code>Double.isNaN</code>.</li>
+  <li>"Entre dois valores" são duas comparações: <code>x &gt;= 18 &amp;&amp; x &lt; 60</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
