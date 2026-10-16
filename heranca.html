@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Herança — extends, "é um", o que é herdado e Object | Guia Java</title>
+<meta name="description" content="Herança em Java do zero: extends, a ideia de 'é um', reaproveitar código entre Cachorro e Gato, o que é herdado e o que não é (private), herança simples (Java não tem herança múltipla de classes) e a cadeia que termina em Object. Com saídas e erros reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Herança</span></h1>
+
+<p class="intro">Um cachorro e um gato são diferentes: um late, o outro mia. Mas os dois têm nome, idade e comem. Se você escrever uma classe <code>Cachorro</code> e uma <code>Gato</code>, vai repetir essa parte comum nas duas. A <strong>herança</strong> resolve isso: você escreve o que é comum <strong>uma vez</strong>, numa classe <code>Animal</code>, e diz que <code>Cachorro</code> e <code>Gato</code> são tipos de <code>Animal</code>. Eles recebem tudo de graça e só acrescentam o que têm de especial.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é herança e como escrevê-la com <code>extends</code>.</li>
+  <li>O teste do "é um", para saber quando usar herança (e quando não usar).</li>
+  <li>O que a subclasse herda e o que ela não enxerga (<code>private</code>).</li>
+  <li>Por que o Java só deixa herdar de <strong>uma</strong> classe, e o erro real de quem tenta duas.</li>
+  <li>A cadeia de herança, que sempre termina na classe <code>Object</code>.</li>
+</ul>
+</div>
+
+<p>Esta é a primeira aula do grupo "Herança e Polimorfismo". Ela supõe que você já sabe criar <a href="classes-objetos.html">classes e objetos</a>, com <a href="atributos.html">atributos</a> e <a href="metodos-objeto.html">métodos</a>.</p>
+
+<hr>
+
+<h2>A ideia: herdar características</h2>
+<p>Na biologia, um filho herda características dos pais. Em Java, uma classe pode <strong>herdar</strong> de outra: ela recebe automaticamente os atributos e métodos da outra, e pode acrescentar os seus.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nome</th><th>Também chamada de</th><th>No exemplo</th></tr>
+<tr><td><strong>Superclasse</strong></td><td>classe mãe, classe base, classe pai</td><td><code>Animal</code>: o que todo animal tem</td></tr>
+<tr><td><strong>Subclasse</strong></td><td>classe filha, classe derivada</td><td><code>Cachorro</code>, <code>Gato</code>: o específico de cada um</td></tr>
+</table>
+</div>
+
+<p>"Super" vem do latim, "acima": a superclasse fica acima na hierarquia. "Sub" é "abaixo". Uma superclasse pode ter muitas subclasses (<code>Animal</code> tem <code>Cachorro</code>, <code>Gato</code>, <code>Passaro</code>…), como uma mãe pode ter muitos filhos.</p>
+
+<h3>O problema: código repetido</h3>
+<p>Sem herança, as duas classes da Ana ficariam assim:</p>
+
+<pre class="file" data-file="Main.java">class Cachorro {
+    String nome;
+    int idade;
+
+    void comer() {
+        System.out.println(nome + " está comendo.");
+    }
+
+    void latir() {
+        System.out.println(nome + ": Au au!");
+    }
+}
+
+class Gato {
+    String nome;                 // repetido
+    int idade;                   // repetido
+
+    void comer() {               // repetido
+        System.out.println(nome + " está comendo.");
+    }
+
+    void miar() {
+        System.out.println(nome + ": Miau!");
+    }
+}
+</pre>
+
+<p>Metade do código é cópia. E cópia dá trabalho: se a Ana quiser mudar a mensagem de <code>comer()</code>, precisa lembrar de mudar nos dois lugares (e, mais tarde, em <code>Passaro</code>, <code>Peixe</code>, <code>Coelho</code>…). Esquecer um é questão de tempo.</p>
+
+<hr>
+
+<h2><code>extends</code>: herdando de <code>Animal</code></h2>
+<p>Com herança, a parte comum vai para <code>Animal</code>, e cada subclasse diz <code>extends Animal</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro();
+        rex.nome = "Rex";
+        rex.idade = 3;
+        rex.comer();
+        rex.latir();
+
+        Gato mimi = new Gato();
+        mimi.nome = "Mimi";
+        mimi.idade = 5;
+        mimi.comer();
+        mimi.miar();
+    }
+}
+
+class Animal {
+    String nome;
+    int idade;
+
+    void comer() {
+        System.out.println(nome + " está comendo.");
+    }
+}
+
+class Cachorro extends Animal {
+    void latir() {
+        System.out.println(nome + ": Au au!");
+    }
+}
+
+class Gato extends Animal {
+    void miar() {
+        System.out.println(nome + ": Miau!");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class Animal</dt><dd>A superclasse, uma classe comum. Nada nela diz que alguém vai herdar dela.</dd>
+  <dt>class Cachorro</dt><dd>A subclasse.</dd>
+  <dt>extends</dt><dd>"Estende", "amplia": <code>Cachorro</code> é uma versão ampliada de <code>Animal</code>. Ele recebe <code>nome</code>, <code>idade</code> e <code>comer()</code> sem escrever nada.</dd>
+  <dt>Animal</dt><dd>De quem herdar. Só pode haver <strong>uma</strong> classe aqui.</dd>
+  <dt>void latir()</dt><dd>O que só o cachorro tem. Repare que ele usa <code>nome</code>, que foi herdado.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Rex está comendo.          « comer() veio de Animal
+Rex: Au au!                « latir() é do Cachorro
+Mimi está comendo.         « o mesmo comer(), herdado pelo Gato
+Mimi: Miau!</pre>
+
+<p>A classe <code>Cachorro</code> tem três linhas de código, mas um objeto <code>Cachorro</code> tem dois atributos e dois métodos. Agora, mudar a mensagem de <code>comer()</code> é mudar <strong>um</strong> lugar, e todos os animais mudam juntos.</p>
+
+<p>A herança é uma via de mão única. O <code>Cachorro</code> sabe tudo o que o <code>Animal</code> sabe, mas o <code>Animal</code> não sabe latir:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: cannot find symbol
+        bicho.latir();
+             ^
+  symbol:   method latir()
+  location: variable bicho of type Animal
+1 error</pre>
+
+<p>Aqui, <code>bicho</code> era um <code>new Animal()</code>. O erro diz: "não achei o método <code>latir()</code> na variável <code>bicho</code>, do tipo <code>Animal</code>". Nem todo animal late.</p>
+
+<div class="tryjava" data-goal="out:Piu está comendo.,out:Piu está voando!,src:extends\s+Animal">
+<p class="try-task"><strong>Missão:</strong> crie a classe <code>Passaro</code>, que herda de <code>Animal</code> e tem um método <code>voar()</code> que mostra <code>NOME está voando!</code>. No <code>main</code>, crie um pássaro chamado <code>Piu</code> e chame <code>comer()</code> e <code>voar()</code>. A saída deve ter <code>Piu está comendo.</code> e <code>Piu está voando!</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro();
+        rex.nome = "Rex";
+        rex.comer();
+        rex.latir();
+        // crie aqui o pássaro Piu
+    }
+}
+
+class Animal {
+    String nome;
+    int idade;
+
+    void comer() {
+        System.out.println(nome + " está comendo.");
+    }
+}
+
+class Cachorro extends Animal {
+    void latir() {
+        System.out.println(nome + ": Au au!");
+    }
+}
+
+// crie aqui a classe Passaro
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro();
+        rex.nome = "Rex";
+        rex.comer();
+        rex.latir();
+        Passaro piu = new Passaro();
+        piu.nome = "Piu";
+        piu.comer();
+        piu.voar();
+    }
+}
+
+class Animal {
+    String nome;
+    int idade;
+
+    void comer() {
+        System.out.println(nome + " está comendo.");
+    }
+}
+
+class Cachorro extends Animal {
+    void latir() {
+        System.out.println(nome + ": Au au!");
+    }
+}
+
+class Passaro extends Animal {
+    void voar() {
+        System.out.println(nome + " está voando!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O teste do "é um"</h2>
+<p>Herança é poderosa, e por isso é fácil exagerar. A pergunta que decide é: <strong>"um X é um Y?"</strong>. Se a frase faz sentido sempre, a herança cabe.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Frase</th><th>Faz sentido?</th><th>Então…</th></tr>
+<tr><td>Um <code>Cachorro</code> <strong>é um</strong> <code>Animal</code></td><td>Sim</td><td><code>Cachorro extends Animal</code></td></tr>
+<tr><td>Uma <code>ContaPoupanca</code> <strong>é uma</strong> <code>Conta</code></td><td>Sim</td><td><code>ContaPoupanca extends Conta</code></td></tr>
+<tr><td>Um <code>Gerente</code> <strong>é um</strong> <code>Funcionario</code></td><td>Sim</td><td><code>Gerente extends Funcionario</code></td></tr>
+<tr><td>Um <code>Carro</code> <strong>é um</strong> <code>Motor</code></td><td><strong>Não</strong>: um carro <strong>tem um</strong> motor</td><td>Atributo: <code>Motor motor;</code> dentro de <code>Carro</code></td></tr>
+<tr><td>Uma <code>Turma</code> <strong>é um</strong> <code>Aluno</code></td><td><strong>Não</strong>: uma turma <strong>tem</strong> alunos</td><td>Atributo: <code>List&lt;Aluno&gt; alunos;</code></td></tr>
+</table>
+</div>
+
+<p>Quando a relação é "<strong>tem um</strong>", o certo é um atributo; isso se chama <strong>composição</strong>. Herdar de <code>Motor</code> só para "aproveitar" os métodos dele faria um <code>Carro</code> ter <code>acelerarPistao()</code> como se fosse dele, e qualquer lugar que espera um motor aceitaria um carro inteiro. Quando estiver em dúvida, prefira composição: é a recomendação clássica dos livros de orientação a objetos.</p>
+
+<hr>
+
+<h2>O que é herdado (e o que não é)</h2>
+<p>A subclasse herda os atributos e métodos da superclasse. Mas "herdar" e "enxergar" são coisas diferentes. Os membros <code>private</code> existem dentro do objeto, só que a subclasse <strong>não pode tocá-los</strong>. Veja: o <code>Animal</code> tem um número de chip privado.</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro();
+        rex.nome = "Rex";
+        rex.mostrarSegredo();
+    }
+}
+
+class Animal {
+    String nome;
+    private String chip = "BR-0042";
+
+    String getChip() {
+        return chip;
+    }
+}
+
+class Cachorro extends Animal {
+    void mostrarSegredo() {
+        System.out.println(nome + " tem o chip " + chip);
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:20: error: chip has private access in Animal
+        System.out.println(nome + " tem o chip " + chip);
+                                                   ^
+1 error</pre>
+
+<p><em>Chip has private access in Animal</em> = "<code>chip</code> tem acesso privado em <code>Animal</code>". O <code>private</code> quer dizer "só a própria classe": nem as filhas entram (veja <a href="modificadores.html">Modificadores de Acesso</a>). O chip está lá, dentro de todo cachorro; o caminho para chegar até ele é o método público que o <code>Animal</code> oferece:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro();
+        rex.nome = "Rex";
+        System.out.println(rex.nome + " tem o chip " + rex.getChip());
+    }
+}
+
+class Animal {
+    String nome;
+    private String chip = "BR-0042";
+
+    String getChip() {
+        return chip;
+    }
+}
+
+class Cachorro extends Animal {
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Rex tem o chip BR-0042        « a classe Cachorro está vazia e mesmo assim tem getChip()</pre>
+
+<p>Esse é o <a href="encapsulamento.html">encapsulamento</a> funcionando junto com a herança: a superclasse protege os dados dela até das subclasses e decide o que oferecer.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Membro da superclasse</th><th>A subclasse herda?</th><th>A subclasse pode usar direto?</th></tr>
+<tr><td><code>public</code></td><td>Sim</td><td>Sim</td></tr>
+<tr><td><code>protected</code></td><td>Sim</td><td>Sim (mesmo em outro pacote)</td></tr>
+<tr><td>Sem modificador (de pacote)</td><td>Sim</td><td>Só se estiver no mesmo <a href="pacotes.html">pacote</a></td></tr>
+<tr><td><code>private</code></td><td>O dado existe no objeto</td><td><strong>Não</strong>: só pelos métodos públicos/protegidos</td></tr>
+<tr><td>Construtores</td><td><strong>Não</strong></td><td>Só chamando com <code>super(…)</code> (veja <a href="super.html">super</a>)</td></tr>
+<tr><td>Membros <code>static</code></td><td>Acessíveis pelo nome da subclasse</td><td>Sim, mas continuam sendo da superclasse</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong><code>protected</code>: "da família"</strong>
+<p><code>protected</code> ("protegido") fica entre <code>public</code> e <code>private</code>: a classe, as subclasses (em qualquer pacote) e as classes do mesmo pacote enxergam. É útil para atributos que as filhas precisam mexer, mas o resto do programa não. Na dúvida, comece com <code>private</code> + métodos, como no chip.</p>
+</div>
+
+<p>Os construtores merecem destaque: cada classe tem os seus. Como o <code>Animal</code> aqui não declara nenhum, tudo funciona sozinho. Quando a superclasse tem um construtor com parâmetros, a subclasse precisa chamá-lo com <code>super(…)</code>: esse é o assunto da próxima aula, <a href="super.html">super</a>.</p>
+
+<hr>
+
+<h2>Herança em vários níveis</h2>
+<p>Uma subclasse pode ser superclasse de outra. A Ana organiza: todo <code>Mamifero</code> é um <code>Animal</code>, e todo <code>Cachorro</code> é um <code>Mamifero</code>.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro();
+        rex.nome = "Rex";
+        rex.respirar();
+        rex.mamar();
+        rex.latir();
+    }
+}
+
+class Animal {
+    String nome;
+
+    void respirar() {
+        System.out.println(nome + " respira (Animal)");
+    }
+}
+
+class Mamifero extends Animal {
+    void mamar() {
+        System.out.println(nome + " mama (Mamifero)");
+    }
+}
+
+class Cachorro extends Mamifero {
+    void latir() {
+        System.out.println(nome + " late (Cachorro)");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Rex respira (Animal)        « herdado do "avô"
+Rex mama (Mamifero)         « herdado da mãe
+Rex late (Cachorro)         « dele mesmo</pre>
+
+<p>O <code>Cachorro</code> herda do <code>Mamifero</code>, que herda do <code>Animal</code>; então o <code>Cachorro</code> tem tudo dos dois. Na prática, cadeias com mais de três ou quatro níveis ficam difíceis de entender: a cada método, você precisa subir a escada para descobrir de onde ele veio.</p>
+
+<hr>
+
+<h2>Herança simples: só uma superclasse</h2>
+<p>Um morcego é um mamífero e voa como uma ave. A Ana tentou herdar das duas:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+    }
+}
+
+class Mamifero {
+}
+
+class Ave {
+}
+
+class Morcego extends Mamifero, Ave {
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:12: error: '{' expected
+class Morcego extends Mamifero, Ave {
+                              ^
+1 error</pre>
+
+<p>A mensagem parece estranha: <em>'{' expected</em> = "esperava <code>{</code>". O compilador leu <code>extends Mamifero</code> e esperava a chave que abre a classe; a vírgula não faz parte da gramática do <code>extends</code>. Ou seja: em Java, uma classe tem <strong>exatamente uma</strong> superclasse. Isso se chama <strong>herança simples</strong>.</p>
+
+<p>Por que essa limitação? Linguagens com herança múltipla (como C++) têm o "problema do diamante": se <code>Mamifero</code> e <code>Ave</code> tiverem, cada um, um método <code>mover()</code> diferente, qual o <code>Morcego</code> herda? Os criadores do Java preferiram evitar a confusão. Para "ser várias coisas ao mesmo tempo", o Java tem as <a href="interfaces.html">interfaces</a>: uma classe pode implementar quantas quiser (<code>class Morcego extends Mamifero implements Voador</code>).</p>
+
+<hr>
+
+<h2>No topo de tudo: <code>Object</code></h2>
+<p>E o <code>Animal</code>, que não tem <code>extends</code>, herda de quem? Toda classe sem <code>extends</code> herda, automaticamente, de <code>java.lang.Object</code>. É como se o compilador escrevesse <code>class Animal extends Object</code> por você. Dá para ver a escada inteira pedindo a cada classe a sua superclasse:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro();
+        System.out.println(rex.getClass());
+        System.out.println(rex.getClass().getSuperclass());
+        System.out.println(rex.getClass().getSuperclass().getSuperclass());
+        System.out.println(rex.getClass().getSuperclass().getSuperclass().getSuperclass());
+        System.out.println(rex.toString());
+    }
+}
+
+class Animal {
+}
+
+class Cachorro extends Animal {
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>rex.getClass()</dt><dd>Devolve a classe do objeto: <code>Cachorro</code>.</dd>
+  <dt>.getSuperclass()</dt><dd>Devolve a superclasse de uma classe. Encadeado, sobe um degrau de cada vez.</dd>
+  <dt>rex.toString()</dt><dd>Um método que nem <code>Animal</code> nem <code>Cachorro</code> escreveram: veio de <code>Object</code>.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+class Cachorro
+class Animal
+class java.lang.Object       « o topo da escada
+null                        « Object não tem superclasse
+Cachorro@6a396c1e           « toString() herdado de Object</pre>
+
+<p>Por isso todo objeto Java, de qualquer classe, já nasce com <code>toString()</code>, <code>equals()</code>, <code>hashCode()</code> e <code>getClass()</code>. O <code>Cachorro@6a396c1e</code> é o <code>toString()</code> padrão: nome da classe, <code>@</code> e um número em hexadecimal (que muda de uma execução para outra). Esses métodos têm uma aula só para eles: <a href="object.html">A Classe Object</a>.</p>
+
+<p>A família completa do exemplo da aula fica assim:</p>
+
+<pre class="file" data-file="hierarquia">Object
+ └── Animal
+      ├── Cachorro
+      ├── Gato
+      └── Passaro
+</pre>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"… has private access in …"</strong>
+<pre class="term">$ javac Main.java
+Main.java:20: error: chip has private access in Animal
+        System.out.println(nome + " tem o chip " + chip);
+                                                   ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> a subclasse tentou usar um atributo (ou método) <code>private</code> da superclasse.</p>
+<p><strong>Como resolver:</strong> use um método público da superclasse (<code>getChip()</code>). Se você é o dono da superclasse e as filhas realmente precisam do atributo, mude para <code>protected</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"'{' expected" numa linha com <code>extends A, B</code></strong>
+<p><strong>O que aconteceu:</strong> tentativa de herdar de duas classes. Java só permite uma.</p>
+<p><strong>Como resolver:</strong> escolha a superclasse que responde ao "é um" mais forte e transforme o outro papel numa <a href="interfaces.html">interface</a> (<code>implements</code>), ou num atributo (composição).</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … method latir() … of type Animal"</strong>
+<pre class="term">$ javac Main.java
+Main.java:5: error: cannot find symbol
+        bicho.latir();
+             ^
+  symbol:   method latir()
+  location: variable bicho of type Animal
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o método existe na subclasse, mas a variável é do tipo da superclasse. A herança desce (filha recebe da mãe), nunca sobe.</p>
+<p><strong>Como resolver:</strong> use uma variável do tipo <code>Cachorro</code>. Variáveis do tipo da superclasse guardando objetos da subclasse são o assunto de <a href="polimorfismo.html">Polimorfismo</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot inherit from final …"</strong>
+<p><strong>O que aconteceu:</strong> a superclasse é <code>final</code>, como <code>String</code> e <code>Integer</code>.</p>
+<p><strong>Como resolver:</strong> use composição: guarde um objeto dessa classe como atributo. Veja <a href="final.html">final</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita / termo</th><th>Significado</th></tr>
+<tr><td><code>class B extends A</code></td><td><code>B</code> herda de <code>A</code>: <code>B</code> é a subclasse, <code>A</code> a superclasse</td></tr>
+<tr><td>"é um"</td><td>Teste para usar herança: um <code>B</code> é um <code>A</code>?</td></tr>
+<tr><td>"tem um"</td><td>Use composição (atributo), não herança</td></tr>
+<tr><td><code>private</code> na superclasse</td><td>Existe no objeto, mas a subclasse não acessa direto</td></tr>
+<tr><td><code>protected</code></td><td>Visível para subclasses e para o mesmo pacote</td></tr>
+<tr><td><code>extends A, B</code></td><td>Não existe: herança simples (erro <code>'{' expected</code>)</td></tr>
+<tr><td>Sem <code>extends</code></td><td>Herda de <code>java.lang.Object</code></td></tr>
+<tr><td><code>obj.getClass().getSuperclass()</code></td><td>A superclasse da classe do objeto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A palavra da herança</h3>
+<p>Complete para <code>Moto</code> herdar de <code>Veiculo</code>:</p>
+<div class="ex-code">class Moto <input data-answer="extends Veiculo" aria-label="herança"> { }</div>
+</div>
+
+<div class="exercise">
+<h3>2. O topo da escada</h3>
+<p>Qual é a superclasse de uma classe que não tem <code>extends</code>? (nome completo)</p>
+<div class="ex-code"><input data-answer="java.lang.Object|Object" aria-label="classe"></div>
+</div>
+
+<div class="exercise">
+<h3>3. "Da família"</h3>
+<p>Complete com o modificador que deixa as subclasses acessarem o atributo, mas não o resto do programa (de outros pacotes):</p>
+<div class="ex-code"><input data-answer="protected" aria-label="modificador"> double saldo;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destas relações deve ser feita com herança?</p>
+<label><input type="radio" name="q4"> <code>Casa</code> e <code>Porta</code></label>
+<label><input type="radio" name="q4"> <code>Pedido</code> e <code>Produto</code></label>
+<label><input type="radio" name="q4"> <code>Professor</code> e <code>Pessoa</code></label>
+<label><input type="radio" name="q4"> <code>Biblioteca</code> e <code>Livro</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>Animal</code> tem <code>private int idade</code>. O que acontece se um método de <code>Cachorro</code> (que estende <code>Animal</code>) usar <code>idade</code> direto?</p>
+<label><input type="radio" name="q5"> Funciona, porque herdou</label>
+<label><input type="radio" name="q5"> Erro: <code>idade has private access in Animal</code></label>
+<label><input type="radio" name="q5"> Mostra 0</label>
+<label><input type="radio" name="q5"> Exceção ao rodar</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Quantas superclasses diretas uma classe Java pode ter?</p>
+<label><input type="radio" name="q6"> Nenhuma</label>
+<label><input type="radio" name="q6"> Quantas quiser</label>
+<label><input type="radio" name="q6"> Duas</label>
+<label><input type="radio" name="q6"> Exatamente uma (se não escrever, é <code>Object</code>)</label>
+</div>
+
+<div class="tryjava" data-goal="out:Bia ganha 9000.0,out:Caio ganha 3500.0,src:Gerente\s+extends\s+Funcionario">
+<p class="try-task"><strong>Missão final:</strong> a loja da Ana tem funcionários e gerentes. A classe <code>Gerente</code> foi escrita copiando tudo de <code>Funcionario</code>. Refaça: <code>Gerente</code> deve herdar de <code>Funcionario</code> (<code>extends</code>) e manter só o que é dele (o atributo <code>bonus</code> e o método <code>ganhoTotal()</code>). Apague o que ficou repetido. A saída deve continuar com <code>Caio ganha 3500.0</code> e <code>Bia ganha 9000.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Funcionario caio = new Funcionario();
+        caio.nome = "Caio";
+        caio.salario = 3500;
+        caio.mostrar();
+
+        Gerente bia = new Gerente();
+        bia.nome = "Bia";
+        bia.salario = 7000;
+        bia.bonus = 2000;
+        System.out.println(bia.nome + " ganha " + bia.ganhoTotal());
+    }
+}
+
+class Funcionario {
+    String nome;
+    double salario;
+
+    void mostrar() {
+        System.out.println(nome + " ganha " + salario);
+    }
+}
+
+class Gerente {
+    String nome;
+    double salario;
+    double bonus;
+
+    void mostrar() {
+        System.out.println(nome + " ganha " + salario);
+    }
+
+    double ganhoTotal() {
+        return salario + bonus;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Funcionario caio = new Funcionario();
+        caio.nome = "Caio";
+        caio.salario = 3500;
+        caio.mostrar();
+
+        Gerente bia = new Gerente();
+        bia.nome = "Bia";
+        bia.salario = 7000;
+        bia.bonus = 2000;
+        System.out.println(bia.nome + " ganha " + bia.ganhoTotal());
+    }
+}
+
+class Funcionario {
+    String nome;
+    double salario;
+
+    void mostrar() {
+        System.out.println(nome + " ganha " + salario);
+    }
+}
+
+class Gerente extends Funcionario {
+    double bonus;
+
+    double ganhoTotal() {
+        return salario + bonus;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Herança: <code>class B extends A</code> faz <code>B</code> receber os atributos e métodos de <code>A</code>. Escreva o comum uma vez, na superclasse.</li>
+  <li>Use herança quando "um B <strong>é um</strong> A". Quando "B <strong>tem um</strong> A", use um atributo (composição).</li>
+  <li>A subclasse acrescenta o que é dela; a superclasse não enxerga o que as filhas acrescentaram.</li>
+  <li>Membros <code>private</code> da superclasse existem no objeto, mas a subclasse só os alcança por métodos. Construtores não são herdados.</li>
+  <li>Java tem herança <strong>simples</strong>: uma superclasse por classe. Para mais papéis, <a href="interfaces.html">interfaces</a>.</li>
+  <li>Toda classe termina em <code>java.lang.Object</code>, de onde vêm <code>toString()</code>, <code>equals()</code> e companhia.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
