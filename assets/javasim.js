@@ -3793,8 +3793,9 @@
       while (x.k === "Paren") x = x.expr;
       if (x.k === "Lambda" || x.k === "MethodRef") return { node: a, poly: true, kind: x.k, inner: x, env: env };
       if (x.k === "Cond" && isPolyExpr(x)) return { node: a, poly: true, kind: "Cond", inner: x };
-      if (x.k === "Call" || (x.k === "New" && x.type.parts && x.type.parts[x.type.parts.length - 1].args && x.type.parts[x.type.parts.length - 1].args.diamond && !x.body)) {
+      if (x.k === "Call" || (x.k === "New" && x.type.parts && x.type.parts[x.type.parts.length - 1].args && x.type.parts[x.type.parts.length - 1].args.diamond)) {
         var head = x.k === "Call" ? self.callHead(x, env) : self.newHead(x, env);
+        if (x.k === "New" && x.body && head && head.diamond) return { node: a, poly: true, kind: "Call", inner: x, head: head, prov: head.sym.rawType() };
         if (head && head.inf && head.isPoly) {
           return { node: a, poly: true, kind: "Call", inner: x, head: head, prov: head.provType };
         }
@@ -4082,7 +4083,8 @@
           }
         }
         if (fa.k === "prim" && fb.k === "prim") { if (fa.n === fb.n || primWidens(fa, fb)) continue; return false; }
-        if (!isSubtype(eraseFree(fa), eraseFree(fb))) {
+        var ea = a.res.fv ? erasure(fa) : eraseFree(fa), eb = b.res.fv ? erasure(fb) : eraseFree(fb);
+        if (!isSubtype(eraseFree(fa), eraseFree(fb)) && !isSubtype(ea, eb)) {
           if (fa.k === "prim" && ai && !ai.poly && ai.type && ai.type.k === "prim" && fb.k !== "prim") continue;
           return false;
         }

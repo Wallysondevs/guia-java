@@ -1,0 +1,157 @@
+### g-map-entry-streams
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    public static void main(String[] args) {
+        Map<String, Integer> votos = new HashMap<>();
+        for (String v : "ana bia ana caio bia ana dani".split(" ")) votos.merge(v, 1, Integer::sum);
+        System.out.println(votos.entrySet().stream().max(Map.Entry.comparingByValue()).get().getKey());
+        List<Map.Entry<String, Integer>> ord = votos.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed().thenComparing(Map.Entry.comparingByKey())).collect(Collectors.toList());
+        System.out.println(ord);
+        Map<String, Integer> lhm = votos.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
+        System.out.println(lhm);
+        System.out.println(votos.values().stream().mapToInt(Integer::intValue).sum() + " " + votos.keySet().stream().sorted().collect(Collectors.joining("|")));
+        Optional<String> talvez = Optional.ofNullable(votos.get("zé")).map(n -> "zé teve " + n);
+        System.out.println(talvez.orElse("zé sem votos"));
+    }
+}
+### g-anon-generic
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>(List.of("ccc", "a", "bb"));
+        Collections.sort(l, new Comparator<String>() {
+            @Override public int compare(String a, String b) { return a.length() - b.length(); }
+        });
+        System.out.println(l);
+        l.sort(new Comparator<>() { public int compare(String a, String b) { return b.compareTo(a); } });
+        System.out.println(l);
+        Iterator<Integer> contador = new Iterator<>() {
+            int n = 0;
+            public boolean hasNext() { return n < 3; }
+            public Integer next() { return n++; }
+        };
+        while (contador.hasNext()) System.out.print(contador.next());
+        System.out.println();
+    }
+}
+### g-toarray-flatmap
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = List.of("x", "y");
+        String[] a1 = l.toArray(new String[0]);
+        String[] a2 = l.toArray(String[]::new);
+        Object[] a3 = l.toArray();
+        System.out.println(a1.length + Arrays.toString(a2) + a3.length);
+        int[][] m = {{1, 2}, {3}};
+        System.out.println(Arrays.stream(m).flatMapToInt(Arrays::stream).sum());
+        String[][] palavras = {{"a", "b"}, {"c"}};
+        System.out.println(Stream.of(palavras).flatMap(Arrays::stream).collect(Collectors.toList()));
+        List<List<Integer>> ll = List.of(List.of(1, 2), List.of(3));
+        System.out.println(ll.stream().flatMap(Collection::stream).map(i -> i * 2).toList());
+        IntStream.range(0, 3).forEach(i -> System.out.print(i));
+        System.out.println();
+        System.out.println(Stream.of("aa", "b", "ccc").mapToInt(String::length).max().orElse(0));
+        Arrays.asList(3, 1, 2).forEach(System.out::print);
+        System.out.println();
+    }
+}
+### g-funcoes-compostas
+import java.util.*;
+import java.util.function.*;
+public class Main {
+    static <T, R> List<R> mapear(List<T> l, Function<? super T, ? extends R> f) { List<R> r = new ArrayList<>(); for (T t : l) r.add(f.apply(t)); return r; }
+    static <T> List<T> filtrar(List<T> l, Predicate<? super T> p) { List<T> r = new ArrayList<>(); for (T t : l) if (p.test(t)) r.add(t); return r; }
+    static <T extends Comparable<? super T>> T maior(Collection<? extends T> c) { T m = null; for (T x : c) if (m == null || x.compareTo(m) > 0) m = x; return m; }
+    public static void main(String[] args) {
+        List<String> nomes = List.of("Ana", "Bruno", "Carla");
+        System.out.println(mapear(nomes, String::length) + " " + filtrar(nomes, n -> n.length() > 3) + " " + maior(nomes) + " " + maior(List.of(3, 9, 4)));
+        BiFunction<String, String, String> junta = String::concat;
+        Supplier<List<String>> fab = ArrayList::new;
+        List<String> nova = fab.get();
+        nova.add(junta.apply("a", "b"));
+        UnaryOperator<String> up = String::toUpperCase;
+        Function<String, String> f = up.andThen(s -> s + "!");
+        System.out.println(nova + " " + f.apply("oi") + " " + Function.<Integer>identity().apply(5));
+        Comparator<String> c = Comparator.comparing(String::length, Comparator.reverseOrder());
+        List<String> ord = new ArrayList<>(nomes);
+        ord.sort(c.thenComparing(Function.identity()));
+        System.out.println(ord);
+    }
+}
+### g-classe-generica-aninhada
+import java.util.*;
+public class Main {
+    static class No<T> {
+        T valor; No<T> prox;
+        No(T v, No<T> p) { valor = v; prox = p; }
+    }
+    static class Lista<T> implements Iterable<T> {
+        private No<T> cabeca; private int tam;
+        void add(T v) { cabeca = new No<>(v, cabeca); tam++; }
+        public Iterator<T> iterator() {
+            return new Iterator<T>() {
+                No<T> atual = cabeca;
+                public boolean hasNext() { return atual != null; }
+                public T next() { T v = atual.valor; atual = atual.prox; return v; }
+            };
+        }
+        int tamanho() { return tam; }
+    }
+    static class Par<A extends Comparable<A>, B> implements Comparable<Par<A, B>> {
+        A a; B b;
+        Par(A a, B b) { this.a = a; this.b = b; }
+        public int compareTo(Par<A, B> o) { return a.compareTo(o.a); }
+        public String toString() { return a + "=" + b; }
+    }
+    public static void main(String[] args) {
+        Lista<String> l = new Lista<>();
+        l.add("x"); l.add("y"); l.add("z");
+        for (String s : l) System.out.print(s);
+        System.out.println(" " + l.tamanho());
+        List<Par<Integer, String>> ps = new ArrayList<>(List.of(new Par<>(3, "c"), new Par<>(1, "a"), new Par<>(2, "b")));
+        Collections.sort(ps);
+        System.out.println(ps);
+    }
+}
+### g-wildcards
+import java.util.*;
+public class Main {
+    static void imprimir(Collection<?> c) { for (Object o : c) System.out.print(o + ";"); System.out.println(); }
+    static double total(Map<String, ? extends Number> m) { double t = 0; for (Number n : m.values()) t += n.doubleValue(); return t; }
+    static void copiar(List<? super Integer> dest, List<? extends Integer> src) { for (Integer i : src) dest.add(i); }
+    public static void main(String[] args) {
+        imprimir(List.of(1, "a", 2.0));
+        imprimir(Set.of("só"));
+        System.out.println(total(Map.of("a", 1, "b", 2.5)));
+        List<Object> dest = new ArrayList<>();
+        copiar(dest, List.of(1, 2));
+        System.out.println(dest);
+        List<? extends Number> nums = List.of(1, 2.5);
+        Number primeiro = nums.get(0);
+        System.out.println(primeiro.intValue() + nums.size());
+    }
+}
+### g-records-genericos-streams
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    record Pedido(String cliente, List<Item> itens) {
+        double total() { return itens.stream().mapToDouble(i -> i.preco() * i.qtd()).sum(); }
+    }
+    record Item(String nome, double preco, int qtd) {}
+    public static void main(String[] args) {
+        List<Pedido> ps = List.of(
+            new Pedido("Ana", List.of(new Item("café", 18.9, 2), new Item("pão", 0.8, 10))),
+            new Pedido("Bia", List.of(new Item("leite", 5.49, 3))),
+            new Pedido("Ana", List.of(new Item("bolo", 25, 1))));
+        Map<String, Double> porCliente = ps.stream().collect(Collectors.groupingBy(Pedido::cliente, TreeMap::new, Collectors.summingDouble(Pedido::total)));
+        porCliente.forEach((k, v) -> System.out.printf("%s: R$ %.2f%n", k, v));
+        List<String> todosItens = ps.stream().flatMap(p -> p.itens().stream()).map(Item::nome).sorted().toList();
+        System.out.println(todosItens);
+        DoubleSummaryStatistics st = ps.stream().mapToDouble(Pedido::total).summaryStatistics();
+        System.out.printf("%.2f %.2f %d%n", st.getMax(), st.getAverage(), st.getCount());
+    }
+}
