@@ -1,0 +1,2017 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Projeto Sistema de Biblioteca — classes, interface, HashMap e exceções | Guia Java</title>
+<meta name="description" content="Projeto passo a passo de orientação a objetos em Java: um sistema de biblioteca com as classes Livro, Usuario e Emprestimo, encapsulamento, interface com records, HashMap e exceções próprias como LivroIndisponivelException. Saídas reais e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Sistema de Biblioteca</span></h1>
+
+<p class="intro">Este é o projeto de <strong>orientação a objetos</strong> do guia. Em vez de um programa com um <code>main</code> enorme, você vai construir várias classes pequenas, cada uma responsável por uma coisa: o livro sabe se está disponível, o usuário sabe quantos livros pode levar, a biblioteca guarda tudo e aplica as regras. Quando alguma regra é quebrada, uma <strong>exceção com nome próprio</strong> avisa o que aconteceu.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li><a href="classes-objetos.html">Classes e objetos</a>, <a href="construtores.html">construtores</a> e <a href="encapsulamento.html">encapsulamento</a> (atributos <code>private</code>, métodos que protegem as regras).</li>
+  <li><a href="interfaces.html">Interfaces</a> implementadas por <a href="records.html">records</a>, e <a href="polimorfismo.html">polimorfismo</a>.</li>
+  <li><a href="hashmap.html">HashMap</a> para achar um livro pelo código.</li>
+  <li>Records como "fichas" de dados (<code>Emprestimo</code>).</li>
+  <li><a href="excecoes-proprias.html">Criar suas exceções</a>, com <a href="heranca.html">herança</a> entre elas, e <a href="throw-throws.html">throw e throws</a>.</li>
+  <li>Um programa com <strong>vários arquivos</strong>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>No fim, a pasta do projeto terá dez arquivos, um por classe, e o <code>Main</code> encena um dia na biblioteca: o Bruno (aluno) e a Carla (professora) tentam pegar livros, e as regras entram em ação.</p>
+
+<pre class="term" data-cwd="~/java/biblioteca">$ ls
+Aluno.java                LimiteDeEmprestimosException.java  Professor.java
+BibliotecaException.java  LivroIndisponivelException.java    Usuario.java
+Biblioteca.java           Livro.java
+Emprestimo.java           Main.java
+$ java Main.java
+Bruno levou L1.
+Bruno levou L2.
+Não deu: Bruno já está no limite de 2 livro(s).       « regra: aluno leva no máximo 2
+Não deu: "Dom Casmurro" já está emprestado.          « regra: um livro, um leitor
+Bruno devolveu "Dom Casmurro".
+Carla levou L1.
+Erro: Livro não encontrado: L9
+--- Empréstimos (2) ---
+Vidas Secas -&gt; Bruno
+Dom Casmurro -&gt; Carla
+--- Acervo (4 livros) ---
+L1 | Dom Casmurro | Machado de Assis | emprestado
+L2 | Vidas Secas | Graciliano Ramos | emprestado
+L3 | O Cortiço | Aluísio Azevedo | disponível
+L4 | Iracema | José de Alencar | disponível</pre>
+
+<p>Com vários arquivos na pasta, <code>java Main.java</code> continua funcionando: desde o Java 22, o lançador compila sozinho as outras classes que o <code>Main</code> usa, se estiverem na mesma pasta. Com <code>javac *.java</code> você compila tudo de uma vez e vê os <code>.class</code>:</p>
+
+<pre class="term" data-cwd="~/java/biblioteca">$ javac *.java
+$ ls
+Aluno.class                Emprestimo.java                     Main.class
+Aluno.java                 LimiteDeEmprestimosException.class  Main.java
+Biblioteca.class           LimiteDeEmprestimosException.java   Professor.class
+BibliotecaException.class  Livro.class                         Professor.java
+BibliotecaException.java   LivroIndisponivelException.class    Usuario.class
+Biblioteca.java            LivroIndisponivelException.java     Usuario.java
+Emprestimo.class           Livro.java</pre>
+
+<ol class="passo">
+  <li><a href="#etapa1">O livro</a> (classe, <code>private</code>, getters, <code>toString</code>).</li>
+  <li><a href="#etapa2">Os usuários</a> (interface <code>Usuario</code>, records <code>Aluno</code> e <code>Professor</code>).</li>
+  <li><a href="#etapa3">O acervo</a> (classe <code>Biblioteca</code> com <code>HashMap</code>).</li>
+  <li><a href="#etapa4">Os empréstimos</a> (record <code>Emprestimo</code>, regras de negócio).</li>
+  <li><a href="#etapa5">Exceções próprias</a> (<code>LivroIndisponivelException</code> e companhia).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Este projeto pede o Nível 2 quase inteiro: <a href="classes-objetos.html">classes</a>, <a href="encapsulamento.html">encapsulamento</a>, <a href="interfaces.html">interfaces</a>, <a href="records.html">records</a> e <a href="excecoes-proprias.html">exceções</a>, além de <a href="hashmap.html">HashMap</a>. No seu computador, cada classe pública vai num arquivo com o mesmo nome:</p>
+
+<pre class="term">$ mkdir -p java/biblioteca
+$ cd java/biblioteca</pre>
+
+<div class="tip">
+<strong>No editor do guia, tudo num arquivo só</strong>
+<p>Para as missões caberem numa caixa, as classes estão juntas num único <code>Main.java</code>, uma depois da outra. O Java permite isso, com uma regra: só a classe <code>Main</code> pode ser <code>public</code>; as outras ficam sem o <code>public</code> na frente de <code>class</code>, <code>interface</code> ou <code>record</code>. O comportamento é o mesmo. No seu computador, prefira um arquivo por classe, como nas listagens desta página.</p>
+</div>
+
+<hr>
+
+<h2 id="etapa1">Etapa 1 · O livro</h2>
+<p>Começamos pela peça mais simples. Um livro tem código, título, autor e uma situação: disponível ou emprestado. A regra de ouro do <strong>encapsulamento</strong>: ninguém de fora mexe direto nos dados do livro. Os atributos são <code>private</code>, e quem quiser mudar a situação tem que pedir ao livro, pelos métodos <code>emprestar()</code> e <code>devolver()</code>.</p>
+
+<pre class="file" data-file="Livro.java">public class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() {
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que é</th></tr>
+<tr><td><code>private final String codigo;</code></td><td>Atributo privado (só a própria classe enxerga) e <code>final</code> (definido uma vez, no construtor, e nunca mais muda). Código, título e autor de um livro não mudam.</td></tr>
+<tr><td><code>private boolean disponivel;</code></td><td>Privado, mas <strong>não</strong> final: muda a cada empréstimo, só que apenas pelos métodos da classe.</td></tr>
+<tr><td><code>public Livro(…)</code></td><td>O construtor. <code>this.codigo = codigo</code> copia o parâmetro para o atributo (<a href="this.html">this</a>). Todo livro nasce disponível.</td></tr>
+<tr><td><code>getCodigo()</code>, <code>isDisponivel()</code></td><td>Os <strong>getters</strong>: deixam ler sem deixar mudar. Para <code>boolean</code>, o costume é <code>isAlgo()</code> em vez de <code>getAlgo()</code>.</td></tr>
+<tr><td>Não há <code>setDisponivel(…)</code></td><td>De propósito. Na etapa 5, <code>emprestar()</code> vai recusar um livro já emprestado; com um setter, qualquer um passaria por cima dessa regra.</td></tr>
+<tr><td><code>@Override public String toString()</code></td><td>Diz como o livro vira texto no <code>println</code> (<a href="sobrescrita.html">sobrescrita</a>). O <code>? :</code> é o <a href="ternario.html">operador ternário</a>.</td></tr>
+</table>
+</div>
+
+<p>Um <code>Main</code> para experimentar:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Livro livro = new Livro("L1", "Dom Casmurro", "Machado de Assis");
+        System.out.println(livro);
+
+        livro.emprestar();
+        System.out.println(livro);
+        System.out.println("Disponível? " + livro.isDisponivel());
+
+        livro.devolver();
+        System.out.println(livro);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/biblioteca">$ java Main.java
+L1 | Dom Casmurro | Machado de Assis | disponível
+L1 | Dom Casmurro | Machado de Assis | emprestado
+Disponível? false
+L1 | Dom Casmurro | Machado de Assis | disponível</pre>
+
+<div class="cenario">
+<strong>Quando dá errado: mexer no atributo privado</strong>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">        Livro livro = new Livro("L1", "Dom Casmurro", "Machado de Assis");
+        livro.disponivel = false;
+</pre>
+<pre class="term" data-cwd="~/java/biblioteca">$ java Main.java
+Main.java:4: error: disponivel has private access in Livro
+        livro.disponivel = false;
+             ^
+1 error
+error: compilation failed</pre>
+<p>"<code>disponivel</code> tem acesso privado em <code>Livro</code>." É o encapsulamento funcionando: o compilador não deixa o <code>Main</code> pular as regras do livro. Use <code>livro.emprestar()</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:L1 | Dom Casmurro | Machado de Assis | emprestado,out:Disponível? false">
+<p class="try-task"><strong>Missão (etapa 1):</strong> a classe <code>Livro</code> está sem os métodos <code>emprestar()</code> e <code>devolver()</code> (rode e veja o <code>cannot find symbol</code>). Escreva os dois: um põe <code>disponivel</code> em <code>false</code>, o outro em <code>true</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Livro livro = new Livro("L1", "Dom Casmurro", "Machado de Assis");
+        System.out.println(livro);
+
+        livro.emprestar();
+        System.out.println(livro);
+        System.out.println("Disponível? " + livro.isDisponivel());
+
+        livro.devolver();
+        System.out.println(livro);
+    }
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    // escreva aqui os métodos emprestar() e devolver()
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Livro livro = new Livro("L1", "Dom Casmurro", "Machado de Assis");
+        System.out.println(livro);
+
+        livro.emprestar();
+        System.out.println(livro);
+        System.out.println("Disponível? " + livro.isDisponivel());
+
+        livro.devolver();
+        System.out.println(livro);
+    }
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() {
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa2">Etapa 2 · Os usuários</h2>
+<p>A biblioteca tem dois tipos de usuário: <strong>alunos</strong>, que levam até 2 livros, e <strong>professores</strong>, que levam até 5. Os dois têm nome e um limite, mas o limite é diferente. Isso pede uma <strong>interface</strong>: um "contrato" que diz <em>o que</em> todo usuário sabe responder, deixando cada tipo decidir <em>como</em>.</p>
+
+<pre class="file" data-file="Usuario.java">public interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+
+<p>Cada tipo de usuário é um <strong>record</strong> que <strong>implementa</strong> a interface:</p>
+
+<pre class="file" data-file="Aluno.java">public record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+</pre>
+<pre class="file" data-file="Professor.java">public record Professor(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 5;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>public interface Usuario</dt><dd>O contrato: todo <code>Usuario</code> tem os métodos <code>nome()</code> e <code>limiteDeLivros()</code>. Uma interface só declara; não tem o corpo dos métodos.</dd>
+  <dt>record Aluno(String nome)</dt><dd>Um record com um componente, <code>nome</code>. O record já ganha o método <code>nome()</code>, que é exatamente o que a interface pede.</dd>
+  <dt>implements Usuario</dt><dd>"Cumpre o contrato <code>Usuario</code>." Se faltar um método da interface, o código não compila.</dd>
+  <dt>@Override public int limiteDeLivros()</dt><dd>O método que faltava. <code>@Override</code> avisa ao compilador que este método vem da interface; os métodos de interface são sempre <code>public</code>.</dd>
+</dl>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        List&lt;Usuario&gt; usuarios = List.of(bruno, carla);
+        for (Usuario u : usuarios) {
+            System.out.println(u.nome() + " pode levar até " + u.limiteDeLivros() + " livro(s). " + u);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/biblioteca">$ java Main.java
+Bruno pode levar até 2 livro(s). Aluno[nome=Bruno]
+Carla pode levar até 5 livro(s). Professor[nome=Carla]</pre>
+
+<p>Aqui está o <strong>polimorfismo</strong> ("muitas formas"): as variáveis <code>bruno</code> e <code>carla</code> são do tipo <code>Usuario</code>, e o laço trata os dois do mesmo jeito. Mas <code>u.limiteDeLivros()</code> dá 2 para um e 5 para o outro, porque cada objeto responde do seu jeito. A biblioteca nunca vai precisar de um <code>if (u é aluno)</code>. Se um dia surgir o tipo "Funcionário", basta criar um record novo; nada mais muda.</p>
+
+<div class="cenario">
+<strong>Quando dá errado: criar "um usuário qualquer"</strong>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="term" data-cwd="~/java/biblioteca">$ java Main.java
+Main.java:3: error: Usuario is abstract; cannot be instantiated
+        Usuario alguem = new Usuario();
+                         ^
+1 error
+error: compilation failed</pre>
+<p>"<code>Usuario</code> é abstrato; não pode ser instanciado." Uma interface é só o contrato, não dá para criar um objeto dela. Crie um <code>Aluno</code> ou um <code>Professor</code> e guarde numa variável do tipo <code>Usuario</code>.</p>
+</div>
+
+<div class="note">
+<strong>E a herança com <code>extends</code>?</strong>
+<p>Daria para fazer com uma classe abstrata <code>Usuario</code> e as subclasses <code>Aluno extends Usuario</code> e <code>Professor extends Usuario</code> (veja <a href="abstratas.html">Classes Abstratas</a>). Escolhemos interface + records porque aqui os usuários só carregam dados e uma regra: não há código para herdar. A herança aparece na etapa 5, entre as exceções.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Carla pode levar até 5 livro(s). Professor[nome=Carla],src:record Professor">
+<p class="try-task"><strong>Missão (etapa 2):</strong> o <code>Main</code> já usa <code>new Professor("Carla")</code>, mas o record <code>Professor</code> não existe. Crie-o, implementando <code>Usuario</code>, com limite de 5 livros.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        List&lt;Usuario&gt; usuarios = List.of(bruno, carla);
+        for (Usuario u : usuarios) {
+            System.out.println(u.nome() + " pode levar até " + u.limiteDeLivros() + " livro(s). " + u);
+        }
+    }
+}
+
+record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() {
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+
+interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        List&lt;Usuario&gt; usuarios = List.of(bruno, carla);
+        for (Usuario u : usuarios) {
+            System.out.println(u.nome() + " pode levar até " + u.limiteDeLivros() + " livro(s). " + u);
+        }
+    }
+}
+
+record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() {
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+
+record Professor(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 5;
+    }
+}
+
+interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa3">Etapa 3 · O acervo</h2>
+<p>Agora a classe que junta tudo: <code>Biblioteca</code>. Ela guarda os livros num <strong>HashMap</strong>, um "dicionário" em que cada <strong>chave</strong> (o código, <code>"L1"</code>) leva a um <strong>valor</strong> (o livro). Achar um livro pelo código é instantâneo, sem percorrer lista nenhuma.</p>
+
+<pre class="file" data-file="Biblioteca.java">import java.util.HashMap;
+import java.util.Map;
+
+public class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        if (livro == null) {
+            throw new IllegalArgumentException("Livro não encontrado: " + codigo);
+        }
+        return livro;
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>Map&lt;String, Livro&gt; livros</code></td><td>Um mapa com chave <code>String</code> e valor <code>Livro</code>. É <code>private</code>: só a biblioteca mexe no acervo.</td></tr>
+<tr><td><code>livros.put(livro.getCodigo(), livro)</code></td><td>Guarda o livro com o código como chave. Outro livro com o mesmo código <strong>substituiria</strong> o antigo.</td></tr>
+<tr><td><code>livros.get(codigo)</code></td><td>Devolve o livro daquela chave, ou <code>null</code> ("nada") se a chave não existe.</td></tr>
+<tr><td><code>throw new IllegalArgumentException(…)</code></td><td>Código inexistente é erro de quem chamou: avisamos na hora, com uma mensagem clara.</td></tr>
+<tr><td><code>livros.values()</code></td><td>Todos os livros do mapa, para o for-each.</td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        bib.listarAcervo();
+        System.out.println("Busca L2: " + bib.buscar("L2").getTitulo());
+        System.out.println("Busca L9: " + bib.buscar("L9").getTitulo());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/biblioteca">$ java Main.java
+--- Acervo (4 livros) ---
+L1 | Dom Casmurro | Machado de Assis | disponível
+L2 | Vidas Secas | Graciliano Ramos | disponível
+L3 | O Cortiço | Aluísio Azevedo | disponível
+L4 | Iracema | José de Alencar | disponível
+Busca L2: Vidas Secas
+Exception in thread "main" java.lang.IllegalArgumentException: Livro não encontrado: L9
+	at Biblioteca.buscar(Biblioteca.java:14)
+	at Main.main(Main.java:11)</pre>
+
+<p>A busca por <code>L9</code> parou o programa, e isso é bom: a mensagem diz exatamente o que houve. Na etapa 5, o <code>Main</code> vai capturar esse erro.</p>
+
+<div class="warning">
+<strong>O HashMap não promete ordem</strong>
+<p>Os livros apareceram em ordem (L1, L2, L3, L4) por coincidência das chaves curtas. Um <code>HashMap</code> guarda as chaves na ordem que for melhor para ele. Se a ordem importa, use um <code>TreeMap</code> (ordem das chaves) ou um <code>LinkedHashMap</code> (ordem de inserção); veja <a href="treemap-treeset.html">TreeMap e TreeSet</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Quando dá errado: esquecer de conferir o <code>null</code></strong>
+<p>Se o <code>buscar</code> fosse só <code>return livros.get(codigo);</code>, o código <code>L9</code> devolveria <code>null</code>, e o erro estouraria longe dali, no <code>Main</code>:</p>
+<pre class="term" data-cwd="~/java/biblioteca">$ java Main.java
+--- Acervo (4 livros) ---
+L1 | Dom Casmurro | Machado de Assis | disponível
+L2 | Vidas Secas | Graciliano Ramos | disponível
+L3 | O Cortiço | Aluísio Azevedo | disponível
+L4 | Iracema | José de Alencar | disponível
+Busca L2: Vidas Secas
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Livro.getTitulo()" because the return value of "Biblioteca.buscar(String)" is null
+	at Main.main(Main.java:11)</pre>
+<p>"Não dá para chamar <code>getTitulo()</code> porque o valor devolvido por <code>buscar</code> é null." O Java até ajuda a achar a origem, mas a mensagem fala de <code>null</code>, não de "livro não encontrado". Conferir no lugar certo e lançar uma exceção com mensagem clara economiza horas de depuração.</p>
+</div>
+
+<div class="tryjava" data-goal="excecao:IllegalArgumentException,err:Livro não encontrado: L9">
+<p class="try-task"><strong>Missão (etapa 3):</strong> rode: o programa termina com <code>NullPointerException</code>. Conserte o método <code>buscar</code> para lançar <code>IllegalArgumentException</code> com a mensagem <code>Livro não encontrado: L9</code> quando o código não existir.</p>
+<pre class="script">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        bib.listarAcervo();
+        System.out.println("Busca L2: " + bib.buscar("L2").getTitulo());
+        System.out.println("Busca L9: " + bib.buscar("L9").getTitulo());
+    }
+}
+
+record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+
+class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        // se não achou, lance IllegalArgumentException
+        return livro;
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() {
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+
+record Professor(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 5;
+    }
+}
+
+interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+<pre class="solucao">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        bib.listarAcervo();
+        System.out.println("Busca L2: " + bib.buscar("L2").getTitulo());
+        System.out.println("Busca L9: " + bib.buscar("L9").getTitulo());
+    }
+}
+
+record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+
+class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        if (livro == null) {
+            throw new IllegalArgumentException("Livro não encontrado: " + codigo);
+        }
+        return livro;
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() {
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+
+record Professor(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 5;
+    }
+}
+
+interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa4">Etapa 4 · Os empréstimos</h2>
+<p>Um empréstimo liga um livro a um usuário. Ele não tem comportamento, só dados: é um record.</p>
+
+<pre class="file" data-file="Emprestimo.java">public record Emprestimo(Livro livro, Usuario usuario) {
+}
+</pre>
+
+<p>A <code>Biblioteca</code> ganha uma lista de empréstimos e três métodos novos. Nesta etapa, quando uma regra impede o empréstimo, o método mostra o motivo e devolve <code>false</code>:</p>
+
+<pre class="file" data-file="Biblioteca.java">import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+    private final List&lt;Emprestimo&gt; emprestimos = new ArrayList&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        if (livro == null) {
+            throw new IllegalArgumentException("Livro não encontrado: " + codigo);
+        }
+        return livro;
+    }
+
+    public int quantosCom(Usuario usuario) {
+        int total = 0;
+        for (Emprestimo e : emprestimos) {
+            if (e.usuario().equals(usuario)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    public boolean emprestar(String codigo, Usuario usuario) {
+        Livro livro = buscar(codigo);
+        if (!livro.isDisponivel()) {
+            System.out.println("Não deu: \"" + livro.getTitulo() + "\" já está emprestado.");
+            return false;
+        }
+        if (quantosCom(usuario) &gt;= usuario.limiteDeLivros()) {
+            System.out.println("Não deu: " + usuario.nome() + " já está no limite de " + usuario.limiteDeLivros() + " livro(s).");
+            return false;
+        }
+        livro.emprestar();
+        emprestimos.add(new Emprestimo(livro, usuario));
+        System.out.println(usuario.nome() + " levou \"" + livro.getTitulo() + "\".");
+        return true;
+    }
+
+    public void devolver(String codigo) {
+        Livro livro = buscar(codigo);
+        for (Emprestimo e : emprestimos) {
+            if (e.livro() == livro) {
+                emprestimos.remove(e);
+                livro.devolver();
+                System.out.println(e.usuario().nome() + " devolveu \"" + livro.getTitulo() + "\".");
+                return;
+            }
+        }
+        System.out.println("\"" + livro.getTitulo() + "\" não estava emprestado.");
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+
+    public void listarEmprestimos() {
+        System.out.println("--- Empréstimos (" + emprestimos.size() + ") ---");
+        for (Emprestimo e : emprestimos) {
+            System.out.println(e.livro().getTitulo() + " -&gt; " + e.usuario().nome());
+        }
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th></tr>
+<tr><td><code>quantosCom(usuario)</code></td><td>Conta os empréstimos daquele usuário. <code>e.usuario().equals(usuario)</code> funciona porque records comparam pelo conteúdo: dois <code>Aluno("Bruno")</code> são iguais.</td></tr>
+<tr><td><code>emprestar(codigo, usuario)</code></td><td>Confere as duas regras (livro disponível, usuário abaixo do limite). Se passar, marca o livro e registra o empréstimo.</td></tr>
+<tr><td><code>devolver(codigo)</code></td><td>Procura o empréstimo daquele livro, remove da lista e devolve o livro. <code>e.livro() == livro</code> compara se é <strong>o mesmo objeto</strong>. O <code>return</code> logo depois do <code>remove</code> evita a <code>ConcurrentModificationException</code> (veja o <a href="projeto-agenda.html#etapa4">projeto da agenda</a>).</td></tr>
+<tr><td><code>listarEmprestimos()</code></td><td>Mostra quem está com o quê.</td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        bib.emprestar("L1", bruno);
+        bib.emprestar("L2", bruno);
+        bib.emprestar("L3", bruno);
+        bib.emprestar("L1", carla);
+        bib.devolver("L1");
+        bib.emprestar("L1", carla);
+
+        bib.listarEmprestimos();
+        bib.listarAcervo();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/biblioteca">$ java Main.java
+Bruno levou "Dom Casmurro".
+Bruno levou "Vidas Secas".
+Não deu: Bruno já está no limite de 2 livro(s).
+Não deu: "Dom Casmurro" já está emprestado.
+Bruno devolveu "Dom Casmurro".
+Carla levou "Dom Casmurro".
+--- Empréstimos (2) ---
+Vidas Secas -&gt; Bruno
+Dom Casmurro -&gt; Carla
+--- Acervo (4 livros) ---
+L1 | Dom Casmurro | Machado de Assis | emprestado
+L2 | Vidas Secas | Graciliano Ramos | emprestado
+L3 | O Cortiço | Aluísio Azevedo | disponível
+L4 | Iracema | José de Alencar | disponível</pre>
+
+<p>Funciona, mas tem um defeito de projeto: a <code>Biblioteca</code> está <strong>escrevendo na tela</strong>. E se um dia a biblioteca for usada num site, ou num teste automático? Quem chamou <code>emprestar</code> deveria decidir o que fazer com a falha. E o <code>boolean</code> diz <em>que</em> falhou, mas não <em>por quê</em>. É o trabalho das exceções, na próxima etapa.</p>
+
+<div class="tryjava" data-goal="out:Não deu: Bruno já está no limite de 2 livro(s).,out:Não deu: &quot;Dom Casmurro&quot; já está emprestado.">
+<p class="try-task"><strong>Missão (etapa 4):</strong> o <code>emprestar</code> confere se o livro está disponível, mas esqueceu o limite: o Bruno leva três livros. Acrescente a regra usando <code>quantosCom(usuario)</code> e <code>usuario.limiteDeLivros()</code>, mostrando <code>Não deu: Bruno já está no limite de 2 livro(s).</code></p>
+<pre class="script">import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        bib.emprestar("L1", bruno);
+        bib.emprestar("L2", bruno);
+        bib.emprestar("L3", bruno);
+        bib.emprestar("L1", carla);
+        bib.devolver("L1");
+        bib.emprestar("L1", carla);
+
+        bib.listarEmprestimos();
+        bib.listarAcervo();
+    }
+}
+
+record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+
+class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+    private final List&lt;Emprestimo&gt; emprestimos = new ArrayList&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        if (livro == null) {
+            throw new IllegalArgumentException("Livro não encontrado: " + codigo);
+        }
+        return livro;
+    }
+
+    public int quantosCom(Usuario usuario) {
+        int total = 0;
+        for (Emprestimo e : emprestimos) {
+            if (e.usuario().equals(usuario)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    public boolean emprestar(String codigo, Usuario usuario) {
+        Livro livro = buscar(codigo);
+        if (!livro.isDisponivel()) {
+            System.out.println("Não deu: \"" + livro.getTitulo() + "\" já está emprestado.");
+            return false;
+        }
+        // confira o limite do usuário (use quantosCom)
+        livro.emprestar();
+        emprestimos.add(new Emprestimo(livro, usuario));
+        System.out.println(usuario.nome() + " levou \"" + livro.getTitulo() + "\".");
+        return true;
+    }
+
+    public void devolver(String codigo) {
+        Livro livro = buscar(codigo);
+        for (Emprestimo e : emprestimos) {
+            if (e.livro() == livro) {
+                emprestimos.remove(e);
+                livro.devolver();
+                System.out.println(e.usuario().nome() + " devolveu \"" + livro.getTitulo() + "\".");
+                return;
+            }
+        }
+        System.out.println("\"" + livro.getTitulo() + "\" não estava emprestado.");
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+
+    public void listarEmprestimos() {
+        System.out.println("--- Empréstimos (" + emprestimos.size() + ") ---");
+        for (Emprestimo e : emprestimos) {
+            System.out.println(e.livro().getTitulo() + " -&gt; " + e.usuario().nome());
+        }
+    }
+}
+
+record Emprestimo(Livro livro, Usuario usuario) {
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() {
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+
+record Professor(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 5;
+    }
+}
+
+interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        bib.emprestar("L1", bruno);
+        bib.emprestar("L2", bruno);
+        bib.emprestar("L3", bruno);
+        bib.emprestar("L1", carla);
+        bib.devolver("L1");
+        bib.emprestar("L1", carla);
+
+        bib.listarEmprestimos();
+        bib.listarAcervo();
+    }
+}
+
+record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+
+class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+    private final List&lt;Emprestimo&gt; emprestimos = new ArrayList&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        if (livro == null) {
+            throw new IllegalArgumentException("Livro não encontrado: " + codigo);
+        }
+        return livro;
+    }
+
+    public int quantosCom(Usuario usuario) {
+        int total = 0;
+        for (Emprestimo e : emprestimos) {
+            if (e.usuario().equals(usuario)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    public boolean emprestar(String codigo, Usuario usuario) {
+        Livro livro = buscar(codigo);
+        if (!livro.isDisponivel()) {
+            System.out.println("Não deu: \"" + livro.getTitulo() + "\" já está emprestado.");
+            return false;
+        }
+        if (quantosCom(usuario) &gt;= usuario.limiteDeLivros()) {
+            System.out.println("Não deu: " + usuario.nome() + " já está no limite de " + usuario.limiteDeLivros() + " livro(s).");
+            return false;
+        }
+        livro.emprestar();
+        emprestimos.add(new Emprestimo(livro, usuario));
+        System.out.println(usuario.nome() + " levou \"" + livro.getTitulo() + "\".");
+        return true;
+    }
+
+    public void devolver(String codigo) {
+        Livro livro = buscar(codigo);
+        for (Emprestimo e : emprestimos) {
+            if (e.livro() == livro) {
+                emprestimos.remove(e);
+                livro.devolver();
+                System.out.println(e.usuario().nome() + " devolveu \"" + livro.getTitulo() + "\".");
+                return;
+            }
+        }
+        System.out.println("\"" + livro.getTitulo() + "\" não estava emprestado.");
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+
+    public void listarEmprestimos() {
+        System.out.println("--- Empréstimos (" + emprestimos.size() + ") ---");
+        for (Emprestimo e : emprestimos) {
+            System.out.println(e.livro().getTitulo() + " -&gt; " + e.usuario().nome());
+        }
+    }
+}
+
+record Emprestimo(Livro livro, Usuario usuario) {
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() {
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+
+record Professor(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 5;
+    }
+}
+
+interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa5">Etapa 5 · Exceções próprias</h2>
+<p>Vamos dar <strong>nome</strong> a cada problema. Uma exceção própria é só uma classe que estende <code>Exception</code>. Criamos uma "mãe", <code>BibliotecaException</code>, e duas "filhas", uma para cada regra:</p>
+
+<pre class="file" data-file="BibliotecaException.java">public class BibliotecaException extends Exception {
+    public BibliotecaException(String mensagem) {
+        super(mensagem);
+    }
+}
+</pre>
+<pre class="file" data-file="LivroIndisponivelException.java">public class LivroIndisponivelException extends BibliotecaException {
+    public LivroIndisponivelException(Livro livro) {
+        super("\"" + livro.getTitulo() + "\" já está emprestado.");
+    }
+}
+</pre>
+<pre class="file" data-file="LimiteDeEmprestimosException.java">public class LimiteDeEmprestimosException extends BibliotecaException {
+    public LimiteDeEmprestimosException(Usuario usuario) {
+        super(usuario.nome() + " já está no limite de " + usuario.limiteDeLivros() + " livro(s).");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>extends Exception</dt><dd>A <code>BibliotecaException</code> é uma exceção <strong>checked</strong>: quem chama um método que a lança é obrigado a tratar ou repassar (<a href="checked-unchecked.html">checked × unchecked</a>).</dd>
+  <dt>super(mensagem)</dt><dd>Passa a mensagem para o construtor de <code>Exception</code>; depois, <code>e.getMessage()</code> devolve esse texto (<a href="super.html">super</a>).</dd>
+  <dt>extends BibliotecaException</dt><dd><strong>Herança</strong>: as duas filhas são também uma <code>BibliotecaException</code>. Um único <code>catch (BibliotecaException e)</code> pega as duas.</dd>
+  <dt>LivroIndisponivelException(Livro livro)</dt><dd>O construtor recebe o livro e monta a mensagem sozinho. Quem lança só escreve <code>throw new LivroIndisponivelException(this)</code>.</dd>
+</dl>
+
+<p>O <code>Livro</code> passa a <strong>defender a própria regra</strong>: emprestar um livro já emprestado lança a exceção.</p>
+
+<pre class="file" data-file="Livro.java">    public void emprestar() throws LivroIndisponivelException {
+        if (!disponivel) {
+            throw new LivroIndisponivelException(this);
+        }
+        disponivel = false;
+    }
+</pre>
+
+<p>E o <code>emprestar</code> da <code>Biblioteca</code> fica mais curto: nada de <code>println</code>, nada de <code>boolean</code>.</p>
+
+<pre class="file" data-file="Biblioteca.java">    public void emprestar(String codigo, Usuario usuario) throws BibliotecaException {
+        Livro livro = buscar(codigo);
+        if (quantosCom(usuario) &gt;= usuario.limiteDeLivros()) {
+            throw new LimiteDeEmprestimosException(usuario);
+        }
+        livro.emprestar();
+        emprestimos.add(new Emprestimo(livro, usuario));
+    }
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Onde</th><th>Significado</th></tr>
+<tr><td><code>throw</code></td><td>dentro do método</td><td>"Lançar": cria e dispara a exceção agora. O método para nessa linha.</td></tr>
+<tr><td><code>throws</code></td><td>na assinatura</td><td>"Lança": avisa que o método <strong>pode</strong> lançar essa exceção. <code>throws BibliotecaException</code> cobre as duas filhas.</td></tr>
+<tr><td><code>livro.emprestar();</code> sem try</td><td>na Biblioteca</td><td>A <code>LivroIndisponivelException</code> do livro "atravessa" o método da biblioteca e chega a quem chamou. Isso é permitido porque ela é uma <code>BibliotecaException</code>, que está no <code>throws</code>.</td></tr>
+</table>
+</div>
+
+<p>Quem decide o que fazer com a falha agora é o <code>Main</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        tentarEmprestar(bib, "L1", bruno);
+        tentarEmprestar(bib, "L2", bruno);
+        tentarEmprestar(bib, "L3", bruno);
+        tentarEmprestar(bib, "L1", carla);
+        bib.devolver("L1");
+        tentarEmprestar(bib, "L1", carla);
+        tentarEmprestar(bib, "L9", carla);
+
+        bib.listarEmprestimos();
+        bib.listarAcervo();
+    }
+
+    static void tentarEmprestar(Biblioteca bib, String codigo, Usuario usuario) {
+        try {
+            bib.emprestar(codigo, usuario);
+            System.out.println(usuario.nome() + " levou " + codigo + ".");
+        } catch (BibliotecaException e) {
+            System.out.println("Não deu: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+}
+</pre>
+
+<p>O <code>tentarEmprestar</code> tem dois <code>catch</code>: o primeiro pega as regras da biblioteca (as duas filhas), o segundo pega o código inexistente (<code>IllegalArgumentException</code>, da etapa 3). A saída é a do começo da página:</p>
+
+<pre class="term" data-cwd="~/java/biblioteca">$ java Main.java
+Bruno levou L1.
+Bruno levou L2.
+Não deu: Bruno já está no limite de 2 livro(s).
+Não deu: "Dom Casmurro" já está emprestado.
+Bruno devolveu "Dom Casmurro".
+Carla levou L1.
+Erro: Livro não encontrado: L9
+--- Empréstimos (2) ---
+Vidas Secas -&gt; Bruno
+Dom Casmurro -&gt; Carla
+--- Acervo (4 livros) ---
+L1 | Dom Casmurro | Machado de Assis | emprestado
+L2 | Vidas Secas | Graciliano Ramos | emprestado
+L3 | O Cortiço | Aluísio Azevedo | disponível
+L4 | Iracema | José de Alencar | disponível</pre>
+
+<div class="cenario">
+<strong>Quando dá errado: esquecer o <code>throws</code></strong>
+<p>Se o <code>emprestar</code> da <code>Biblioteca</code> não tiver <code>throws BibliotecaException</code>:</p>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="term" data-cwd="~/java/biblioteca">$ javac *.java
+Biblioteca.java:35: error: unreported exception LimiteDeEmprestimosException; must be caught or declared to be thrown
+            throw new LimiteDeEmprestimosException(usuario);
+            ^
+Biblioteca.java:37: error: unreported exception LivroIndisponivelException; must be caught or declared to be thrown
+        livro.emprestar();
+                       ^
+2 errors</pre>
+<p>O compilador encontrou duas exceções checked "sem dono": uma lançada ali mesmo (linha 35) e outra que pode vir do <code>livro.emprestar()</code> (linha 37). Ou o método trata com <code>try/catch</code>, ou declara com <code>throws</code>. Aqui, a biblioteca não sabe o que fazer com a falha, então declara e deixa o <code>Main</code> decidir.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Não deu: Bruno já está no limite de 2 livro(s).,src:class LimiteDeEmprestimosException\s+extends\s+BibliotecaException">
+<p class="try-task"><strong>Missão (etapa 5):</strong> está faltando a classe <code>LimiteDeEmprestimosException</code> (rode e veja o <code>cannot find symbol</code>). Crie-a estendendo <code>BibliotecaException</code>, com um construtor que recebe o <code>Usuario</code> e monta a mensagem <code>Bruno já está no limite de 2 livro(s).</code></p>
+<pre class="script">import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        tentarEmprestar(bib, "L1", bruno);
+        tentarEmprestar(bib, "L2", bruno);
+        tentarEmprestar(bib, "L3", bruno);
+        tentarEmprestar(bib, "L1", carla);
+        bib.devolver("L1");
+        tentarEmprestar(bib, "L1", carla);
+        tentarEmprestar(bib, "L9", carla);
+
+        bib.listarEmprestimos();
+        bib.listarAcervo();
+    }
+
+    static void tentarEmprestar(Biblioteca bib, String codigo, Usuario usuario) {
+        try {
+            bib.emprestar(codigo, usuario);
+            System.out.println(usuario.nome() + " levou " + codigo + ".");
+        } catch (BibliotecaException e) {
+            System.out.println("Não deu: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+}
+
+record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+
+class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+    private final List&lt;Emprestimo&gt; emprestimos = new ArrayList&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        if (livro == null) {
+            throw new IllegalArgumentException("Livro não encontrado: " + codigo);
+        }
+        return livro;
+    }
+
+    public int quantosCom(Usuario usuario) {
+        int total = 0;
+        for (Emprestimo e : emprestimos) {
+            if (e.usuario().equals(usuario)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    public void emprestar(String codigo, Usuario usuario) throws BibliotecaException {
+        Livro livro = buscar(codigo);
+        if (quantosCom(usuario) &gt;= usuario.limiteDeLivros()) {
+            throw new LimiteDeEmprestimosException(usuario);
+        }
+        livro.emprestar();
+        emprestimos.add(new Emprestimo(livro, usuario));
+    }
+
+    public void devolver(String codigo) {
+        Livro livro = buscar(codigo);
+        for (Emprestimo e : emprestimos) {
+            if (e.livro() == livro) {
+                emprestimos.remove(e);
+                livro.devolver();
+                System.out.println(e.usuario().nome() + " devolveu \"" + livro.getTitulo() + "\".");
+                return;
+            }
+        }
+        System.out.println("\"" + livro.getTitulo() + "\" não estava emprestado.");
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+
+    public void listarEmprestimos() {
+        System.out.println("--- Empréstimos (" + emprestimos.size() + ") ---");
+        for (Emprestimo e : emprestimos) {
+            System.out.println(e.livro().getTitulo() + " -&gt; " + e.usuario().nome());
+        }
+    }
+}
+
+class BibliotecaException extends Exception {
+    public BibliotecaException(String mensagem) {
+        super(mensagem);
+    }
+}
+
+record Emprestimo(Livro livro, Usuario usuario) {
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() throws LivroIndisponivelException {
+        if (!disponivel) {
+            throw new LivroIndisponivelException(this);
+        }
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+
+class LivroIndisponivelException extends BibliotecaException {
+    public LivroIndisponivelException(Livro livro) {
+        super("\"" + livro.getTitulo() + "\" já está emprestado.");
+    }
+}
+
+record Professor(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 5;
+    }
+}
+
+interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Biblioteca bib = new Biblioteca();
+        bib.cadastrar(new Livro("L1", "Dom Casmurro", "Machado de Assis"));
+        bib.cadastrar(new Livro("L2", "Vidas Secas", "Graciliano Ramos"));
+        bib.cadastrar(new Livro("L3", "O Cortiço", "Aluísio Azevedo"));
+        bib.cadastrar(new Livro("L4", "Iracema", "José de Alencar"));
+
+        Usuario bruno = new Aluno("Bruno");
+        Usuario carla = new Professor("Carla");
+
+        tentarEmprestar(bib, "L1", bruno);
+        tentarEmprestar(bib, "L2", bruno);
+        tentarEmprestar(bib, "L3", bruno);
+        tentarEmprestar(bib, "L1", carla);
+        bib.devolver("L1");
+        tentarEmprestar(bib, "L1", carla);
+        tentarEmprestar(bib, "L9", carla);
+
+        bib.listarEmprestimos();
+        bib.listarAcervo();
+    }
+
+    static void tentarEmprestar(Biblioteca bib, String codigo, Usuario usuario) {
+        try {
+            bib.emprestar(codigo, usuario);
+            System.out.println(usuario.nome() + " levou " + codigo + ".");
+        } catch (BibliotecaException e) {
+            System.out.println("Não deu: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+}
+
+record Aluno(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 2;
+    }
+}
+
+class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+    private final List&lt;Emprestimo&gt; emprestimos = new ArrayList&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        if (livro == null) {
+            throw new IllegalArgumentException("Livro não encontrado: " + codigo);
+        }
+        return livro;
+    }
+
+    public int quantosCom(Usuario usuario) {
+        int total = 0;
+        for (Emprestimo e : emprestimos) {
+            if (e.usuario().equals(usuario)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    public void emprestar(String codigo, Usuario usuario) throws BibliotecaException {
+        Livro livro = buscar(codigo);
+        if (quantosCom(usuario) &gt;= usuario.limiteDeLivros()) {
+            throw new LimiteDeEmprestimosException(usuario);
+        }
+        livro.emprestar();
+        emprestimos.add(new Emprestimo(livro, usuario));
+    }
+
+    public void devolver(String codigo) {
+        Livro livro = buscar(codigo);
+        for (Emprestimo e : emprestimos) {
+            if (e.livro() == livro) {
+                emprestimos.remove(e);
+                livro.devolver();
+                System.out.println(e.usuario().nome() + " devolveu \"" + livro.getTitulo() + "\".");
+                return;
+            }
+        }
+        System.out.println("\"" + livro.getTitulo() + "\" não estava emprestado.");
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+
+    public void listarEmprestimos() {
+        System.out.println("--- Empréstimos (" + emprestimos.size() + ") ---");
+        for (Emprestimo e : emprestimos) {
+            System.out.println(e.livro().getTitulo() + " -&gt; " + e.usuario().nome());
+        }
+    }
+}
+
+class BibliotecaException extends Exception {
+    public BibliotecaException(String mensagem) {
+        super(mensagem);
+    }
+}
+
+record Emprestimo(Livro livro, Usuario usuario) {
+}
+
+class LimiteDeEmprestimosException extends BibliotecaException {
+    public LimiteDeEmprestimosException(Usuario usuario) {
+        super(usuario.nome() + " já está no limite de " + usuario.limiteDeLivros() + " livro(s).");
+    }
+}
+
+class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() throws LivroIndisponivelException {
+        if (!disponivel) {
+            throw new LivroIndisponivelException(this);
+        }
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+
+class LivroIndisponivelException extends BibliotecaException {
+    public LivroIndisponivelException(Livro livro) {
+        super("\"" + livro.getTitulo() + "\" já está emprestado.");
+    }
+}
+
+record Professor(String nome) implements Usuario {
+    @Override
+    public int limiteDeLivros() {
+        return 5;
+    }
+}
+
+interface Usuario {
+    String nome();
+
+    int limiteDeLivros();
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O código completo</h2>
+<p>Os arquivos que ainda não apareceram inteiros nesta página, na versão final:</p>
+
+<pre class="file" data-file="Livro.java">public class Livro {
+    private final String codigo;
+    private final String titulo;
+    private final String autor;
+    private boolean disponivel;
+
+    public Livro(String codigo, String titulo, String autor) {
+        this.codigo = codigo;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.disponivel = true;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void emprestar() throws LivroIndisponivelException {
+        if (!disponivel) {
+            throw new LivroIndisponivelException(this);
+        }
+        disponivel = false;
+    }
+
+    public void devolver() {
+        disponivel = true;
+    }
+
+    @Override
+    public String toString() {
+        String situacao = disponivel ? "disponível" : "emprestado";
+        return codigo + " | " + titulo + " | " + autor + " | " + situacao;
+    }
+}
+</pre>
+<pre class="file" data-file="Biblioteca.java">import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Biblioteca {
+    private final Map&lt;String, Livro&gt; livros = new HashMap&lt;&gt;();
+    private final List&lt;Emprestimo&gt; emprestimos = new ArrayList&lt;&gt;();
+
+    public void cadastrar(Livro livro) {
+        livros.put(livro.getCodigo(), livro);
+    }
+
+    public Livro buscar(String codigo) {
+        Livro livro = livros.get(codigo);
+        if (livro == null) {
+            throw new IllegalArgumentException("Livro não encontrado: " + codigo);
+        }
+        return livro;
+    }
+
+    public int quantosCom(Usuario usuario) {
+        int total = 0;
+        for (Emprestimo e : emprestimos) {
+            if (e.usuario().equals(usuario)) {
+                total++;
+            }
+        }
+        return total;
+    }
+
+    public void emprestar(String codigo, Usuario usuario) throws BibliotecaException {
+        Livro livro = buscar(codigo);
+        if (quantosCom(usuario) &gt;= usuario.limiteDeLivros()) {
+            throw new LimiteDeEmprestimosException(usuario);
+        }
+        livro.emprestar();
+        emprestimos.add(new Emprestimo(livro, usuario));
+    }
+
+    public void devolver(String codigo) {
+        Livro livro = buscar(codigo);
+        for (Emprestimo e : emprestimos) {
+            if (e.livro() == livro) {
+                emprestimos.remove(e);
+                livro.devolver();
+                System.out.println(e.usuario().nome() + " devolveu \"" + livro.getTitulo() + "\".");
+                return;
+            }
+        }
+        System.out.println("\"" + livro.getTitulo() + "\" não estava emprestado.");
+    }
+
+    public void listarAcervo() {
+        System.out.println("--- Acervo (" + livros.size() + " livros) ---");
+        for (Livro livro : livros.values()) {
+            System.out.println(livro);
+        }
+    }
+
+    public void listarEmprestimos() {
+        System.out.println("--- Empréstimos (" + emprestimos.size() + ") ---");
+        for (Emprestimo e : emprestimos) {
+            System.out.println(e.livro().getTitulo() + " -&gt; " + e.usuario().nome());
+        }
+    }
+}
+</pre>
+
+<p>Os outros oito estão completos nas etapas: <code>Usuario</code>, <code>Aluno</code> e <code>Professor</code> (etapa 2), <code>Emprestimo</code> (etapa 4), as três exceções e o <code>Main</code> (etapa 5).</p>
+
+<h2>Desafios extras</h2>
+<ol>
+  <li><strong>Devolver o que não foi emprestado.</strong> Troque o <code>println</code> do <code>devolver</code> por uma exceção nova, <code>LivroNaoEmprestadoException</code>.</li>
+  <li><strong>Livros de um autor.</strong> Um método <code>livrosDe(String autor)</code> que devolve uma <code>List&lt;Livro&gt;</code>.</li>
+  <li><strong>Acervo em ordem.</strong> Troque o <code>HashMap</code> por um <code>TreeMap</code> e veja a listagem sair sempre ordenada pelo código.</li>
+  <li><strong>Novo tipo de usuário.</strong> Crie <code>Visitante</code>, que só pode levar 1 livro. Repare que nenhuma outra classe precisa mudar.</li>
+  <li><strong>Prazo de devolução.</strong> Guarde a data no <code>Emprestimo</code> (<code>LocalDate</code>, veja <a href="datas.html">Datas e Horas</a>) e um prazo por tipo de usuário.</li>
+</ol>
+
+<div class="tip">
+<strong>Dica para o desafio 1</strong>
+<p>São três passos: a classe <code>LivroNaoEmprestadoException extends BibliotecaException</code> com a mensagem <code>"Iracema" não está emprestado.</code>; no <code>devolver</code>, <code>throw new LivroNaoEmprestadoException(livro)</code> no lugar do <code>println</code> e <code>throws LivroNaoEmprestadoException</code> na assinatura; no <code>Main</code>, um <code>try/catch</code> em volta do <code>bib.devolver(…)</code>. Teste com <code>bib.devolver("L4")</code>: a saída deve ter <code>Não deu: "Iracema" não está emprestado.</code></p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. Por que <code>Livro</code> não tem um método <code>setDisponivel(boolean)</code>?</p>
+<label><input type="radio" name="q1"> Porque <code>boolean</code> não pode ter setter.</label>
+<label><input type="radio" name="q1"> Para que ninguém de fora pule a regra de <code>emprestar()</code>, que recusa um livro já emprestado.</label>
+<label><input type="radio" name="q1"> Porque o atributo é <code>final</code>.</label>
+<label><input type="radio" name="q1"> Porque o Java não permite.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">2. O que <code>livros.get("L9")</code> devolve se não existe a chave <code>"L9"</code> no <code>HashMap</code>?</p>
+<label><input type="radio" name="q2"> Lança <code>IllegalArgumentException</code>.</label>
+<label><input type="radio" name="q2"> Um livro vazio.</label>
+<label><input type="radio" name="q2"> Lança <code>NoSuchElementException</code>.</label>
+<label><input type="radio" name="q2"> <code>null</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. Por que um único <code>catch (BibliotecaException e)</code> pega as duas exceções da biblioteca?</p>
+<label><input type="radio" name="q3"> Porque as duas estendem <code>BibliotecaException</code> (herança).</label>
+<label><input type="radio" name="q3"> Porque estão no mesmo arquivo.</label>
+<label><input type="radio" name="q3"> Porque são unchecked.</label>
+<label><input type="radio" name="q3"> Porque o <code>catch</code> pega qualquer exceção.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual a diferença entre <code>throw</code> e <code>throws</code>?</p>
+<label><input type="radio" name="q4"> Nenhuma, são sinônimos.</label>
+<label><input type="radio" name="q4"> <code>throws</code> lança agora; <code>throw</code> só avisa.</label>
+<label><input type="radio" name="q4"> <code>throw</code> lança a exceção agora; <code>throws</code>, na assinatura, avisa que o método pode lançá-la.</label>
+<label><input type="radio" name="q4"> <code>throw</code> é para checked e <code>throws</code> para unchecked.</label>
+</div>
+
+<div class="exercise">
+<p>Complete a declaração do record que implementa a interface:</p>
+<div class="ex-code">public record Aluno(String nome) <input data-answer="implements"> Usuario {</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Cada classe tem uma responsabilidade: o <code>Livro</code> cuida da própria situação, a <code>Biblioteca</code> aplica as regras, o <code>Main</code> conversa com o mundo.</li>
+  <li>Atributos <code>private</code> + métodos com regras = encapsulamento; o compilador barra quem tenta pular.</li>
+  <li>Uma interface define o contrato; records podem implementá-la. Variáveis do tipo da interface dão polimorfismo.</li>
+  <li><code>HashMap</code> acha pela chave; <code>get</code> devolve <code>null</code> quando não acha, então confira.</li>
+  <li>Exceções próprias dão nome aos problemas; herança entre elas permite tratar um grupo com um <code>catch</code>.</li>
+  <li><code>java Main.java</code> compila sozinho as outras classes da pasta (Java 22+); <code>javac *.java</code> compila tudo.</li>
+</ul>
+<p>Próximo projeto: <a href="projeto-banco.html">Conta Bancária com Testes</a>, em que o computador confere o seu código por você.</p>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
