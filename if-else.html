@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java if, else if, else — tomar decisões | Guia Java</title>
+<meta name="description" content="Como o programa toma decisões em Java com if, else e else if: blocos e chaves (o perigo de omitir, com exemplo real), a ordem das condições, if aninhado, comparar Strings com equals e os erros reais 'else' without 'if' e = no lugar de ==.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">if, else if, else</span></h1>
+
+<p class="intro">Até agora, os seus programas rodavam todas as linhas, de cima para baixo, sempre. Com o <code>if</code>, o programa passa a <strong>escolher</strong>: roda um trecho só quando uma condição é verdadeira, e outro trecho quando não é. É aqui que o programa começa a "pensar".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>if</code> ("se") roda um bloco só quando a condição é <code>true</code>.</li>
+  <li>Como o <code>else</code> ("senão") dá um caminho alternativo.</li>
+  <li>Como o <code>else if</code> escolhe entre várias opções, e por que a ordem importa.</li>
+  <li>O que são blocos e chaves, e o perigo real de omitir as chaves (e de um <code>;</code> a mais).</li>
+  <li>Como colocar um <code>if</code> dentro de outro e comparar Strings no <code>if</code>.</li>
+  <li>Os erros reais: <code>'else' without 'if'</code>, <code>=</code> no lugar de <code>==</code>, variável que "sumiu" depois do bloco.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma bifurcação no caminho</h2>
+<p>Pense num GPS: "<strong>se</strong> a rua estiver bloqueada, vire à direita; <strong>senão</strong>, siga em frente". O programa é o carro, andando linha por linha. O <code>if</code> é a bifurcação: o caminho escolhido depende da resposta a uma pergunta de sim ou não, uma <a href="booleanos.html">expressão booleana</a>.</p>
+
+<hr>
+
+<h2><code>if</code>: fazer algo só se…</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.5;
+        if (nota &gt;= 7.0) {
+            System.out.println("Aprovada!");
+        }
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Aprovada!
+Fim do programa</pre>
+
+<dl class="anatomy">
+  <dt>if</dt><dd>Palavra reservada: "se". Sempre minúscula.</dd>
+  <dt>(nota &gt;= 7.0)</dt><dd>A <strong>condição</strong>, sempre entre <strong>parênteses</strong>. Tem de ser uma expressão booleana: algo que dá <code>true</code> ou <code>false</code>.</dd>
+  <dt>{ … }</dt><dd>O <strong>bloco</strong>: as linhas entre as chaves rodam <strong>só se</strong> a condição for <code>true</code>. Se for <code>false</code>, o Java pula o bloco inteiro.</dd>
+  <dt>System.out.println("Fim do programa");</dt><dd>Está <strong>fora</strong> do bloco, depois do <code>}</code>: roda sempre, seja qual for a nota.</dd>
+</dl>
+
+<p>Com <code>nota = 5.5</code>, a saída seria só <code>Fim do programa</code>: a condição dá <code>false</code> e o <code>println("Aprovada!")</code> é pulado. Repare na <strong>indentação</strong> (os 4 espaços a mais dentro do bloco): o Java não precisa dela, mas é ela que mostra a quem lê o que está dentro do <code>if</code>.</p>
+
+<hr>
+
+<h2><code>else</code>: senão, faça outra coisa</h2>
+<p>O <code>else</code> ("senão") vem logo depois do bloco do <code>if</code> e tem o seu próprio bloco, que roda quando a condição é <code>false</code>. Sempre roda <strong>exatamente um</strong> dos dois blocos, nunca os dois, nunca nenhum.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 5.5;
+        if (nota &gt;= 7.0) {
+            System.out.println("Aprovada!");
+            System.out.println("Parabéns, Ana.");
+        } else {
+            System.out.println("Reprovada.");
+            System.out.println("Faltaram " + (7.0 - nota) + " pontos.");
+        }
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Reprovada.
+Faltaram 1.5 pontos.
+Fim do programa</pre>
+
+<p>Um bloco pode ter quantas linhas quiser. Como 5.5 não é <code>&gt;= 7.0</code>, o Java pulou o primeiro bloco e rodou o do <code>else</code>. O <code>else</code> <strong>não tem condição</strong>: ele é simplesmente "todos os outros casos".</p>
+
+<hr>
+
+<h2><code>else if</code>: várias opções</h2>
+<p>Para escolher entre <strong>mais de dois</strong> caminhos, encadeie <code>else if</code> ("senão, se"). O Java testa as condições <strong>de cima para baixo</strong> e roda o bloco da <strong>primeira</strong> que for verdadeira; as de baixo nem são testadas. O <code>else</code> final, opcional, pega o que sobrou.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 7.8;
+        if (nota &gt;= 9.0) {
+            System.out.println("Conceito A");
+        } else if (nota &gt;= 7.0) {
+            System.out.println("Conceito B");
+        } else if (nota &gt;= 5.0) {
+            System.out.println("Conceito C");
+        } else {
+            System.out.println("Conceito D");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Conceito B</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>Pergunta</th><th>Resposta (nota 7.8)</th><th>O que acontece</th></tr>
+<tr><td>1</td><td><code>nota &gt;= 9.0</code>?</td><td><code>false</code></td><td>Pula o bloco, vai para o próximo teste</td></tr>
+<tr><td>2</td><td><code>nota &gt;= 7.0</code>?</td><td><code>true</code></td><td>Mostra <code>Conceito B</code> e <strong>sai da escada inteira</strong></td></tr>
+<tr><td>3</td><td><code>nota &gt;= 5.0</code>?</td><td>(não é testada)</td><td></td></tr>
+<tr><td>4</td><td><code>else</code></td><td>(não roda)</td><td></td></tr>
+</table>
+</div>
+
+<p>Repare que o teste 2 não precisa dizer <code>nota &gt;= 7.0 &amp;&amp; nota &lt; 9.0</code>: se chegou ali, é porque o teste 1 já deu <code>false</code>, ou seja, a nota é menor que 9.</p>
+
+<h3>A ordem importa</h3>
+<p>Como vale a <strong>primeira</strong> condição verdadeira, uma escada na ordem errada dá resultados errados, sem nenhum aviso:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 9.5;
+        if (nota &gt;= 5.0) {
+            System.out.println("Conceito C");
+        } else if (nota &gt;= 7.0) {
+            System.out.println("Conceito B");
+        } else if (nota &gt;= 9.0) {
+            System.out.println("Conceito A");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Conceito C       « 9.5 merecia A!</pre>
+
+<p>9.5 é <code>&gt;= 5.0</code>, então o primeiro teste "pegou" a nota, e os outros nunca foram testados. Com condições do tipo "maior ou igual", comece pela <strong>mais exigente</strong> (a maior). Na dúvida, pergunte: "um valor que chega até aqui pode cair num teste acima por engano?".</p>
+
+<div class="tryjava" data-goal="out:Calor,src:else\s+if">
+<p class="try-task"><strong>Missão:</strong> complete a escada de <code>else if</code> para classificar a temperatura: <strong>30 ou mais</strong>, <code>Muito quente</code>; <strong>25 ou mais</strong>, <code>Calor</code>; <strong>15 ou mais</strong>, <code>Agradável</code>; abaixo disso, <code>Frio</code>. Com 28 graus, a saída deve ser <code>Calor</code>. Teste também com 31, 15 e 10.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int temperatura = 28;
+        if (temperatura &gt;= 30) {
+            System.out.println("Muito quente");
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int temperatura = 28;
+        if (temperatura &gt;= 30) {
+            System.out.println("Muito quente");
+        } else if (temperatura &gt;= 25) {
+            System.out.println("Calor");
+        } else if (temperatura &gt;= 15) {
+            System.out.println("Agradável");
+        } else {
+            System.out.println("Frio");
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Blocos e chaves: não economize</h2>
+<p>Se o bloco tem <strong>uma única linha</strong>, o Java permite omitir as chaves: <code>if (x &gt; 0) System.out.println("positivo");</code>. Parece prático, mas é uma armadilha. Sem chaves, o <code>if</code> controla <strong>só a próxima instrução</strong>, não importa como as linhas estão alinhadas. Veja o que acontece quando alguém acrescenta uma linha depois:</p>
+
+<p><em>Este código tem um erro de propósito (de lógica: ele compila).</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int saldo = 50;
+        if (saldo &lt; 0)
+            System.out.println("Saldo negativo!");
+            System.out.println("Cobrando juros...");
+        System.out.println("Saldo: " + saldo);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Cobrando juros...    « o saldo é positivo e mesmo assim cobrou juros!
+Saldo: 50</pre>
+
+<p>A indentação engana: parece que as duas linhas estão "dentro" do <code>if</code>. Para o Java, só a primeira está. A segunda é uma linha comum, que roda sempre. O <code>javac</code> não avisa nada. Com chaves, não há dúvida:</p>
+
+<pre class="file" data-file="Main.java">        if (saldo &lt; 0) {
+            System.out.println("Saldo negativo!");
+            System.out.println("Cobrando juros...");
+        }
+</pre>
+
+<div class="warning">
+<strong>Regra do guia: sempre use chaves</strong>
+<p>Mesmo com uma linha só. É a recomendação dos guias de estilo de Java (e a causa de falhas de segurança famosas em programas reais). As IDEs colocam as chaves para você.</p>
+</div>
+
+<h3>O <code>;</code> que esvazia o <code>if</code></h3>
+<p>Um ponto e vírgula logo depois dos parênteses é outro erro silencioso. <em>Este código tem um erro de propósito.</em></p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int saldo = 50;
+        if (saldo &lt; 0); {
+            System.out.println("Saldo negativo!");
+        }
+        System.out.println("Saldo: " + saldo);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Saldo negativo!      « com saldo 50?!
+Saldo: 50</pre>
+
+<p>O <code>;</code> é uma instrução vazia ("não faça nada"), e é <strong>ela</strong> que o <code>if</code> controla. O bloco <code>{ … }</code> que vem depois fica solto e roda sempre. O <code>javac</code> compila normalmente, mas, se você pedir todos os avisos com <code>-Xlint:all</code>, ele aponta o problema:</p>
+
+<pre class="term">$ javac -Xlint:all Main.java
+Main.java:4: warning: [empty] empty statement after if
+        if (saldo &lt; 0); {
+                      ^
+1 warning</pre>
+
+<p><code>empty statement after if</code> = "instrução vazia depois do if". Um <em>warning</em> (aviso) não impede a compilação, mas quase sempre indica um erro. As IDEs mostram esse aviso automaticamente.</p>
+
+<div class="tryjava" data-goal="out:Saldo: 50,src:if\s*\(saldo &lt; 0\)\s*\{">
+<p class="try-task"><strong>Missão:</strong> rode e veja os juros cobrados de um saldo positivo. Coloque as chaves que faltam para que as duas mensagens fiquem dentro do <code>if</code>. A saída correta é só <code>Saldo: 50</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int saldo = 50;
+        if (saldo &lt; 0)
+            System.out.println("Saldo negativo!");
+            System.out.println("Cobrando juros...");
+        System.out.println("Saldo: " + saldo);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int saldo = 50;
+        if (saldo &lt; 0) {
+            System.out.println("Saldo negativo!");
+            System.out.println("Cobrando juros...");
+        }
+        System.out.println("Saldo: " + saldo);
+    }
+}
+</pre>
+</div>
+
+<h3>Variáveis criadas dentro do bloco</h3>
+<p>Uma variável declarada <strong>dentro</strong> de um bloco só existe ali dentro; ao chegar no <code>}</code>, ela some. Esse "alcance" se chama <strong>escopo</strong> (aula própria em <a href="escopo.html">Escopo</a>). Se você precisa do valor depois do <code>if</code>, declare a variável <strong>antes</strong> e só atribua dentro:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.0;
+        String situacao;
+        if (nota &gt;= 7.0) {
+            situacao = "aprovada";
+        } else {
+            situacao = "reprovada";
+        }
+        System.out.println("Situação: " + situacao);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Situação: aprovada</pre>
+
+<p>Com <code>if</code> <strong>e</strong> <code>else</code>, o <code>javac</code> sabe que <code>situacao</code> sempre recebe um valor. Sem o <code>else</code>, ele reclama (veja "Quando dá errado"). Para casos simples como este, o <a href="ternario.html">operador ternário</a> faz o mesmo em uma linha.</p>
+
+<hr>
+
+<h2><code>if</code> dentro de <code>if</code></h2>
+<p>Um bloco pode conter qualquer código, inclusive outro <code>if</code>. Isso se chama <code>if</code> <strong>aninhado</strong> (como ninhos, um dentro do outro). Use quando a segunda pergunta só faz sentido depois da primeira:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        boolean temIngresso = true;
+        if (idade &gt;= 18) {
+            if (temIngresso) {
+                System.out.println("Pode entrar no show.");
+            } else {
+                System.out.println("Compre um ingresso na bilheteria.");
+            }
+        } else {
+            System.out.println("Show proibido para menores.");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Pode entrar no show.</pre>
+
+<p>Cada <code>else</code> pertence ao <code>if</code> cujo bloco acabou de fechar: o primeiro <code>else</code> responde a <code>if (temIngresso)</code>; o segundo, a <code>if (idade &gt;= 18)</code>. A indentação mostra isso a olho nu. Evite mais de dois ou três níveis: quando os ninhos ficam fundos, uma condição combinada com <code>&amp;&amp;</code> ou uma escada de <code>else if</code> costuma ficar mais clara.</p>
+
+<hr>
+
+<h2>Comparar Strings no <code>if</code></h2>
+<p>A regra da aula <a href="strings.html">Strings</a> vale em dobro aqui: <strong>no <code>if</code>, compare textos com <code>equals</code></strong>. O <code>==</code> compila e às vezes funciona, o que torna o erro traiçoeiro:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String digitado = "SIM";
+        String resposta = digitado.toLowerCase();
+        System.out.println(resposta);
+        if (resposta == "sim") {
+            System.out.println("== disse: confirmado");
+        } else {
+            System.out.println("== disse: NÃO confirmado");
+        }
+        if (resposta.equals("sim")) {
+            System.out.println("equals disse: confirmado");
+        }
+        if (digitado.equalsIgnoreCase("sim")) {
+            System.out.println("equalsIgnoreCase disse: confirmado");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+sim                                   « o texto é exatamente "sim"…
+== disse: NÃO confirmado              « …mas o == diz que não
+equals disse: confirmado
+equalsIgnoreCase disse: confirmado    « aceita SIM, Sim, sim…</pre>
+
+<p><code>toLowerCase()</code> criou uma String nova durante a execução, e o <code>==</code> compara se são o <strong>mesmo objeto</strong>, não o mesmo texto. Com dados que vêm do teclado (<a href="scanner.html">Scanner</a>), isso acontece sempre.</p>
+
+<hr>
+
+<h2>Formas de decidir: qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Fazer algo só em um caso</td><td><code>if</code></td></tr>
+<tr><td>Dois caminhos (sim / não)</td><td><code>if … else</code></td></tr>
+<tr><td>Várias faixas ou condições diferentes</td><td><code>if … else if … else</code></td></tr>
+<tr><td>Escolher entre <strong>dois valores</strong> para guardar ou mostrar</td><td><a href="ternario.html">Operador ternário</a> <code>cond ? a : b</code></td></tr>
+<tr><td>Comparar <strong>uma</strong> variável com vários valores exatos (1, 2, 3; "A", "B")</td><td><a href="switch.html">switch</a> ou <a href="switch-expressoes.html">switch com setas</a></td></tr>
+<tr><td>Uma pergunta que só faz sentido depois de outra</td><td><code>if</code> aninhado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: 'else' without 'if'</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        if (idade &gt;= 18);
+            System.out.println("Maior de idade");
+        else
+            System.out.println("Menor de idade");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:6: error: 'else' without 'if'
+        else
+        ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "<code>else</code> sem <code>if</code>". O <code>;</code> depois do <code>if</code> encerrou o <code>if</code> ali mesmo. O <code>println</code> virou uma linha comum, e o <code>else</code> ficou órfão: só pode vir <strong>imediatamente</strong> depois do bloco (ou da instrução) de um <code>if</code>. O mesmo erro aparece quando, sem chaves, há duas linhas entre o <code>if</code> e o <code>else</code>, ou quando uma chave <code>}</code> está fora do lugar.</p>
+<p><strong>Como resolver:</strong> tire o <code>;</code> e use chaves: <code>if (idade &gt;= 18) { … } else { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: incompatible types: int cannot be converted to boolean</code> (<code>=</code> no lugar de <code>==</code>)</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        if (idade = 18) {
+            System.out.println("Fez 18 anos!");
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: int cannot be converted to boolean
+        if (idade = 18) {
+                  ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> um <code>=</code> só é <strong>atribuição</strong> ("guarde 18 em idade"), e o resultado dela é o número 18. O <code>if</code> precisa de um <code>boolean</code> e recebeu um <code>int</code>. Em C, isso compilaria e daria um erro difícil de achar; o Java, por exigir <code>boolean</code>, pega o engano.</p>
+<p><strong>Como resolver:</strong> para comparar, dois sinais: <code>if (idade == 18)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>=</code> com <code>boolean</code> não dá erro (e sempre entra no <code>if</code>)</strong>
+<p><em>Este código tem um erro de propósito (de lógica: ele compila).</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        boolean ligado = false;
+        if (ligado = true) {
+            System.out.println("Está ligado");
+        }
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Está ligado</pre>
+<p><strong>O que aconteceu:</strong> aqui o tipo bate: <code>ligado = true</code> guarda <code>true</code> e o resultado é <code>true</code>, um <code>boolean</code>. O <code>if</code> sempre entra, e ainda estragou o valor de <code>ligado</code>.</p>
+<p><strong>Como resolver:</strong> nem <code>=</code> nem <code>==</code>: escreva <code>if (ligado)</code> (veja <a href="booleanos.html">Expressões Booleanas</a>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: '(' expected</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        if idade &gt;= 18 {
+            System.out.println("Maior de idade");
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: '(' expected
+        if idade &gt;= 18 {
+          ^
+Main.java:4: error: ')' expected
+        if idade &gt;= 18 {
+                      ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> em Java, os parênteses da condição são obrigatórios (em Python e Go, não).</p>
+<p><strong>Como resolver:</strong> <code>if (idade &gt;= 18) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: cannot find symbol … symbol: variable situacao</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.0;
+        if (nota &gt;= 7.0) {
+            String situacao = "aprovada";
+        } else {
+            String situacao = "reprovada";
+        }
+        System.out.println(situacao);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:9: error: cannot find symbol
+        System.out.println(situacao);
+                           ^
+  symbol:   variable situacao
+  location: class Main
+1 error</pre>
+<p><strong>O que aconteceu:</strong> as duas variáveis <code>situacao</code> foram criadas dentro dos blocos e deixaram de existir no <code>}</code>. Na linha 9, não há nenhuma <code>situacao</code> visível.</p>
+<p><strong>Como resolver:</strong> declare antes do <code>if</code> (<code>String situacao;</code>) e só atribua dentro dos blocos, como no exemplo da seção "Variáveis criadas dentro do bloco".</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: variable situacao might not have been initialized</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.0;
+        String situacao;
+        if (nota &gt;= 7.0) {
+            situacao = "aprovada";
+        }
+        System.out.println(situacao);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:8: error: variable situacao might not have been initialized
+        System.out.println(situacao);
+                           ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "a variável pode não ter sido inicializada". Se a nota fosse menor que 7, ninguém daria valor a <code>situacao</code>. O <code>javac</code> analisa todos os caminhos possíveis e não deixa usar uma variável que, em algum caminho, ficou sem valor (mesmo que, com <code>8.0</code>, o caminho seja outro).</p>
+<p><strong>Como resolver:</strong> acrescente o <code>else</code> que atribui o outro valor, ou dê um valor inicial na declaração.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: class, interface, annotation type, enum, record, method or field expected</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:10: error: class, interface, annotation type, enum, record, method or field expected
+}
+^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> sobrou uma chave <code>}</code>. Ao fechar blocos de <code>if</code> dentro de <code>if</code>, é fácil perder a conta: o <code>javac</code> chegou a uma <code>}</code> depois do fim da classe e esperava outra coisa ali. Quando falta uma chave, o erro costuma ser <code>reached end of file while parsing</code>.</p>
+<p><strong>Como resolver:</strong> confira os pares de chaves pela indentação; as IDEs destacam o par de cada chave.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Roda</th></tr>
+<tr><td><code>if (cond) { A }</code></td><td>A, se <code>cond</code> for <code>true</code></td></tr>
+<tr><td><code>if (cond) { A } else { B }</code></td><td>A ou B, nunca os dois</td></tr>
+<tr><td><code>if (c1) { A } else if (c2) { B } else { C }</code></td><td>O bloco da <strong>primeira</strong> condição verdadeira; C se nenhuma</td></tr>
+<tr><td><code>if (c1) { if (c2) { A } }</code></td><td>A, se <code>c1</code> e <code>c2</code> forem <code>true</code> (o mesmo que <code>if (c1 &amp;&amp; c2)</code>)</td></tr>
+<tr><td><code>if (texto.equals("x"))</code></td><td>Comparação de String (nunca <code>==</code>)</td></tr>
+<tr><td><code>if (ativo)</code> / <code>if (!ativo)</code></td><td>Variável <code>boolean</code>, sem <code>== true</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Frete: R$ 10,src:equals,src:else">
+<p class="try-task"><strong>Missão final:</strong> calcule o frete de uma loja. Compras de <strong>200 ou mais</strong>: <code>Frete grátis</code>. Senão, se o estado for <code>"PE"</code>: <code>Frete: R$ 10</code>. Senão: <code>Frete: R$ 25</code>. Com a compra de 150 em PE, a saída deve ser <code>Frete: R$ 10</code>. Use <code>equals</code> para o estado.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double compra = 150.0;
+        String estado = "PE";
+        // escreva o if / else if / else
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double compra = 150.0;
+        String estado = "PE";
+        if (compra &gt;= 200) {
+            System.out.println("Frete grátis");
+        } else if (estado.equals("PE")) {
+            System.out.println("Frete: R$ 10");
+        } else {
+            System.out.println("Frete: R$ 25");
+        }
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. A palavra que falta</h3>
+<p>Complete para mostrar "Ímpar" quando o número não for par:</p>
+<div class="ex-code">if (n % 2 == 0) { System.out.println("Par"); } <input data-answer="else" aria-label="palavra"> { System.out.println("Ímpar"); }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Comparar texto</h3>
+<p>Complete a condição para testar se <code>cor</code> é <code>"azul"</code>:</p>
+<div class="ex-code">if (cor.<input data-answer="equals(&quot;azul&quot;)" aria-label="comparação">) { … }</div>
+</div>
+
+<div class="exercise">
+<h3>3. Qual a saída?</h3>
+<p>Com <code>int x = 10;</code>, o que mostra <code>if (x &gt; 5) { System.out.println("A"); } else if (x &gt; 8) { System.out.println("B"); } else { System.out.println("C"); }</code>?</p>
+<div class="ex-code"><input data-answer="A" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Com <code>int x = -3;</code>, o que este código mostra?</p>
+<pre class="file">if (x &gt; 0)
+    System.out.println("positivo");
+    System.out.println("fim");</pre>
+<label><input type="radio" name="q4"> Nada</label>
+<label><input type="radio" name="q4"> <code>fim</code></label>
+<label><input type="radio" name="q4"> <code>positivo</code> e <code>fim</code></label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que <code>if (idade = 18)</code> não compila, com <code>int idade</code>?</p>
+<label><input type="radio" name="q5"> Porque falta o <code>else</code>.</label>
+<label><input type="radio" name="q5"> Porque 18 é um número pequeno.</label>
+<label><input type="radio" name="q5"> Porque <code>=</code> é atribuição e dá um <code>int</code>; o <code>if</code> exige um <code>boolean</code>.</label>
+<label><input type="radio" name="q5"> Porque o <code>if</code> não aceita números.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Numa escada de <code>else if</code>, quantos blocos rodam no máximo?</p>
+<label><input type="radio" name="q6"> Um</label>
+<label><input type="radio" name="q6"> Todos cujas condições forem verdadeiras</label>
+<label><input type="radio" name="q6"> Dois: o do <code>if</code> e o do <code>else</code></label>
+<label><input type="radio" name="q6"> Depende da ordem</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>if (condição) { … }</code> roda o bloco só quando a condição é <code>true</code>; a condição vai entre parênteses e tem de ser <code>boolean</code>.</li>
+  <li><code>else</code> é o "senão": exatamente um dos dois blocos roda.</li>
+  <li><code>else if</code> encadeia opções; vale a <strong>primeira</strong> verdadeira, então a ordem importa (comece pela mais exigente).</li>
+  <li>Use <strong>sempre</strong> chaves. Sem elas, o <code>if</code> controla só a próxima linha, e a indentação mente. Nada de <code>;</code> depois do <code>)</code>.</li>
+  <li>Variável criada dentro do bloco some no <code>}</code>: declare antes se precisar dela depois.</li>
+  <li>Strings no <code>if</code>: <code>equals</code>. Comparação: <code>==</code>, nunca <code>=</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
