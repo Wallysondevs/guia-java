@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Pattern Matching — instanceof com padrão, switch com padrões e record patterns | Guia Java</title>
+<meta name="description" content="Pattern matching no Java: instanceof com padrão (Java 16), switch com padrões de tipo e when (Java 21), record patterns, padrões aninhados, exaustividade com sealed e case null, com saídas reais do JDK 25 e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Pattern Matching</span></h1>
+
+<p class="intro"><strong>Pattern matching</strong> (em português, "casamento de padrões") é perguntar "este objeto tem esta forma?" e, na mesma tacada, <strong>pegar as partes</strong> dele para usar. Antes, o Java obrigava você a testar o tipo, converter e só depois usar, em três passos repetitivos. Do Java 16 ao 21, a linguagem ganhou um jeito curto e seguro de fazer tudo isso de uma vez.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O <code>instanceof</code> com padrão <span class="versao">Java 16+</span>: testar o tipo e já ganhar uma variável.</li>
+  <li>Onde essa variável existe (e o erro <code>cannot find symbol</code> quando você a usa fora do lugar).</li>
+  <li>O <code>switch</code> com padrões de tipo e a palavra <code>when</code> <span class="versao">Java 21+</span>.</li>
+  <li>Os <strong>record patterns</strong> <span class="versao">Java 21+</span>: desmontar um record dentro do padrão, inclusive um dentro do outro.</li>
+  <li>Por que o compilador exige que o <code>switch</code> cubra "todos os casos", como as classes <code>sealed</code> dispensam o <code>default</code> e como tratar o <code>null</code> com <code>case null</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula usa coisas que você já viu: <a href="polimorfismo.html">polimorfismo</a> (uma variável do tipo <code>Object</code> pode guardar um <code>String</code>, um <code>Integer</code>…), <a href="conversao-tipos.html">conversão de tipos (cast)</a>, o <a href="switch-expressoes.html">switch com setas</a> e os <a href="records.html">records</a>. Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Imagine a Ana separando as encomendas da loja. Chega uma caixa fechada. Ela pergunta: "isto é uma caixa de frutas?". Se for, ela <strong>abre e pega as frutas</strong>. Se for uma caixa de livros, faz outra coisa. Repare que a pergunta e o "abrir" andam juntos: ninguém pergunta "é de frutas?", ouve "sim" e depois finge que não sabe e confere de novo.</p>
+<p>No Java antigo era exatamente isso que acontecia. O programa perguntava o tipo com <code>instanceof</code> (em inglês, "é instância de", ou seja, "é um objeto do tipo…") e, mesmo depois de ouvir "sim", precisava <strong>converter</strong> o objeto para o tipo certo com um <em>cast</em>. Um <strong>padrão</strong> junta as duas coisas: "se for um <code>String</code>, chame-o de <code>texto</code>".</p>
+
+<hr>
+
+<h2>1. O jeito antigo: testar e converter</h2>
+<p>Uma variável do tipo <code>Object</code> aceita qualquer objeto. Só que, por ser genérica, ela não deixa você chamar métodos de <code>String</code>, como <code>toUpperCase()</code> (deixar em maiúsculas). Era preciso testar e converter:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Object coisa = "banana";
+
+        // Jeito antigo: testar, depois converter (cast)
+        if (coisa instanceof String) {
+            String texto = (String) coisa;
+            System.out.println("Antigo: " + texto.toUpperCase());
+        }
+
+        // Jeito novo (Java 16+): testar e já dar um nome
+        if (coisa instanceof String texto) {
+            System.out.println("Novo: " + texto.toUpperCase());
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Antigo: BANANA
+Novo: BANANA</pre>
+
+<p>As duas formas fazem a mesma coisa. No jeito antigo, a palavra <code>String</code> aparece <strong>três vezes</strong> (no teste, na declaração e no cast), e nada impede você de errar uma delas, como testar <code>String</code> e converter para <code>Integer</code>. No jeito novo, aparece uma vez só.</p>
+
+<h2>2. <code>instanceof</code> com padrão <span class="versao">Java 16+</span></h2>
+
+<dl class="anatomy">
+  <dt>coisa</dt><dd>O objeto que você quer examinar.</dd>
+  <dt>instanceof</dt><dd>"É um objeto do tipo…?". Responde <code>true</code> ou <code>false</code>.</dd>
+  <dt>String</dt><dd>O tipo que você está testando.</dd>
+  <dt>texto</dt><dd>A novidade: o nome de uma <strong>variável de padrão</strong>. Se o teste der <code>true</code>, ela nasce já do tipo <code>String</code>, guardando o mesmo objeto. Não tem cast.</dd>
+</dl>
+
+<p>O conjunto <code>String texto</code> é o <strong>padrão de tipo</strong>: um tipo seguido de um nome. Ele "casa" com o objeto quando o objeto é daquele tipo. Com vários <code>else if</code>, você trata cada tipo do seu jeito:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void descrever(Object item) {
+        if (item instanceof String s) {
+            System.out.println("Texto com " + s.length() + " letras: " + s);
+        } else if (item instanceof Integer n) {
+            System.out.println("Número inteiro; o dobro é " + (n * 2));
+        } else if (item instanceof Double d) {
+            System.out.println("Número decimal; metade é " + (d / 2));
+        } else {
+            System.out.println("Não sei descrever: " + item);
+        }
+    }
+
+    public static void main(String[] args) {
+        descrever("maçã");
+        descrever(21);
+        descrever(7.5);
+        descrever(true);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Texto com 4 letras: maçã
+Número inteiro; o dobro é 42
+Número decimal; metade é 3.75
+Não sei descrever: true</pre>
+
+<p>Cada chamada caiu num ramo diferente. O <code>21</code> virou um <code>Integer</code> por <a href="wrappers.html">autoboxing</a>, casou com <code>Integer n</code>, e dentro do ramo <code>n</code> é um número de verdade: dá para fazer <code>n * 2</code>. O <code>true</code> não casou com nenhum padrão e foi para o <code>else</code>.</p>
+
+<h3>Onde a variável de padrão existe</h3>
+<p>A variável <code>s</code> só existe nos lugares em que o Java tem <strong>certeza</strong> de que o teste deu certo. Essa regra tem até nome: <em>flow scoping</em> ("escopo pelo fluxo"). Na prática:</p>
+<ul>
+  <li>Dentro do <code>if</code> que testou: existe.</li>
+  <li>Depois de um <code>&amp;&amp;</code> (e): existe, porque o lado direito só roda se o esquerdo deu <code>true</code>. Então <code>o instanceof String s &amp;&amp; s.length() > 3</code> funciona.</li>
+  <li>Depois de um <code>||</code> (ou): <strong>não</strong> existe, porque o lado direito roda justamente quando o teste deu <code>false</code>.</li>
+  <li>Com a negação <code>!(… instanceof …)</code> e um <code>return</code>: a variável existe <strong>depois</strong> do <code>if</code>, porque só chega lá quem passou no teste.</li>
+</ul>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void boasVindas(Object nome) {
+        if (!(nome instanceof String s)) {
+            System.out.println("Isso não é um nome.");
+            return;
+        }
+        // daqui para baixo o Java sabe que nome é String: s existe
+        System.out.println("Olá, " + s + "!");
+    }
+
+    public static void main(String[] args) {
+        Object[] itens = { "Ana", 42, "kiwi", 3.5 };
+        for (Object o : itens) {
+            if (o instanceof String s &amp;&amp; s.length() &gt; 3) {
+                System.out.println("Palavra longa: " + s);
+            }
+        }
+        boasVindas("Ana");
+        boasVindas(10);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Palavra longa: kiwi
+Olá, Ana!
+Isso não é um nome.</pre>
+
+<p><code>"Ana"</code> é um <code>String</code>, mas tem só 3 letras, então o <code>&amp;&amp;</code> deu <code>false</code>; <code>42</code> e <code>3.5</code> nem são textos. Só <code>"kiwi"</code> passou nos dois testes. Na <code>boasVindas</code>, o <code>return</code> faz o método terminar cedo para quem não é texto; quem continua é <code>String</code>, e o Java deixa usar <code>s</code>.</p>
+
+<div class="tryjava" data-goal="out:Soma: 49,src:instanceof\s+Integer\s+\w+">
+<p class="try-task"><strong>Missão:</strong> o vetor <code>itens</code> mistura textos e números. Use <code>instanceof</code> com padrão (<code>o instanceof Integer n</code>) para somar <strong>só os inteiros</strong> e mostrar <code>Soma: 49</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Object[] itens = { "Ana", 42, "kiwi", 7, 2.5 };
+        int soma = 0;
+        for (Object o : itens) {
+            // teste aqui se o é um Integer e some
+        }
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Object[] itens = { "Ana", 42, "kiwi", 7, 2.5 };
+        int soma = 0;
+        for (Object o : itens) {
+            if (o instanceof Integer n) {
+                soma = soma + n;
+            }
+        }
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>switch</code> com padrões de tipo <span class="versao">Java 21+</span></h2>
+<p>Uma escada de <code>if … else if</code> testando tipos fica comprida. Desde o Java 21, o <a href="switch-expressoes.html">switch com setas</a> aceita <strong>padrões</strong> no lugar de valores fixos. Cada <code>case</code> diz um tipo e um nome:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static String descrever(Object item) {
+        return switch (item) {
+            case Integer n -&gt; "inteiro " + n;
+            case Double d  -&gt; "decimal " + d;
+            case String s  -&gt; "texto \"" + s + "\"";
+            default        -&gt; "outra coisa: " + item;
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(descrever(10));
+        System.out.println(descrever(2.5));
+        System.out.println(descrever("pera"));
+        System.out.println(descrever('x'));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+inteiro 10
+decimal 2.5
+texto "pera"
+outra coisa: x</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>return switch (item) {</code></td><td>Um <code>switch</code> que <strong>produz um valor</strong> (uma <em>switch expression</em>); o <code>return</code> devolve esse valor.</td></tr>
+<tr><td><code>case Integer n -&gt; …</code></td><td>Se <code>item</code> for um <code>Integer</code>, chame-o de <code>n</code> e produza o texto da direita.</td></tr>
+<tr><td><code>case String s -&gt; …</code></td><td>Mesmo raciocínio para <code>String</code>. Os <code>case</code> são testados <strong>de cima para baixo</strong>.</td></tr>
+<tr><td><code>default -&gt; …</code></td><td>Para todo o resto (aqui, o <code>char</code> <code>'x'</code>, que virou um <code>Character</code>).</td></tr>
+</table>
+</div>
+
+<h3>Condições extras com <code>when</code></h3>
+<p>Às vezes o tipo não basta: você quer "um inteiro <strong>maior ou igual a 7</strong>". Para isso existe a <strong>guarda</strong> <code>when</code> (inglês para "quando"): depois do padrão, uma condição que também precisa ser verdadeira.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static String classificar(Object nota) {
+        return switch (nota) {
+            case Integer n when n &gt;= 7 -&gt; "aprovado com " + n;
+            case Integer n when n &gt;= 5 -&gt; "recuperação com " + n;
+            case Integer n             -&gt; "reprovado com " + n;
+            case String s              -&gt; "nota em texto? \"" + s + "\"";
+            default                    -&gt; "não é nota";
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(classificar(9));
+        System.out.println(classificar(6));
+        System.out.println(classificar(3));
+        System.out.println(classificar("dez"));
+        System.out.println(classificar(8.5));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+aprovado com 9
+recuperação com 6
+reprovado com 3
+nota em texto? "dez"
+não é nota</pre>
+
+<dl class="anatomy">
+  <dt>case</dt><dd>Começa uma alternativa do <code>switch</code>.</dd>
+  <dt>Integer n</dt><dd>O padrão de tipo: casa com inteiros e cria <code>n</code>.</dd>
+  <dt>when n &gt;= 7</dt><dd>A guarda: só vale se, além de ser inteiro, <code>n</code> for pelo menos 7. Ela pode usar a variável do padrão.</dd>
+  <dt>-&gt; "aprovado com " + n</dt><dd>O resultado deste caso.</dd>
+</dl>
+
+<p>O <code>6</code> não passou na guarda do primeiro <code>case</code>, então o Java tentou o segundo, que casou. O <code>8.5</code> é um <code>Double</code>, não casou com nenhum padrão de <code>Integer</code> nem de <code>String</code>, e caiu no <code>default</code>.</p>
+
+<div class="warning">
+<strong>A ordem importa</strong>
+<p>O caso mais <strong>específico</strong> vem primeiro. <code>case Integer n</code> sem guarda casa com <strong>qualquer</strong> inteiro; se ele vier antes de <code>case Integer n when n >= 7</code>, o segundo nunca seria alcançado, e o <code>javac</code> recusa o programa (veja "Quando dá errado", mais abaixo).</p>
+</div>
+
+<div class="tryjava" data-goal="out:fruta curta: kiwi,out:fruta longa: melancia,out:caixa grande com 24,out:caixa pequena com 6">
+<p class="try-task"><strong>Missão:</strong> a etiqueta de cada item da loja depende do tipo e do tamanho. Complete o <code>switch</code> com padrões e <code>when</code>: textos de até 4 letras viram <code>fruta curta: …</code>, os outros <code>fruta longa: …</code>; inteiros acima de 10 viram <code>caixa grande com …</code>, os outros <code>caixa pequena com …</code>.</p>
+<pre class="script">public class Main {
+    static String etiqueta(Object item) {
+        return switch (item) {
+            case String s when s.length() &lt;= 4 -&gt; "fruta curta: " + s;
+            // falta: os outros textos e os inteiros
+            default -&gt; "não sei";
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(etiqueta("kiwi"));
+        System.out.println(etiqueta("melancia"));
+        System.out.println(etiqueta(24));
+        System.out.println(etiqueta(6));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static String etiqueta(Object item) {
+        return switch (item) {
+            case String s when s.length() &lt;= 4 -&gt; "fruta curta: " + s;
+            case String s -&gt; "fruta longa: " + s;
+            case Integer n when n &gt; 10 -&gt; "caixa grande com " + n;
+            case Integer n -&gt; "caixa pequena com " + n;
+            default -&gt; "não sei";
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(etiqueta("kiwi"));
+        System.out.println(etiqueta("melancia"));
+        System.out.println(etiqueta(24));
+        System.out.println(etiqueta(6));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. E o <code>null</code>? <code>case null</code> <span class="versao">Java 21+</span></h2>
+<p><code>null</code> quer dizer "nenhum objeto". Ele não é <code>String</code>, nem <code>Integer</code>, nem nada; por isso <code>null instanceof String</code> dá <code>false</code>. Mas um <code>switch</code> que recebe <code>null</code> e não diz o que fazer com ele <strong>lança uma exceção</strong>, mesmo tendo <code>default</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static String descrever(Object item) {
+        return switch (item) {
+            case Integer n -&gt; "inteiro " + n;
+            case String s  -&gt; "texto " + s;
+            default        -&gt; "outra coisa";
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(descrever("caqui"));
+        System.out.println(descrever(null));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+texto caqui
+Exception in thread "main" java.lang.NullPointerException
+	at java.base/java.util.Objects.requireNonNull(Objects.java:220)
+	at Main.descrever(Main.java:3)
+	at Main.main(Main.java:12)</pre>
+
+<p>A <a href="excecoes.html">exceção</a> <code>NullPointerException</code> ("exceção de ponteiro nulo") apareceu na linha 3, a do <code>switch</code>. O <code>default</code> <strong>não</strong> pega o <code>null</code>: isso foi decidido para que programas antigos continuassem se comportando igual. Para tratar o <code>null</code>, escreva um caso para ele:</p>
+
+<pre class="file" data-file="Main.java">        return switch (item) {
+            case null      -&gt; "nada (null)";
+            case Integer n -&gt; "inteiro " + n;
+            case String s  -&gt; "texto " + s;
+            default        -&gt; "outra coisa";
+        };
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+texto caqui
+nada (null)</pre>
+
+<p>Se o <code>null</code> deve ter o mesmo destino do <code>default</code>, junte os dois: <code>case null, default -&gt; "nulo ou outra coisa";</code>.</p>
+
+<hr>
+
+<h2>5. Record patterns: desmontar um record <span class="versao">Java 21+</span></h2>
+<p>Um <a href="records.html">record</a> é uma classe feita só para guardar dados, como <code>record Ponto(int x, int y)</code>. Os <strong>record patterns</strong> (padrões de record) deixam você testar "é um <code>Ponto</code>?" e, ao mesmo tempo, <strong>tirar o <code>x</code> e o <code>y</code> de dentro dele</strong>. Isso se chama <strong>desconstrução</strong>: o contrário de construir com <code>new Ponto(3, 4)</code>.</p>
+
+<pre class="file" data-file="Main.java">record Ponto(int x, int y) {}
+
+public class Main {
+    public static void main(String[] args) {
+        Object o = new Ponto(3, 4);
+
+        // Antes: testar, converter e chamar os métodos de acesso
+        if (o instanceof Ponto p) {
+            System.out.println("x = " + p.x() + ", y = " + p.y());
+        }
+
+        // Java 21+: desmontar o record direto no padrão
+        if (o instanceof Ponto(int x, int y)) {
+            System.out.println("x = " + x + ", y = " + y);
+        }
+
+        // var também vale dentro do padrão
+        if (o instanceof Ponto(var x, var y) &amp;&amp; x == y) {
+            System.out.println("Está na diagonal");
+        } else {
+            System.out.println("Fora da diagonal");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+x = 3, y = 4
+x = 3, y = 4
+Fora da diagonal</pre>
+
+<dl class="anatomy">
+  <dt>o instanceof</dt><dd>O teste de sempre.</dd>
+  <dt>Ponto(</dt><dd>"É um <code>Ponto</code>? Então abra-o."</dd>
+  <dt>int x, int y</dt><dd>Um padrão para cada componente, <strong>na ordem</strong> em que o record os declara. Os nomes são seus: <code>Ponto(int a, int b)</code> também funcionaria.</dd>
+  <dt>)</dt><dd>Fecha o padrão. Se casar, <code>x</code> e <code>y</code> já existem com os valores de dentro.</dd>
+</dl>
+
+<p>No lugar dos tipos, você pode escrever <code>var</code> e deixar o Java descobrir (<code>int</code>, neste caso), como na <a href="var.html">aula de var</a>.</p>
+
+<h3>Padrões aninhados: um record dentro do outro</h3>
+<p>A força dos record patterns aparece quando um record guarda outro. Uma <code>Linha</code> tem dois <code>Ponto</code>s; num único padrão, você abre a linha <strong>e</strong> os dois pontos:</p>
+
+<pre class="file" data-file="Main.java">record Ponto(int x, int y) {}
+record Linha(Ponto inicio, Ponto fim) {}
+
+public class Main {
+    static String descrever(Object o) {
+        return switch (o) {
+            case Ponto(var x, var y) when x == 0 &amp;&amp; y == 0 -&gt; "a origem";
+            case Ponto(var x, var y) -&gt; "ponto (" + x + ", " + y + ")";
+            case Linha(Ponto(var x1, var y1), Ponto(var x2, var y2)) when x1 == x2 -&gt;
+                "linha vertical em x = " + x1;
+            case Linha(Ponto a, Ponto b) -&gt; "linha de " + a + " até " + b;
+            default -&gt; "não sei";
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(descrever(new Ponto(0, 0)));
+        System.out.println(descrever(new Ponto(2, 5)));
+        System.out.println(descrever(new Linha(new Ponto(1, 0), new Ponto(1, 9))));
+        System.out.println(descrever(new Linha(new Ponto(0, 0), new Ponto(4, 4))));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+a origem
+ponto (2, 5)
+linha vertical em x = 1
+linha de Ponto[x=0, y=0] até Ponto[x=4, y=4]</pre>
+
+<p>O terceiro <code>case</code> lê assim: "uma <code>Linha</code> cujo início é um <code>Ponto</code> com <code>x1</code> e <code>y1</code>, e cujo fim é um <code>Ponto</code> com <code>x2</code> e <code>y2</code>, quando <code>x1 == x2</code>". No último <code>case</code>, os pontos não foram abertos: <code>a</code> e <code>b</code> são <code>Ponto</code>s inteiros, e o <code>println</code> mostra o <code>toString</code> automático dos records (<code>Ponto[x=0, y=0]</code>).</p>
+
+<div class="tip">
+<strong>Não precisa de uma parte? Use <code>_</code></strong> <span class="versao">Java 22+</span>
+<p>Se o <code>y</code> não interessa, escreva <code>_</code> (sublinhado) no lugar dele: <code>o instanceof Ponto(int x, _)</code>. O mesmo vale para o nome inteiro: <code>case Ponto _ -&gt; "é um ponto"</code>. São as <em>unnamed variables and patterns</em>, finais desde o Java 22 (veja <a href="novidades.html">Novidades do Java 17 ao 25</a>). No JDK 25 da Ana, <code>if (o instanceof Ponto(int x, _))</code> mostrou <code>Só me interessa o x: 3</code>.</p>
+</div>
+
+<hr>
+
+<h2>6. Exaustividade: o <code>switch</code> precisa cobrir tudo</h2>
+<p>Um <code>switch</code> que <strong>produz um valor</strong> precisa ter uma resposta para toda entrada possível. Os <code>case</code> juntos devem ser <strong>exaustivos</strong> ("esgotar todas as possibilidades"). Com <code>Object</code>, as possibilidades são infinitas (qualquer classe!), então o <code>default</code> é obrigatório. Sem ele:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    static String descrever(Object item) {
+        return switch (item) {
+            case Integer n -&gt; "inteiro " + n;
+            case String s  -&gt; "texto " + s;
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(descrever(10));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: the switch expression does not cover all possible input values
+        return switch (item) {
+               ^
+1 error</pre>
+
+<p>"A expressão switch não cobre todos os valores de entrada possíveis." E se o tipo tiver um número <strong>fechado</strong> de possibilidades? É para isso que existem as <a href="sealed.html">classes seladas</a>: uma interface <code>sealed</code> lista quem pode implementá-la, e o compilador passa a saber que não existe mais nenhuma. Aí o <code>default</code> se torna desnecessário:</p>
+
+<pre class="file" data-file="Main.java">sealed interface Forma permits Circulo, Retangulo {}
+record Circulo(double raio) implements Forma {}
+record Retangulo(double largura, double altura) implements Forma {}
+
+public class Main {
+    static double area(Forma f) {
+        return switch (f) {
+            case Circulo(double r) -&gt; Math.PI * r * r;
+            case Retangulo(double l, double a) -&gt; l * a;
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(area(new Circulo(1)));
+        System.out.println(area(new Retangulo(3, 4)));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+3.141592653589793
+12.0</pre>
+
+<p>A vantagem aparece quando alguém aumenta a família. Se você acrescentar <code>Triangulo</code> ao <code>permits</code> e esquecer de atualizar o <code>switch</code>, o programa <strong>não compila</strong>, e o <code>javac</code> aponta o lugar exato:</p>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:8: error: the switch expression does not cover all possible input values
+        return switch (f) {
+               ^
+1 error</pre>
+
+<p>Com um <code>default</code>, o triângulo cairia nele em silêncio e talvez calculasse uma área errada. Sem o <code>default</code>, o compilador vira seu aliado. A aula <a href="sealed.html">Classes Seladas</a> detalha <code>sealed</code>, <code>permits</code>, <code>final</code> e <code>non-sealed</code>.</p>
+
+<hr>
+
+<h2>Antes × depois</h2>
+<p>Resumo de como o mesmo problema era escrito antes e como se escreve no Java moderno:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Antes</th><th>Depois</th><th>Desde</th></tr>
+<tr><td>Testar o tipo e usar</td><td><code>if (o instanceof String) { String s = (String) o; … }</code></td><td><code>if (o instanceof String s) { … }</code></td><td>Java 16</td></tr>
+<tr><td>Tipo + condição</td><td><code>if (o instanceof String) { String s = (String) o; if (s.length() &gt; 3) … }</code></td><td><code>if (o instanceof String s &amp;&amp; s.length() &gt; 3)</code></td><td>Java 16</td></tr>
+<tr><td>Vários tipos</td><td>Escada de <code>if … else if</code> com casts</td><td><code>switch (o) { case Integer n -&gt; …; case String s -&gt; …; }</code></td><td>Java 21</td></tr>
+<tr><td>Tipo + condição no switch</td><td><code>if</code> dentro do <code>case</code></td><td><code>case Integer n when n &gt;= 7 -&gt; …</code></td><td>Java 21</td></tr>
+<tr><td>Ler os dados de um record</td><td><code>Ponto p = (Ponto) o; int x = p.x(); int y = p.y();</code></td><td><code>if (o instanceof Ponto(int x, int y))</code></td><td>Java 21</td></tr>
+<tr><td><code>null</code> no switch</td><td><code>if (o == null) …</code> antes do switch</td><td><code>case null -&gt; …</code></td><td>Java 21</td></tr>
+<tr><td>Garantir que todos os tipos foram tratados</td><td><code>default -&gt; throw …</code> e torcer</td><td>Interface <code>sealed</code> + switch sem <code>default</code></td><td>Java 17/21</td></tr>
+<tr><td>Ignorar uma parte</td><td>Dar um nome que nunca é usado</td><td><code>Ponto(int x, _)</code></td><td>Java 22</td></tr>
+</table>
+</div>
+
+<h2>Qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>Testar <strong>um</strong> tipo, num <code>if</code></td><td><code>instanceof</code> com padrão</td></tr>
+<tr><td>Escolher entre <strong>vários</strong> tipos</td><td><code>switch</code> com padrões</td></tr>
+<tr><td>Separar casos pelo valor, além do tipo</td><td><code>case … when condição</code></td></tr>
+<tr><td>Usar os componentes de um record</td><td>Record pattern: <code>Ponto(var x, var y)</code></td></tr>
+<tr><td>Que o compilador avise quando surgir um tipo novo</td><td>Interface <code>sealed</code> e switch <strong>sem</strong> <code>default</code></td></tr>
+<tr><td>Rodar num Java 11 ou 8</td><td>O jeito antigo (<code>instanceof</code> + cast); padrões não existem lá</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3>Usar a variável de padrão fora do <code>if</code></h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Object coisa = "uva";
+        if (coisa instanceof String s) {
+            System.out.println("É texto");
+        }
+        System.out.println(s.length());
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:7: error: cannot find symbol
+        System.out.println(s.length());
+                           ^
+  symbol:   variable s
+  location: class Main
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "não encontrei o símbolo <code>s</code>". Na linha 7 o Java não tem certeza de que <code>coisa</code> é <code>String</code> (o <code>if</code> pode ter dado <code>false</code>), então <code>s</code> não existe ali. <strong>Como consertar:</strong> use <code>s</code> só dentro do <code>if</code>, ou inverta o teste com <code>if (!(coisa instanceof String s)) return;</code>, como na <code>boasVindas</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>Usar a variável depois de um <code>||</code></h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">        if (coisa instanceof String s || s.isEmpty()) {
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        if (coisa instanceof String s || s.isEmpty()) {
+                                         ^
+  symbol:   variable s
+  location: class Main
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o lado direito do <code>||</code> só roda quando o esquerdo é <code>false</code>, isto é, quando <code>coisa</code> <strong>não</strong> é <code>String</code>; aí não há <code>s</code>. <strong>Como consertar:</strong> provavelmente você queria <code>&amp;&amp;</code>: <code>coisa instanceof String s &amp;&amp; s.isEmpty()</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>Caso geral antes do caso específico</h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">        return switch (nota) {
+            case Integer n             -&gt; "reprovado com " + n;
+            case Integer n when n &gt;= 7 -&gt; "aprovado com " + n;
+            default                    -&gt; "não é nota";
+        };
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:5: error: this case label is dominated by a preceding case label
+            case Integer n when n &gt;= 7 -&gt; "aprovado com " + n;
+                 ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "este rótulo de case é <strong>dominado</strong> por um rótulo anterior". <code>case Integer n</code> já pega todo inteiro, então o caso de baixo nunca seria usado. <strong>Como consertar:</strong> do mais específico para o mais geral: primeiro os casos com <code>when</code>, depois o <code>case Integer n</code> sozinho.</p>
+</div>
+
+<div class="cenario">
+<h3>Switch sem <code>default</code> e sem cobrir tudo</h3>
+<p>Mensagem: <code>error: the switch expression does not cover all possible input values</code> (veja a seção 6). <strong>Como consertar:</strong> acrescente o <code>case</code> que falta (se o tipo for <code>sealed</code>) ou um <code>default</code>.</p>
+</div>
+
+<div class="cenario">
+<h3><code>NullPointerException</code> no <code>switch</code></h3>
+<p>O valor era <code>null</code> e não havia <code>case null</code> (seção 4). <strong>Como consertar:</strong> <code>case null -&gt; …</code> ou <code>case null, default -&gt; …</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Significado</th></tr>
+<tr><td>Padrão de tipo</td><td><code>o instanceof String s</code></td><td>Se <code>o</code> é <code>String</code>, cria <code>s</code></td></tr>
+<tr><td>Padrão + condição</td><td><code>o instanceof String s &amp;&amp; !s.isEmpty()</code></td><td><code>s</code> vale à direita do <code>&amp;&amp;</code></td></tr>
+<tr><td>Negação + saída</td><td><code>if (!(o instanceof String s)) return;</code></td><td><code>s</code> vale depois do <code>if</code></td></tr>
+<tr><td>Switch com tipos</td><td><code>case Integer n -&gt; …</code></td><td>Escolhe pelo tipo</td></tr>
+<tr><td>Guarda</td><td><code>case Integer n when n &gt; 0 -&gt; …</code></td><td>Tipo e condição</td></tr>
+<tr><td>Nulo</td><td><code>case null -&gt; …</code> / <code>case null, default -&gt; …</code></td><td>Trata <code>null</code> sem exceção</td></tr>
+<tr><td>Record pattern</td><td><code>case Ponto(int x, int y) -&gt; …</code></td><td>Testa e desmonta</td></tr>
+<tr><td>Com <code>var</code></td><td><code>Ponto(var x, var y)</code></td><td>Tipos inferidos</td></tr>
+<tr><td>Aninhado</td><td><code>Linha(Ponto(var a, var b), Ponto p)</code></td><td>Abre records dentro de records</td></tr>
+<tr><td>Ignorar</td><td><code>Ponto(int x, _)</code>, <code>case Ponto _</code></td><td>Parte sem nome (Java 22+)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete para testar se <code>o</code> é um <code>String</code> e chamá-lo de <code>nome</code>:</p>
+<div class="ex-code">if (o <input data-answer="instanceof String nome"> ) { System.out.println(nome.length()); }</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete a guarda para que o caso valha só para inteiros negativos:</p>
+<div class="ex-code">case Integer n <input data-answer="when n &lt; 0|when n&lt;0|when (n &lt; 0)"> -&gt; "negativo";</div>
+</div>
+
+<div class="exercise">
+<p>3. Complete o caso que trata o valor nulo:</p>
+<div class="ex-code">case <input data-answer="null"> -&gt; "vazio";</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Em <code>if (o instanceof String s || s.isEmpty())</code>, o que acontece?</p>
+<label><input type="radio" name="q4"> Funciona normalmente.</label>
+<label><input type="radio" name="q4"> Dá <code>NullPointerException</code> ao rodar.</label>
+<label><input type="radio" name="q4"> Não compila: <code>cannot find symbol</code>, porque <code>s</code> não existe à direita do <code>||</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que um <code>switch</code> sobre uma interface <code>sealed</code> pode dispensar o <code>default</code>?</p>
+<label><input type="radio" name="q5"> Porque o <code>default</code> é proibido com records.</label>
+<label><input type="radio" name="q5"> Porque o compilador conhece a lista completa de tipos permitidos e verifica que todos têm um <code>case</code>.</label>
+<label><input type="radio" name="q5"> Porque o Java ignora os tipos que faltarem.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Um <code>switch</code> com <code>default</code>, mas sem <code>case null</code>, recebe <code>null</code>. O que acontece?</p>
+<label><input type="radio" name="q6"> Lança <code>NullPointerException</code>.</label>
+<label><input type="radio" name="q6"> Vai para o <code>default</code>.</label>
+<label><input type="radio" name="q6"> Não faz nada e devolve <code>null</code>.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Pix de 50.0 para ana@email.com,out:Cartão à vista: 80.0,out:Cartão em 4x de 30.0,src:case\s+Cartao\s*\(">
+<p class="try-task"><strong>Missão final:</strong> a loja da Ana aceita dois tipos de pagamento, e a interface é <code>sealed</code>. Escreva o <code>switch</code> <strong>sem <code>default</code></strong>, com record patterns: <code>Pix(String chave, double valor)</code> vira <code>Pix de 50.0 para ana@email.com</code>; um <code>Cartao</code> com 1 parcela vira <code>Cartão à vista: 80.0</code>; com mais parcelas, <code>Cartão em 4x de 30.0</code> (valor dividido pelas parcelas).</p>
+<pre class="script">sealed interface Pagamento permits Pix, Cartao {}
+record Pix(String chave, double valor) implements Pagamento {}
+record Cartao(int parcelas, double valor) implements Pagamento {}
+
+public class Main {
+    static String descrever(Pagamento p) {
+        return switch (p) {
+            // escreva os casos aqui
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(descrever(new Pix("ana@email.com", 50.0)));
+        System.out.println(descrever(new Cartao(1, 80.0)));
+        System.out.println(descrever(new Cartao(4, 120.0)));
+    }
+}
+</pre>
+<pre class="solucao">sealed interface Pagamento permits Pix, Cartao {}
+record Pix(String chave, double valor) implements Pagamento {}
+record Cartao(int parcelas, double valor) implements Pagamento {}
+
+public class Main {
+    static String descrever(Pagamento p) {
+        return switch (p) {
+            case Pix(String chave, double valor) -&gt; "Pix de " + valor + " para " + chave;
+            case Cartao(int parcelas, double valor) when parcelas == 1 -&gt; "Cartão à vista: " + valor;
+            case Cartao(int parcelas, double valor) -&gt; "Cartão em " + parcelas + "x de " + (valor / parcelas);
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(descrever(new Pix("ana@email.com", 50.0)));
+        System.out.println(descrever(new Cartao(1, 80.0)));
+        System.out.println(descrever(new Cartao(4, 120.0)));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>padrão</strong> testa a forma de um objeto e já extrai as partes dele, sem cast.</li>
+  <li><code>o instanceof String s</code> <span class="versao">Java 16+</span> cria <code>s</code> onde o teste é certamente verdadeiro: dentro do <code>if</code>, à direita do <code>&amp;&amp;</code> ou depois de um <code>if (!…) return;</code>. Fora disso: <code>cannot find symbol</code>.</li>
+  <li>O <code>switch</code> aceita padrões de tipo e guardas <code>when</code> <span class="versao">Java 21+</span>; os casos são testados de cima para baixo, do mais específico ao mais geral.</li>
+  <li>Record patterns <span class="versao">Java 21+</span> desmontam records, inclusive aninhados; <code>var</code> e <code>_</code> ajudam a escrever menos.</li>
+  <li>Um switch que produz valor precisa ser <strong>exaustivo</strong>; com uma interface <code>sealed</code>, dá para dispensar o <code>default</code> e deixar o compilador avisar quando surgir um tipo novo.</li>
+  <li><code>null</code> num switch sem <code>case null</code> lança <code>NullPointerException</code>, mesmo com <code>default</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="sealed.html">Classes Seladas</a>, a outra metade desta história.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
