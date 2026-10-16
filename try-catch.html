@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java try e catch — tratar exceções | Guia Java</title>
+<meta name="description" content="Como tratar exceções em Java com try e catch: capturar uma exceção específica, vários catch e a ordem entre eles, multi-catch com |, getMessage, printStackTrace e por que nunca engolir exceções. Com saídas e erros reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">try e catch</span></h1>
+
+<p class="intro">Na aula <a href="excecoes.html">O que são Exceções</a>, você viu o programa "quebrar": uma exceção não tratada encerra tudo. Agora você vai aprender a <strong>tratar</strong> a exceção: dizer ao Java "tente fazer isto; se der este problema, faça aquilo" e deixar o programa seguir em frente. As palavras para isso são <code>try</code> e <code>catch</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Escrever um bloco <code>try</code>/<code>catch</code> e entender o caminho que o programa percorre.</li>
+  <li>Capturar uma exceção <strong>específica</strong> e o que acontece com as outras.</li>
+  <li>Usar vários <code>catch</code>, e por que a ordem entre eles importa.</li>
+  <li>Juntar exceções num <code>catch</code> só com o multi-catch (<code>|</code>).</li>
+  <li>Tirar informação da exceção: <code>getMessage()</code>, <code>toString()</code> e <code>printStackTrace()</code>.</li>
+  <li>Por que um <code>catch</code> vazio ("engolir a exceção") é um dos piores hábitos em Java.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense num trapezista de circo. Ele <strong>tenta</strong> o salto. Quase sempre dá certo. Mas, se ele cair, há uma <strong>rede de proteção</strong> embaixo que o <strong>pega</strong>, e o espetáculo continua. Sem a rede, uma queda encerra o show.</p>
+<p>No Java:</p>
+<ul>
+  <li><code>try</code> ("tente") é o salto: o código que pode dar problema.</li>
+  <li><code>catch</code> ("pegue", "capture") é a rede: o que fazer se uma exceção de certo tipo for lançada dentro do <code>try</code>.</li>
+</ul>
+
+<hr>
+
+<h2>O primeiro try/catch</h2>
+<p>A Ana recebe idades como texto (de um formulário, de um arquivo) e precisa transformá-las em número com <code>Integer.parseInt</code>. Se o texto não for um número, o <code>parseInt</code> lança <code>NumberFormatException</code>. Desta vez, o programa vai estar preparado:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String texto = "29 anos";
+        try {
+            int idade = Integer.parseInt(texto);
+            System.out.println("Idade: " + idade);
+        } catch (NumberFormatException e) {
+            System.out.println("Isso não é um número: " + texto);
+        }
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>try {</dt><dd>Abre o bloco protegido. Tudo entre estas chaves roda normalmente, mas "vigiado".</dd>
+  <dt>int idade = Integer.parseInt(texto);</dt><dd>A linha que pode lançar a exceção.</dd>
+  <dt>System.out.println("Idade: " + idade);</dt><dd>Só roda se a linha de cima deu certo.</dd>
+  <dt>} catch (</dt><dd>Fecha o <code>try</code> e abre a "rede". Os parênteses dizem <strong>que tipo</strong> de exceção esta rede pega.</dd>
+  <dt>NumberFormatException e</dt><dd>O tipo da exceção e um nome de variável para ela. Por costume, o nome é <code>e</code> (de <em>exception</em>), mas pode ser qualquer um. Dentro do <code>catch</code>, <code>e</code> é o objeto da exceção, com a mensagem e o stack trace.</dd>
+  <dt>{ … }</dt><dd>O que fazer quando a exceção acontece: aqui, avisar com uma mensagem amigável.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Isso não é um número: 29 anos
+Fim do programa
+$ echo $?
+0</pre>
+
+<p>Compare com a aula anterior: nada de stack trace, o <code>Fim do programa</code> apareceu e o código de saída é <code>0</code> ("terminou bem"). A exceção aconteceu do mesmo jeito, mas foi <strong>tratada</strong>.</p>
+
+<h3>O caminho do programa</h3>
+<p>Repare que <code>Idade: …</code> não apareceu. Quando uma linha dentro do <code>try</code> lança uma exceção, o Java <strong>abandona o resto do <code>try</code></strong> e pula direto para o <code>catch</code>. Depois do <code>catch</code>, segue com o que vem depois do bloco todo. Os dois caminhos possíveis:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>Com <code>"29 anos"</code> (exceção)</th><th>Com <code>"29"</code> (tudo certo)</th></tr>
+<tr><td>5 &nbsp;<code>parseInt(texto)</code></td><td>lança <code>NumberFormatException</code></td><td>roda: <code>idade</code> = 29</td></tr>
+<tr><td>6 &nbsp;<code>println("Idade: …")</code></td><td><strong>pulada</strong></td><td>roda</td></tr>
+<tr><td>8 &nbsp;<code>println("Isso não é…")</code></td><td>roda</td><td><strong>pulada</strong> (sem exceção, o <code>catch</code> não roda)</td></tr>
+<tr><td>10 <code>println("Fim…")</code></td><td>roda</td><td>roda</td></tr>
+</table>
+</div>
+
+<p>Trocando <code>"29 anos"</code> por <code>"29"</code>, a saída real é:</p>
+
+<pre class="term">$ java Main.java
+Idade: 29
+Fim do programa</pre>
+
+<div class="tryjava" data-goal="out:Isso não é um número,out:Fim do programa,src:catch\s*\(\s*NumberFormatException">
+<p class="try-task"><strong>Missão:</strong> rode o programa e veja-o quebrar. Depois proteja as duas linhas de dentro com <code>try</code> e um <code>catch (NumberFormatException e)</code> que mostre <code>Isso não é um número</code>. O <code>Fim do programa</code> deve aparecer.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String texto = "29 anos";
+        int idade = Integer.parseInt(texto);
+        System.out.println("Idade: " + idade);
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String texto = "29 anos";
+        try {
+            int idade = Integer.parseInt(texto);
+            System.out.println("Idade: " + idade);
+        } catch (NumberFormatException e) {
+            System.out.println("Isso não é um número: " + texto);
+        }
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O <code>catch</code> só pega o tipo que você pediu</h2>
+<p>A rede do <code>catch</code> tem formato: <code>catch (NumberFormatException e)</code> pega <strong>só</strong> <code>NumberFormatException</code> (e as classes filhas dela). Se outra exceção acontecer no <code>try</code>, ela passa direto pela rede:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int soma = 22;
+        int provas = 0;
+        try {
+            System.out.println("Média: " + soma / provas);
+        } catch (NumberFormatException e) {
+            System.out.println("Número inválido");
+        }
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.main(Main.java:6)</pre>
+
+<p>A divisão lançou <code>ArithmeticException</code>, que não é uma <code>NumberFormatException</code>. O <code>catch</code> foi ignorado, a exceção continuou "caindo" e encerrou o programa, como se o <code>try</code> nem existisse.</p>
+
+<h3>Pegar a classe mãe pega as filhas</h3>
+<p>Lembra da <a href="excecoes.html#hierarquia">hierarquia</a>? <code>ArithmeticException</code> e <code>NumberFormatException</code> são filhas de <code>RuntimeException</code>. Um <code>catch</code> da classe mãe pega qualquer filha:</p>
+
+<pre class="file" data-file="Main.java (trecho)">        } catch (RuntimeException e) {
+            System.out.println("Problema: " + e);
+        }
+</pre>
+
+<pre class="term">$ java Main.java
+Problema: java.lang.ArithmeticException: / by zero
+Fim do programa</pre>
+
+<p>Subindo mais, <code>catch (Exception e)</code> pega quase tudo. Parece prático, mas é perigoso: você passa a tratar do mesmo jeito problemas muito diferentes, inclusive os que você nem imaginava (um <code>NullPointerException</code> causado por um defeito no seu código, por exemplo). A regra dos programadores experientes: <strong>capture a exceção mais específica que você sabe tratar</strong>.</p>
+
+<hr>
+
+<h2>Vários <code>catch</code></h2>
+<p>Um <code>try</code> pode ter vários <code>catch</code>, um para cada tipo de problema, cada um com sua resposta. O Java testa os <code>catch</code> <strong>de cima para baixo</strong> e usa o primeiro que combinar:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] textos = {"10", "abc", "0"};
+        for (String t : textos) {
+            try {
+                int n = Integer.parseInt(t);
+                System.out.println("100 / " + n + " = " + (100 / n));
+            } catch (NumberFormatException e) {
+                System.out.println("\"" + t + "\" não é número");
+            } catch (ArithmeticException e) {
+                System.out.println("Não dá para dividir por zero");
+            }
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+100 / 10 = 10
+"abc" não é número
+Não dá para dividir por zero</pre>
+
+<p>O <a href="for-each.html">for-each</a> passa pelos três textos. Cada volta tem o seu próprio <code>try</code>: <code>"10"</code> dá certo; <code>"abc"</code> cai no primeiro <code>catch</code>; <code>"0"</code> passa pelo <code>parseInt</code>, mas a divisão cai no segundo. E, como o <code>try</code> está <strong>dentro</strong> do laço, um problema numa volta não impede as outras.</p>
+
+<h3>A ordem importa</h3>
+<p>Como o Java usa o <strong>primeiro</strong> <code>catch</code> que combina, um <code>catch</code> da classe mãe antes de uma filha deixaria a filha inalcançável. O <code>javac</code> percebe isso e recusa o programa:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String texto = "abc";
+        try {
+            int n = Integer.parseInt(texto);
+            System.out.println(100 / n);
+        } catch (Exception e) {
+            System.out.println("Algo deu errado");
+        } catch (NumberFormatException e) {
+            System.out.println("Não é número");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Main.java:9: error: exception NumberFormatException has already been caught
+        } catch (NumberFormatException e) {
+          ^
+1 error
+error: compilation failed</pre>
+
+<p>"A exceção <code>NumberFormatException</code> já foi capturada": o <code>catch (Exception e)</code> da linha 7 já pega qualquer <code>NumberFormatException</code>, então o da linha 9 nunca seria usado. A última linha, <code>error: compilation failed</code> ("a compilação falhou"), é do <code>java Main.java</code> avisando que nem chegou a rodar. <strong>Regra:</strong> do mais específico (filha) para o mais geral (mãe). Inverter os dois <code>catch</code> resolve.</p>
+
+<div class="tryjava" data-goal="out:Não dá para dividir por zero,out:Fim,src:catch\s*\(\s*ArithmeticException">
+<p class="try-task"><strong>Missão:</strong> o programa trata texto inválido, mas quebra no <code>"0"</code>. Acrescente um segundo <code>catch</code>, para <code>ArithmeticException</code>, que mostre <code>Não dá para dividir por zero</code>, e faça o <code>Fim</code> aparecer.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] textos = {"10", "abc", "0"};
+        for (String t : textos) {
+            try {
+                int n = Integer.parseInt(t);
+                System.out.println("100 / " + n + " = " + (100 / n));
+            } catch (NumberFormatException e) {
+                System.out.println("\"" + t + "\" não é número");
+            }
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] textos = {"10", "abc", "0"};
+        for (String t : textos) {
+            try {
+                int n = Integer.parseInt(t);
+                System.out.println("100 / " + n + " = " + (100 / n));
+            } catch (NumberFormatException e) {
+                System.out.println("\"" + t + "\" não é número");
+            } catch (ArithmeticException e) {
+                System.out.println("Não dá para dividir por zero");
+            }
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Multi-catch: vários tipos num <code>catch</code> só <span class="versao">Java 7+</span></h2>
+<p>Quando a resposta é a mesma para dois ou mais tipos, você pode juntá-los com uma barra vertical <code>|</code>, que aqui se lê "ou":</p>
+
+<pre class="file" data-file="Main.java (trecho)">        } catch (NumberFormatException | ArithmeticException e) {
+            System.out.println("Entrada inválida: " + e.getMessage());
+        }
+</pre>
+
+<dl class="anatomy">
+  <dt>NumberFormatException | ArithmeticException</dt><dd>"Se for uma <code>NumberFormatException</code> <strong>ou</strong> uma <code>ArithmeticException</code>…".</dd>
+  <dt>e</dt><dd>Uma variável só, que pode guardar qualquer um dos tipos. Você pode chamar nela os métodos comuns a todas as exceções, como <code>getMessage()</code>.</dd>
+</dl>
+
+<p>Um programa completo, que divide a conta do restaurante entre os amigos da Ana (ele lê do teclado com o <a href="scanner.html">Scanner</a>):</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Total da conta: ");
+        String total = teclado.nextLine();
+        System.out.print("Pessoas: ");
+        String pessoas = teclado.nextLine();
+        try {
+            int cada = Integer.parseInt(total) / Integer.parseInt(pessoas);
+            System.out.println("Cada um paga " + cada);
+        } catch (NumberFormatException | ArithmeticException e) {
+            System.out.println("Entrada inválida: " + e.getMessage());
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Total da conta: 90
+Pessoas: 0
+Entrada inválida: / by zero
+$ java Main.java
+Total da conta: noventa
+Pessoas: 3
+Entrada inválida: For input string: "noventa"</pre>
+
+<p>Não dá para juntar no multi-catch dois tipos em que um é filho do outro: seria redundante, e o <code>javac</code> recusa.</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java (trecho)">        } catch (NumberFormatException | RuntimeException e) {
+</pre>
+<pre class="term">$ java Main.java
+Main.java:7: error: Alternatives in a multi-catch statement cannot be related by subclassing
+        } catch (NumberFormatException | RuntimeException e) {
+                                         ^
+  Alternative NumberFormatException is a subclass of alternative RuntimeException
+1 error
+error: compilation failed</pre>
+<p>"As alternativas de um multi-catch não podem ter relação de herança. A alternativa <code>NumberFormatException</code> é subclasse da alternativa <code>RuntimeException</code>." Deixe só a mais geral (<code>RuntimeException</code>) ou troque por tipos sem parentesco.</p>
+
+<hr>
+
+<h2>O que fazer com a exceção capturada</h2>
+<p>A variável <code>e</code> é um objeto, e tem métodos úteis. Veja todos lado a lado:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        try {
+            int n = Integer.parseInt("12x");
+        } catch (NumberFormatException e) {
+            System.out.println("getMessage(): " + e.getMessage());
+            System.out.println("toString():   " + e);
+            System.out.println("Só o nome:    " + e.getClass().getSimpleName());
+            System.out.println("--- printStackTrace() ---");
+            e.printStackTrace();
+            System.out.println("--- o programa continua ---");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+getMessage(): For input string: "12x"
+toString():   java.lang.NumberFormatException: For input string: "12x"
+Só o nome:    NumberFormatException
+--- printStackTrace() ---
+java.lang.NumberFormatException: For input string: "12x"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:4)
+--- o programa continua ---</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve / faz</th><th>Quando usar</th></tr>
+<tr><td><code>e.getMessage()</code></td><td>Só a mensagem: <code>For input string: "12x"</code>. Pode ser <code>null</code> (exceções sem mensagem, como <code>InputMismatchException</code>).</td><td>Para mostrar ao usuário um detalhe do problema.</td></tr>
+<tr><td><code>e.toString()</code> ou <code>"" + e</code></td><td>Nome completo da classe + mensagem.</td><td>Para registrar o problema numa linha.</td></tr>
+<tr><td><code>e.getClass().getSimpleName()</code></td><td>Só o nome da classe, sem o pacote.</td><td>Mensagens curtas.</td></tr>
+<tr><td><code>e.printStackTrace()</code></td><td>Escreve o stack trace completo na saída de erro (<code>System.err</code>), sem encerrar o programa.</td><td>Enquanto você está desenvolvendo, para saber exatamente onde foi.</td></tr>
+</table>
+</div>
+
+<p>Repare: o <code>printStackTrace()</code> mostra o mesmo relatório de uma exceção não tratada, só que sem o <code>Exception in thread "main"</code>, e o programa <strong>continua</strong>.</p>
+
+<div class="note">
+<strong>Por que <code>javac</code> + <code>java</code> aqui?</strong>
+<p>Rodando com <code>java Main.java</code>, o <code>printStackTrace()</code> mostra, no fim, mais cinco linhas <code>at</code> do próprio lançador (<code>jdk.internal.reflect…</code>, <code>SourceLauncher…</code>), que é quem compila e chama o seu <code>main</code> nesse modo. Elas não fazem parte do seu programa. Com <code>javac</code> e depois <code>java Main</code>, o rastro fica limpo.</p>
+</div>
+
+<hr>
+
+<h2>Um uso clássico: pedir de novo até acertar</h2>
+<p>Juntando <code>try</code>/<code>catch</code> com um <a href="while.html">while</a>, o programa insiste até a pessoa digitar um número válido:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        int idade = -1;
+        while (idade &lt; 0) {
+            System.out.print("Sua idade: ");
+            String linha = teclado.nextLine();
+            try {
+                idade = Integer.parseInt(linha);
+            } catch (NumberFormatException e) {
+                System.out.println("\"" + linha + "\" não é um número. Tente de novo.");
+            }
+        }
+        System.out.println("Ano que vem você terá " + (idade + 1) + " anos.");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Sua idade: vinte
+"vinte" não é um número. Tente de novo.
+Sua idade: 29
+Ano que vem você terá 30 anos.</pre>
+
+<p>A <code>idade</code> começa em <code>-1</code> (um valor impossível) para o laço rodar pelo menos uma vez. Se o <code>parseInt</code> falhar, a atribuição <code>idade = …</code> não acontece, a <code>idade</code> continua <code>-1</code> e o laço repete. Repare também que o programa lê a linha inteira com <code>nextLine()</code> e converte com <code>parseInt</code>, em vez de usar <code>nextInt()</code>: assim o texto inválido não fica "preso" no <code>Scanner</code>.</p>
+
+<hr>
+
+<h2>Não engula exceções</h2>
+<p>"Engolir" uma exceção é capturá-la e não fazer nada. O <code>javac</code> aceita, o programa não quebra… e é exatamente esse o problema. A Ana somou os preços de uma lista:</p>
+
+<div class="warning"><strong>Este código esconde um problema de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] precos = {"10", "25", "7,50", "8"};
+        int total = 0;
+        for (String p : precos) {
+            try {
+                total += Integer.parseInt(p);
+            } catch (NumberFormatException e) {
+            }
+        }
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Total: 43</pre>
+
+<p>O total certo seria 50,50. O <code>"7,50"</code> lançou <code>NumberFormatException</code>, o <code>catch</code> vazio "engoliu", e o programa mostrou um número errado <strong>sem avisar ninguém</strong>. Um programa que quebra é chato; um programa que dá a resposta errada em silêncio é muito pior, porque ninguém percebe.</p>
+
+<p>Se você capturou, faça <strong>pelo menos uma</strong> destas coisas:</p>
+<ul>
+  <li><strong>Avise</strong>: <code>System.out.println("Preço inválido ignorado: " + p);</code></li>
+  <li><strong>Corrija</strong>: use um valor padrão que faça sentido, ou peça de novo.</li>
+  <li><strong>Registre</strong>: <code>e.printStackTrace();</code> enquanto desenvolve.</li>
+  <li><strong>Não capture</strong>: se você não sabe o que fazer com a exceção ali, deixe-a subir para quem sabe (veja <a href="throw-throws.html">throw e throws</a>).</li>
+</ul>
+
+<hr>
+
+<h2>Formas diferentes, qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Forma</th></tr>
+<tr><td>Um tipo de problema, uma resposta</td><td><code>try { … } catch (TipoException e) { … }</code></td></tr>
+<tr><td>Vários problemas, respostas diferentes</td><td>Vários <code>catch</code>, do mais específico ao mais geral</td></tr>
+<tr><td>Vários problemas, a mesma resposta</td><td>Multi-catch: <code>catch (A | B e)</code></td></tr>
+<tr><td>Família inteira de problemas</td><td><code>catch</code> da classe mãe (com cuidado)</td></tr>
+<tr><td>Algo que precisa rodar com ou sem exceção</td><td><code>finally</code> ou try-with-resources (<a href="finally.html">próxima aula</a>)</td></tr>
+<tr><td>Você não sabe tratar ali</td><td>Não capture; deixe subir (<a href="throw-throws.html">throws</a>)</td></tr>
+<tr><td>Dá para evitar com um <code>if</code></td><td>Prefira o <code>if</code>: <code>if (provas != 0)</code> é mais claro que capturar <code>ArithmeticException</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol" com uma variável criada no try</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        try {
+            int idade = Integer.parseInt("29");
+        } catch (NumberFormatException e) {
+            System.out.println("Não é número");
+        }
+        System.out.println("Idade: " + idade);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:8: error: cannot find symbol
+        System.out.println("Idade: " + idade);
+                                       ^
+  symbol:   variable idade
+  location: class Main
+1 error
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> as chaves do <code>try</code> são um bloco, e uma variável criada dentro de um bloco só existe lá dentro (veja <a href="escopo.html">Escopo</a>). Na linha 8, <code>idade</code> já não existe.</p>
+<p><strong>Como resolver:</strong> declare a variável <strong>antes</strong> do <code>try</code>, com um valor inicial (<code>int idade = 0;</code>), e só faça a atribuição dentro dele (<code>idade = Integer.parseInt("29");</code>). Ou coloque o <code>println</code> dentro do <code>try</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"exception … has already been caught"</strong>
+<p><strong>O que aconteceu:</strong> um <code>catch</code> de uma classe mãe (<code>Exception</code>, <code>RuntimeException</code>) veio antes do <code>catch</code> de uma filha. O de baixo nunca seria usado.</p>
+<p><strong>Como resolver:</strong> coloque os <code>catch</code> do mais específico para o mais geral.</p>
+</div>
+
+<div class="cenario">
+<strong>O catch existe, mas o programa quebrou mesmo assim</strong>
+<p><strong>O que aconteceu:</strong> a exceção lançada não é do tipo do <code>catch</code> (nem filha dele). Leia a primeira linha do stack trace: o tipo que aparece ali é o que você precisa capturar. Também pode ser que a linha que lançou esteja <strong>fora</strong> do <code>try</code>: confira o número da linha.</p>
+<p><strong>Como resolver:</strong> acrescente um <code>catch</code> para esse tipo, ou mova a linha para dentro do <code>try</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O programa não quebra, mas o resultado está errado</strong>
+<p><strong>O que aconteceu:</strong> provavelmente há um <code>catch</code> vazio engolindo exceções. Procure por <code>catch (…) { }</code> no código.</p>
+<p><strong>Como resolver:</strong> coloque pelo menos um aviso ou <code>e.printStackTrace()</code> dentro dele e rode de novo.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintaxe</th><th>O que faz</th></tr>
+<tr><td><code>try { … }</code></td><td>Bloco vigiado: se algo lança exceção, o resto dele é pulado</td></tr>
+<tr><td><code>catch (Tipo e) { … }</code></td><td>Roda se o <code>try</code> lançou <code>Tipo</code> ou uma filha dele</td></tr>
+<tr><td><code>catch (A e) { … } catch (B e) { … }</code></td><td>Vários tratamentos; o primeiro que combina é usado</td></tr>
+<tr><td><code>catch (A | B e) { … }</code></td><td>Multi-catch: o mesmo tratamento para A ou B (sem parentesco)</td></tr>
+<tr><td><code>e.getMessage()</code></td><td>A mensagem (pode ser <code>null</code>)</td></tr>
+<tr><td><code>e.toString()</code></td><td><code>pacote.Classe: mensagem</code></td></tr>
+<tr><td><code>e.printStackTrace()</code></td><td>Mostra o stack trace em <code>System.err</code> e continua</td></tr>
+<tr><td><code>error: exception X has already been caught</code></td><td><code>catch</code> de filha depois do da mãe</td></tr>
+<tr><td><code>error: Alternatives in a multi-catch statement cannot be related by subclassing</code></td><td>Multi-catch com mãe e filha juntas</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A palavra que falta</h3>
+<p>Complete para capturar o problema do <code>parseInt</code>:</p>
+<div class="ex-code">try { n = Integer.parseInt(t); } <input data-answer="catch" aria-label="palavra-chave"> (NumberFormatException e) { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Só a mensagem</h3>
+<p>Complete para mostrar só a mensagem da exceção (sem o nome da classe):</p>
+<div class="ex-code">System.out.println(e.<input data-answer="getMessage()" aria-label="método">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Multi-catch</h3>
+<p>Complete com o símbolo que junta os dois tipos no mesmo <code>catch</code>:</p>
+<div class="ex-code">catch (NumberFormatException <input data-answer="|" aria-label="símbolo"> ArithmeticException e)</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que este trecho mostra?</p>
+<pre class="file" data-file="Main.java (trecho)">try {
+    System.out.println("A");
+    int x = Integer.parseInt("x");
+    System.out.println("B");
+} catch (NumberFormatException e) {
+    System.out.println("C");
+}
+System.out.println("D");
+</pre>
+<label><input type="radio" name="q4"> A B C D</label>
+<label><input type="radio" name="q4"> A B D</label>
+<label><input type="radio" name="q4"> A C D</label>
+<label><input type="radio" name="q4"> C D</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Um <code>try</code> lança <code>ArithmeticException</code> e o único <code>catch</code> é <code>catch (NumberFormatException e)</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> O <code>catch</code> roda mesmo assim.</label>
+<label><input type="radio" name="q5"> A exceção não é capturada e o programa quebra (se ninguém mais a tratar).</label>
+<label><input type="radio" name="q5"> O <code>javac</code> não compila.</label>
+<label><input type="radio" name="q5"> O Java ignora a exceção e segue.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Qual ordem de <code>catch</code> compila?</p>
+<label><input type="radio" name="q6"> <code>catch (Exception e)</code> e depois <code>catch (RuntimeException e)</code></label>
+<label><input type="radio" name="q6"> <code>catch (RuntimeException e)</code> e depois <code>catch (ArithmeticException e)</code></label>
+<label><input type="radio" name="q6"> <code>catch (Exception e)</code> e depois <code>catch (NumberFormatException e)</code></label>
+<label><input type="radio" name="q6"> <code>catch (NumberFormatException e)</code> e depois <code>catch (Exception e)</code></label>
+</div>
+
+<div class="tryjava" data-stdin="90\n0\n" data-goal="out:Entrada inválida: / by zero,src:\|">
+<p class="try-task"><strong>Missão final:</strong> o programa divide a conta, mas quebra com <code>0</code> pessoas (e quebraria com texto). Proteja a conta com <code>try</code> e um <strong>multi-catch</strong> de <code>NumberFormatException</code> e <code>ArithmeticException</code> que mostre <code>Entrada inválida: </code> seguido de <code>e.getMessage()</code>. Teste com <code>90</code> e <code>0</code>.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Total da conta: ");
+        String total = teclado.nextLine();
+        System.out.print("Pessoas: ");
+        String pessoas = teclado.nextLine();
+        int cada = Integer.parseInt(total) / Integer.parseInt(pessoas);
+        System.out.println("Cada um paga " + cada);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Total da conta: ");
+        String total = teclado.nextLine();
+        System.out.print("Pessoas: ");
+        String pessoas = teclado.nextLine();
+        try {
+            int cada = Integer.parseInt(total) / Integer.parseInt(pessoas);
+            System.out.println("Cada um paga " + cada);
+        } catch (NumberFormatException | ArithmeticException e) {
+            System.out.println("Entrada inválida: " + e.getMessage());
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>try</code> marca o código que pode lançar exceção; <code>catch (Tipo e)</code> diz o que fazer se ela vier.</li>
+  <li>Quando uma linha do <code>try</code> lança, o resto do <code>try</code> é pulado, o <code>catch</code> roda e o programa continua depois do bloco.</li>
+  <li>O <code>catch</code> pega o tipo pedido e as classes filhas; outros tipos passam direto.</li>
+  <li>Vários <code>catch</code>: do mais específico ao mais geral, senão <code>exception … has already been caught</code>.</li>
+  <li>Multi-catch <code>catch (A | B e)</code>: mesma resposta para tipos sem parentesco.</li>
+  <li><code>getMessage()</code> dá a mensagem; <code>printStackTrace()</code> mostra o rastro completo sem encerrar o programa.</li>
+  <li>Nunca deixe um <code>catch</code> vazio: avise, corrija, registre ou não capture.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
