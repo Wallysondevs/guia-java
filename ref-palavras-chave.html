@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Palavras-chave — todas as reservadas e contextuais do Java 25 | Guia Java</title>
+<meta name="description" content="Referência das palavras-chave do Java 25: as 51 reservadas (class, static, final, synchronized…), o _ e as contextuais (var, record, sealed, permits, yield, when…), com o que cada uma faz, exemplo curto, versão e link para a aula.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Palavras-chave</span></h1>
+
+<p class="intro">Palavras-chave são as palavras que o Java usa na própria gramática: <code>class</code>, <code>if</code>, <code>return</code>… Você não pode usá-las como nome de variável, método ou classe. Esta página lista <strong>todas</strong> as do Java 25, agrupadas pelo assunto, com o que cada uma faz, um exemplo curto e a aula onde ela é explicada.</p>
+
+<div class="note">
+<strong>Nesta página</strong>
+<ul>
+  <li><a href="#reservadas">As 51 palavras reservadas</a> (50 palavras e o <code>_</code>), por assunto.</li>
+  <li><a href="#contextuais">As 17 palavras contextuais</a> (<code>var</code>, <code>record</code>, <code>sealed</code>, <code>yield</code>, <code>when</code>…), que só são especiais em certos lugares.</li>
+  <li><a href="#literais"><code>true</code>, <code>false</code> e <code>null</code></a>, que não são palavras-chave, mas também são proibidas como nomes.</li>
+  <li><a href="#erros">O que o <code>javac</code> diz</a> quando você usa uma palavra-chave como nome.</li>
+</ul>
+</div>
+
+<h2>Dois tipos de palavra-chave</h2>
+<p>Desde o Java 17, a especificação da linguagem separa as palavras-chave em dois grupos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Regra</th><th>Exemplo</th></tr>
+<tr><td><strong>Reservada</strong></td><td>Proibida como nome em <strong>qualquer</strong> lugar.</td><td><code>int class = 3;</code> não compila.</td></tr>
+<tr><td><strong>Contextual</strong></td><td>Especial só em certas posições; no resto, é um nome comum. Assim o Java ganhou palavras novas (<code>var</code>, <code>record</code>…) sem quebrar programas antigos que já usavam esses nomes.</td><td><code>int record = 16;</code> compila; <code>record Ponto(int x, int y) {}</code> declara um record.</td></tr>
+</table>
+</div>
+
+<p>Prova no laboratório: todas estas variáveis têm nome de palavra contextual, e o programa compila e roda.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String var = "var é contextual";
+        int record = 16;
+        int yield = 14;
+        int when = 21;
+        int sealed = 17;
+        var permits = "também";
+        System.out.println(var + " " + record + " " + yield + " " + when + " " + sealed + " " + permits);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+var é contextual 16 14 21 17 também</pre>
+
+<p>Poder, pode. Mas não faça: um leitor vai estranhar uma variável chamada <code>var</code>.</p>
+
+<hr>
+
+<h2 id="reservadas">Palavras reservadas</h2>
+<p>São 51: 50 palavras e o <code>_</code>. Todas em minúsculas: <code>Class</code> e <code>INT</code> <strong>não</strong> são palavras-chave (o Java diferencia maiúsculas de minúsculas).</p>
+
+<h3>Tipos primitivos e <code>void</code></h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>O que faz</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>boolean</code></td><td>Tipo lógico: <code>true</code> ou <code>false</code>.</td><td><code>boolean aprovado = nota &gt;= 7;</code></td><td><a href="char-boolean.html">char e boolean</a></td></tr>
+<tr><td><code>byte</code></td><td>Inteiro de 8 bits (-128 a 127).</td><td><code>byte b = 100;</code></td><td><a href="inteiros.html">Inteiros</a></td></tr>
+<tr><td><code>short</code></td><td>Inteiro de 16 bits (-32.768 a 32.767).</td><td><code>short s = 3000;</code></td><td><a href="inteiros.html">Inteiros</a></td></tr>
+<tr><td><code>int</code></td><td>Inteiro de 32 bits, o mais usado (cerca de ±2,1 bilhões).</td><td><code>int idade = 29;</code></td><td><a href="inteiros.html">Inteiros</a></td></tr>
+<tr><td><code>long</code></td><td>Inteiro de 64 bits. Literal com <code>L</code> no fim.</td><td><code>long populacao = 8_000_000_000L;</code></td><td><a href="inteiros.html">Inteiros</a></td></tr>
+<tr><td><code>float</code></td><td>Decimal de 32 bits. Literal com <code>f</code>.</td><td><code>float f = 1.5f;</code></td><td><a href="decimais.html">double e float</a></td></tr>
+<tr><td><code>double</code></td><td>Decimal de 64 bits, o padrão para números com vírgula.</td><td><code>double preco = 9.90;</code></td><td><a href="decimais.html">double e float</a></td></tr>
+<tr><td><code>char</code></td><td>Um caractere Unicode (16 bits), entre aspas simples.</td><td><code>char letra = 'A';</code></td><td><a href="char-boolean.html">char e boolean</a></td></tr>
+<tr><td><code>void</code></td><td>"Vazio": o método não devolve nada.</td><td><code>void mostrar() { … }</code></td><td><a href="metodos.html">Métodos</a></td></tr>
+</table>
+</div>
+
+<h3>Decisões e repetições</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>O que faz</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>if</code></td><td>Executa um bloco se a condição for verdadeira.</td><td><code>if (nota &gt;= 7) { … }</code></td><td><a href="if-else.html">if, else</a></td></tr>
+<tr><td><code>else</code></td><td>O caminho do "senão".</td><td><code>} else { … }</code></td><td><a href="if-else.html">if, else</a></td></tr>
+<tr><td><code>switch</code></td><td>Escolhe entre vários casos pelo valor.</td><td><code>switch (dia) { … }</code></td><td><a href="switch.html">switch</a></td></tr>
+<tr><td><code>case</code></td><td>Um caso do <code>switch</code>.</td><td><code>case 1 -&gt; "domingo";</code></td><td><a href="switch-expressoes.html">switch com setas</a></td></tr>
+<tr><td><code>default</code></td><td>O caso "qualquer outro" do <code>switch</code>. Também marca métodos com corpo numa interface.</td><td><code>default -&gt; "inválido";</code></td><td><a href="switch.html">switch</a>, <a href="interfaces.html">Interfaces</a></td></tr>
+<tr><td><code>while</code></td><td>Repete enquanto a condição for verdadeira.</td><td><code>while (x &lt; 10) { x++; }</code></td><td><a href="while.html">while</a></td></tr>
+<tr><td><code>do</code></td><td>Começa um <code>do-while</code>: roda pelo menos uma vez.</td><td><code>do { … } while (resp.equals("s"));</code></td><td><a href="while.html">while e do-while</a></td></tr>
+<tr><td><code>for</code></td><td>Laço com contador, ou o for-each.</td><td><code>for (int i = 0; i &lt; 5; i++)</code></td><td><a href="for.html">for</a>, <a href="for-each.html">for-each</a></td></tr>
+<tr><td><code>break</code></td><td>Sai do laço ou do <code>switch</code> antigo.</td><td><code>if (achou) break;</code></td><td><a href="break-continue.html">break e continue</a></td></tr>
+<tr><td><code>continue</code></td><td>Pula para a próxima volta do laço.</td><td><code>if (i % 2 == 0) continue;</code></td><td><a href="break-continue.html">break e continue</a></td></tr>
+<tr><td><code>return</code></td><td>Sai do método, devolvendo um valor (ou nada, em <code>void</code>).</td><td><code>return a + b;</code></td><td><a href="retorno.html">Valores de Retorno</a></td></tr>
+<tr><td><code>assert</code></td><td>Confere uma condição durante o desenvolvimento; só é verificada com <code>java -ea</code>.</td><td><code>assert idade &gt;= 0 : "idade negativa";</code></td><td><a href="depuracao.html">Depurar</a></td></tr>
+</table>
+</div>
+
+<h3>Classes, objetos e tipos</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>O que faz</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>class</code></td><td>Declara uma classe.</td><td><code>public class Conta { … }</code></td><td><a href="classes-objetos.html">Classes e Objetos</a></td></tr>
+<tr><td><code>interface</code></td><td>Declara uma interface (um contrato de métodos).</td><td><code>interface Pagavel { … }</code></td><td><a href="interfaces.html">Interfaces</a></td></tr>
+<tr><td><code>enum</code></td><td>Declara um tipo com uma lista fechada de constantes. <span class="versao">Java 5+</span></td><td><code>enum Nivel { FACIL, DIFICIL }</code></td><td><a href="enums.html">Enums</a></td></tr>
+<tr><td><code>extends</code></td><td>Herda de uma classe (ou interface estende interface).</td><td><code>class Aluno extends Pessoa</code></td><td><a href="heranca.html">Herança</a></td></tr>
+<tr><td><code>implements</code></td><td>Diz que a classe cumpre uma ou mais interfaces.</td><td><code>class Pix implements Pagavel</code></td><td><a href="interfaces.html">Interfaces</a></td></tr>
+<tr><td><code>new</code></td><td>Cria um objeto (ou array).</td><td><code>new Conta("Ana")</code></td><td><a href="classes-objetos.html">Classes e Objetos</a></td></tr>
+<tr><td><code>this</code></td><td>O próprio objeto; também chama outro construtor da mesma classe.</td><td><code>this.nome = nome;</code></td><td><a href="this.html">this</a></td></tr>
+<tr><td><code>super</code></td><td>A classe mãe: seu construtor ou seus métodos.</td><td><code>super(nome);</code></td><td><a href="super.html">super</a></td></tr>
+<tr><td><code>instanceof</code></td><td>Testa se um objeto é de um tipo (e, desde o 16, já cria a variável).</td><td><code>if (f instanceof Circulo c)</code></td><td><a href="pattern-matching.html">Pattern Matching</a></td></tr>
+</table>
+</div>
+
+<h3>Modificadores</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>O que faz</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>public</code></td><td>Visível de qualquer lugar.</td><td><code>public void depositar(…)</code></td><td><a href="modificadores.html">Modificadores de Acesso</a></td></tr>
+<tr><td><code>protected</code></td><td>Visível no pacote e nas subclasses.</td><td><code>protected String nome;</code></td><td><a href="modificadores.html">Modificadores de Acesso</a></td></tr>
+<tr><td><code>private</code></td><td>Visível só dentro da própria classe.</td><td><code>private double saldo;</code></td><td><a href="modificadores.html">Modificadores de Acesso</a></td></tr>
+<tr><td><code>static</code></td><td>Pertence à classe, não a cada objeto.</td><td><code>static int contador;</code></td><td><a href="static.html">static</a></td></tr>
+<tr><td><code>final</code></td><td>Não muda mais: variável constante, método que não pode ser sobrescrito, classe que não pode ser herdada.</td><td><code>final double PI = 3.14;</code></td><td><a href="final.html">final</a>, <a href="constantes.html">Constantes</a></td></tr>
+<tr><td><code>abstract</code></td><td>Classe que não pode ser instanciada / método sem corpo, que as filhas implementam.</td><td><code>abstract double area();</code></td><td><a href="abstratas.html">Classes Abstratas</a></td></tr>
+<tr><td><code>synchronized</code></td><td>Só uma thread por vez executa o método ou bloco.</td><td><code>synchronized void somar()</code></td><td><a href="sincronizacao.html">synchronized e Locks</a></td></tr>
+<tr><td><code>volatile</code></td><td>A variável é sempre lida da memória principal, visível para todas as threads.</td><td><code>volatile boolean parar;</code></td><td><a href="sincronizacao.html">synchronized e Locks</a></td></tr>
+<tr><td><code>transient</code></td><td>O atributo é ignorado na serialização (quando o objeto vira bytes).</td><td><code>transient String senha;</code></td><td>—</td></tr>
+<tr><td><code>native</code></td><td>O método é implementado em outra linguagem (C), fora da JVM.</td><td><code>native int ler();</code></td><td>—</td></tr>
+<tr><td><code>strictfp</code></td><td>Obsoleta: desde o Java 17 toda conta de ponto flutuante já é "estrita". Ainda é reservada, mas não faz nada.</td><td><code>strictfp class Calculo</code></td><td><a href="ref-math.html">Métodos de Math</a></td></tr>
+</table>
+</div>
+
+<h3>Exceções</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>O que faz</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>try</code></td><td>Bloco onde uma exceção pode acontecer; também abre recursos (try-with-resources).</td><td><code>try { … }</code></td><td><a href="try-catch.html">try e catch</a></td></tr>
+<tr><td><code>catch</code></td><td>Captura e trata uma exceção.</td><td><code>catch (IOException e) { … }</code></td><td><a href="try-catch.html">try e catch</a></td></tr>
+<tr><td><code>finally</code></td><td>Bloco que roda sempre, com ou sem exceção.</td><td><code>finally { fechar(); }</code></td><td><a href="finally.html">finally</a></td></tr>
+<tr><td><code>throw</code></td><td>Lança uma exceção agora.</td><td><code>throw new IllegalArgumentException("…");</code></td><td><a href="throw-throws.html">throw e throws</a></td></tr>
+<tr><td><code>throws</code></td><td>Na assinatura: o método pode lançar essas exceções.</td><td><code>void ler() throws IOException</code></td><td><a href="throw-throws.html">throw e throws</a></td></tr>
+</table>
+</div>
+
+<h3>Pacotes e módulos</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>O que faz</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>package</code></td><td>Diz a que pacote o arquivo pertence (primeira linha).</td><td><code>package br.com.ana.banco;</code></td><td><a href="pacotes.html">Pacotes e import</a></td></tr>
+<tr><td><code>import</code></td><td>Traz classes de outros pacotes para usar pelo nome curto.</td><td><code>import java.util.List;</code></td><td><a href="pacotes.html">Pacotes e import</a></td></tr>
+</table>
+</div>
+
+<h3>Sem uso e o <code>_</code></h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>O que faz</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>const</code></td><td><strong>Nada.</strong> Reservada desde o Java 1.0 para evitar confusão com C/C++, mas nunca usada. Em Java, constante é <code>static final</code>.</td><td>—</td><td><a href="constantes.html">Constantes</a></td></tr>
+<tr><td><code>goto</code></td><td><strong>Nada.</strong> Reservada e nunca usada. Para sair de laços aninhados, use <code>break</code> com rótulo.</td><td>—</td><td><a href="break-continue.html">break e continue</a></td></tr>
+<tr><td><code>_</code></td><td>Variável sem nome: "aqui vai uma variável, mas eu não vou usá-la". <span class="versao">Java 22+</span> (antes, desde o 9, era só proibido).</td><td><code>for (Forma _ : formas) contador++;</code></td><td><a href="novidades.html">Novidades do 17 ao 25</a></td></tr>
+</table>
+</div>
+
+<div class="tryjshell" data-goal="out:true">
+<p class="try-task"><strong>Experimente:</strong> palavras-chave são sempre minúsculas. Declare <code>int Class = 1</code> (com C maiúsculo) no JShell e veja que funciona; depois mostre <code>Class == 1</code>.</p>
+<pre class="solucao">int Class = 1
+Class == 1</pre>
+</div>
+
+<hr>
+
+<h2 id="contextuais">Palavras contextuais</h2>
+<p>Só têm significado especial na posição em que aparecem. A coluna "Desde" mostra a versão em que cada uma passou a valer.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Desde</th><th>O que faz</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>var</code></td><td>10</td><td>Deixa o compilador descobrir o tipo da variável local pelo valor.</td><td><code>var lista = new ArrayList&lt;String&gt;();</code></td><td><a href="var.html">var</a></td></tr>
+<tr><td><code>yield</code></td><td>14</td><td>Entrega o valor de um bloco <code>{ }</code> dentro de um <code>switch</code> expressão.</td><td><code>default -&gt; { log(); yield 0; }</code></td><td><a href="switch-expressoes.html">switch com Setas</a></td></tr>
+<tr><td><code>record</code></td><td>16</td><td>Declara uma classe só de dados, com construtor, acessores, <code>equals</code> e <code>toString</code> prontos.</td><td><code>record Ponto(int x, int y) { }</code></td><td><a href="records.html">Records</a></td></tr>
+<tr><td><code>sealed</code></td><td>17</td><td>A classe ou interface só pode ser estendida pelas classes listadas.</td><td><code>sealed interface Forma permits Circulo, Quadrado { }</code></td><td><a href="sealed.html">Classes Seladas</a></td></tr>
+<tr><td><code>permits</code></td><td>17</td><td>A lista de quem pode estender uma classe selada.</td><td><code>permits Circulo, Quadrado</code></td><td><a href="sealed.html">Classes Seladas</a></td></tr>
+<tr><td><code>non-sealed</code></td><td>17</td><td>Uma filha de selada que volta a aceitar qualquer filha. A única palavra-chave com hífen.</td><td><code>non-sealed class Poligono extends Forma</code></td><td><a href="sealed.html">Classes Seladas</a></td></tr>
+<tr><td><code>when</code></td><td>21</td><td>Condição extra (guarda) num <code>case</code> com padrão.</td><td><code>case Circulo c when c.raio() == 0 -&gt; 0;</code></td><td><a href="pattern-matching.html">Pattern Matching</a></td></tr>
+<tr><td><code>module</code></td><td>9</td><td>Declara um módulo em <code>module-info.java</code> (e, no 25, <code>import module java.base;</code>).</td><td><code>module br.com.ana.loja { … }</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>open</code></td><td>9</td><td>Módulo aberto à reflexão por completo.</td><td><code>open module br.com.ana.loja { }</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>requires</code></td><td>9</td><td>O módulo depende de outro.</td><td><code>requires java.sql;</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>transitive</code></td><td>9</td><td>Quem depende de mim também recebe essa dependência.</td><td><code>requires transitive java.sql;</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>exports</code></td><td>9</td><td>Deixa um pacote visível para outros módulos.</td><td><code>exports br.com.ana.loja.api;</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>opens</code></td><td>9</td><td>Abre um pacote para reflexão.</td><td><code>opens br.com.ana.loja.modelo;</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>to</code></td><td>9</td><td>Restringe <code>exports</code>/<code>opens</code> a módulos específicos.</td><td><code>exports a.b to c.d;</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>uses</code></td><td>9</td><td>O módulo consome um serviço.</td><td><code>uses br.com.ana.Pagamento;</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>provides</code></td><td>9</td><td>O módulo fornece uma implementação de serviço…</td><td><code>provides Pagamento with Pix;</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+<tr><td><code>with</code></td><td>9</td><td>…com esta classe.</td><td><code>with Pix;</code></td><td><a href="modulos.html">Módulos</a></td></tr>
+</table>
+</div>
+
+<p>Um programa que usa <code>sealed</code>, <code>permits</code>, <code>record</code>, <code>when</code>, <code>var</code>, <code>yield</code> e <code>_</code> de uma vez:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    sealed interface Forma permits Circulo, Quadrado { }
+    record Circulo(double raio) implements Forma { }
+    record Quadrado(double lado) implements Forma { }
+
+    static double area(Forma f) {
+        return switch (f) {
+            case Circulo c when c.raio() == 0 -&gt; 0;
+            case Circulo c -&gt; Math.PI * c.raio() * c.raio();
+            case Quadrado q -&gt; q.lado() * q.lado();
+        };
+    }
+
+    public static void main(String[] args) {
+        var formas = List.of(new Circulo(1), new Quadrado(2), new Circulo(0));
+        int contador = 0;
+        for (Forma _ : formas) {
+            contador++;
+        }
+        for (var f : formas) {
+            System.out.println(f + " -&gt; " + area(f));
+        }
+        String tamanho = switch (contador) {
+            case 0 -&gt; "nenhuma";
+            default -&gt; {
+                String t = contador + " formas";
+                yield t;
+            }
+        };
+        System.out.println(tamanho);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Circulo[raio=1.0] -&gt; 3.141592653589793
+Quadrado[lado=2.0] -&gt; 4.0
+Circulo[raio=0.0] -&gt; 0.0
+3 formas</pre>
+
+<hr>
+
+<h2 id="literais"><code>true</code>, <code>false</code> e <code>null</code></h2>
+<p>Tecnicamente, não são palavras-chave: são <strong>literais</strong> (valores escritos direto no código), como <code>42</code> ou <code>"Ana"</code>. Mas também são proibidos como nomes.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Literal</th><th>O que é</th><th>Exemplo</th><th>Aula</th></tr>
+<tr><td><code>true</code></td><td>O valor verdadeiro de um <code>boolean</code>.</td><td><code>boolean ligado = true;</code></td><td><a href="booleanos.html">Expressões Booleanas</a></td></tr>
+<tr><td><code>false</code></td><td>O valor falso.</td><td><code>boolean ligado = false;</code></td><td><a href="booleanos.html">Expressões Booleanas</a></td></tr>
+<tr><td><code>null</code></td><td>"Nenhum objeto": uma referência que não aponta para nada. Chamar um método nela dá <code>NullPointerException</code>.</td><td><code>String nome = null;</code></td><td><a href="ref-excecoes.html">Exceções Comuns</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Uma palavra reservada como nome de variável</strong>
+<p class="warning" style="margin:6px 0">Estes códigos têm erros de propósito.</p>
+<pre class="file" data-file="Main.java">        int class = 3;
+        System.out.println(class);
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:3: error: not a statement
+        int class = 3;
+        ^
+Main.java:3: error: ';' expected
+        int class = 3;
+           ^
+Main.java:3: error: &lt;identifier&gt; expected
+        int class = 3;
+                 ^
+Main.java:4: error: illegal start of expression
+        System.out.println(class);
+                           ^
+Main.java:4: error: &lt;identifier&gt; expected
+        System.out.println(class);
+                                ^
+5 errors
+error: compilation failed</pre>
+<p>O <code>javac</code> não diz "class é palavra reservada": ele se perde e mostra uma cascata de erros (<code>not a statement</code>, <code>';' expected</code>, <code>&lt;identifier&gt; expected</code>). Quando um erro aponta para uma linha que parece perfeita, confira se algum nome é palavra-chave. Com <code>goto</code>, <code>const</code> e até <code>true</code>, a mensagem é a mesma:</p>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:3: error: not a statement
+        int goto = 3;
+        ^
+Main.java:3: error: ';' expected
+        int goto = 3;
+           ^
+2 errors
+error: compilation failed</pre>
+</div>
+
+<div class="cenario">
+<strong>Uma palavra contextual onde ela é especial</strong>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:2: error: 'var' not allowed here
+    static class var { }
+                 ^
+  as of release 10, 'var' is a restricted type name and cannot be used for type declarations
+1 error
+error: compilation failed</pre>
+<p>"Desde a versão 10, <code>var</code> é um nome de tipo restrito e não pode ser usado para declarar tipos." Variável chamada <code>var</code> pode; classe chamada <code>var</code>, não. Com o <code>_</code> é parecido: dá para declarar, mas não para ler:</p>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: underscore not allowed here
+        System.out.println(_);
+                           ^
+1 error
+error: compilation failed</pre>
+</div>
+
+<div class="tryjava" data-goal="out:Total: 30,compila">
+<p class="try-task"><strong>Missão:</strong> este programa não compila porque usa duas palavras reservadas como nomes de variável. Troque os nomes (por exemplo, <code>novo</code> e <code>padrao</code>) e faça-o mostrar <code>Total: 30</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int new = 10;
+        int default = 20;
+        System.out.println("Total: " + (new + default));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int novo = 10;
+        int padrao = 20;
+        System.out.println("Total: " + (novo + padrao));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. Qual destas linhas compila?</p>
+<label><input type="radio" name="q1"> <code>int static = 1;</code></label>
+<label><input type="radio" name="q1"> <code>int goto = 1;</code></label>
+<label><input type="radio" name="q1"> <code>int record = 1;</code></label>
+<label><input type="radio" name="q1"> <code>int null = 1;</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">2. O que <code>const</code> faz em Java?</p>
+<label><input type="radio" name="q2"> Nada: é reservada, mas nunca foi usada. Constantes são <code>static final</code>.</label>
+<label><input type="radio" name="q2"> Declara uma constante.</label>
+<label><input type="radio" name="q2"> É sinônimo de <code>final</code>.</label>
+<label><input type="radio" name="q2"> Só funciona dentro de interfaces.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Em que versão o <code>when</code> passou a valer nos <code>case</code> do <code>switch</code>?</p>
+<label><input type="radio" name="q3"> Java 8</label>
+<label><input type="radio" name="q3"> Java 14</label>
+<label><input type="radio" name="q3"> Java 17</label>
+<label><input type="radio" name="q3"> Java 21</label>
+</div>
+
+<div class="exercise">
+<p>Complete a declaração da classe selada:</p>
+<div class="ex-code"><input data-answer="sealed"> interface Forma <input data-answer="permits"> Circulo, Quadrado { }</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>51 palavras reservadas (50 palavras e o <code>_</code>), proibidas como nomes em qualquer lugar; <code>const</code> e <code>goto</code> não fazem nada; <code>strictfp</code> está obsoleta.</li>
+  <li>17 palavras contextuais (<code>var</code>, <code>yield</code>, <code>record</code>, <code>sealed</code>, <code>non-sealed</code>, <code>permits</code>, <code>when</code> e as 10 de módulos), especiais só em certas posições.</li>
+  <li><code>true</code>, <code>false</code> e <code>null</code> são literais, também proibidos como nomes.</li>
+  <li>Usar uma palavra reservada como nome dá erros confusos (<code>not a statement</code>, <code>';' expected</code>); desconfie dos nomes.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
