@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java double e float — números com casas decimais | Guia Java</title>
+<meta name="description" content="Números decimais em Java: double e float (sufixo f), por que 0.1 + 0.2 dá 0.30000000000000004, notação científica (1.0E10), NaN e Infinity, como comparar decimais e quando usar BigDecimal, com erros e saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">double e float</span></h1>
+
+<p class="intro">Altura, peso, média de notas, temperatura: muitos números do dia a dia têm <strong>casas decimais</strong>. Para eles, o Java tem dois tipos, <code>double</code> e <code>float</code>. Eles são práticos, mas têm surpresas que todo programador precisa conhecer, como a conta <code>0.1 + 0.2</code> que não dá exatamente <code>0.3</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar e usar <code>double</code> (o padrão) e <code>float</code> (com o sufixo <code>f</code>).</li>
+  <li>Por que decimais são <strong>aproximados</strong> e o que isso causa.</li>
+  <li>Como o Java mostra números muito grandes e muito pequenos (<code>1.0E10</code>).</li>
+  <li>O que são <code>Infinity</code> e <code>NaN</code>.</li>
+  <li>Como comparar dois decimais do jeito certo e quando trocar por <code>BigDecimal</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2><code>double</code>: o tipo decimal padrão</h2>
+<p>Em Java, a parte decimal é separada por <strong>ponto</strong>, como em inglês: <code>1.65</code>, nunca <code>1,65</code>. Todo número com ponto escrito no código é um <code>double</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double altura = 1.65;
+        double preco = 9.90;
+        double inteiro = 10;
+        double negativo = -273.15;
+        System.out.println(altura);
+        System.out.println(preco);
+        System.out.println(inteiro);
+        System.out.println(negativo);
+        System.out.println(10 / 4);
+        System.out.println(10.0 / 4);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+1.65
+9.9                « zeros no fim não são guardados
+10.0               « um int guardado em double ganha ".0"
+-273.15
+2                  « 10 / 4 com dois inteiros: divisão inteira
+2.5                « com um double na conta, o resultado tem decimais</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que mostra</th></tr>
+<tr><td><code>double preco = 9.90;</code></td><td>O <code>double</code> guarda o <strong>número</strong> 9,9; o zero à direita não é informação. Para mostrar <code>9,90</code>, formate na hora de imprimir (veja abaixo).</td></tr>
+<tr><td><code>double inteiro = 10;</code></td><td>Um inteiro cabe num <code>double</code> sem problema (conversão automática). Ao imprimir, o Java sempre mostra pelo menos uma casa: <code>10.0</code>.</td></tr>
+<tr><td><code>10 / 4</code> e <code>10.0 / 4</code></td><td>Se os dois números da divisão são inteiros, a divisão é inteira e o <code>.5</code> some. Basta <strong>um</strong> <code>double</code> na conta para o resultado ser <code>double</code>. Detalhes em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</td></tr>
+</table>
+</div>
+
+<p><em>Double</em> quer dizer "duplo": ele tem o dobro de bits do <code>float</code> (64 contra 32) e por isso guarda cerca de 15 a 16 dígitos significativos, contra 6 a 7 do <code>float</code>. O nome técnico dos dois é <strong>ponto flutuante</strong> (<em>floating point</em>): o ponto decimal "flutua", isto é, o mesmo tipo guarda tanto <code>0.000001</code> quanto <code>1000000.0</code>.</p>
+
+<div class="tryjava" data-goal="out:7.5">
+<p class="try-task"><strong>Missão:</strong> a média de 7 e 8 deveria ser 7.5, mas o programa mostra <code>7.0</code>. A conta <code>(7 + 8) / 2</code> é feita só com inteiros. Mude <strong>um</strong> número para que a divisão seja decimal.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double media = (7 + 8) / 2;
+        System.out.println(media);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double media = (7 + 8) / 2.0;
+        System.out.println(media);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>float</code> e o sufixo <code>f</code></h2>
+<p>O <code>float</code> ocupa metade da memória do <code>double</code> e é menos preciso. A primeira tentativa de usá-lo costuma ser esta:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        float temperatura = 36.6;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from double to float
+        float temperatura = 36.6;
+                            ^
+1 error</pre>
+
+<p>"Possível conversão com perda, de double para float". Como todo número com ponto é <code>double</code>, o <code>36.6</code> é um <code>double</code>, e colocá-lo num <code>float</code> (menor) pode perder precisão. O Java não faz isso sem você pedir. Para escrever um número <code>float</code>, coloque <code>f</code> (ou <code>F</code>) no fim:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        float f = 1.0f / 3;
+        double d = 1.0 / 3;
+        System.out.println(f);
+        System.out.println(d);
+        float temperatura = 36.6f;
+        System.out.println(temperatura);
+        double dd = temperatura;
+        System.out.println(dd);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+0.33333334             « float: 8 dígitos, o último já errado
+0.3333333333333333     « double: 16 dígitos
+36.6
+36.599998474121094     « o mesmo float visto "de perto" como double</pre>
+
+<p>A última linha revela um segredo: o <code>float</code> nunca guardou exatamente 36,6, e sim o número mais próximo que ele consegue representar. Impresso como <code>float</code>, o Java arredonda e mostra <code>36.6</code>; convertido para <code>double</code>, o erro aparece. A próxima seção explica por quê.</p>
+
+<h3>Qual usar?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>double</code></th><th><code>float</code></th></tr>
+<tr><td>Tamanho</td><td>64 bits</td><td>32 bits</td></tr>
+<tr><td>Precisão</td><td>~15–16 dígitos</td><td>~6–7 dígitos</td></tr>
+<tr><td>Como escrever</td><td><code>36.6</code> (ou <code>36.6d</code>)</td><td><code>36.6f</code></td></tr>
+<tr><td>Quando usar</td><td><strong>Sempre</strong>, por padrão. Todos os métodos de <a href="math.html">Math</a> trabalham com <code>double</code>.</td><td>Só quando uma biblioteca exige (jogos, gráficos 3D) ou para guardar milhões de valores economizando memória.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Decimais são aproximados: <code>0.1 + 0.2</code></h2>
+<p>Esta é a conta mais famosa da programação:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(0.1 + 0.2);
+        System.out.println(1.10 - 1.00);
+        System.out.println(0.1 + 0.2 == 0.3);
+        double soma = 0;
+        soma = soma + 0.1;
+        soma = soma + 0.1;
+        soma = soma + 0.1;
+        System.out.println(soma);
+        System.out.println(0.1f + 0.2f);
+        System.out.println(3 * 0.1);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+0.30000000000000004
+0.10000000000000009
+false                  « 0.1 + 0.2 NÃO é igual a 0.3
+0.30000000000000004
+0.3                    « float: a imprecisão existe, mas some no arredondamento
+0.30000000000000004</pre>
+
+<p>Não é defeito do Java: Python, JavaScript, C e quase todas as linguagens dão o mesmo resultado. O motivo é que o computador guarda os números em <strong>binário</strong> (base 2), e em binário o número 0,1 é uma dízima infinita, como 1/3 = 0,3333… em decimal. Com espaço limitado, ele guarda uma aproximação muito, muito próxima de 0,1, mas não exatamente 0,1. Somando duas aproximações, o errinho aparece no 17º dígito.</p>
+
+<p>Pense em dividir uma pizza em 3 fatias "iguais" usando uma régua que só marca milímetros: cada fatia fica com 33 mm em vez de 33,333… mm, e juntando as três falta 1 mm. Para medidas, um erro na 17ª casa não importa. Para <strong>dinheiro</strong> e para <strong>comparações com <code>==</code></strong>, importa.</p>
+
+<div class="warning">
+<strong>Nunca use <code>double</code> para dinheiro</strong>
+<p><code>1.10 - 1.00</code> deu <code>0.10000000000000009</code>. Num sistema de loja, somas assim, repetidas milhares de vezes, criam centavos que não existem. Para valores monetários, use a classe <code>BigDecimal</code>, que faz contas decimais exatas: veja <a href="bigdecimal.html">BigDecimal e Dinheiro</a>. Outra saída comum é guardar os valores em <strong>centavos</strong> num <code>long</code> (<code>long precoEmCentavos = 990;</code>).</p>
+</div>
+
+<h3>Mostrando com menos casas</h3>
+<p>Quando o problema é só a aparência, formate ao imprimir. <code>System.out.printf("%.2f%n", valor)</code> mostra o número com duas casas, arredondado. Na máquina da Ana, configurada em português do Brasil, o separador decimal impresso é a <strong>vírgula</strong>:</p>
+
+<p>Assim, <code>System.out.printf("%.2f%n", 0.1 + 0.2);</code> mostra <code>0,30</code> (a saída real está no programa da próxima seção). O <code>%.2f</code> quer dizer "número decimal com 2 casas" e o <code>%n</code> pula a linha. O <code>printf</code> e suas regras estão em <a href="formatacao.html">Formatar Texto</a>.</p>
+
+<hr>
+
+<h2>Comparar decimais</h2>
+<p>Como as contas acumulam pequenos erros, <strong>não compare decimais com <code>==</code></strong>. Pergunte se a diferença entre eles é <strong>pequena o bastante</strong>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double a = 0.1 + 0.2;
+        double b = 0.3;
+        System.out.println(a == b);
+        System.out.println(Math.abs(a - b) &lt; 0.000001);
+        System.out.println(Math.abs(a - b));
+        System.out.printf("%.2f%n", a);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Math.abs(</dt><dd>Valor absoluto: tira o sinal de menos (a diferença pode dar negativa).</dd>
+  <dt>a - b</dt><dd>A diferença entre os dois números.</dd>
+  <dt>)</dt><dd>Fecha o <code>abs</code>.</dd>
+  <dt>&lt; 0.000001</dt><dd>A <strong>tolerância</strong>: "se a diferença for menor que um milionésimo, considero iguais". Escolha uma tolerância adequada ao problema.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+false
+true
+5.551115123125783E-17
+0,30</pre>
+
+<p>O <code>==</code> deu <code>false</code>, a comparação com tolerância deu <code>true</code>, e a diferença real era de 0,0000000000000000555 (<code>5.55…E-17</code>). Os operadores <code>==</code> e <code>&lt;</code> são explicados em <a href="operadores-comparacao.html">Operadores de Comparação</a>.</p>
+
+<div class="tryjava" data-goal="out:true,src:Math\.abs">
+<p class="try-task"><strong>Missão:</strong> a balança da loja somou três pesagens de 0.1 kg. O programa pergunta se o total é 0.3 kg e responde <code>false</code>. Troque o <code>==</code> por uma comparação com tolerância usando <code>Math.abs</code> para que ele mostre <code>true</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double total = 0.1 + 0.1 + 0.1;
+        System.out.println(total == 0.3);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double total = 0.1 + 0.1 + 0.1;
+        System.out.println(Math.abs(total - 0.3) &lt; 0.000001);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Notação científica: <code>1.0E10</code></h2>
+<p>Números muito grandes ou muito pequenos têm zeros demais. A ciência os escreve como "1,5 × 10<sup>11</sup>". O Java escreve <code>1.5E11</code>: o <code>E</code> (de <em>expoente</em>) quer dizer "vezes 10 elevado a". Você pode usar essa forma no código e o Java também a usa ao imprimir:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double distancia = 1.5e11;
+        double atomo = 1e-10;
+        System.out.println(distancia);
+        System.out.println(atomo);
+        System.out.println(1e10);
+        System.out.println(1234567.0);
+        System.out.println(12345678.9);
+        System.out.println(0.001);
+        System.out.println(0.0001);
+        System.out.println(100.0 * 100000);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+1.5E11             « 1,5 × 10¹¹ = 150.000.000.000
+1.0E-10            « 1 × 10⁻¹⁰ = 0,0000000001
+1.0E10
+1234567.0          « abaixo de 10 milhões: escrita normal
+1.23456789E7       « a partir de 10 milhões: notação científica
+0.001              « a partir de 0,001: escrita normal
+1.0E-4             « abaixo de 0,001: notação científica
+1.0E7</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No código ou na saída</th><th>Lê-se</th><th>Valor</th></tr>
+<tr><td><code>1.5E11</code> ou <code>1.5e11</code></td><td>1,5 × 10<sup>11</sup></td><td>150.000.000.000</td></tr>
+<tr><td><code>1.0E-4</code></td><td>1 × 10<sup>-4</sup></td><td>0,0001</td></tr>
+<tr><td><code>1.23456789E7</code></td><td>1,23456789 × 10<sup>7</sup></td><td>12.345.678,9</td></tr>
+</table>
+</div>
+
+<p>A regra do <code>println</code> para <code>double</code>: números de 0,001 até menos de 10.000.000 aparecem do jeito normal; fora dessa faixa, em notação científica. Isso costuma assustar quem calcula, por exemplo, o faturamento de uma empresa: <code>1.0E7</code> é simplesmente dez milhões. Para mostrar sempre do jeito normal, use <code>printf</code> (<a href="formatacao.html">Formatar Texto</a>).</p>
+
+<hr>
+
+<h2><code>Infinity</code> e <code>NaN</code></h2>
+<p>Dividir um <strong>inteiro</strong> por zero faz o programa parar com <code>ArithmeticException</code> (veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). Com <code>double</code>, não: o padrão dos decimais tem valores especiais para esses casos:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(1.0 / 0);
+        System.out.println(-1.0 / 0);
+        System.out.println(0.0 / 0);
+        System.out.println(Math.sqrt(-4));
+        double nada = 0.0 / 0;
+        System.out.println(nada == nada);
+        System.out.println(Double.isNaN(nada));
+        System.out.println(Double.isInfinite(1.0 / 0));
+        System.out.println(Double.MAX_VALUE * 2);
+        System.out.println(Double.MIN_VALUE);
+        System.out.println(1 / 0.0 + 5);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Infinity           « 1.0 / 0: infinito positivo
+-Infinity          « infinito negativo
+NaN                « 0.0 / 0: "não é um número"
+NaN                « raiz quadrada de número negativo
+false              « NaN não é igual nem a si mesmo!
+true
+true
+Infinity           « passar do maior double vira infinito (não dá a volta)
+4.9E-324           « o menor double POSITIVO, não o mais negativo
+Infinity           « infinito + 5 continua infinito</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor</th><th>Significado</th><th>Aparece quando</th><th>Como testar</th></tr>
+<tr><td><code>Infinity</code></td><td>Infinito positivo</td><td>Número positivo ÷ 0.0; conta passa de <code>Double.MAX_VALUE</code></td><td><code>Double.isInfinite(x)</code></td></tr>
+<tr><td><code>-Infinity</code></td><td>Infinito negativo</td><td>Número negativo ÷ 0.0</td><td><code>Double.isInfinite(x)</code></td></tr>
+<tr><td><code>NaN</code></td><td><em>Not a Number</em>, "não é um número"</td><td><code>0.0 / 0</code>, <code>Math.sqrt(-4)</code>, contas com um <code>NaN</code></td><td><code>Double.isNaN(x)</code> (nunca <code>x == x</code>)</td></tr>
+</table>
+</div>
+
+<p>O perigo desses valores é que eles <strong>não param o programa</strong>: um <code>NaN</code> entra numa conta, contamina o resultado, e você só descobre lá no fim, quando a média dos alunos aparece como <code>NaN</code>. Se uma divisão pode ter divisor zero, confira antes com um <a href="if-else.html">if</a>.</p>
+
+<div class="note">
+<strong><code>Double.MIN_VALUE</code> não é o "mínimo"</strong>
+<p>Diferente de <code>Integer.MIN_VALUE</code> (o inteiro mais negativo), <code>Double.MIN_VALUE</code> é o menor número <strong>positivo</strong> que um <code>double</code> representa: 4,9 × 10<sup>-324</sup>. O <code>double</code> mais negativo é <code>-Double.MAX_VALUE</code>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"possible lossy conversion from double to float"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from double to float
+        float temperatura = 36.6;
+                            ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>36.6</code> é um <code>double</code> e não entra num <code>float</code> sem perda.</p>
+<p><strong>Como consertar:</strong> escreva <code>36.6f</code>, ou, melhor ainda, use <code>double</code>. O mesmo erro com <code>int</code> (<code>int x = 2.5;</code>, "from double to int") se resolve trocando o tipo para <code>double</code> ou fazendo um <a href="conversao-tipos.html">casting</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Vírgula no lugar do ponto: "&lt;identifier&gt; expected"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        double preco = 9,90;
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: &lt;identifier&gt; expected
+        double preco = 9,90;
+                         ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> a vírgula separa variáveis numa declaração (<code>int a = 1, b = 2;</code>). O Java entendeu <code>preco = 9</code>, depois uma vírgula, e esperava o <strong>nome</strong> (identificador) de outra variável; achou <code>90</code>, que não pode ser nome.</p>
+<p><strong>Como consertar:</strong> no código, sempre ponto: <code>9.90</code>. A vírgula só aparece na <strong>saída</strong> formatada para o Brasil.</p>
+</div>
+
+<div class="cenario">
+<strong>A média deu <code>7.0</code> em vez de <code>7.5</code></strong>
+<p><strong>O que aconteceu:</strong> <code>double media = (7 + 8) / 2;</code> faz a divisão com dois inteiros (resultado <code>7</code>) e só depois guarda no <code>double</code>, que vira <code>7.0</code>. Guardar em <code>double</code> não muda o tipo da conta.</p>
+<p><strong>Como consertar:</strong> faça pelo menos um número da divisão ser decimal: <code>/ 2.0</code>. Com variáveis inteiras, use um <a href="conversao-tipos.html">casting</a>: <code>(double) soma / 2</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Apareceu <code>NaN</code> ou <code>Infinity</code> no resultado</strong>
+<p><strong>O que aconteceu:</strong> em algum ponto houve uma divisão por zero com <code>double</code> (por exemplo, a média de uma turma sem alunos: <code>0.0 / 0</code>) ou uma operação impossível, como a raiz de um negativo.</p>
+<p><strong>Como consertar:</strong> procure as divisões e confira o divisor antes de dividir. Para descobrir de onde veio, imprima os valores intermediários ou use <code>Double.isNaN</code> e <code>Double.isInfinite</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita / método</th><th>O que é</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>1.65</code></td><td>Literal <code>double</code></td><td><code>double h = 1.65;</code></td></tr>
+<tr><td><code>36.6f</code></td><td>Literal <code>float</code></td><td><code>float t = 36.6f;</code></td></tr>
+<tr><td><code>1.5e11</code></td><td>Notação científica (× 10<sup>11</sup>)</td><td><code>1.5E11</code></td></tr>
+<tr><td><code>Double.MAX_VALUE</code></td><td>Maior <code>double</code></td><td><code>1.7976931348623157E308</code></td></tr>
+<tr><td><code>Double.MIN_VALUE</code></td><td>Menor <code>double</code> <strong>positivo</strong></td><td><code>4.9E-324</code></td></tr>
+<tr><td><code>Double.isNaN(x)</code></td><td><code>x</code> é <code>NaN</code>?</td><td><code>Double.isNaN(0.0 / 0)</code> → <code>true</code></td></tr>
+<tr><td><code>Double.isInfinite(x)</code></td><td><code>x</code> é ±infinito?</td><td><code>Double.isInfinite(1.0 / 0)</code> → <code>true</code></td></tr>
+<tr><td><code>Math.abs(a - b) &lt; tol</code></td><td>Comparar decimais com tolerância</td><td><code>Math.abs(0.1 + 0.2 - 0.3) &lt; 1e-6</code> → <code>true</code></td></tr>
+<tr><td><code>printf("%.2f%n", x)</code></td><td>Mostrar com 2 casas</td><td><code>0,30</code> (locale pt_BR)</td></tr>
+<tr><td><code>BigDecimal</code></td><td>Decimal exato (dinheiro)</td><td>Veja <a href="bigdecimal.html">BigDecimal e Dinheiro</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O sufixo do float</h3>
+<p>Complete para o código compilar:</p>
+<div class="ex-code">float peso = 62.5<input data-answer="f|F" aria-label="sufixo">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Divisão decimal</h3>
+<p>Complete o divisor para <code>resultado</code> valer <code>3.5</code>:</p>
+<div class="ex-code">double resultado = 7 / <input data-answer="2.0|2d|2D|2.0d|2f|2.0f|2.|2.00" aria-label="divisor">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Testar NaN</h3>
+<p>Complete para descobrir se <code>media</code> é <code>NaN</code>:</p>
+<div class="ex-code">boolean invalida = Double.<input data-answer="isNaN" aria-label="método">(media);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>System.out.println(0.1 + 0.2);</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>0.3</code></label>
+<label><input type="radio" name="q4"> <code>0.30000000000000004</code></label>
+<label><input type="radio" name="q4"> <code>0,3</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que <code>System.out.println(1.0 / 0);</code> mostra?</p>
+<label><input type="radio" name="q5"> <code>0</code></label>
+<label><input type="radio" name="q5"> <code>NaN</code></label>
+<label><input type="radio" name="q5"> <code>ArithmeticException: / by zero</code></label>
+<label><input type="radio" name="q5"> <code>Infinity</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual tipo usar para o preço de um produto num sistema de vendas?</p>
+<label><input type="radio" name="q6"> <code>BigDecimal</code> (ou centavos num <code>long</code>)</label>
+<label><input type="radio" name="q6"> <code>float</code></label>
+<label><input type="radio" name="q6"> <code>double</code></label>
+<label><input type="radio" name="q6"> <code>int</code> em reais</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">7. O Java imprimiu <code>2.5E7</code>. Que número é esse?</p>
+<label><input type="radio" name="q7"> 2,57</label>
+<label><input type="radio" name="q7"> 2.500.000</label>
+<label><input type="radio" name="q7"> 25.000.000</label>
+<label><input type="radio" name="q7"> Um erro: <code>E</code> = <em>error</em>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>double</code> é o tipo decimal padrão; todo número com ponto no código é <code>double</code>. Use ponto, nunca vírgula.</li>
+  <li><code>float</code> é menor e menos preciso; precisa do sufixo <code>f</code> (<code>36.6f</code>), senão: <code>possible lossy conversion from double to float</code>.</li>
+  <li>Decimais são aproximados: <code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>. Não use <code>==</code> com eles; compare com <code>Math.abs(a - b) &lt; tolerância</code>.</li>
+  <li>Dinheiro: <code>BigDecimal</code> ou centavos em <code>long</code>.</li>
+  <li>Fora da faixa de 0,001 a 10 milhões, o <code>println</code> usa notação científica: <code>1.0E7</code> = 10.000.000.</li>
+  <li>Dividir <code>double</code> por zero dá <code>Infinity</code> ou <code>NaN</code>, sem erro. <code>NaN</code> não é igual nem a si mesmo: use <code>Double.isNaN</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
