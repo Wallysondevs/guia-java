@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Métodos de Math — referência com exemplos e StrictMath | Guia Java</title>
+<meta name="description" content="Referência da classe Math do Java 25: abs, max, min, clamp, pow, sqrt, round, floor, ceil, floorDiv, floorMod, trigonometria, addExact e outros, com exemplo e resultado real do JShell, e a diferença para StrictMath.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Métodos de Math</span></h1>
+
+<p class="intro">A classe <code>Math</code> é a calculadora científica do Java: potência, raiz, arredondamento, trigonometria e contas protegidas contra overflow. Todos os métodos são <code>static</code>: você escreve <code>Math.sqrt(16)</code>, sem criar objeto nenhum, e não precisa de <code>import</code> (ela está em <code>java.lang</code>). A aula com a explicação passo a passo é <a href="math.html">Math</a>.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Os resultados são reais, do JShell do JDK 25. <code>1024.0</code> é um <code>double</code>; <code>1024</code> sem ponto é um inteiro.</li>
+  <li>A maioria dos métodos aceita e devolve <code>double</code>. Os que têm versões para <code>int</code>/<code>long</code> (<code>abs</code>, <code>max</code>, <code>min</code>, <code>floorDiv</code>…) devolvem o mesmo tipo que receberam.</li>
+  <li>Números muito pequenos ou grandes aparecem em notação científica: <code>1.2246467991473532E-16</code> = 1,22 × 10<sup>-16</sup>, praticamente zero.</li>
+</ul>
+</div>
+
+<p>Atalhos: <a href="#constantes">Constantes</a> · <a href="#basicos">abs, max, min</a> · <a href="#potencias">Potências e raízes</a> · <a href="#arredondar">Arredondar</a> · <a href="#divisao">Divisão inteira</a> · <a href="#trigonometria">Trigonometria</a> · <a href="#exatas">Contas exatas</a> · <a href="#outros">Outros</a> · <a href="#strictmath">StrictMath</a></p>
+
+<div class="tryjshell" data-goal="out:5.0">
+<p class="try-task"><strong>Experimente:</strong> qualquer exemplo das tabelas funciona aqui. Calcule a hipotenusa de um triângulo de catetos 3 e 4 com <code>Math.hypot(3, 4)</code>.</p>
+<pre class="solucao">Math.hypot(3, 4)</pre>
+</div>
+
+<hr>
+
+<h3 id="constantes">Constantes</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>Math.PI</code></td><td>π, a razão entre a circunferência e o diâmetro.</td><td><code>Math.PI</code></td><td><code>3.141592653589793</code></td></tr>
+<tr><td><code>Math.E</code></td><td>O número de Euler, base do logaritmo natural.</td><td><code>Math.E</code></td><td><code>2.718281828459045</code></td></tr>
+<tr><td><code>Math.TAU</code> <span class="versao">Java 19+</span></td><td>2π (uma volta inteira, em radianos).</td><td><code>Math.TAU</code></td><td><code>6.283185307179586</code></td></tr>
+</table>
+</div>
+
+<h3 id="basicos">Valor absoluto, máximo, mínimo</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>abs(x)</code></td><td>Valor absoluto (tira o sinal). Para <code>int</code>, <code>long</code>, <code>float</code> e <code>double</code>.</td><td><code>Math.abs(-7)</code><br><code>Math.abs(-2.5)</code></td><td><code>7</code><br><code>2.5</code></td></tr>
+<tr><td><code>max(a, b)</code></td><td>O maior dos dois. Com tipos diferentes, o resultado é do tipo "maior" (<code>double</code> aqui).</td><td><code>Math.max(3, 8)</code><br><code>Math.max(2.5, 1)</code></td><td><code>8</code><br><code>2.5</code></td></tr>
+<tr><td><code>min(a, b)</code></td><td>O menor dos dois.</td><td><code>Math.min(3, 8)</code></td><td><code>3</code></td></tr>
+<tr><td><code>signum(x)</code></td><td>O sinal: -1.0, 0.0 ou 1.0.</td><td><code>Math.signum(-4.2)</code><br><code>Math.signum(0.0)</code></td><td><code>-1.0</code><br><code>0.0</code></td></tr>
+<tr><td><code>clamp(valor, mín, máx)</code> <span class="versao">Java 21+</span></td><td>"Prende" o valor no intervalo: abaixo do mínimo vira o mínimo, acima do máximo vira o máximo.</td><td><code>Math.clamp(15, 0, 10)</code><br><code>Math.clamp(-3, 0, 10)</code></td><td><code>10</code><br><code>0</code></td></tr>
+</table>
+</div>
+
+<h3 id="potencias">Potências, raízes e logaritmos</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>pow(base, expoente)</code></td><td>Potência. Sempre devolve <code>double</code>.</td><td><code>Math.pow(2, 10)</code><br><code>Math.pow(9, 0.5)</code></td><td><code>1024.0</code><br><code>3.0</code></td></tr>
+<tr><td><code>sqrt(x)</code></td><td>Raiz quadrada. De número negativo: <code>NaN</code> (não é um número).</td><td><code>Math.sqrt(16)</code><br><code>Math.sqrt(2)</code><br><code>Math.sqrt(-1)</code></td><td><code>4.0</code><br><code>1.4142135623730951</code><br><code>NaN</code></td></tr>
+<tr><td><code>cbrt(x)</code></td><td>Raiz cúbica.</td><td><code>Math.cbrt(27)</code></td><td><code>3.0</code></td></tr>
+<tr><td><code>hypot(x, y)</code></td><td>Hipotenusa: √(x² + y²), sem estourar com números grandes.</td><td><code>Math.hypot(3, 4)</code></td><td><code>5.0</code></td></tr>
+<tr><td><code>exp(x)</code></td><td>e elevado a x.</td><td><code>Math.exp(1)</code></td><td><code>2.718281828459045</code></td></tr>
+<tr><td><code>log(x)</code></td><td>Logaritmo natural (base e).</td><td><code>Math.log(Math.E)</code></td><td><code>1.0</code></td></tr>
+<tr><td><code>log10(x)</code></td><td>Logaritmo na base 10.</td><td><code>Math.log10(1000)</code></td><td><code>3.0</code></td></tr>
+</table>
+</div>
+
+<h3 id="arredondar">Arredondar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>round(x)</code></td><td>Arredonda para o inteiro mais próximo; o meio (.5) sobe <strong>em direção ao +∞</strong>. De <code>double</code> devolve <code>long</code>; de <code>float</code>, <code>int</code>.</td><td><code>Math.round(2.5)</code><br><code>Math.round(-2.5)</code><br><code>Math.round(2.4f)</code></td><td><code>3</code><br><code>-2</code><br><code>2</code></td></tr>
+<tr><td><code>rint(x)</code></td><td>Inteiro mais próximo como <code>double</code>; o meio vai para o <strong>par</strong> ("arredondamento do banqueiro").</td><td><code>Math.rint(2.5)</code><br><code>Math.rint(3.5)</code></td><td><code>2.0</code><br><code>4.0</code></td></tr>
+<tr><td><code>floor(x)</code></td><td>Piso: o inteiro de baixo (em direção ao −∞).</td><td><code>Math.floor(2.7)</code><br><code>Math.floor(-2.3)</code></td><td><code>2.0</code><br><code>-3.0</code></td></tr>
+<tr><td><code>ceil(x)</code></td><td>Teto: o inteiro de cima (em direção ao +∞).</td><td><code>Math.ceil(2.1)</code><br><code>Math.ceil(-2.7)</code></td><td><code>3.0</code><br><code>-2.0</code></td></tr>
+<tr><td><code>round(x * 100) / 100.0</code></td><td>Truque para 2 casas decimais (para mostrar na tela, prefira <code>printf("%.2f")</code>; para dinheiro, <code>BigDecimal</code>).</td><td><code>Math.round(1234.5678 * 100) / 100.0</code></td><td><code>1234.57</code></td></tr>
+</table>
+</div>
+
+<h3 id="divisao">Divisão inteira</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>floorDiv(a, b)</code></td><td>Divisão inteira arredondando para baixo. Difere do <code>/</code> com números negativos.</td><td><code>Math.floorDiv(-7, 2)</code><br><code>-7 / 2</code></td><td><code>-4</code><br><code>-3</code></td></tr>
+<tr><td><code>floorMod(a, b)</code></td><td>Resto com o sinal do divisor (sempre positivo se <code>b</code> for positivo). O <code>%</code> usa o sinal do dividendo.</td><td><code>Math.floorMod(-7, 3)</code><br><code>-7 % 3</code></td><td><code>2</code><br><code>-1</code></td></tr>
+</table>
+</div>
+
+<h3 id="trigonometria">Trigonometria (ângulos em radianos)</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>sin(x), cos(x), tan(x)</code></td><td>Seno, cosseno e tangente. O <code>double</code> tem erros minúsculos: sen(π) não dá 0 exato.</td><td><code>Math.sin(Math.PI / 2)</code><br><code>Math.sin(Math.PI)</code><br><code>Math.cos(0)</code><br><code>Math.tan(Math.PI / 4)</code></td><td><code>1.0</code><br><code>1.2246467991473532E-16</code><br><code>1.0</code><br><code>0.9999999999999999</code></td></tr>
+<tr><td><code>asin(x), acos(x), atan(x)</code></td><td>Funções inversas: devolvem o ângulo.</td><td><code>Math.asin(1)</code></td><td><code>1.5707963267948966</code></td></tr>
+<tr><td><code>atan2(y, x)</code></td><td>O ângulo do ponto (x, y), entre −π e π.</td><td><code>Math.atan2(1, 1)</code></td><td><code>0.7853981633974483</code></td></tr>
+<tr><td><code>toRadians(graus)</code></td><td>Graus para radianos.</td><td><code>Math.toRadians(180)</code></td><td><code>3.141592653589793</code></td></tr>
+<tr><td><code>toDegrees(radianos)</code></td><td>Radianos para graus.</td><td><code>Math.toDegrees(Math.PI)</code></td><td><code>180.0</code></td></tr>
+</table>
+</div>
+
+<h3 id="exatas">Contas exatas (sem overflow silencioso)</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>addExact(a, b)</code> <span class="versao">Java 8+</span></td><td>Soma que lança <code>ArithmeticException</code> se passar do limite do tipo, em vez de "dar a volta".</td><td><code>Math.addExact(2_000_000_000, 2_000_000_000)</code><br><code>2_000_000_000 + 2_000_000_000</code></td><td><code>ArithmeticException: integer overflow</code><br><code>-294967296</code></td></tr>
+<tr><td><code>multiplyExact(a, b)</code> <span class="versao">Java 8+</span></td><td>Multiplicação com a mesma proteção.</td><td><code>Math.multiplyExact(100_000, 100_000)</code></td><td><code>ArithmeticException: integer overflow</code></td></tr>
+<tr><td><code>toIntExact(long)</code> <span class="versao">Java 8+</span></td><td>Converte <code>long</code> em <code>int</code>, ou lança a exceção se não couber.</td><td><code>Math.toIntExact(3_000_000_000L)</code></td><td><code>ArithmeticException: integer overflow</code></td></tr>
+<tr><td><code>negateExact(x), absExact(x)</code></td><td>Troca o sinal / valor absoluto com proteção (o <code>absExact</code> é do Java 15).</td><td><code>Math.negateExact(5)</code><br><code>Math.absExact(-5)</code></td><td><code>-5</code><br><code>5</code></td></tr>
+<tr><td><code>abs(Integer.MIN_VALUE)</code></td><td>A pegadinha que o <code>absExact</code> resolve: o menor <code>int</code> não tem positivo correspondente.</td><td><code>Math.abs(Integer.MIN_VALUE)</code></td><td><code>-2147483648</code></td></tr>
+</table>
+</div>
+
+<h3 id="outros">Outros</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>random()</code></td><td>Um <code>double</code> aleatório em [0.0, 1.0). Para inteiros, prefira <code>Random</code> (veja <a href="aleatorios.html">Números Aleatórios</a>).</td><td><code>Math.random() &lt; 1.0</code></td><td><code>true</code></td></tr>
+<tr><td><code>fma(a, b, c)</code> <span class="versao">Java 9+</span></td><td>a × b + c com um único arredondamento (mais preciso).</td><td><code>Math.fma(2.0, 3.0, 1.0)</code></td><td><code>7.0</code></td></tr>
+<tr><td><code>ulp(x)</code></td><td>A distância até o próximo <code>double</code>: o tamanho do "degrau" naquele número.</td><td><code>Math.ulp(1.0)</code></td><td><code>2.220446049250313E-16</code></td></tr>
+<tr><td><code>nextUp(x)</code></td><td>O próximo <code>double</code> depois de x.</td><td><code>Math.nextUp(1.0)</code></td><td><code>1.0000000000000002</code></td></tr>
+<tr><td><code>copySign(valor, sinal)</code></td><td>O valor com o sinal do segundo argumento.</td><td><code>Math.copySign(3.0, -1.0)</code></td><td><code>-3.0</code></td></tr>
+</table>
+</div>
+<hr>
+
+<h2 id="strictmath"><code>StrictMath</code>: o mesmo resultado em qualquer máquina</h2>
+<p><code>StrictMath</code> tem os mesmos métodos que <code>Math</code>, com uma promessa extra: o resultado é <strong>idêntico, bit a bit</strong>, em qualquer computador, porque segue um algoritmo de referência fixo (a biblioteca fdlibm). O <code>Math</code> pode usar instruções especiais do processador, mais rápidas, que às vezes diferem na última casa decimal (dentro do erro permitido pela documentação).</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; StrictMath.sqrt(2)
+$1 ==&gt; 1.4142135623730951
+
+jshell&gt; StrictMath.pow(2, 10)
+$2 ==&gt; 1024.0</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Use</th><th>Quando</th></tr>
+<tr><td><code>Math</code></td><td>Quase sempre. É o padrão, e o mais rápido.</td></tr>
+<tr><td><code>StrictMath</code></td><td>Quando o mesmo cálculo precisa dar o <strong>mesmo</strong> resultado em máquinas diferentes: simulações científicas reproduzíveis, testes que comparam números com todas as casas.</td></tr>
+<tr><td><code>BigDecimal</code></td><td>Dinheiro e qualquer conta decimal que precise ser exata (veja <a href="bigdecimal.html">BigDecimal e Dinheiro</a>).</td></tr>
+</table>
+</div>
+
+<p>A palavra-chave <code>strictfp</code>, que fazia algo parecido para as contas comuns (<code>+</code>, <code>*</code>…), não tem mais efeito desde o Java 17: todas as contas de ponto flutuante já são estritas (veja <a href="ref-palavras-chave.html">Palavras-chave</a>).</p>
+
+<hr>
+
+<h2>Armadilhas</h2>
+
+<div class="cenario">
+<strong><code>Math.round</code> de <code>double</code> devolve <code>long</code></strong>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">        int arredondado = Math.round(2.5);
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from long to int
+        int arredondado = Math.round(2.5);
+                                    ^
+1 error
+error: compilation failed</pre>
+<p>"Tipos incompatíveis: possível perda na conversão de long para int." Guarde num <code>long</code>, ou converta explicitamente: <code>int arredondado = (int) Math.round(2.5);</code> (veja <a href="conversao-tipos.html">Conversão de Tipos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Arredondar para mostrar × arredondar para guardar</strong>
+<pre class="file" data-file="Main.java">        double raio = 2.5;
+        double area = Math.PI * Math.pow(raio, 2);
+        System.out.println("Área: " + area);
+        System.out.println("Área: " + Math.round(area * 100) / 100.0);
+        System.out.printf("Área: %.2f%n", area);
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Área: 19.634954084936208
+Área: 19.63
+Área: 19,63                       « printf usa o idioma do sistema: vírgula em pt_BR</pre>
+<p>Para <strong>mostrar</strong>, use <code>printf</code> ou <code>String.format</code> (o número guardado continua com todas as casas). O truque do <code>round(x * 100) / 100.0</code> muda o valor guardado, mas o resultado ainda é um <code>double</code>, com os mesmos pequenos erros de sempre. Para dinheiro, <code>BigDecimal</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Overflow silencioso</strong>
+<p>Na tabela <a href="#exatas">Contas exatas</a>: <code>2_000_000_000 + 2_000_000_000</code> dá <code>-294967296</code>, sem erro nenhum. O resultado não cabe num <code>int</code> e "dá a volta". Quando isso importa (quantidades, contadores, dinheiro em centavos), use <code>Math.addExact</code>/<code>multiplyExact</code>, que lançam <code>ArithmeticException: integer overflow</code>, ou <code>long</code> (veja <a href="inteiros.html">int, long, short, byte</a>).</p>
+</div>
+
+<div class="tryjava" data-goal="out:Área: 19.63,out:Perímetro: 15.71,src:Math\.PI">
+<p class="try-task"><strong>Missão:</strong> para o círculo de raio 2.5, mostre a área (π r²) e o perímetro (2 π r) arredondados para 2 casas com <code>Math.round(x * 100) / 100.0</code>: <code>Área: 19.63</code> e <code>Perímetro: 15.71</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double raio = 2.5;
+        // calcule a área e o perímetro com Math.PI e arredonde para 2 casas
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double raio = 2.5;
+        double area = Math.PI * Math.pow(raio, 2);
+        double perimetro = 2 * Math.PI * raio;
+        System.out.println("Área: " + Math.round(area * 100) / 100.0);
+        System.out.println("Perímetro: " + Math.round(perimetro * 100) / 100.0);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. Quanto vale <code>Math.round(-2.5)</code>?</p>
+<label><input type="radio" name="q1"> <code>-3</code></label>
+<label><input type="radio" name="q1"> <code>-2.5</code></label>
+<label><input type="radio" name="q1"> <code>-2</code></label>
+<label><input type="radio" name="q1"> <code>3</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">2. Qual a diferença entre <code>-7 / 2</code> e <code>Math.floorDiv(-7, 2)</code>?</p>
+<label><input type="radio" name="q2"> <code>/</code> dá -3 (corta para o zero); <code>floorDiv</code> dá -4 (arredonda para baixo).</label>
+<label><input type="radio" name="q2"> Nenhuma.</label>
+<label><input type="radio" name="q2"> <code>/</code> dá -3.5.</label>
+<label><input type="radio" name="q2"> <code>floorDiv</code> lança exceção com negativos.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Que tipo <code>Math.pow(2, 10)</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>int</code></label>
+<label><input type="radio" name="q3"> <code>long</code></label>
+<label><input type="radio" name="q3"> <code>float</code></label>
+<label><input type="radio" name="q3"> <code>double</code> (<code>1024.0</code>)</label>
+</div>
+
+<div class="exercise">
+<p>Complete para limitar a nota entre 0 e 10 (Java 21+):</p>
+<div class="ex-code">int nota = Math.<input data-answer="clamp">(valor, 0, 10);</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>Math</code> é toda <code>static</code>, sem <code>import</code>: <code>Math.metodo(…)</code>.</li>
+  <li>Potência e raiz (<code>pow</code>, <code>sqrt</code>) devolvem <code>double</code>; <code>round</code> de <code>double</code> devolve <code>long</code>.</li>
+  <li><code>floor</code>/<code>ceil</code>/<code>round</code>/<code>rint</code> arredondam de jeitos diferentes; com negativos, confira.</li>
+  <li><code>floorDiv</code>/<code>floorMod</code> diferem de <code>/</code> e <code>%</code> com negativos; <code>addExact</code> e cia. avisam o overflow.</li>
+  <li><code>StrictMath</code>: mesmos métodos, resultado idêntico em qualquer máquina.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
