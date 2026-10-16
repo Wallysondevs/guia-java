@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Métodos de Objeto — métodos de instância, sem static | Guia Java</title>
+<meta name="description" content="Métodos de instância em Java: métodos sem static que usam os atributos do próprio objeto, chamados com objeto.metodo(), métodos que recebem outros objetos, static × de instância e o erro real non-static method cannot be referenced from a static context.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Métodos de Objeto</span></h1>
+
+<p class="intro">Na aula de <a href="atributos.html">Atributos</a>, o <code>main</code> mexia direto no saldo de cada conta: <code>daAna.saldo = daAna.saldo + 500</code>. Funciona, mas a lógica fica espalhada pelo programa. O jeito orientado a objetos é dar à própria conta o <strong>comportamento</strong> de depositar: <code>daAna.depositar(500)</code>. Esses são os <strong>métodos de objeto</strong> (ou <strong>métodos de instância</strong>), os métodos <strong>sem <code>static</code></strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um método de instância e por que ele não leva <code>static</code>.</li>
+  <li>Como ele usa os atributos do próprio objeto, sem ponto.</li>
+  <li>Como chamar com <code>objeto.metodo()</code> e como o Java sabe "de qual objeto" é cada atributo.</li>
+  <li>Métodos que devolvem valores, que chamam outros métodos do mesmo objeto e que recebem outros objetos.</li>
+  <li>A diferença entre métodos <code>static</code> e de instância, e o erro <code>non-static method … cannot be referenced from a static context</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código: pedir em vez de fazer</h2>
+<p>No banco, você não entra no cofre para pôr dinheiro na sua conta: você <strong>pede</strong> ao caixa "deposite 500 na conta da Ana". Quem sabe como fazer um depósito é o banco. Em POO, é igual: em vez de o <code>main</code> mexer nos dados de cada objeto, ele <strong>pede</strong> ao objeto que faça algo, e o objeto sabe como mexer nos próprios dados.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mexendo direto (aula anterior)</th><th>Pedindo ao objeto (esta aula)</th></tr>
+<tr><td><code>daAna.saldo = daAna.saldo + 500;</code></td><td><code>daAna.depositar(500);</code></td></tr>
+<tr><td>Cada lugar do programa repete a conta</td><td>A regra do depósito está escrita uma vez, dentro da classe</td></tr>
+<tr><td>Fácil errar (e se alguém escrever <code>-</code> em vez de <code>+</code>?)</td><td>Quem chama só diz <strong>o que</strong> quer, não <strong>como</strong></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Seu primeiro método de objeto</h2>
+
+<pre class="file" data-file="Main.java">class Conta {
+    String titular;
+    double saldo;
+
+    void depositar(double valor) {
+        saldo = saldo + valor;
+    }
+
+    void mostrarSaldo() {
+        System.out.println(titular + " tem R$ " + saldo);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta daAna = new Conta();
+        daAna.titular = "Ana";
+        Conta doBruno = new Conta();
+        doBruno.titular = "Bruno";
+
+        daAna.depositar(500);
+        doBruno.depositar(80);
+        daAna.depositar(20);
+
+        daAna.mostrarSaldo();
+        doBruno.mostrarSaldo();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Ana tem R$ 520.0
+Bruno tem R$ 80.0</pre>
+
+<dl class="anatomy">
+  <dt>void depositar(double valor)</dt><dd>Um método como os que você já conhece, com <a href="parametros.html">parâmetro</a> e tipo de retorno, mas <strong>sem <code>static</code></strong>. Isso faz dele um método <strong>de instância</strong>: ele pertence a cada objeto, e não à classe.</dd>
+  <dt>saldo = saldo + valor;</dt><dd>Usa o atributo <code>saldo</code> <strong>direto pelo nome</strong>, sem ponto. Qual saldo? O do objeto que recebeu o pedido.</dd>
+  <dt>void mostrarSaldo()</dt><dd>Outro método de instância, que lê dois atributos (<code>titular</code> e <code>saldo</code>) do próprio objeto.</dd>
+  <dt>daAna.depositar(500);</dt><dd>A chamada: <strong>objeto</strong>, ponto, <strong>método</strong> e argumentos. Lê-se "conta da Ana, deposite 500".</dd>
+</dl>
+
+<h3>Como o método sabe de qual objeto é o <code>saldo</code>?</h3>
+<p>O mesmo código, <code>saldo = saldo + valor;</code>, mexeu no saldo da Ana numa chamada e no do Bruno na outra. O segredo está no que vem <strong>antes do ponto</strong>. Quando você escreve <code>daAna.depositar(500)</code>, o Java executa o método "dentro" do objeto <code>daAna</code>: todo atributo citado no corpo é o atributo <strong>desse</strong> objeto.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Chamada</th><th>Dentro do método, <code>saldo</code> é…</th><th>Saldo depois</th></tr>
+<tr><td><code>daAna.depositar(500)</code></td><td>o saldo da Ana</td><td>Ana: 500.0</td></tr>
+<tr><td><code>doBruno.depositar(80)</code></td><td>o saldo do Bruno</td><td>Bruno: 80.0</td></tr>
+<tr><td><code>daAna.depositar(20)</code></td><td>o saldo da Ana de novo</td><td>Ana: 520.0</td></tr>
+</table>
+</div>
+
+<p>Por baixo dos panos, todo método de instância recebe uma referência escondida para o objeto que foi chamado. Ela tem nome: <code>this</code> ("este"). <code>saldo</code> dentro do método é, na verdade, <code>this.saldo</code>. A aula <a href="this.html">this</a> mostra quando é preciso escrever isso por extenso.</p>
+
+<div class="tryjava" data-goal="out:Ana tem R$ 400.0,src:void\s+sacar\s*\(\s*double\s+\w+\s*\),src:daAna\.sacar\s*\(">
+<p class="try-task"><strong>Missão:</strong> acrescente à classe <code>Conta</code> um método <code>void sacar(double valor)</code> que <strong>tire</strong> o valor do saldo. No <code>main</code>, faça a Ana sacar 120 antes do <code>mostrarSaldo()</code>, para aparecer <code>Ana tem R$ 400.0</code>.</p>
+<pre class="script">class Conta {
+    String titular;
+    double saldo;
+
+    void depositar(double valor) {
+        saldo = saldo + valor;
+    }
+
+    void mostrarSaldo() {
+        System.out.println(titular + " tem R$ " + saldo);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta daAna = new Conta();
+        daAna.titular = "Ana";
+        daAna.depositar(520);
+
+        daAna.mostrarSaldo();
+    }
+}
+</pre>
+<pre class="solucao">class Conta {
+    String titular;
+    double saldo;
+
+    void depositar(double valor) {
+        saldo = saldo + valor;
+    }
+
+    void sacar(double valor) {
+        saldo = saldo - valor;
+    }
+
+    void mostrarSaldo() {
+        System.out.println(titular + " tem R$ " + saldo);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta daAna = new Conta();
+        daAna.titular = "Ana";
+        daAna.depositar(520);
+        daAna.sacar(120);
+        daAna.mostrarSaldo();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Métodos que devolvem, decidem e conversam</h2>
+<p>Tudo o que você aprendeu sobre métodos vale aqui: eles podem <a href="retorno.html">devolver valores</a>, ter <code>if</code>, chamar outros métodos. Veja uma conta mais completa:</p>
+
+<pre class="file" data-file="Main.java">class Conta {
+    String titular;
+    double saldo;
+
+    void depositar(double valor) {
+        saldo = saldo + valor;
+    }
+
+    boolean sacar(double valor) {
+        if (valor &gt; saldo) {
+            System.out.println("Saque de " + valor + " negado: saldo insuficiente.");
+            return false;
+        }
+        saldo = saldo - valor;
+        return true;
+    }
+
+    void transferir(Conta destino, double valor) {
+        if (sacar(valor)) {
+            destino.depositar(valor);
+        }
+    }
+
+    String resumo() {
+        return titular + ": R$ " + saldo;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta daAna = new Conta();
+        daAna.titular = "Ana";
+        daAna.depositar(500);
+        Conta doBruno = new Conta();
+        doBruno.titular = "Bruno";
+
+        boolean deuCerto = daAna.sacar(120);
+        System.out.println("Primeiro saque: " + deuCerto);
+        System.out.println("Segundo saque: " + daAna.sacar(1000));
+
+        daAna.transferir(doBruno, 50);
+        System.out.println(daAna.resumo());
+        System.out.println(doBruno.resumo());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Primeiro saque: true
+Saque de 1000.0 negado: saldo insuficiente.
+Segundo saque: false
+Ana: R$ 330.0       « 500 - 120 - 50
+Bruno: R$ 50.0      « recebeu a transferência</pre>
+
+<dl class="anatomy">
+  <dt>boolean sacar(double valor)</dt><dd>Devolve <code>true</code> se o saque deu certo e <code>false</code> se não havia saldo. A <strong>regra</strong> ("não pode sacar mais do que tem") agora mora na classe: nenhum lugar do programa consegue esquecer de conferir.</dd>
+  <dt>if (sacar(valor))</dt><dd>Dentro de <code>transferir</code>, a chamada <code>sacar(valor)</code> não tem objeto antes: é o <strong>mesmo objeto</strong> que está transferindo. Em <code>daAna.transferir(…)</code>, quem saca é a Ana.</dd>
+  <dt>Conta destino</dt><dd>Um parâmetro cujo tipo é a própria classe. O método recebe a <strong>referência</strong> de outra conta…</dd>
+  <dt>destino.depositar(valor);</dt><dd>…e pede a ela que deposite. Aqui o ponto é necessário: é <strong>outro</strong> objeto.</dd>
+  <dt>String resumo()</dt><dd>Em vez de imprimir, devolve um texto pronto; quem chama decide o que fazer com ele.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Dentro de um método de instância, você escreve…</th><th>…e isso significa</th></tr>
+<tr><td><code>saldo</code></td><td>o atributo do objeto que foi chamado</td></tr>
+<tr><td><code>sacar(10)</code></td><td>chamar outro método do <strong>mesmo</strong> objeto</td></tr>
+<tr><td><code>destino.saldo</code>, <code>destino.depositar(10)</code></td><td>o atributo ou método de <strong>outro</strong> objeto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2><code>static</code> × de instância</h2>
+<p>Agora você conhece os dois tipos de método. A diferença é a pergunta "precisa de um objeto?":</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Método <code>static</code> (da classe)</th><th>Método de instância (do objeto)</th></tr>
+<tr><td>Declaração</td><td><code>static double media(double a, double b)</code></td><td><code>double media()</code></td></tr>
+<tr><td>Chamada</td><td><code>Main.media(7, 8)</code> ou só <code>media(7, 8)</code> dentro da classe</td><td><code>aluno.media()</code>: precisa de um objeto antes do ponto</td></tr>
+<tr><td>Usa atributos de instância?</td><td>Não pode: não há "objeto atual"</td><td>Sim, direto pelo nome</td></tr>
+<tr><td>De onde vêm os dados?</td><td>Só dos parâmetros</td><td>Dos atributos do objeto (e dos parâmetros)</td></tr>
+<tr><td>Exemplos do Java</td><td><code>Math.sqrt(2)</code>, <code>Math.max(3, 7)</code>, <code>Integer.parseInt("42")</code></td><td><code>texto.length()</code>, <code>texto.toUpperCase()</code>, <code>teclado.nextInt()</code></td></tr>
+</table>
+</div>
+
+<p>Repare nos exemplos: <code>Math.sqrt(2)</code> não precisa de "um Math"; a raiz de 2 é a mesma para todo mundo. Já <code>texto.length()</code> depende de <strong>qual</strong> texto. Use essa pergunta para decidir: <strong>o resultado depende dos dados de um objeto?</strong> Então é de instância. Na aula <a href="static.html">static</a> você aprofunda o assunto.</p>
+
+<div class="note">
+<strong>E o <code>main</code>?</strong>
+<p>O <code>main</code> é <code>static</code>: o Java o chama antes de existir qualquer objeto. É por isso que, nas aulas de <a href="metodos.html">Métodos</a>, tudo precisava de <code>static</code>. A partir de agora, o <code>main</code> vira o lugar que <strong>cria</strong> os objetos e <strong>pede</strong> coisas a eles; a lógica fica nos métodos de instância das classes.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"non-static method … cannot be referenced from a static context"</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">class Conta {
+    String titular;
+    double saldo;
+
+    void depositar(double valor) {
+        saldo = saldo + valor;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta.depositar(100);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:12: error: non-static method depositar(double) cannot be referenced from a static context
+        Conta.depositar(100);
+             ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "o método não estático <code>depositar(double)</code> não pode ser usado a partir de um contexto estático". <code>Conta.depositar(100)</code> pede um depósito à <strong>classe</strong> (o molde), e não a uma conta. Depositar em qual conta? Não há objeto para receber o dinheiro.</p>
+<p><strong>Como resolver:</strong> crie (ou use) um objeto e chame por ele: <code>Conta c = new Conta(); c.depositar(100);</code>. O mesmo erro aparece quando você escreve um método sem <code>static</code> na classe <code>Main</code> e o chama do <code>main</code> (veja <a href="metodos.html#static">Métodos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … location: class Main" (chamou sem objeto)</strong>
+<pre class="term">$ javac Main.java
+Main.java:12: error: cannot find symbol
+        depositar(100);
+        ^
+  symbol:   method depositar(int)
+  location: class Main
+1 error</pre>
+<p><strong>O que aconteceu:</strong> sem nada antes, <code>depositar(100)</code> procura um método <code>depositar</code> na classe atual, <code>Main</code>. Ele existe, mas na classe <code>Conta</code>.</p>
+<p><strong>Como resolver:</strong> <code>minhaConta.depositar(100);</code>, com o objeto antes do ponto.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … location: variable conta of type Conta"</strong>
+<pre class="term">$ javac Main.java
+Main.java:13: error: cannot find symbol
+        conta.sacar(100);
+             ^
+  symbol:   method sacar(int)
+  location: variable conta of type Conta
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o objeto está certo, mas a classe <code>Conta</code> não tem um método <code>sacar</code> que aceite um <code>int</code>. Ou o método não foi escrito, ou o nome está diferente.</p>
+<p><strong>Como resolver:</strong> confira o nome e os parâmetros na classe. Se o método não existe, escreva-o.</p>
+</div>
+
+<div class="cenario">
+<strong>"non-static variable … cannot be referenced from a static context" dentro da classe</strong>
+<pre class="term">$ javac Main.java
+Main.java:6: error: non-static variable saldo cannot be referenced from a static context
+        saldo = saldo + valor;
+        ^
+Main.java:6: error: non-static variable saldo cannot be referenced from a static context
+        saldo = saldo + valor;
+                ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> o método foi declarado como <code>static void depositar(…)</code> (o hábito das primeiras aulas!). Um método <code>static</code> não tem objeto atual, então não sabe de quem é o <code>saldo</code>.</p>
+<p><strong>Como resolver:</strong> tire o <code>static</code> dos métodos que usam atributos do objeto.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException: Cannot invoke …</code></strong>
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Conta.depositar(double)" because "&lt;local1&gt;" is null
+	at Main.main(Main.java:13)</pre>
+<p><strong>O que aconteceu:</strong> "não é possível chamar <code>Conta.depositar(double)</code> porque a variável é nula". A variável <code>conta</code> valia <code>null</code>: não havia objeto para receber o pedido.</p>
+<p><strong>Como resolver:</strong> garanta um <code>new Conta()</code> antes de chamar métodos. Veja <a href="classes-objetos.html#null">null</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>Tipo nome(params) { … }</code> (sem <code>static</code>, na classe)</td><td>Método de instância</td></tr>
+<tr><td><code>obj.metodo(args)</code></td><td>Chama o método no objeto <code>obj</code></td></tr>
+<tr><td><code>atributo</code> dentro do método</td><td>O atributo do objeto que foi chamado (o mesmo que <code>this.atributo</code>)</td></tr>
+<tr><td><code>outroMetodo()</code> dentro do método</td><td>Chama outro método do mesmo objeto</td></tr>
+<tr><td><code>void f(Classe outro)</code></td><td>Recebe a referência de outro objeto; use <code>outro.algo</code></td></tr>
+<tr><td><code>Classe.metodo()</code></td><td>Só para métodos <code>static</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: o aluno que sabe a própria situação</h2>
+<div class="tryjava" data-goal="out:Bruno: 7.5 (aprovado),out:Davi: 5.5 (recuperação),src:double\s+media\s*\(\s*\),src:String\s+situacao\s*\(\s*\)">
+<p class="try-task"><strong>Missão:</strong> na classe <code>Aluno</code>, escreva dois métodos de instância: <code>double media()</code>, que devolve a média de <code>nota1</code> e <code>nota2</code>, e <code>String situacao()</code>, que devolve <code>"aprovado"</code> se a <code>media()</code> for 7 ou mais e <code>"recuperação"</code> se não. O <code>main</code> já está pronto.</p>
+<pre class="script">class Aluno {
+    String nome;
+    double nota1;
+    double nota2;
+
+    // escreva media() e situacao() aqui
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno bruno = new Aluno();
+        bruno.nome = "Bruno";
+        bruno.nota1 = 8.0;
+        bruno.nota2 = 7.0;
+
+        Aluno davi = new Aluno();
+        davi.nome = "Davi";
+        davi.nota1 = 5.0;
+        davi.nota2 = 6.0;
+
+        System.out.println(bruno.nome + ": " + bruno.media() + " (" + bruno.situacao() + ")");
+        System.out.println(davi.nome + ": " + davi.media() + " (" + davi.situacao() + ")");
+    }
+}
+</pre>
+<pre class="solucao">class Aluno {
+    String nome;
+    double nota1;
+    double nota2;
+
+    double media() {
+        return (nota1 + nota2) / 2;
+    }
+
+    String situacao() {
+        if (media() &gt;= 7) {
+            return "aprovado";
+        }
+        return "recuperação";
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno bruno = new Aluno();
+        bruno.nome = "Bruno";
+        bruno.nota1 = 8.0;
+        bruno.nota2 = 7.0;
+
+        Aluno davi = new Aluno();
+        davi.nome = "Davi";
+        davi.nota1 = 5.0;
+        davi.nota2 = 6.0;
+
+        System.out.println(bruno.nome + ": " + bruno.media() + " (" + bruno.situacao() + ")");
+        System.out.println(davi.nome + ": " + davi.media() + " (" + davi.situacao() + ")");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Chamar no objeto</h3>
+<p>Complete para pedir à conta <code>poupanca</code> que deposite 200:</p>
+<div class="ex-code"><input data-answer="poupanca.depositar(200);|poupanca.depositar(200.0);" aria-label="chamada"></div>
+</div>
+
+<div class="exercise">
+<h3>2. A palavra que sai</h3>
+<p>Um método que usa atributos do objeto <strong>não</strong> pode ter qual palavra na declaração?</p>
+<div class="ex-code"><input data-answer="static" aria-label="palavra"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Usar o atributo</h3>
+<p>Complete o corpo do método da classe <code>Fruta</code> (que tem o atributo <code>double preco</code>) para dar um desconto de 10%:</p>
+<div class="ex-code">void darDesconto() { <input data-answer="preco = preco * 0.9;|preco *= 0.9;|preco=preco*0.9;|preco*=0.9;" aria-label="instrução"> }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Em <code>daAna.transferir(doBruno, 50)</code>, dentro do método, a chamada <code>sacar(50)</code> (sem nada antes) saca de qual conta?</p>
+<label><input type="radio" name="q4"> Do Bruno.</label>
+<label><input type="radio" name="q4"> Da Ana: é o objeto em que <code>transferir</code> foi chamado.</label>
+<label><input type="radio" name="q4"> De nenhuma: dá erro de compilação.</label>
+<label><input type="radio" name="q4"> Das duas.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destes faz mais sentido como método <code>static</code>?</p>
+<label><input type="radio" name="q5"> <code>conta.depositar(valor)</code></label>
+<label><input type="radio" name="q5"> <code>aluno.media()</code></label>
+<label><input type="radio" name="q5"> <code>fruta.darDesconto()</code></label>
+<label><input type="radio" name="q5"> <code>converterCelsiusParaFahrenheit(double c)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que significa <code>non-static method depositar(double) cannot be referenced from a static context</code> em <code>Conta.depositar(100)</code>?</p>
+<label><input type="radio" name="q6"> Que o método precisa de um objeto <code>Conta</code> antes do ponto, e não da classe.</label>
+<label><input type="radio" name="q6"> Que falta o <code>return</code>.</label>
+<label><input type="radio" name="q6"> Que o argumento deveria ser <code>100.0</code>.</label>
+<label><input type="radio" name="q6"> Que a classe <code>Conta</code> não existe.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Métodos de instância</strong> são declarados <strong>sem <code>static</code></strong> e pertencem a cada objeto.</li>
+  <li>Chamada: <code>objeto.metodo(argumentos)</code>. O objeto antes do ponto é o "objeto atual" durante a execução.</li>
+  <li>Dentro do método, atributos e outros métodos do mesmo objeto são usados direto pelo nome; os de outro objeto, com <code>outro.algo</code>.</li>
+  <li>Coloque as regras (como "não sacar mais do que o saldo") dentro dos métodos da classe; o <code>main</code> só pede.</li>
+  <li><code>static</code> = não depende de objeto (<code>Math.sqrt</code>); de instância = depende dos dados do objeto (<code>texto.length()</code>).</li>
+  <li>Chamar um método de instância pela classe ou de um contexto <code>static</code> sem objeto: <code>non-static method … cannot be referenced from a static context</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
