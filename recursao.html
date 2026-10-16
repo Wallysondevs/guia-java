@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Recursão — método que chama a si mesmo | Guia Java</title>
+<meta name="description" content="Recursão em Java: método que chama a si mesmo, caso base, fatorial, Fibonacci e por que a versão recursiva é lenta, StackOverflowError real com o stack trace e quando usar recursão ou laço.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Recursão</span></h1>
+
+<p class="intro">Um método pode chamar qualquer outro método, inclusive <strong>ele mesmo</strong>. Quando isso acontece, dizemos que o método é <strong>recursivo</strong>. A recursão resolve um problema grande quebrando-o em uma versão <strong>menor do mesmo problema</strong>, até chegar a um caso tão pequeno que a resposta é óbvia.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um método recursivo e as suas duas partes: o <strong>caso base</strong> e o <strong>passo recursivo</strong>.</li>
+  <li>Como o Java empilha as chamadas e volta por elas, passo a passo.</li>
+  <li>O fatorial e a sequência de Fibonacci, e por que o Fibonacci recursivo é tão lento.</li>
+  <li>O que é o <code>StackOverflowError</code>, como ele aparece de verdade e como evitá-lo.</li>
+  <li>Quando é melhor usar recursão e quando é melhor usar um laço.</li>
+</ul>
+</div>
+
+<p>Esta aula usa tudo das anteriores: <a href="metodos.html">métodos</a>, <a href="parametros.html">parâmetros</a>, <a href="retorno.html">retorno</a> e <a href="if-else.html">if</a>. Se algum deles ainda está nebuloso, revise antes.</p>
+
+<hr>
+
+<h2>A ideia antes do código: a fila do cinema</h2>
+<p>A Ana está numa fila escura de cinema e quer saber em que posição está. Ela não consegue contar as pessoas. Então pergunta para a pessoa da frente: "em que posição você está?". Essa pessoa também não sabe, e faz a mesma pergunta para a da frente. E assim por diante, até chegar à <strong>primeira</strong> pessoa da fila, que vê a bilheteria e responde, sem perguntar a ninguém: "estou na posição 1".</p>
+<p>Agora as respostas voltam: a segunda pessoa ouve "1" e diz "então eu sou a 2"; a terceira ouve "2" e diz "sou a 3"… até a resposta chegar na Ana.</p>
+<p>Essa história tem as duas partes de toda recursão:</p>
+<ul>
+  <li><strong>Caso base</strong>: a situação em que a resposta é imediata, sem perguntar a ninguém (a primeira pessoa da fila). É o que <strong>para</strong> a recursão.</li>
+  <li><strong>Passo recursivo</strong>: fazer a mesma pergunta para um problema <strong>um pouco menor</strong> (a pessoa da frente) e usar a resposta ("a dela + 1").</li>
+</ul>
+
+<hr>
+
+<h2>Primeiro exemplo: contagem regressiva</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void contagemRegressiva(int n) {
+        if (n == 0) {
+            System.out.println("Fogo!");
+            return;
+        }
+        System.out.println(n);
+        contagemRegressiva(n - 1);
+    }
+
+    public static void main(String[] args) {
+        contagemRegressiva(3);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+3
+2
+1
+Fogo!</pre>
+
+<dl class="anatomy">
+  <dt>if (n == 0) { … return; }</dt><dd>O <strong>caso base</strong>: quando a contagem chega a zero, imprime "Fogo!" e para. Sem ele, a contagem nunca terminaria.</dd>
+  <dt>System.out.println(n);</dt><dd>O trabalho de cada chamada: mostrar o número atual.</dd>
+  <dt>contagemRegressiva(n - 1);</dt><dd>O <strong>passo recursivo</strong>: o método chama a si mesmo com um problema <strong>menor</strong> (<code>n - 1</code>). É isso que garante que, mais cedo ou mais tarde, o caso base vai ser alcançado.</dd>
+</dl>
+
+<p>O que acontece por baixo: <code>contagemRegressiva(3)</code> imprime 3 e chama <code>contagemRegressiva(2)</code>, que imprime 2 e chama <code>contagemRegressiva(1)</code>, que imprime 1 e chama <code>contagemRegressiva(0)</code>, que imprime "Fogo!" e retorna. Cada chamada é uma <strong>execução separada</strong> do método, com o seu próprio <code>n</code>: são quatro variáveis <code>n</code> diferentes, uma por chamada (lembre de <a href="escopo.html">Escopo</a>: parâmetros vivem uma chamada).</p>
+
+<div class="tryjava" data-goal="out:soma(5) = 15,out:soma(100) = 5050,src:somar\s*\(\s*n\s*-\s*1\s*\)">
+<p class="try-task"><strong>Missão:</strong> complete o método recursivo <code>somar(n)</code>, que devolve 1 + 2 + … + n. Caso base: se <code>n</code> for 0, devolva 0. Passo recursivo: devolva <code>n + somar(n - 1)</code>.</p>
+<pre class="script">public class Main {
+    static int somar(int n) {
+        // caso base
+
+        // passo recursivo
+        return 0;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("soma(5) = " + somar(5));
+        System.out.println("soma(100) = " + somar(100));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static int somar(int n) {
+        if (n == 0) {
+            return 0;
+        }
+        return n + somar(n - 1);
+    }
+
+    public static void main(String[] args) {
+        System.out.println("soma(5) = " + somar(5));
+        System.out.println("soma(100) = " + somar(100));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O fatorial</h2>
+<p>O fatorial de um número (escrito <code>n!</code>) é a multiplicação de todos os inteiros de 1 até ele: <code>5! = 5 × 4 × 3 × 2 × 1 = 120</code>. Ele é o exemplo clássico de recursão porque a própria definição já é recursiva:</p>
+<ul>
+  <li><code>1! = 1</code> (e <code>0! = 1</code>) → caso base.</li>
+  <li><code>n! = n × (n − 1)!</code> → o fatorial de 5 é 5 vezes o fatorial de 4.</li>
+</ul>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static long fatorial(int n) {
+        if (n &lt;= 1) {
+            return 1;
+        }
+        return n * fatorial(n - 1);
+    }
+
+    public static void main(String[] args) {
+        System.out.println("5! = " + fatorial(5));
+        System.out.println("10! = " + fatorial(10));
+        System.out.println("20! = " + fatorial(20));
+        System.out.println("21! = " + fatorial(21));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+5! = 120
+10! = 3628800
+20! = 2432902008176640000
+21! = -4249290049419214848      « estourou o long: veja o aviso abaixo</pre>
+
+<p>O tipo de retorno é <code>long</code> porque o fatorial cresce muito rápido: <code>13!</code> já não cabe num <code>int</code>. Mesmo o <code>long</code> só aguenta até <code>20!</code>; o <code>21!</code> passa do limite e "dá a volta" para um número negativo, sem nenhum aviso. É o <strong>overflow</strong> que você viu em <a href="inteiros.html">int, long, short, byte</a>. Para números maiores, existe o <code>BigInteger</code> (veja <a href="bigdecimal.html">BigDecimal e Dinheiro</a>).</p>
+
+<h3>Passo a passo: a pilha de chamadas</h3>
+<p>Para enxergar o que o Java faz, a Ana acrescentou <code>println</code>s e um recuo que aumenta a cada nível:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static long fatorial(int n, String recuo) {
+        System.out.println(recuo + "fatorial(" + n + ") começou");
+        if (n &lt;= 1) {
+            System.out.println(recuo + "fatorial(" + n + ") devolve 1  « caso base");
+            return 1;
+        }
+        long resultado = n * fatorial(n - 1, recuo + "   ");
+        System.out.println(recuo + "fatorial(" + n + ") devolve " + resultado);
+        return resultado;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Resultado: " + fatorial(4, ""));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+fatorial(4) começou
+   fatorial(3) começou
+      fatorial(2) começou
+         fatorial(1) começou
+         fatorial(1) devolve 1  « caso base
+      fatorial(2) devolve 2
+   fatorial(3) devolve 6
+fatorial(4) devolve 24
+Resultado: 24</pre>
+
+<p>Leia a saída como uma escada:</p>
+<ol>
+  <li><strong>Descida</strong>: <code>fatorial(4)</code> não sabe a resposta; ele precisa de <code>fatorial(3)</code> e <strong>fica esperando</strong>. O mesmo acontece com 3 e com 2. Cada chamada em espera fica guardada numa estrutura da JVM chamada <strong>pilha de chamadas</strong> (<em>call stack</em>), uma em cima da outra, como pratos empilhados.</li>
+  <li><strong>Caso base</strong>: <code>fatorial(1)</code> responde 1 na hora, sem chamar ninguém.</li>
+  <li><strong>Subida</strong>: as respostas voltam, de cima para baixo da pilha. <code>fatorial(2)</code> recebe 1 e devolve <code>2 × 1 = 2</code>; <code>fatorial(3)</code> devolve <code>3 × 2 = 6</code>; <code>fatorial(4)</code> devolve <code>4 × 6 = 24</code>.</li>
+</ol>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Chamada</th><th>Espera por</th><th>Quando a resposta chega, calcula</th><th>Devolve</th></tr>
+<tr><td><code>fatorial(4)</code></td><td><code>fatorial(3)</code></td><td><code>4 × 6</code></td><td>24</td></tr>
+<tr><td><code>fatorial(3)</code></td><td><code>fatorial(2)</code></td><td><code>3 × 2</code></td><td>6</td></tr>
+<tr><td><code>fatorial(2)</code></td><td><code>fatorial(1)</code></td><td><code>2 × 1</code></td><td>2</td></tr>
+<tr><td><code>fatorial(1)</code></td><td>ninguém (caso base)</td><td>—</td><td>1</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Fibonacci (e por que ele é lento)</h2>
+<p>A sequência de Fibonacci começa com 0 e 1, e cada número seguinte é a soma dos dois anteriores: 0, 1, 1, 2, 3, 5, 8, 13, 21… A definição também é recursiva:</p>
+<ul>
+  <li><code>fib(0) = 0</code> e <code>fib(1) = 1</code> → dois casos base.</li>
+  <li><code>fib(n) = fib(n − 1) + fib(n − 2)</code> → <strong>duas</strong> chamadas recursivas.</li>
+</ul>
+<p>A versão recursiva é quase uma cópia da definição. A Ana colocou um contador (um campo da classe) para saber quantas vezes o método é chamado:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static long chamadas = 0;
+
+    static long fib(int n) {
+        chamadas++;
+        if (n &lt;= 1) {
+            return n;
+        }
+        return fib(n - 1) + fib(n - 2);
+    }
+
+    public static void main(String[] args) {
+        for (int n = 0; n &lt;= 10; n++) {
+            System.out.print(fib(n) + " ");
+        }
+        System.out.println();
+
+        int[] testes = {10, 20, 30};
+        for (int n : testes) {
+            chamadas = 0;
+            long valor = fib(n);
+            System.out.println("fib(" + n + ") = " + valor + " com " + chamadas + " chamadas");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+0 1 1 2 3 5 8 13 21 34 55
+fib(10) = 55 com 177 chamadas
+fib(20) = 6765 com 21891 chamadas
+fib(30) = 832040 com 2692537 chamadas      « quase 2,7 milhões!</pre>
+
+<p>Para calcular <code>fib(30)</code>, o método foi chamado <strong>2.692.537 vezes</strong>. Cada vez que <code>n</code> aumenta 10, o número de chamadas fica mais de 100 vezes maior. O motivo é que o mesmo valor é recalculado de novo e de novo. Veja só o começo da árvore de <code>fib(5)</code>:</p>
+
+<pre class="file" data-file="árvore de chamadas">fib(5)
+├── fib(4)
+│   ├── fib(3)
+│   │   ├── fib(2)
+│   │   │   ├── fib(1)
+│   │   │   └── fib(0)
+│   │   └── fib(1)
+│   └── fib(2)          « calculado de novo
+│       ├── fib(1)
+│       └── fib(0)
+└── fib(3)              « toda esta parte é repetida
+    ├── fib(2)          « e de novo
+    │   ├── fib(1)
+    │   └── fib(0)
+    └── fib(1)
+</pre>
+
+<p><code>fib(3)</code> é calculado duas vezes, <code>fib(2)</code> três vezes… Em <code>fib(30)</code>, <code>fib(2)</code> é calculado mais de 500 mil vezes. A versão com um <a href="for.html">laço</a>, que só guarda os dois últimos números, faz <code>n</code> passos e pronto:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static long fibLaco(int n) {
+        long anterior = 0, atual = 1;
+        for (int i = 0; i &lt; n; i++) {
+            long proximo = anterior + atual;
+            anterior = atual;
+            atual = proximo;
+        }
+        return anterior;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("fib(10) = " + fibLaco(10));
+        System.out.println("fib(30) = " + fibLaco(30));
+        System.out.println("fib(90) = " + fibLaco(90));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+fib(10) = 55
+fib(30) = 832040
+fib(90) = 2880067194370816120      « 90 voltas do laço; a recursiva levaria séculos</pre>
+
+<p>A lição não é "recursão é lenta": o fatorial recursivo faz só <code>n</code> chamadas, como o laço. O problema do Fibonacci é a recursão <strong>dupla</strong> que refaz o mesmo trabalho. Há técnicas para consertar isso guardando os resultados já calculados (o nome é <em>memoização</em>), que você poderá montar depois de aprender <a href="hashmap.html">HashMap</a>.</p>
+
+<hr>
+
+<h2 id="stackoverflow">Quando a recursão não para: <code>StackOverflowError</code></h2>
+<p>Cada chamada em espera ocupa um pedaço da pilha de chamadas, e essa pilha tem tamanho limitado. Se a recursão nunca chega ao caso base, as chamadas se empilham até a pilha <strong>transbordar</strong> (<em>stack overflow</em>). Veja o fatorial sem o caso base:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    static long fatorial(int n) {
+        return n * fatorial(n - 1);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(fatorial(5));
+    }
+}
+</pre>
+
+<p>Compila sem reclamar (o compilador não percebe que a recursão é infinita). Ao rodar:</p>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.StackOverflowError
+	at Main.fatorial(Main.java:3)
+	at Main.fatorial(Main.java:3)
+	at Main.fatorial(Main.java:3)
+	at Main.fatorial(Main.java:3)
+	at Main.fatorial(Main.java:3)
+	« … mais 1019 linhas iguais …
+$ java Main 2&gt;&amp;1 | wc -l
+1025
+$ java Main &gt; /dev/null 2&gt;&amp;1; echo $?
+1</pre>
+
+<dl class="anatomy">
+  <dt>Exception in thread "main"</dt><dd>O programa parou com um problema durante a execução, na <em>thread</em> principal (o <code>main</code>).</dd>
+  <dt>java.lang.StackOverflowError</dt><dd>"Erro de transbordamento da pilha". É um <code>Error</code>, não uma <code>Exception</code> comum: indica um problema grave, do qual o programa normalmente não se recupera.</dd>
+  <dt>at Main.fatorial(Main.java:3)</dt><dd>O <strong>stack trace</strong> (o "rastro da pilha"): cada linha é uma chamada que estava na pilha. Todas apontam para a linha 3, a da chamada recursiva. A JVM mostra no máximo 1024 linhas desse rastro; por isso o <code>wc -l</code> contou 1025 (a primeira linha + 1024).</dd>
+  <dt>código de saída 1</dt><dd>Como toda exceção não tratada, o programa termina com código 1. Veja <a href="excecoes.html">O que são Exceções</a>.</dd>
+</dl>
+
+<p>Até onde a recursão chega antes de estourar? Um método que só imprime o nível e desce mais um mostra isso (a saída tem milhares de linhas; o <code>tail -1</code> mostra só a última):</p>
+
+<pre class="term">$ java Main 2&gt;/dev/null | tail -1
+Nível 5388
+$ java -Xss4m Main 2&gt;/dev/null | tail -1
+Nível 22479                « com uma pilha de 4 MB, cabem mais chamadas</pre>
+
+<p>Na máquina da Ana, a pilha padrão aguentou cerca de 5 mil chamadas desse método (o número muda um pouco a cada execução e depende do tamanho de cada chamada). A opção <code>-Xss</code> aumenta a pilha, mas isso só adia o problema: uma recursão infinita estoura qualquer pilha.</p>
+
+<div class="warning">
+<strong>As duas causas do <code>StackOverflowError</code></strong>
+<ol>
+  <li><strong>Falta caso base</strong>, ou ele nunca é alcançado. Exemplo: o caso base é <code>n == 0</code>, mas o método foi chamado com <code>-3</code> e desce para <code>-4</code>, <code>-5</code>… Prefira <code>n &lt;= 0</code> ou <code>n &lt;= 1</code>, que pegam também os valores "fora do esperado".</li>
+  <li><strong>O passo recursivo não diminui o problema</strong>. Exemplo: <code>return n * fatorial(n);</code> (esqueceu o <code>- 1</code>): a chamada é sempre a mesma.</li>
+</ol>
+<p>Uma terceira causa, mais rara, é uma recursão correta mas <strong>profunda demais</strong> (dezenas de milhares de níveis). Nesse caso, troque por um laço.</p>
+</div>
+
+<hr>
+
+<h2>Recursão ou laço?</h2>
+<p>Tudo o que se faz com recursão dá para fazer com um laço, e vice-versa. O fatorial com <code>for</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static long fatorialLaco(int n) {
+        long resultado = 1;
+        for (int i = 2; i &lt;= n; i++) {
+            resultado = resultado * i;
+        }
+        return resultado;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("5! = " + fatorialLaco(5));
+        System.out.println("20! = " + fatorialLaco(20));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+5! = 120
+20! = 2432902008176640000</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Recursão</th><th>Laço (<code>for</code>/<code>while</code>)</th></tr>
+<tr><td>Leitura</td><td>Fica muito parecida com a definição matemática ou com a forma do problema</td><td>Mais passos explícitos, variáveis de controle</td></tr>
+<tr><td>Memória</td><td>Cada nível ocupa a pilha; profundidade limitada (milhares)</td><td>Memória constante; milhões de voltas sem problema</td></tr>
+<tr><td>Velocidade</td><td>Um pouco mais lenta (cada chamada tem um custo); pode explodir se refaz trabalho (Fibonacci)</td><td>Em geral mais rápida</td></tr>
+<tr><td>Risco típico</td><td><code>StackOverflowError</code></td><td>Laço infinito</td></tr>
+<tr><td>Brilha em</td><td>Estruturas que se repetem dentro de si: pastas com subpastas, árvores, menus com submenus, "dividir para conquistar" (busca binária, ordenação)</td><td>Contagens, somas, percorrer listas e arrays, repetições simples</td></tr>
+</table>
+</div>
+
+<p>Regra prática para quem está começando: <strong>use laço por padrão</strong>; use recursão quando o problema for naturalmente "uma coisa que contém coisas do mesmo tipo", como as pastas do computador da Ana, em que cada pasta pode ter outras pastas dentro. Você vai ver isso em <a href="arquivos.html">Ler e Escrever Arquivos</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>Exception in thread "main" java.lang.StackOverflowError</code></strong>
+<pre class="term">$ java Main
+Exception in thread "main" java.lang.StackOverflowError
+	at Main.fatorial(Main.java:3)
+	at Main.fatorial(Main.java:3)
+	at Main.fatorial(Main.java:3)
+	« … mais 1021 linhas iguais …</pre>
+<p><strong>O que aconteceu:</strong> a recursão não parou. A linha repetida no stack trace aponta para a chamada recursiva.</p>
+<p><strong>Como resolver:</strong> confira as três perguntas: (1) existe um caso base? (2) ele vem <strong>antes</strong> da chamada recursiva? (3) cada chamada chega mais perto dele (<code>n - 1</code>, e não <code>n</code> ou <code>n + 1</code>)? Teste com valores pequenos e com valores "estranhos" (0, negativos).</p>
+</div>
+
+<div class="cenario">
+<strong>"missing return statement" num método recursivo</strong>
+<p><strong>O que aconteceu:</strong> o caso base ficou dentro de um <code>if</code>, e a chamada recursiva dentro de um <code>else if</code> sem <code>else</code>. Para o compilador, existe um caminho sem <code>return</code> (veja <a href="retorno.html">Valores de Retorno</a>).</p>
+<p><strong>Como resolver:</strong> use o formato <code>if (caso base) { return …; }</code> seguido de <code>return passo recursivo;</code> fora do <code>if</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O resultado ficou negativo ou absurdo</strong>
+<pre class="term">$ java Main.java
+5! = 120
+10! = 3628800
+20! = 2432902008176640000
+21! = -4249290049419214848</pre>
+<p><strong>O que aconteceu:</strong> não é culpa da recursão: o resultado passou do limite do tipo (<code>long</code> vai até cerca de 9,2 × 10<sup>18</sup>).</p>
+<p><strong>Como resolver:</strong> use um tipo maior (<code>long</code> no lugar de <code>int</code>) ou <code>BigInteger</code>, ou limite as entradas aceitas.</p>
+</div>
+
+<div class="cenario">
+<strong>O programa "travou" (sem erro, sem saída)</strong>
+<p><strong>O que aconteceu:</strong> provavelmente uma recursão que refaz trabalho, como o <code>fib(50)</code> recursivo, que levaria horas. Não é um laço infinito: ele terminaria, mas muito tarde.</p>
+<p><strong>Como resolver:</strong> interrompa com <kbd>Ctrl</kbd>+<kbd>C</kbd>, conte as chamadas (como a Ana fez com o campo <code>chamadas</code>) e troque por um laço ou guarde resultados já calculados.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo</th><th>Significado</th></tr>
+<tr><td>Método recursivo</td><td>Método que chama a si mesmo</td></tr>
+<tr><td>Caso base</td><td>Condição em que o método responde sem chamar a si mesmo; para a recursão</td></tr>
+<tr><td>Passo recursivo</td><td>A chamada a si mesmo com um problema menor</td></tr>
+<tr><td>Pilha de chamadas (<em>call stack</em>)</td><td>Onde a JVM guarda as chamadas em andamento; cada chamada recursiva empilha mais uma</td></tr>
+<tr><td><code>StackOverflowError</code></td><td>A pilha encheu: recursão sem fim ou profunda demais</td></tr>
+<tr><td><code>java -Xss4m Classe</code></td><td>Roda com uma pilha maior (4 MB)</td></tr>
+<tr><td>Modelo</td><td><code>static T f(n) { if (caso base) return valor; return … f(menor) …; }</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: potência recursiva</h2>
+<div class="tryjava" data-goal="out:2^10 = 1024,out:3^4 = 81,out:5^0 = 1,src:potencia\s*\([^;]*-\s*1">
+<p class="try-task"><strong>Missão:</strong> escreva <code>static long potencia(int base, int expoente)</code> de forma recursiva. Caso base: qualquer número elevado a 0 é 1. Passo recursivo: <code>base<sup>e</sup> = base × base<sup>e−1</sup></code>.</p>
+<pre class="script">public class Main {
+    // escreva o método potencia aqui
+
+    public static void main(String[] args) {
+        System.out.println("2^10 = " + potencia(2, 10));
+        System.out.println("3^4 = " + potencia(3, 4));
+        System.out.println("5^0 = " + potencia(5, 0));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static long potencia(int base, int expoente) {
+        if (expoente == 0) {
+            return 1;
+        }
+        return base * potencia(base, expoente - 1);
+    }
+
+    public static void main(String[] args) {
+        System.out.println("2^10 = " + potencia(2, 10));
+        System.out.println("3^4 = " + potencia(3, 4));
+        System.out.println("5^0 = " + potencia(5, 0));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O caso base</h3>
+<p>Complete o caso base do fatorial:</p>
+<div class="ex-code">if (n &lt;= 1) { return <input data-answer="1" aria-label="valor">; }</div>
+</div>
+
+<div class="exercise">
+<h3>2. O passo recursivo</h3>
+<p>Complete o passo recursivo do fatorial:</p>
+<div class="ex-code">return n * <input data-answer="fatorial(n - 1)|fatorial(n-1)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. O nome do erro</h3>
+<p>Qual erro aparece quando uma recursão nunca chega ao caso base? (só o nome da classe, sem <code>java.lang.</code>)</p>
+<div class="ex-code"><input data-answer="StackOverflowError" aria-label="nome do erro"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>static void f(int n) { if (n == 0) return; System.out.print(n); f(n - 1); }</code>. O que <code>f(3)</code> imprime?</p>
+<label><input type="radio" name="q4"> <code>123</code></label>
+<label><input type="radio" name="q4"> <code>321</code></label>
+<label><input type="radio" name="q4"> <code>3210</code></label>
+<label><input type="radio" name="q4"> Nada: dá <code>StackOverflowError</code>.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que o Fibonacci recursivo simples é tão lento para <code>n</code> grande?</p>
+<label><input type="radio" name="q5"> Porque usa <code>long</code>.</label>
+<label><input type="radio" name="q5"> Porque Java não permite recursão rápida.</label>
+<label><input type="radio" name="q5"> Porque a pilha é pequena.</label>
+<label><input type="radio" name="q5"> Porque recalcula os mesmos valores muitas e muitas vezes.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O método <code>static int f(int n) { if (n == 0) return 0; return f(n - 2); }</code> é chamado com <code>f(5)</code>. O que acontece?</p>
+<label><input type="radio" name="q6"> <code>StackOverflowError</code>: de 5 desce para 3, 1, −1… e nunca passa pelo 0.</label>
+<label><input type="radio" name="q6"> Devolve 0.</label>
+<label><input type="radio" name="q6"> Erro de compilação.</label>
+<label><input type="radio" name="q6"> Devolve 1.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um método <strong>recursivo</strong> chama a si mesmo para resolver uma versão menor do mesmo problema.</li>
+  <li>Toda recursão precisa de um <strong>caso base</strong> (responde sem chamar ninguém) e de um <strong>passo recursivo</strong> que se aproxime dele.</li>
+  <li>As chamadas em espera ficam na <strong>pilha de chamadas</strong>: a recursão desce até o caso base e as respostas sobem de volta.</li>
+  <li>Sem caso base (ou sem diminuir o problema): <code>StackOverflowError</code>, com um stack trace de linhas repetidas apontando para a chamada recursiva.</li>
+  <li>Fatorial recursivo é tranquilo; Fibonacci recursivo duplo é exponencialmente lento (2,7 milhões de chamadas para <code>fib(30)</code>).</li>
+  <li>Prefira laços para repetições simples; use recursão para estruturas que contêm a si mesmas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
