@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Métodos — declarar, chamar e organizar o programa | Guia Java</title>
+<meta name="description" content="O que é um método em Java, como declarar static void saudar(), como chamar, por que o static aparece aqui e como dividir um programa em métodos, com saídas reais do JDK 25, erros do javac e missões no editor do guia.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Métodos</span></h1>
+
+<p class="intro">Um <strong>método</strong> é um pedaço de código com nome. Você escreve as instruções uma vez, dá um nome a elas e, depois, sempre que precisar, chama esse nome. É a primeira ferramenta para organizar um programa: em vez de um <code>main</code> enorme, vários blocos pequenos, cada um fazendo uma coisa.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um método e por que ele existe (a ideia da receita).</li>
+  <li>Como <strong>declarar</strong> um método: <code>static void saudar() { … }</code>, parte por parte.</li>
+  <li>Como <strong>chamar</strong> um método e em que ordem o Java executa as linhas.</li>
+  <li>Por que, por enquanto, todo método leva <code>static</code>.</li>
+  <li>Como dividir um programa em métodos, e os erros do <code>javac</code> mais comuns ao fazer isso.</li>
+</ul>
+</div>
+
+<p>Você já usou vários métodos sem perceber: <code>System.out.println(…)</code> é um método, <code>Math.sqrt(…)</code> é outro, <code>texto.length()</code> também. Todos foram escritos por alguém e ganharam um nome. Nesta aula você aprende a escrever os seus. Os exemplos rodam na máquina da Ana, com o <strong>JDK 25</strong>.</p>
+
+<hr>
+
+<h2>A ideia antes do código: uma receita</h2>
+<p>Pense numa receita de bolo escrita num caderno. A receita tem um <strong>nome</strong> ("Bolo de cenoura") e uma lista de <strong>passos</strong>. Quando a Ana quer um bolo, ela não reescreve os passos: ela abre o caderno na página "Bolo de cenoura" e segue o que está lá. Se amanhã quiser outro bolo, segue a mesma receita de novo.</p>
+<p>Um método é exatamente isso:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na cozinha</th><th>No Java</th></tr>
+<tr><td>Escrever a receita no caderno</td><td><strong>Declarar</strong> o método (dar nome e escrever as instruções)</td></tr>
+<tr><td>O nome da receita</td><td>O <strong>nome</strong> do método, como <code>saudar</code></td></tr>
+<tr><td>Os passos da receita</td><td>O <strong>corpo</strong> do método, entre <code>{ }</code></td></tr>
+<tr><td>"Hoje vou fazer o bolo de cenoura"</td><td><strong>Chamar</strong> o método: <code>saudar();</code></td></tr>
+</table>
+</div>
+<p>Escrever a receita não faz bolo nenhum. Só quando alguém <strong>segue</strong> a receita o bolo aparece. No Java é igual: declarar um método não executa nada; ele só roda quando é chamado.</p>
+
+<div class="tip">
+<strong>Método ou função?</strong>
+<p>Em outras linguagens (Python, JavaScript, C) você vai ouvir "função". Em Java, todo bloco de código com nome fica <strong>dentro de uma classe</strong> e se chama <strong>método</strong> (do inglês <em>method</em>, "modo de fazer"). Na prática, é a mesma ideia: um pedaço de código com nome que você pode chamar.</p>
+</div>
+
+<hr>
+
+<h2>O problema: código repetido</h2>
+<p>A Ana dá aulas e quer imprimir o boletim de dois alunos. Cada boletim começa com um cabeçalho de três linhas. Sem métodos, o programa fica assim:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("==============================");
+        System.out.println("  Escola da Ana - Boletim");
+        System.out.println("==============================");
+        System.out.println("Aluno: Bruno   Nota: 8.5");
+        System.out.println("==============================");
+        System.out.println("  Escola da Ana - Boletim");
+        System.out.println("==============================");
+        System.out.println("Aluna: Carla   Nota: 9.0");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+==============================
+  Escola da Ana - Boletim
+==============================
+Aluno: Bruno   Nota: 8.5
+==============================
+  Escola da Ana - Boletim
+==============================
+Aluna: Carla   Nota: 9.0</pre>
+
+<p>Funciona, mas as três linhas do cabeçalho estão escritas duas vezes. Se a escola mudar de nome, a Ana precisa lembrar de corrigir em todos os lugares. Com 30 alunos, seriam 30 cópias. É aqui que entra o método.</p>
+
+<hr>
+
+<h2>Seu primeiro método</h2>
+<p>A Ana coloca as três linhas do cabeçalho num método chamado <code>mostrarCabecalho</code> e, no <code>main</code>, chama esse nome no lugar de cada cópia:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void mostrarCabecalho() {
+        System.out.println("==============================");
+        System.out.println("  Escola da Ana - Boletim");
+        System.out.println("==============================");
+    }
+
+    public static void main(String[] args) {
+        mostrarCabecalho();
+        System.out.println("Aluno: Bruno   Nota: 8.5");
+        mostrarCabecalho();
+        System.out.println("Aluna: Carla   Nota: 9.0");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+==============================
+  Escola da Ana - Boletim
+==============================
+Aluno: Bruno   Nota: 8.5
+==============================
+  Escola da Ana - Boletim
+==============================
+Aluna: Carla   Nota: 9.0</pre>
+
+<p>A saída é <strong>idêntica</strong> à anterior. O que mudou foi o código: o cabeçalho está escrito <strong>uma vez só</strong>. Para mudar o nome da escola, basta editar uma linha.</p>
+
+<h3>Anatomia da declaração</h3>
+<p>Vamos olhar a primeira linha do método, palavra por palavra:</p>
+
+<dl class="anatomy">
+  <dt>static</dt><dd>"Estático", "da classe". Diz que o método pertence à classe <code>Main</code> e pode ser chamado direto pelo <code>main</code>. Explicação logo abaixo, em <a href="#static">Por que static?</a></dd>
+  <dt>void</dt><dd>"Vazio": o método <strong>não devolve</strong> nenhum valor, só faz alguma coisa (aqui, imprimir). Métodos que devolvem um resultado são o assunto de <a href="retorno.html">Valores de Retorno</a>.</dd>
+  <dt>mostrarCabecalho</dt><dd>O <strong>nome</strong> do método, escolhido por você. Por convenção, começa com letra minúscula, é um verbo e junta as palavras com maiúsculas no meio (<em>camelCase</em>): <code>mostrarCabecalho</code>, <code>calcularMedia</code>.</dd>
+  <dt>( )</dt><dd>Os <strong>parênteses</strong> obrigatórios. Aqui estão vazios: o método não recebe nenhuma informação. Quando ele precisar receber dados (um nome, uma nota), eles vão aqui dentro; é a aula de <a href="parametros.html">Parâmetros</a>.</dd>
+  <dt>{ … }</dt><dd>O <strong>corpo</strong>: as instruções que rodam a cada chamada. Podem ser quantas linhas você quiser.</dd>
+</dl>
+
+<p>E a chamada, dentro do <code>main</code>:</p>
+
+<dl class="anatomy">
+  <dt>mostrarCabecalho</dt><dd>O nome do método que você quer executar, escrito igualzinho à declaração (maiúsculas e minúsculas contam).</dd>
+  <dt>( )</dt><dd>Os parênteses dizem "execute agora". Sem eles, o Java não entende que é uma chamada.</dd>
+  <dt>;</dt><dd>Toda chamada é uma instrução e termina com ponto e vírgula, como o <code>System.out.println(…);</code>.</dd>
+</dl>
+
+<div class="note">
+<strong>Onde fica o método</strong>
+<p>O método fica <strong>dentro da classe</strong> (entre as chaves de <code>public class Main { … }</code>) e <strong>fora do <code>main</code></strong>. O próprio <code>main</code> é um método: aquele que o Java chama sozinho quando o programa começa. Os seus métodos ficam ao lado dele, como irmãos, nunca dentro dele.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Fim do boletim,src:static\s+void\s+mostrarRodape\s*\(\s*\),src:mostrarRodape\s*\(\s*\)\s*;">
+<p class="try-task"><strong>Missão:</strong> crie um método <code>mostrarRodape()</code> que imprima <code>Fim do boletim</code> e chame-o no final do <code>main</code>. Use o <code>mostrarCabecalho</code> como modelo.</p>
+<pre class="script">public class Main {
+    static void mostrarCabecalho() {
+        System.out.println("==============================");
+        System.out.println("  Escola da Ana - Boletim");
+        System.out.println("==============================");
+    }
+
+    public static void main(String[] args) {
+        mostrarCabecalho();
+        System.out.println("Aluno: Bruno   Nota: 8.5");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static void mostrarCabecalho() {
+        System.out.println("==============================");
+        System.out.println("  Escola da Ana - Boletim");
+        System.out.println("==============================");
+    }
+
+    static void mostrarRodape() {
+        System.out.println("Fim do boletim");
+    }
+
+    public static void main(String[] args) {
+        mostrarCabecalho();
+        System.out.println("Aluno: Bruno   Nota: 8.5");
+        mostrarRodape();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>A ordem em que as linhas rodam</h2>
+<p>O programa sempre começa pelo <code>main</code>, de cima para baixo. Quando o Java encontra uma chamada, ele <strong>pula</strong> para dentro do método, executa o corpo inteiro e <strong>volta</strong> para a linha seguinte do <code>main</code>. Os números neste exemplo mostram a ordem:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("1. O main começou");
+        saudar();
+        System.out.println("3. Voltei para o main");
+        saudar();
+        System.out.println("5. O main terminou");
+    }
+
+    static void saudar() {
+        System.out.println("   Olá! Eu sou o método saudar.");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+1. O main começou
+   Olá! Eu sou o método saudar.     « passo 2: a primeira chamada
+3. Voltei para o main
+   Olá! Eu sou o método saudar.     « passo 4: a segunda chamada
+5. O main terminou</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>Onde o Java está</th><th>O que acontece</th></tr>
+<tr><td>1</td><td><code>main</code>, linha 3</td><td>Imprime "1. O main começou".</td></tr>
+<tr><td>2</td><td><code>main</code>, linha 4 → <code>saudar</code></td><td>Encontra <code>saudar();</code>, pula para o método e imprime a saudação. O método acabou: volta.</td></tr>
+<tr><td>3</td><td><code>main</code>, linha 5</td><td>Continua de onde parou: imprime "3. Voltei para o main".</td></tr>
+<tr><td>4</td><td><code>main</code>, linha 6 → <code>saudar</code></td><td>Pula de novo para o método. A mesma receita, seguida outra vez.</td></tr>
+<tr><td>5</td><td><code>main</code>, linha 7</td><td>Imprime a última linha. O <code>main</code> acaba e o programa termina.</td></tr>
+</table>
+</div>
+
+<p>Repare também que, desta vez, o método <code>saudar</code> foi escrito <strong>depois</strong> do <code>main</code>, e funcionou. Em Java, a ordem dos métodos dentro da classe <strong>não importa</strong>: o compilador lê a classe inteira antes. Escolha a ordem que deixe o código mais fácil de ler (muita gente põe o <code>main</code> no topo, outros no fim).</p>
+
+<hr>
+
+<h2>Um método pode chamar outro</h2>
+<p>Métodos não são chamados só pelo <code>main</code>. Qualquer método pode chamar outro. A Ana organizou o dia da sua loja de frutas assim:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void abrirLoja() {
+        System.out.println("Loja da Ana: aberta!");
+    }
+
+    static void mostrarFrutas() {
+        System.out.println("Hoje temos: maçã, banana, uva");
+    }
+
+    static void fecharLoja() {
+        System.out.println("Loja da Ana: fechada. Até amanhã!");
+    }
+
+    static void diaDeTrabalho() {
+        abrirLoja();
+        mostrarFrutas();
+        fecharLoja();
+    }
+
+    public static void main(String[] args) {
+        diaDeTrabalho();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Loja da Ana: aberta!
+Hoje temos: maçã, banana, uva
+Loja da Ana: fechada. Até amanhã!</pre>
+
+<p>O <code>main</code> chama <code>diaDeTrabalho</code>, que chama os outros três, um de cada vez. Cada método volta para quem o chamou quando termina. Ler o <code>main</code> agora é como ler um índice: "faça o dia de trabalho". Quem quiser os detalhes abre o método.</p>
+
+<div class="tip">
+<strong>E se um método chamar a si mesmo?</strong>
+<p>Isso existe e tem nome: <strong>recursão</strong>. É uma técnica poderosa, mas exige cuidado para não virar uma repetição sem fim. Ela tem uma aula só para ela: <a href="recursao.html">Recursão</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="static">Por que <code>static</code>?</h2>
+<p>Você deve estar se perguntando por que todo método desta aula começa com <code>static</code>. A resposta curta: <strong>porque o <code>main</code> é <code>static</code></strong>, e um método <code>static</code> só consegue chamar diretamente outros métodos <code>static</code>.</p>
+<p>A resposta um pouco mais longa: em Java, existem dois tipos de método.</p>
+<ul>
+  <li><strong>Métodos <code>static</code></strong> ("da classe"): pertencem à classe e podem ser usados sem criar nada antes. O <code>main</code> é assim, porque o Java precisa chamá-lo logo no início, quando ainda não existe nada.</li>
+  <li><strong>Métodos sem <code>static</code></strong> ("de objeto"): pertencem a um <strong>objeto</strong>, uma "coisa" criada a partir da classe. Para usá-los, primeiro você cria o objeto. Isso começa em <a href="poo.html">O que é POO</a> e aparece em detalhes em <a href="metodos-objeto.html">Métodos de Objeto</a>.</li>
+</ul>
+<p>Enquanto você não aprende objetos, a regra prática é: <strong>escreva <code>static</code> em todos os seus métodos</strong>. Veja o que acontece se você esquecer:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    void saudar() {
+        System.out.println("Olá, Ana!");
+    }
+
+    public static void main(String[] args) {
+        saudar();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:7: error: non-static method saudar() cannot be referenced from a static context
+        saudar();
+        ^
+1 error</pre>
+
+<p>Traduzindo: "o método não estático <code>saudar()</code> não pode ser usado a partir de um contexto estático". O "contexto estático" é o <code>main</code>. A correção é colocar <code>static</code> antes de <code>void</code>. A aula <a href="static.html">static</a> explica o assunto por inteiro; por enquanto, basta isso.</p>
+
+<div class="note">
+<strong>E o <code>public</code> do <code>main</code>?</strong>
+<p>O <code>main</code> tem <code>public static void</code>; os seus métodos, só <code>static void</code>. O <code>public</code> ("público") diz quem, de fora da classe, pode usar o método. Para métodos usados só dentro da própria classe, ele não faz diferença. As opções (<code>public</code>, <code>private</code>…) são o assunto de <a href="modificadores.html">Modificadores de Acesso</a>.</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de escrever métodos</h2>
+
+<h3>1. Numa classe, com <code>static</code> (a forma desta aula)</h3>
+<p>É a forma que funciona em qualquer versão do Java e que você vai ver em livros, empresas e na maioria dos exemplos da internet. É a que o guia usa daqui em diante.</p>
+
+<h3>2. No JShell, para testar rápido</h3>
+<p>No <a href="jshell.html">JShell</a> você pode declarar um método solto, sem classe e sem <code>static</code>, e chamá-lo na linha seguinte. Ótimo para experimentar:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; void saudar() {
+   ...&gt;     System.out.println("Olá, Ana!");
+   ...&gt; }
+|  created method saudar()
+
+jshell&gt; saudar()
+Olá, Ana!
+
+jshell&gt; /methods
+|    void saudar()
+
+jshell&gt; /exit
+|  Goodbye</pre>
+
+<p>O JShell confirma com <code>created method saudar()</code> ("método criado"). O comando <code>/methods</code> lista os métodos que você já criou na sessão.</p>
+
+<div class="tryjshell" data-goal="out:Bom dia\, Ana!">
+<p class="try-task"><strong>Missão:</strong> no JShell abaixo, declare um método <code>bomDia()</code> que imprima <code>Bom dia, Ana!</code> e depois chame-o. Dica: dá para escrever o método numa linha só: <code>void bomDia() { System.out.println("…"); }</code>.</p>
+<pre class="solucao">void bomDia() { System.out.println("Bom dia, Ana!"); }
+bomDia()</pre>
+</div>
+
+<h3>3. Arquivo compacto, sem classe <span class="versao">Java 25+</span></h3>
+<p>Desde o Java 25, um programa pequeno pode ser escrito sem a linha <code>public class Main</code> (os "arquivos-fonte compactos"). Nesse formato, o <code>main</code> e os outros métodos ficam soltos no arquivo e <strong>não precisam de <code>static</code></strong>:</p>
+
+<pre class="file" data-file="Main.java">void main() {
+    saudar();
+    saudar();
+}
+
+void saudar() {
+    IO.println("Olá! Bem-vindo à escola da Ana.");
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Olá! Bem-vindo à escola da Ana.
+Olá! Bem-vindo à escola da Ana.</pre>
+
+<p>É prático para scripts e para aprender, mas só existe no Java 25 ou mais novo. Em versões anteriores (Java 21, 17, 11…), use a forma 1. Detalhes em <a href="novidades.html">Novidades do Java 17 ao 25</a>.</p>
+
+<h3>Qual usar?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Forma</th></tr>
+<tr><td>Programas de verdade, exercícios deste guia, qualquer versão do Java</td><td>Classe + <code>static void nome() { … }</code></td></tr>
+<tr><td>Testar uma ideia em segundos</td><td>JShell</td></tr>
+<tr><td>Script rápido de um arquivo só, com Java 25+</td><td>Arquivo compacto (<code>void main()</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Organizando um programa em métodos</h2>
+<p>A maior vantagem dos métodos não é só evitar repetição: é <strong>dar nomes</strong> às partes do programa. Compare dois <code>main</code> que fazem a mesma coisa:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tudo no <code>main</code></th><th>Dividido em métodos</th></tr>
+<tr><td>40 linhas de <code>println</code>, contas e <code>if</code>; para entender, você precisa ler tudo.</td><td><code>mostrarCabecalho();</code><br><code>mostrarNotas();</code><br><code>mostrarRodape();</code><br>Três linhas que contam a história.</td></tr>
+</table>
+</div>
+
+<p>Algumas dicas para dividir bem:</p>
+<ul>
+  <li><strong>Um método, uma tarefa.</strong> Se o nome precisa de "e" (<code>mostrarCabecalhoECalcularMedia</code>), provavelmente são dois métodos.</li>
+  <li><strong>Nomes com verbo</strong>, que digam o que o método faz: <code>imprimirMenu</code>, <code>mostrarFrutas</code>, <code>fecharLoja</code>. Evite <code>metodo1</code>, <code>coisa</code>, <code>teste</code>.</li>
+  <li><strong>Métodos curtos.</strong> Se um método passou de uma tela, veja se não dá para separar uma parte.</li>
+  <li><strong>Copiou e colou?</strong> Sinal de que aquele trecho quer virar um método.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Convenção</th><th>Bom</th><th>Evite</th></tr>
+<tr><td>Começa com minúscula</td><td><code>saudar</code></td><td><code>Saudar</code> (parece nome de classe)</td></tr>
+<tr><td>camelCase para várias palavras</td><td><code>mostrarCabecalho</code></td><td><code>mostrar_cabecalho</code>, <code>mostrarcabecalho</code></td></tr>
+<tr><td>Verbo que diz a ação</td><td><code>imprimirBoletim</code></td><td><code>boletim</code>, <code>m1</code></td></tr>
+<tr><td>Sem acento nem espaço</td><td><code>mostrarCabecalho</code></td><td><code>mostrarCabeçalho</code> (o Java aceita, mas atrapalha em outros teclados e ferramentas)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … symbol: method"</strong>
+<pre class="term">$ javac Main.java
+Main.java:7: error: cannot find symbol
+        saudr();
+        ^
+  symbol:   method saudr()
+  location: class Main
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "não encontrei o símbolo". A Ana declarou <code>saudar</code>, mas chamou <code>saudr</code> (faltou o <code>a</code>). As linhas de baixo dizem o que faltou (<code>symbol: method saudr()</code>, um método chamado <code>saudr</code>) e onde o compilador procurou (<code>location: class Main</code>).</p>
+<p><strong>Como resolver:</strong> confira o nome letra por letra, inclusive maiúsculas: <code>Saudar</code> e <code>saudar</code> são métodos diferentes. Se o nome está certo, veja se o método foi mesmo declarado na classe.</p>
+</div>
+
+<div class="cenario">
+<strong>"not a statement" (faltaram os parênteses)</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    static void saudar() {
+        System.out.println("Olá, Ana!");
+    }
+
+    public static void main(String[] args) {
+        saudar;
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:7: error: not a statement
+        saudar;
+        ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "não é uma instrução". Sem os parênteses, <code>saudar</code> é só um nome solto, e o Java não sabe o que fazer com ele.</p>
+<p><strong>Como resolver:</strong> toda chamada leva parênteses, mesmo vazios: <code>saudar();</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"invalid method declaration; return type required" (faltou o <code>void</code>)</strong>
+<pre class="term">$ javac Main.java
+Main.java:2: error: invalid method declaration; return type required
+    static saudar() {
+           ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "declaração de método inválida; é obrigatório o tipo de retorno". Antes do nome, o Java exige dizer o que o método devolve. Quem não devolve nada precisa dizer isso com <code>void</code>.</p>
+<p><strong>Como resolver:</strong> <code>static void saudar() {</code>. A setinha <code>^</code> aponta exatamente para onde o <code>void</code> deveria estar.</p>
+</div>
+
+<div class="cenario">
+<strong>"illegal start of expression" (método dentro do <code>main</code>)</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    public static void main(String[] args) {
+        void saudar() {
+            System.out.println("Olá, Ana!");
+        }
+        saudar();
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal start of expression
+        void saudar() {
+        ^
+Main.java:3: error: ';' expected
+        void saudar() {
+                   ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> o método foi escrito <strong>dentro</strong> do <code>main</code>. Em Java, um método não pode morar dentro de outro. O compilador se perde e mostra dois erros; o segundo (<code>';' expected</code>) é consequência do primeiro.</p>
+<p><strong>Como resolver:</strong> tire o método de dentro do <code>main</code>: feche a chave do <code>main</code> antes e declare o método ao lado dele, dentro da classe. Conte as chaves: cada <code>{</code> tem o seu <code>}</code>. Um editor que alinha o código (veja <a href="editores-ide.html">Editores e IDEs</a>) ajuda muito a enxergar onde cada bloco termina.</p>
+</div>
+
+<div class="cenario">
+<strong>"non-static method … cannot be referenced from a static context"</strong>
+<pre class="term">$ javac Main.java
+Main.java:7: error: non-static method saudar() cannot be referenced from a static context
+        saudar();
+        ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o método foi declarado sem <code>static</code> e chamado de dentro do <code>main</code>, que é <code>static</code>.</p>
+<p><strong>Como resolver:</strong> por enquanto, <code>static void saudar()</code>. Veja <a href="#static">Por que static?</a></p>
+</div>
+
+<div class="cenario">
+<strong>"method … is already defined" (dois métodos com o mesmo nome)</strong>
+<pre class="term">$ javac Main.java
+Main.java:6: error: method saudar() is already defined in class Main
+    static void saudar() {
+                ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "o método <code>saudar()</code> já foi definido na classe <code>Main</code>". A Ana colou o método duas vezes. Se dois métodos tivessem o mesmo nome, o Java não saberia qual chamar.</p>
+<p><strong>Como resolver:</strong> apague um deles ou dê outro nome. (Existe um caso em que dois métodos podem ter o mesmo nome: quando recebem informações diferentes. Isso se chama <a href="sobrecarga.html">sobrecarga</a>.)</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th><th>Exemplo</th></tr>
+<tr><td><code>static void nome() { … }</code></td><td>Declara um método sem parâmetros que não devolve nada</td><td><code>static void saudar() { System.out.println("Oi"); }</code></td></tr>
+<tr><td><code>nome();</code></td><td>Chama (executa) o método</td><td><code>saudar();</code></td></tr>
+<tr><td><code>static</code></td><td>Método da classe; necessário para ser chamado do <code>main</code></td><td>veja <a href="static.html">static</a></td></tr>
+<tr><td><code>void</code></td><td>O método não devolve valor</td><td>veja <a href="retorno.html">Valores de Retorno</a></td></tr>
+<tr><td><code>( )</code></td><td>Lista de parâmetros (vazia aqui)</td><td>veja <a href="parametros.html">Parâmetros</a></td></tr>
+<tr><td><code>{ }</code></td><td>Corpo: as instruções do método</td><td>quantas linhas quiser</td></tr>
+<tr><td><code>/methods</code> (JShell)</td><td>Lista os métodos criados na sessão</td><td><code>|    void saudar()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: organize a loja</h2>
+<div class="tryjava" data-goal="out:Bem-vindo à Loja da Ana,out:Frutas: maçã\, banana\, uva,out:Volte sempre!,src:static\s+void\s+boasVindas\s*\(,src:static\s+void\s+listarFrutas\s*\(,src:static\s+void\s+despedir\s*\(">
+<p class="try-task"><strong>Missão:</strong> o <code>main</code> abaixo faz tudo sozinho. Crie três métodos, <code>boasVindas()</code>, <code>listarFrutas()</code> e <code>despedir()</code>, cada um com uma das linhas, e deixe no <code>main</code> só as três chamadas. A saída deve continuar igual.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Bem-vindo à Loja da Ana");
+        System.out.println("Frutas: maçã, banana, uva");
+        System.out.println("Volte sempre!");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static void boasVindas() {
+        System.out.println("Bem-vindo à Loja da Ana");
+    }
+
+    static void listarFrutas() {
+        System.out.println("Frutas: maçã, banana, uva");
+    }
+
+    static void despedir() {
+        System.out.println("Volte sempre!");
+    }
+
+    public static void main(String[] args) {
+        boasVindas();
+        listarFrutas();
+        despedir();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A palavra que falta</h3>
+<p>Complete a declaração de um método que só imprime (não devolve nada):</p>
+<div class="ex-code">static <input data-answer="void" aria-label="tipo de retorno"> saudar() {</div>
+</div>
+
+<div class="exercise">
+<h3>2. Chamar o método</h3>
+<p>Complete a linha do <code>main</code> que executa o método <code>mostrarMenu</code>:</p>
+<div class="ex-code"><input data-answer="mostrarMenu();|mostrarMenu ();" aria-label="chamada"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O modificador esquecido</h3>
+<p>O <code>javac</code> disse <code>non-static method imprimir() cannot be referenced from a static context</code>. Que palavra falta antes de <code>void</code> na declaração?</p>
+<div class="ex-code"><input data-answer="static" aria-label="palavra"> void imprimir() {</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um programa declara o método <code>avisar()</code>, mas o <code>main</code> nunca o chama. O que acontece quando o programa roda?</p>
+<label><input type="radio" name="q4"> O método roda uma vez, antes do <code>main</code>.</label>
+<label><input type="radio" name="q4"> Nada: o código do método nunca é executado.</label>
+<label><input type="radio" name="q4"> O <code>javac</code> dá erro porque o método não foi usado.</label>
+<label><input type="radio" name="q4"> O método roda uma vez, depois do <code>main</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O <code>main</code> tem as linhas <code>System.out.println("A");</code>, <code>b();</code> e <code>System.out.println("C");</code>. O método <code>b()</code> imprime <code>B</code>. Qual é a saída?</p>
+<label><input type="radio" name="q5"> <code>A</code>, <code>C</code></label>
+<label><input type="radio" name="q5"> <code>A</code>, <code>C</code>, <code>B</code></label>
+<label><input type="radio" name="q5"> <code>A</code>, <code>B</code>, <code>C</code></label>
+<label><input type="radio" name="q5"> <code>B</code>, <code>A</code>, <code>C</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Onde um método deve ser declarado?</p>
+<label><input type="radio" name="q6"> Dentro do <code>main</code>, antes de ser usado.</label>
+<label><input type="radio" name="q6"> Fora da classe, depois da última chave.</label>
+<label><input type="radio" name="q6"> Em qualquer lugar, desde que antes do <code>main</code>.</label>
+<label><input type="radio" name="q6"> Dentro da classe e fora de outros métodos, em qualquer ordem.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>método</strong> é um bloco de código com nome, como uma receita: declarado uma vez, chamado quantas vezes quiser.</li>
+  <li>Declaração: <code>static void nome() { … }</code>. <code>void</code> = não devolve nada; <code>( )</code> = lista de parâmetros; <code>{ }</code> = corpo.</li>
+  <li>Chamada: <code>nome();</code>. Sem parênteses é erro (<code>not a statement</code>).</li>
+  <li>O Java pula para o método, executa o corpo e volta para a linha seguinte de quem chamou.</li>
+  <li>Métodos ficam dentro da classe e fora de outros métodos; a ordem entre eles não importa.</li>
+  <li>Por enquanto, use <code>static</code> em todos: o <code>main</code> é <code>static</code> e só chama direto métodos <code>static</code> (<a href="static.html">static</a>).</li>
+  <li>Divida o programa em métodos curtos, com nomes de verbo em camelCase.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
