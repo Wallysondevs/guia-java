@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java this — o objeto atual, this.campo e this() | Guia Java</title>
+<meta name="description" content="A palavra this em Java: diferenciar atributo de parâmetro com this.nome = nome (e o bug clássico sem this, com saída real), this como referência ao próprio objeto, passar e devolver this, e this() no construtor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">this</span></h1>
+
+<p class="intro"><code>this</code> ("este", em inglês) é uma palavra do Java que significa <strong>"o objeto em que este código está rodando agora"</strong>. Ela aparece o tempo todo em código profissional, quase sempre na forma <code>this.nome = nome;</code>. Nesta aula você entende por que ela existe, o bug clássico de quem a esquece e os outros usos dela.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O bug clássico: <code>nome = nome;</code> no construtor, que compila e não faz nada.</li>
+  <li>Como <code>this.nome</code> diferencia o <strong>atributo</strong> do <strong>parâmetro</strong> de mesmo nome.</li>
+  <li>Que <code>this</code> é uma referência de verdade ao objeto atual: dá para imprimir, comparar, passar e devolver.</li>
+  <li>O <code>this(…)</code>, que chama outro construtor.</li>
+  <li>Por que não existe <code>this</code> em métodos <code>static</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código: "eu"</h2>
+<p>Quando a Ana diz "<strong>meu</strong> nome é Ana", a palavra "meu" se refere a ela. Quando o Bruno diz "<strong>meu</strong> nome é Bruno", a mesma palavra se refere a ele. "Meu" não é o nome de ninguém: é um jeito de cada um apontar para si mesmo.</p>
+<p>O <code>this</code> é o "eu" de cada objeto. O código de um método é escrito <strong>uma vez</strong>, na classe, mas roda em objetos diferentes. Dentro dele, <code>this</code> aponta para o objeto que recebeu a chamada: em <code>maca.mostrar()</code>, <code>this</code> é a maçã; em <code>uva.mostrar()</code>, é a uva.</p>
+
+<hr>
+
+<h2 id="bug">O bug clássico: <code>nome = nome</code></h2>
+<p>Na aula de <a href="construtores.html">Construtores</a>, os parâmetros tinham nomes como <code>nomeInicial</code>. Isso é chato: o nome bom, <code>nome</code>, já está ocupado pelo atributo. A Ana resolveu usar o mesmo nome nos dois:</p>
+
+<pre class="file" data-file="Main.java — com um bug de propósito">class Fruta {
+    String nome;
+    double preco;
+
+    Fruta(String nome, double preco) {
+        nome = nome;
+        preco = preco;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta("maçã", 7.9);
+        System.out.println(maca.nome + ": R$ " + maca.preco);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+null: R$ 0.0          « a maçã ficou sem nome e sem preço!</pre>
+
+<p>Compila sem nenhum aviso (nem com <code>javac -Xlint:all</code>), roda sem erro e o resultado está errado. O que aconteceu? Lembre do <a href="escopo.html#sombra">sombreamento</a>: dentro do construtor existem <strong>dois</strong> <code>nome</code>, o atributo do objeto e o parâmetro. O mais "próximo", o parâmetro, faz sombra no atributo. Então a linha <code>nome = nome;</code> quer dizer "parâmetro <code>nome</code> recebe o parâmetro <code>nome</code>": copia o valor para ele mesmo. O atributo nunca é tocado e fica com o valor padrão, <code>null</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Dentro do construtor</th><th>Quem é</th><th>Valor</th></tr>
+<tr><td><code>nome</code></td><td>O <strong>parâmetro</strong> (faz sombra no atributo)</td><td>"maçã"</td></tr>
+<tr><td><code>this.nome</code></td><td>O <strong>atributo</strong> do objeto que está nascendo</td><td><code>null</code>, até alguém atribuir</td></tr>
+</table>
+</div>
+
+<h3>A correção: <code>this.nome = nome</code></h3>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+
+    Fruta(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    void mudarPreco(double preco) {
+        this.preco = preco;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta("maçã", 7.9);
+        System.out.println(maca.nome + ": R$ " + maca.preco);
+        maca.mudarPreco(8.5);
+        System.out.println(maca.nome + ": R$ " + maca.preco);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+maçã: R$ 7.9
+maçã: R$ 8.5</pre>
+
+<dl class="anatomy">
+  <dt>this</dt><dd>O objeto atual: o que está sendo criado (no construtor) ou o que recebeu a chamada (num método).</dd>
+  <dt>.nome</dt><dd>O atributo <code>nome</code> desse objeto. <code>this.nome</code> é como <code>maca.nome</code>, só que de dentro da classe.</dd>
+  <dt>= nome;</dt><dd>Sem <code>this</code>, <code>nome</code> é o parâmetro. A linha lê-se: "o <strong>meu</strong> nome recebe o nome que eu recebi".</dd>
+  <dt>mudarPreco(double preco)</dt><dd>O mesmo padrão vale para métodos comuns: sempre que um parâmetro tiver o nome de um atributo, use <code>this.</code> para chegar ao atributo.</dd>
+</dl>
+
+<p>Esse é o padrão de praticamente todo código Java: parâmetros com o mesmo nome dos atributos, e <code>this.atributo = parametro;</code>. As IDEs geram construtores assim automaticamente.</p>
+
+<div class="tryjava" data-goal="out:Ana: R$ 500.0,src:this\.titular\s*=\s*titular,src:this\.saldo\s*=\s*saldo">
+<p class="try-task"><strong>Missão:</strong> o construtor da <code>Conta</code> tem o bug clássico e a conta da Ana sai como <code>null: R$ 0.0</code>. Corrija as duas linhas com <code>this</code> para aparecer <code>Ana: R$ 500.0</code>.</p>
+<pre class="script">class Conta {
+    String titular;
+    double saldo;
+
+    Conta(String titular, double saldo) {
+        titular = titular;
+        saldo = saldo;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta("Ana", 500);
+        System.out.println(c.titular + ": R$ " + c.saldo);
+    }
+}
+</pre>
+<pre class="solucao">class Conta {
+    String titular;
+    double saldo;
+
+    Conta(String titular, double saldo) {
+        this.titular = titular;
+        this.saldo = saldo;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta("Ana", 500);
+        System.out.println(c.titular + ": R$ " + c.saldo);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>this</code> é uma referência de verdade</h2>
+<p><code>this</code> não é só um prefixo para atributos: é uma <strong>referência</strong> ao objeto atual, igual às variáveis que você viu em <a href="classes-objetos.html#referencia">Classes e Objetos</a>. Dá para imprimi-la e compará-la:</p>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+
+    Fruta(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    void quemSouEu() {
+        System.out.println("this = " + this);
+    }
+
+    boolean maisCaraQue(Fruta outra) {
+        return this.preco &gt; outra.preco;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta("maçã", 7.9);
+        Fruta uva = new Fruta("uva", 12.0);
+        System.out.println("maca = " + maca);
+        maca.quemSouEu();
+        System.out.println("uva = " + uva);
+        uva.quemSouEu();
+        System.out.println("uva mais cara que maçã? " + uva.maisCaraQue(maca));
+        System.out.println("maçã mais cara que uva? " + maca.maisCaraQue(uva));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+maca = Fruta@1dbd16a6
+this = Fruta@1dbd16a6        « dentro de maca.quemSouEu(), this É a maçã
+uva = Fruta@251a69d7
+this = Fruta@251a69d7        « dentro de uva.quemSouEu(), this é a uva
+uva mais cara que maçã? true
+maçã mais cara que uva? false</pre>
+
+<p>O identificador depois do <code>@</code> é o mesmo para <code>maca</code> e para o <code>this</code> da chamada <code>maca.quemSouEu()</code>: são o mesmo objeto. No <code>maisCaraQue</code>, o <code>this.preco</code> não era obrigatório (não há sombra), mas deixa a comparação mais legível: "o <strong>meu</strong> preço é maior que o preço da <strong>outra</strong>?".</p>
+
+<h3>Passar <code>this</code> para outro objeto</h3>
+<p>Um objeto pode se "apresentar" a outro passando <code>this</code> como argumento. Na escola da Ana, o aluno se matricula numa turma, e a turma precisa conhecer o aluno:</p>
+
+<pre class="file" data-file="Main.java">class Aluno {
+    String nome;
+    Turma turma;
+
+    Aluno(String nome) {
+        this.nome = nome;
+    }
+
+    void matricular(Turma turma) {
+        this.turma = turma;
+        turma.receber(this);
+    }
+}
+
+class Turma {
+    String codigo;
+    int quantidade;
+
+    Turma(String codigo) {
+        this.codigo = codigo;
+    }
+
+    void receber(Aluno aluno) {
+        quantidade++;
+        System.out.println(aluno.nome + " entrou na turma " + codigo + " (" + quantidade + " aluno(s))");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Turma t = new Turma("1A");
+        new Aluno("Bruno").matricular(t);
+        new Aluno("Carla").matricular(t);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Bruno entrou na turma 1A (1 aluno(s))
+Carla entrou na turma 1A (2 aluno(s))</pre>
+
+<p>Em <code>matricular</code>, <code>this.turma = turma;</code> guarda a turma no aluno, e <code>turma.receber(this);</code> entrega à turma a referência <strong>do próprio aluno</strong> ("sou eu que estou entrando"). Repare também em <code>new Aluno("Bruno").matricular(t)</code>: dá para chamar um método direto no objeto recém-criado.</p>
+
+<h3>Devolver <code>this</code>: chamadas em cadeia</h3>
+<p>Se um método devolve <code>this</code>, quem chamou recebe de volta o mesmo objeto e pode chamar outro método em seguida, na mesma linha:</p>
+
+<pre class="file" data-file="Main.java">class Pedido {
+    String itens = "";
+    double total = 0;
+
+    Pedido adicionar(String fruta, double preco) {
+        this.itens = this.itens + fruta + " ";
+        this.total = this.total + preco;
+        return this;
+    }
+
+    void fechar() {
+        System.out.println("Itens: " + itens);
+        System.out.println("Total: R$ " + total);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Pedido pedido = new Pedido();
+        pedido.adicionar("maçã", 7.9).adicionar("uva", 12.0).adicionar("kiwi", 2.5);
+        pedido.fechar();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Itens: maçã uva kiwi
+Total: R$ 22.4</pre>
+
+<p>O tipo de retorno de <code>adicionar</code> é a própria classe, <code>Pedido</code>. <code>pedido.adicionar("maçã", 7.9)</code> devolve o <code>pedido</code>; nele, chama-se <code>.adicionar("uva", 12.0)</code>, que devolve o <code>pedido</code> de novo, e assim por diante. Esse estilo se chama <strong>interface fluente</strong> e você vai encontrá-lo no <a href="stringbuilder.html">StringBuilder</a> (<code>sb.append("a").append("b")</code>) e nos <a href="streams.html">Streams</a>.</p>
+
+<hr>
+
+<h2><code>this(…)</code> no construtor</h2>
+<p>Com parênteses logo depois, <code>this(…)</code> não é o objeto: é a <strong>chamada de outro construtor</strong> da mesma classe. Você já viu em <a href="construtores.html#this-encadeado">Construtores</a>. Junto com o <code>this.campo</code>, fica assim:</p>
+
+<pre class="file" data-file="trecho">class Fruta {
+    String nome;
+    double preco;
+
+    Fruta(String nome) {
+        this(nome, 0.0);           // chama o construtor de baixo
+    }
+
+    Fruta(String nome, double preco) {
+        this.nome = nome;          // atributo = parâmetro
+        this.preco = preco;
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>O que é</th><th>Onde pode aparecer</th></tr>
+<tr><td><code>this.nome</code></td><td>Atributo do objeto atual</td><td>Construtores e métodos de instância</td></tr>
+<tr><td><code>this.metodo()</code></td><td>Método do objeto atual (o <code>this.</code> é opcional)</td><td>Construtores e métodos de instância</td></tr>
+<tr><td><code>this</code> sozinho</td><td>Referência ao objeto atual (imprimir, comparar, passar, devolver)</td><td>Construtores e métodos de instância</td></tr>
+<tr><td><code>this(…)</code></td><td>Chamada a outro construtor da mesma classe</td><td>Só dentro de construtores</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando usar <code>this.</code>?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th><code>this.</code> é…</th></tr>
+<tr><td>Parâmetro ou variável local com o mesmo nome do atributo</td><td><strong>Obrigatório</strong> para chegar ao atributo</td></tr>
+<tr><td>Sem sombra (nomes diferentes)</td><td>Opcional: <code>preco</code> e <code>this.preco</code> são a mesma coisa</td></tr>
+<tr><td>Comparar com outro objeto do mesmo tipo (<code>this.preco &gt; outra.preco</code>)</td><td>Opcional, mas deixa a leitura mais clara</td></tr>
+<tr><td>Métodos <code>static</code></td><td><strong>Proibido</strong>: não há objeto atual</td></tr>
+</table>
+</div>
+<p>Algumas equipes escrevem <code>this.</code> sempre, para deixar claro o que é atributo; outras só quando é obrigatório. As duas formas estão certas. O importante é nunca esquecer nos construtores e setters (veja <a href="encapsulamento.html">Encapsulamento</a>).</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Os atributos ficaram <code>null</code> / <code>0</code> depois do construtor</strong>
+<pre class="term">$ java Main.java
+null: R$ 0.0</pre>
+<p><strong>O que aconteceu:</strong> o bug clássico: <code>nome = nome;</code> com parâmetro e atributo de mesmo nome. O parâmetro faz sombra, e a linha copia o parâmetro para ele mesmo. Nenhuma mensagem de erro ou aviso.</p>
+<p><strong>Como resolver:</strong> <code>this.nome = nome;</code>. Sempre que vir <code>x = x;</code>, desconfie.</p>
+</div>
+
+<div class="cenario">
+<strong>"non-static variable this cannot be referenced from a static context"</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    String saudacao = "Olá";
+
+    public static void main(String[] args) {
+        System.out.println(this.saudacao);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:5: error: non-static variable this cannot be referenced from a static context
+        System.out.println(this.saudacao);
+                           ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o <code>main</code> é <code>static</code>: roda sem nenhum objeto. Não existe "objeto atual", logo não existe <code>this</code>.</p>
+<p><strong>Como resolver:</strong> crie um objeto e use a variável dele (<code>Main m = new Main(); m.saudacao</code>), ou torne o atributo <code>static</code> se ele for da classe. Veja <a href="static.html">static</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>"recursive constructor invocation" ou "constructor … cannot be applied"</strong>
+<p><strong>O que aconteceu:</strong> o <code>this(…)</code> chamou o próprio construtor, ou passou argumentos que nenhum construtor aceita.</p>
+<p><strong>Como resolver:</strong> veja os cenários em <a href="construtores.html">Construtores</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>this.campo = campo;</code></td><td>Atributo recebe o parâmetro de mesmo nome (o uso mais comum)</td></tr>
+<tr><td><code>this</code></td><td>Referência ao objeto atual</td></tr>
+<tr><td><code>outro.receber(this);</code></td><td>Passa o objeto atual para outro objeto</td></tr>
+<tr><td><code>return this;</code></td><td>Devolve o objeto atual (chamadas em cadeia)</td></tr>
+<tr><td><code>this(args);</code></td><td>Chama outro construtor da mesma classe</td></tr>
+<tr><td><code>this</code> em <code>static</code></td><td>Erro: <code>non-static variable this cannot be referenced from a static context</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: a conta fluente</h2>
+<div class="tryjava" data-goal="out:Saldo: 120.0,src:return\s+this\s*;">
+<p class="try-task"><strong>Missão:</strong> faça <code>depositar</code> e <code>sacar</code> devolverem a própria conta (tipo de retorno <code>Conta</code> e <code>return this;</code>) para que a linha em cadeia do <code>main</code> funcione e o programa mostre <code>Saldo: 120.0</code>.</p>
+<pre class="script">class Conta {
+    double saldo;
+
+    void depositar(double valor) {
+        this.saldo = this.saldo + valor;
+    }
+
+    void sacar(double valor) {
+        this.saldo = this.saldo - valor;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta();
+        c.depositar(100).depositar(50).sacar(30);
+        System.out.println("Saldo: " + c.saldo);
+    }
+}
+</pre>
+<pre class="solucao">class Conta {
+    double saldo;
+
+    Conta depositar(double valor) {
+        this.saldo = this.saldo + valor;
+        return this;
+    }
+
+    Conta sacar(double valor) {
+        this.saldo = this.saldo - valor;
+        return this;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta();
+        c.depositar(100).depositar(50).sacar(30);
+        System.out.println("Saldo: " + c.saldo);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Corrigir o construtor</h3>
+<p>Complete a linha do construtor <code>Aluno(String nome)</code> que guarda o parâmetro no atributo <code>nome</code>:</p>
+<div class="ex-code"><input data-answer="this.nome = nome;|this.nome=nome;" aria-label="instrução"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Devolver o objeto</h3>
+<p>Complete a última linha de um método que permite chamadas em cadeia:</p>
+<div class="ex-code">return <input data-answer="this" aria-label="valor">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Chamar outro construtor</h3>
+<p>Complete o construtor <code>Fruta()</code> para chamar <code>Fruta(String nome, double preco)</code> com <code>"sem nome"</code> e <code>0.0</code>:</p>
+<div class="ex-code">Fruta() { <input data-answer="this(&quot;sem nome&quot;, 0.0);|this(&quot;sem nome&quot;,0.0);|this(&quot;sem nome&quot;, 0);" aria-label="chamada"> }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. No construtor <code>Conta(double saldo) { saldo = saldo; }</code>, o que acontece com o atributo <code>saldo</code>?</p>
+<label><input type="radio" name="q4"> Recebe o valor do parâmetro.</label>
+<label><input type="radio" name="q4"> Nada: continua com o valor padrão, 0.0.</label>
+<label><input type="radio" name="q4"> Erro de compilação.</label>
+<label><input type="radio" name="q4"> <code>NullPointerException</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Em <code>uva.mostrar()</code>, dentro de <code>mostrar</code>, o que é <code>this</code>?</p>
+<label><input type="radio" name="q5"> A classe <code>Fruta</code>.</label>
+<label><input type="radio" name="q5"> O <code>main</code>.</label>
+<label><input type="radio" name="q5"> O objeto <code>uva</code>.</label>
+<label><input type="radio" name="q5"> <code>null</code>.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Onde <code>this</code> <strong>não</strong> pode ser usado?</p>
+<label><input type="radio" name="q6"> Num construtor.</label>
+<label><input type="radio" name="q6"> Num método sem <code>static</code>.</label>
+<label><input type="radio" name="q6"> Como argumento de outro método.</label>
+<label><input type="radio" name="q6"> Num método <code>static</code>, como o <code>main</code>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>this</code> é a referência ao <strong>objeto atual</strong>: o que está sendo construído ou o que recebeu a chamada.</li>
+  <li>Parâmetro com o mesmo nome do atributo faz sombra; <code>nome = nome;</code> não muda nada. Use <code>this.nome = nome;</code>.</li>
+  <li><code>this</code> pode ser impresso, comparado, passado como argumento (<code>turma.receber(this)</code>) e devolvido (<code>return this;</code>, para chamadas em cadeia).</li>
+  <li><code>this(…)</code> chama outro construtor da mesma classe.</li>
+  <li>Em métodos <code>static</code> não há objeto atual: <code>this</code> não existe ali.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
