@@ -360,7 +360,7 @@ Digite uma nota de 0 a 10: Nota registrada: 8</pre>
 <p>Ele compila e roda, mas nunca termina. Se testar no seu computador, esteja pronto para apertar <kbd>Ctrl</kbd>+<kbd>C</kbd>.</p>
 </div>
 
-<pre class="file" data-file="Main.java">public class Main {
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
     public static void main(String[] args) {
         int contador = 1;
         while (contador &lt;= 5) {
@@ -397,7 +397,7 @@ $ echo $?
 <h3>O laço infinito silencioso</h3>
 <p>Nem todo laço infinito enche a tela. Este aqui quer somar 1 + 2 + 3 + 4 + 5, mas também esqueceu o passo e não escreve nada dentro do laço:</p>
 
-<pre class="file" data-file="Main.java">public class Main {
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
     public static void main(String[] args) {
         int contador = 1;
         int soma = 0;
@@ -471,8 +471,7 @@ $ echo $?
 
 <div class="cenario">
 <strong>"variable contador might not have been initialized"</strong>
-<div class="warning"><p>Este código tem um erro de propósito.</p></div>
-<pre class="file" data-file="Main.java">public class Main {
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
     public static void main(String[] args) {
         int contador;
         while (contador &lt;= 5) {
@@ -494,8 +493,7 @@ error: compilation failed</pre>
 
 <div class="cenario">
 <strong>"';' expected" no fim do <code>do-while</code></strong>
-<div class="warning"><p>Este código tem um erro de propósito.</p></div>
-<pre class="file" data-file="Main.java">public class Main {
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
     public static void main(String[] args) {
         int contador = 1;
         do {
@@ -517,8 +515,7 @@ error: compilation failed</pre>
 
 <div class="cenario">
 <strong>O programa não termina e não mostra nada: o <code>;</code> depois do <code>while</code></strong>
-<div class="warning"><p>Este código tem um erro de propósito.</p></div>
-<pre class="file" data-file="Main.java">public class Main {
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
     public static void main(String[] args) {
         int contador = 1;
         while (contador &lt;= 5); {
@@ -539,8 +536,7 @@ $ echo $?
 
 <div class="cenario">
 <strong>"unreachable statement" com <code>while (false)</code></strong>
-<div class="warning"><p>Este código tem um erro de propósito.</p></div>
-<pre class="file" data-file="Main.java">public class Main {
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
     public static void main(String[] args) {
         int contador = 1;
         while (false) {

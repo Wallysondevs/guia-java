@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java for — o laço de contagem: início, condição e passo | Guia Java</title>
+<meta name="description" content="Aula do laço for em Java para iniciantes: anatomia (início; condição; passo), contar para cima e para baixo, de 2 em 2, somar de 1 a 100, tabuada, escopo da variável do laço com o erro real cannot find symbol, e quando usar for ou while.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">for</span></h1>
+
+<p class="intro">Na aula de <a href="while.html">while</a>, todo contador tinha três peças espalhadas pelo código: o início antes do laço, a condição no <code>while</code> e o passo lá no fim do corpo. O <code>for</code> junta as três <strong>numa linha só</strong>. É o laço mais usado do Java quando você sabe quantas vezes quer repetir.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A anatomia do <code>for</code>: <strong>início; condição; passo</strong>, e em que ordem cada parte roda.</li>
+  <li>Contar para cima, para baixo, de 2 em 2 ou de qualquer tamanho de passo.</li>
+  <li>Os dois padrões clássicos: <strong>acumular</strong> (somar de 1 a 100) e <strong>repetir com fórmula</strong> (a tabuada).</li>
+  <li>Onde a variável do laço "existe" (o <strong>escopo</strong>) e o erro <code>cannot find symbol</code> quando você a usa fora dele.</li>
+  <li>Quando usar <code>for</code> e quando usar <code>while</code>.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25) com <code>java Main.java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense numa academia. O treino da Ana diz: "faça 10 flexões". Para cumprir, ela faz três coisas sem nem perceber:</p>
+<ol>
+  <li><strong>Começa</strong> a contar do 1.</li>
+  <li>Antes de cada flexão, <strong>verifica</strong> se ainda não passou de 10.</li>
+  <li>Depois de cada flexão, <strong>conta mais uma</strong>.</li>
+</ol>
+<p>É exatamente o contador do <code>while</code>. O <code>for</code> (em inglês, "para": "para i de 1 até 10…") escreve essas três coisas juntas, no topo do laço, onde é fácil ver de relance quantas voltas serão.</p>
+
+<p>Compare o mesmo laço nos dois jeitos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Com <code>while</code></th><th>Com <code>for</code></th></tr>
+<tr><td><pre class="file" data-file="while">int i = 1;
+while (i &lt;= 5) {
+    System.out.println("Volta " + i);
+    i++;
+}</pre></td>
+<td><pre class="file" data-file="for">for (int i = 1; i &lt;= 5; i++) {
+    System.out.println("Volta " + i);
+}</pre></td></tr>
+</table>
+</div>
+
+<p>Os dois fazem a mesma coisa. No <code>for</code>, o corpo fica só com o que importa (a tarefa) e o "controle" do laço fica todo no cabeçalho.</p>
+
+<hr>
+
+<h2>O primeiro <code>for</code></h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 5; i++) {
+            System.out.println("Volta " + i);
+        }
+        System.out.println("Fim!");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Volta 1
+Volta 2
+Volta 3
+Volta 4
+Volta 5
+Fim!</pre>
+
+<h3>Anatomia do <code>for</code></h3>
+<dl class="anatomy">
+  <dt>for</dt><dd>A palavra-chave: "para".</dd>
+  <dt>(int i = 1;</dt><dd>O <strong>início</strong>: cria a variável do laço e dá o valor inicial. Roda <strong>uma vez só</strong>, antes de tudo.</dd>
+  <dt>i &lt;= 5;</dt><dd>A <strong>condição</strong>: testada antes de cada volta. Se der <code>true</code>, roda o corpo; se der <code>false</code>, o laço acaba.</dd>
+  <dt>i++)</dt><dd>O <strong>passo</strong>: roda <strong>depois</strong> de cada volta, antes do próximo teste. Repare: depois dele não vai <code>;</code>.</dd>
+  <dt>{ … }</dt><dd>O <strong>corpo</strong>: o que se repete.</dd>
+</dl>
+
+<div class="note">
+<strong>Por que <code>i</code>?</strong>
+<p>É uma tradição antiga da matemática e da programação: <code>i</code> de "índice". Laços dentro de laços costumam usar <code>j</code> e <code>k</code>. Você pode usar qualquer nome (<code>volta</code>, <code>flexao</code>, <code>mes</code>); quando o nome ajudar a entender, prefira-o.</p>
+</div>
+
+<h3>A ordem exata das partes</h3>
+<p>Os três pedaços do cabeçalho <strong>não</strong> rodam da esquerda para a direita a cada volta. A ordem é esta:</p>
+<ol class="passo">
+  <li><strong>Início</strong> (<code>int i = 1</code>): uma vez só.</li>
+  <li><strong>Condição</strong> (<code>i &lt;= 5</code>): se for <code>false</code>, pula para depois da <code>}</code> e acabou.</li>
+  <li><strong>Corpo</strong>: mostra "Volta i".</li>
+  <li><strong>Passo</strong> (<code>i++</code>): soma 1.</li>
+  <li>Volta ao passo 2.</li>
+</ol>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Momento</th><th><code>i</code></th><th>Condição <code>i &lt;= 5</code></th><th>Acontece</th></tr>
+<tr><td>Início</td><td>1</td><td><code>true</code></td><td>Volta 1, depois <code>i++</code></td></tr>
+<tr><td>2º teste</td><td>2</td><td><code>true</code></td><td>Volta 2, depois <code>i++</code></td></tr>
+<tr><td>3º teste</td><td>3</td><td><code>true</code></td><td>Volta 3, depois <code>i++</code></td></tr>
+<tr><td>4º teste</td><td>4</td><td><code>true</code></td><td>Volta 4, depois <code>i++</code></td></tr>
+<tr><td>5º teste</td><td>5</td><td><code>true</code></td><td>Volta 5, depois <code>i++</code></td></tr>
+<tr><td>6º teste</td><td>6</td><td><code>false</code></td><td>Sai do laço e mostra "Fim!"</td></tr>
+</table>
+</div>
+
+<h3>Quantas voltas? A fórmula rápida</h3>
+<p>Com passo 1, o número de voltas é fácil de calcular:</p>
+<ul>
+  <li><code>for (int i = 1; i &lt;= N; i++)</code> → <strong>N voltas</strong> (de 1 a N).</li>
+  <li><code>for (int i = 0; i &lt; N; i++)</code> → <strong>N voltas</strong> (de 0 a N-1).</li>
+</ul>
+<p>A segunda forma, começando do 0 e usando <code>&lt;</code>, parece estranha agora, mas é a mais comum de todas no Java. O motivo aparece na aula de <a href="arrays.html">Arrays</a>: as posições de um array começam no 0.</p>
+
+<hr>
+
+<h2>Contando de outros jeitos</h2>
+
+<h3>Para baixo</h3>
+<p>Comece alto, teste com <code>&gt;=</code> e use <code>i--</code> (diminui 1):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 5; i &gt;= 1; i--) {
+            System.out.println(i + "...");
+        }
+        System.out.println("Fogo!");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+5...
+4...
+3...
+2...
+1...
+Fogo!</pre>
+
+<h3>De 2 em 2 (ou de qualquer tamanho)</h3>
+<p>O passo pode ser qualquer conta que muda a variável. <code>i += 2</code> soma 2 de cada vez (veja <a href="operadores-atribuicao.html">Operadores de Atribuição</a>). Neste exemplo usamos <code>print</code> (sem "ln"), que não pula linha, para os números ficarem lado a lado; o <code>println()</code> vazio no fim pula a linha (veja <a href="saida.html">print e println</a>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 0; i &lt;= 10; i += 2) {
+            System.out.print(i + " ");
+        }
+        System.out.println();
+        for (int i = 1; i &lt;= 10; i += 2) {
+            System.out.print(i + " ");
+        }
+        System.out.println();
+        for (int i = 0; i &lt;= 100; i += 25) {
+            System.out.print(i + " ");
+        }
+        System.out.println();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+0 2 4 6 8 10                 « pares: começa em 0, passo 2
+1 3 5 7 9                    « ímpares: começa em 1, passo 2
+0 25 50 75 100               « passo 25</pre>
+
+<p>Repare que o <strong>início</strong> decide se saem pares ou ímpares, e o <strong>passo</strong> decide o tamanho do pulo. Também dá para pular com outras contas: <code>i *= 2</code> (dobra a cada volta), <code>i -= 3</code> (desce de 3 em 3).</p>
+
+<h3>Com letras</h3>
+<p>Um <code>char</code> é, por dentro, um número (veja <a href="char-boolean.html">char e boolean</a>), então ele também pode ser a variável do laço:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (char letra = 'a'; letra &lt;= 'e'; letra++) {
+            System.out.print(letra + " ");
+        }
+        System.out.println();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+a b c d e</pre>
+
+<h3>Filtrando dentro do laço</h3>
+<p>O corpo do <code>for</code> pode ter qualquer coisa, inclusive um <code>if</code>. Para mostrar os múltiplos de 3 até 30, percorra todos e mostre só os que têm resto zero na divisão por 3 (o <code>%</code> é o resto, veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 30; i++) {
+            if (i % 3 == 0) {
+                System.out.print(i + " ");
+            }
+        }
+        System.out.println();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+3 6 9 12 15 18 21 24 27 30</pre>
+
+<p>O mesmo resultado sai de <code>for (int i = 3; i &lt;= 30; i += 3)</code>, sem <code>if</code> e com um terço das voltas. Muitas vezes há mais de um jeito; o mais simples costuma ser o melhor.</p>
+
+<hr>
+
+<h2>Padrão 1: acumular (somar de 1 a 100)</h2>
+<p>Conta-se que o matemático Gauss, criança, recebeu do professor a tarefa de somar todos os números de 1 a 100. Para o computador, é um laço de três linhas. O truque é ter uma variável <strong>acumuladora</strong>, criada <strong>antes</strong> do laço com zero, que vai recebendo cada número:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int soma = 0;
+        for (int i = 1; i &lt;= 100; i++) {
+            soma += i;
+        }
+        System.out.println("1 + 2 + ... + 100 = " + soma);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+1 + 2 + ... + 100 = 5050</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>int soma = 0;</code></td><td>O acumulador. Fica <strong>fora</strong> do laço: se fosse criado dentro, voltaria a zero a cada volta.</td></tr>
+<tr><td><code>for (int i = 1; i &lt;= 100; i++)</code></td><td>Passa por 1, 2, 3, …, 100.</td></tr>
+<tr><td><code>soma += i;</code></td><td>Soma o número da vez ao total (é o mesmo que <code>soma = soma + i;</code>).</td></tr>
+<tr><td><code>System.out.println(…)</code></td><td>Fora do laço: mostra o total uma vez, no fim.</td></tr>
+</table>
+</div>
+
+<p>Nas primeiras voltas: soma = 0+1 = 1, depois 1+2 = 3, depois 3+3 = 6, depois 6+4 = 10… até 5050. O mesmo padrão serve para multiplicar (comece com <code>1</code>, não com <code>0</code>!), contar quantos números passam num teste ou juntar texto.</p>
+
+<hr>
+
+<h2>Padrão 2: repetir com fórmula (a tabuada)</h2>
+<p>A variável do laço pode entrar em contas dentro do corpo. A tabuada do 7 é <code>7 x i</code> para <code>i</code> de 1 a 10:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int numero = 7;
+        for (int i = 1; i &lt;= 10; i++) {
+            System.out.println(numero + " x " + i + " = " + (numero * i));
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+7 x 1 = 7
+7 x 2 = 14
+7 x 3 = 21
+7 x 4 = 28
+7 x 5 = 35
+7 x 6 = 42
+7 x 7 = 49
+7 x 8 = 56
+7 x 9 = 63
+7 x 10 = 70</pre>
+
+<p>Os parênteses em <code>(numero * i)</code> são importantes: sem eles, o <code>+</code> do texto viria antes e o Java "colaria" os números em vez de multiplicar (veja <a href="concatenacao.html">Concatenação</a>).</p>
+
+<div class="tryjava" data-goal="out:9 x 10 = 90,out:9 x 1 = 9,src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> mude o programa para mostrar a tabuada do <strong>9</strong>, de <code>9 x 1 = 9</code> até <code>9 x 10 = 90</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int numero = 7;
+        for (int i = 1; i &lt;= 10; i++) {
+            System.out.println(numero + " x " + i + " = " + (numero * i));
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int numero = 9;
+        for (int i = 1; i &lt;= 10; i++) {
+            System.out.println(numero + " x " + i + " = " + (numero * i));
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>A variável do laço e o escopo</h2>
+<p>A variável criada no início do <code>for</code> (o <code>int i</code>) só existe <strong>dentro</strong> do laço: no cabeçalho e no corpo. Quando o laço termina, ela some. A região do código onde uma variável existe se chama <strong>escopo</strong> (do grego <em>skopós</em>, "alvo, o que se vê"). O tema completo tem aula própria em <a href="escopo.html">Escopo</a>, no Nível 2.</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+</div>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 3; i++) {
+            System.out.println(i);
+        }
+        System.out.println("Depois do laço: " + i);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:6: error: cannot find symbol
+        System.out.println("Depois do laço: " + i);
+                                                ^
+  symbol:   variable i
+  location: class Main
+1 error
+error: compilation failed</pre>
+
+<p>Lendo a mensagem do <code>javac</code> (veja <a href="erros-compilacao.html">Lendo Erros do javac</a>):</p>
+<dl class="anatomy">
+  <dt>Main.java:6:</dt><dd>O arquivo e a linha do problema: a linha 6, o <code>println</code> depois do laço.</dd>
+  <dt>error: cannot find symbol</dt><dd>"Não encontro o símbolo": um nome que o compilador não conhece.</dd>
+  <dt>^</dt><dd>A seta aponta para o nome desconhecido: o <code>i</code>.</dd>
+  <dt>symbol: variable i</dt><dd>O símbolo é uma variável chamada <code>i</code>.</dd>
+  <dt>location: class Main</dt><dd>Onde ele procurou: na classe <code>Main</code>.</dd>
+</dl>
+
+<p>O programa não chega a rodar: nem o "1, 2, 3" aparece. Para o <code>javac</code>, na linha 6 o <code>i</code> já não existe mais. Se você precisa do valor depois do laço, declare a variável <strong>antes</strong> dele e, no <code>for</code>, só dê o valor inicial (sem o <code>int</code>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int i;
+        for (i = 1; i &lt;= 3; i++) {
+            System.out.println(i);
+        }
+        System.out.println("Depois do laço: " + i);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+1
+2
+3
+Depois do laço: 4            « o valor que fez a condição falhar</pre>
+
+<h3>O lado bom do escopo: reaproveitar o nome</h3>
+<p>Como o <code>i</code> some no fim do laço, você pode criar outro <code>i</code> em outro laço logo abaixo, sem conflito:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 3; i++) {
+            System.out.println("Dentro: " + i);
+        }
+        for (int i = 10; i &lt;= 12; i++) {
+            System.out.println("Outro laço: " + i);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Dentro: 1
+Dentro: 2
+Dentro: 3
+Outro laço: 10
+Outro laço: 11
+Outro laço: 12</pre>
+
+<p>O que <strong>não</strong> pode é criar o <code>i</code> do laço se já existir um <code>i</code> do lado de fora, ainda "vivo":</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int i = 1;
+        for (int i = 0; i &lt; 3; i++) {
+            System.out.println(i);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: variable i is already defined in method main(String[])
+        for (int i = 0; i &lt; 3; i++) {
+                 ^
+1 error
+error: compilation failed</pre>
+
+<p>"A variável i já foi definida no método main". Troque o nome de uma delas, ou tire o <code>int</code> do <code>for</code> para reaproveitar a de fora.</p>
+
+<hr>
+
+<h2>Formas diferentes de escrever o cabeçalho</h2>
+
+<h3>Duas variáveis no mesmo laço</h3>
+<p>O início e o passo aceitam várias partes separadas por <strong>vírgula</strong>. Aqui <code>i</code> sobe e <code>j</code> desce até se encontrarem:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 0, j = 10; i &lt; j; i++, j--) {
+            System.out.println("i = " + i + ", j = " + j);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+i = 0, j = 10
+i = 1, j = 9
+i = 2, j = 8
+i = 3, j = 7
+i = 4, j = 6</pre>
+
+<p>Vírgula separa as partes <strong>dentro</strong> do início ou do passo; ponto e vírgula separa o início, a condição e o passo. É útil, mas use com moderação: um cabeçalho difícil de ler esconde erros.</p>
+
+<h3>Partes vazias</h3>
+<p>As três partes são opcionais (os dois <code>;</code> não):</p>
+<ul>
+  <li><code>for (; i &lt;= 5; i++)</code>: sem início, usa um <code>i</code> criado antes.</li>
+  <li><code>for (int i = 1; i &lt;= 5; )</code>: sem passo; aí o passo tem que estar no corpo, e vira um <code>while</code> disfarçado.</li>
+  <li><code>for (;;)</code>: sem condição nenhuma, é um <strong>laço infinito</strong>, igual a <code>while (true)</code>. Só termina com <code>break</code> (veja <a href="break-continue.html">break e continue</a>) ou com <kbd>Ctrl</kbd>+<kbd>C</kbd>.</li>
+</ul>
+
+<h3>Com <code>var</code></h3>
+<p>Desde o Java 10, dá para escrever <code>for (var i = 1; i &lt;= 5; i++)</code>: o Java descobre que <code>i</code> é <code>int</code> pelo valor <code>1</code> (veja <a href="var.html">var</a>). Num <code>for</code> de contagem, <code>int</code> é tão curto quanto e mais claro; o <code>var</code> brilha mais no <a href="for-each.html">for-each</a>.</p>
+
+<hr>
+
+<h2><code>for</code> × <code>while</code>: qual usar</h2>
+<p>Todo <code>for</code> pode ser escrito como <code>while</code> e vice-versa. A escolha é sobre <strong>clareza</strong>: o leitor do seu código deve entender o laço de relance.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>for</code></th><th><code>while</code></th><th><code>do-while</code></th></tr>
+<tr><td>Melhor quando</td><td>Você sabe quantas voltas (ou de onde até onde)</td><td>Repete até algo acontecer, sem contagem fixa</td><td>A primeira volta tem que acontecer sempre</td></tr>
+<tr><td>Exemplos</td><td>De 1 a 10; cada posição de um array; tabuada</td><td>Juntar até a meta; ler até o usuário digitar "sair"</td><td>Menu; pedir um dado até ser válido</td></tr>
+<tr><td>Início, condição e passo</td><td>Juntos no cabeçalho</td><td>Espalhados pelo código</td><td>Espalhados; condição no fim</td></tr>
+<tr><td>Variável de controle</td><td>Some no fim do laço (se criada no cabeçalho)</td><td>Continua existindo depois</td><td>Continua existindo depois</td></tr>
+<tr><td>Risco de esquecer o passo</td><td>Baixo: ele tem lugar marcado</td><td>Maior</td><td>Maior</td></tr>
+<tr><td>Mínimo de voltas</td><td>0</td><td>0</td><td>1</td></tr>
+</table>
+</div>
+
+<p>E para percorrer <strong>todos os itens</strong> de um array ou lista, sem precisar da posição, existe um quarto laço, ainda mais simples: o <a href="for-each.html">for-each</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Vírgulas no lugar de ponto e vírgula</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int i = 0, i &lt; 5, i++) {
+            System.out.println(i);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:3: error: ';' expected
+        for (int i = 0, i &lt; 5, i++) {
+                         ^
+Main.java:3: error: illegal start of type
+        for (int i = 0, i &lt; 5, i++) {
+                            ^
+2 errors
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> as três partes do <code>for</code> são separadas por <code>;</code>. Com vírgulas, o <code>javac</code> acha que você está criando várias variáveis (<code>int i = 0, i …</code>) e se perde. O primeiro erro, <code>';' expected</code>, é o que importa; o segundo é consequência dele. Corrija o primeiro e rode de novo.</p>
+<p><strong>Como consertar:</strong> <code>for (int i = 0; i &lt; 5; i++)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol" por causa de um <code>;</code> a mais</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 5; i++); {
+            System.out.println("Volta " + i);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: cannot find symbol
+            System.out.println("Volta " + i);
+                                          ^
+  symbol:   variable i
+  location: class Main
+1 error
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> o <code>;</code> depois do <code>)</code> é o corpo do <code>for</code>: um corpo <strong>vazio</strong>. O laço dá 5 voltas fazendo nada, e o <code>i</code> morre ali. As chaves que vêm depois viram um bloco solto, que roda uma vez, e dentro dele o <code>i</code> não existe mais. Por sorte, aqui o escopo transformou o engano num erro de compilação. Se o corpo não usasse o <code>i</code>, o programa rodaria o bloco <strong>uma vez só</strong>, sem nenhum aviso.</p>
+<p><strong>Como consertar:</strong> apague o <code>;</code> entre o <code>)</code> e a <code>{</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O passo vai na direção errada</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 5; i--) {
+            System.out.println("Volta " + i);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Volta 1
+Volta 0
+Volta -1
+Volta -2
+Volta -3
+Volta -4                     « … e continua: -5, -6, -7 …
+^CVolta -185299              « Ctrl+C depois de 1 segundo
+Volta -186748
+Volta -186749
+$ echo $?
+130</pre>
+<p><strong>O que aconteceu:</strong> o <code>i</code> começa em 1 e o passo <code>i--</code> o <strong>diminui</strong>. Ele nunca vai passar de 5, então a condição <code>i &lt;= 5</code> é sempre verdadeira. Em um segundo, o programa chegou a quase -187 mil antes do <kbd>Ctrl</kbd>+<kbd>C</kbd>.</p>
+<p><strong>Como consertar:</strong> o passo precisa andar <strong>na direção que faz a condição ficar falsa</strong>. Subindo até 5: <code>i++</code>. Descendo: comece alto e teste com <code>&gt;=</code>, como em <code>for (int i = 5; i &gt;= 1; i--)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma volta a mais ou a menos</strong>
+<p><code>for (int i = 1; i &lt; 10; i++)</code> vai de 1 a <strong>9</strong>. <code>for (int i = 0; i &lt;= 10; i++)</code> dá <strong>11</strong> voltas (de 0 a 10). Quando o número de voltas sair errado, confira o início (0 ou 1?) e o operador (<code>&lt;</code> ou <code>&lt;=</code>?). As duas combinações seguras são <code>i = 1; i &lt;= N</code> e <code>i = 0; i &lt; N</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Cabeçalho</th><th>Valores de <code>i</code></th><th>Voltas</th></tr>
+<tr><td><code>for (int i = 1; i &lt;= 5; i++)</code></td><td>1, 2, 3, 4, 5</td><td>5</td></tr>
+<tr><td><code>for (int i = 0; i &lt; 5; i++)</code></td><td>0, 1, 2, 3, 4</td><td>5</td></tr>
+<tr><td><code>for (int i = 5; i &gt;= 1; i--)</code></td><td>5, 4, 3, 2, 1</td><td>5</td></tr>
+<tr><td><code>for (int i = 0; i &lt;= 10; i += 2)</code></td><td>0, 2, 4, 6, 8, 10</td><td>6</td></tr>
+<tr><td><code>for (int i = 1; i &lt;= 100; i *= 10)</code></td><td>1, 10, 100</td><td>3</td></tr>
+<tr><td><code>for (char c = 'a'; c &lt;= 'e'; c++)</code></td><td>a, b, c, d, e</td><td>5</td></tr>
+<tr><td><code>for (int i = 0, j = 10; i &lt; j; i++, j--)</code></td><td>(0,10), (1,9) … (4,6)</td><td>5</td></tr>
+<tr><td><code>for (;;)</code></td><td>sem variável</td><td>infinitas (até <code>break</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o cabeçalho</h3>
+<p>Complete para mostrar os números de 1 a 20:</p>
+<div class="ex-code">for (int i = 1; <input data-answer="i &lt;= 20|i&lt;=20|i &lt; 21|i&lt;21" aria-label="condição">; i++)</div>
+</div>
+
+<div class="exercise">
+<h3>2. De 5 em 5</h3>
+<p>Complete o passo para mostrar 0, 5, 10, 15, 20:</p>
+<div class="ex-code">for (int i = 0; i &lt;= 20; <input data-answer="i += 5|i+=5|i = i + 5|i=i+5" aria-label="passo">)</div>
+</div>
+
+<div class="exercise">
+<h3>3. Contagem regressiva</h3>
+<p>Complete o início para mostrar 10, 9, 8, …, 1:</p>
+<div class="ex-code">for (<input data-answer="int i = 10|int i=10" aria-label="início">; i &gt;= 1; i--)</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Quantas vezes o corpo de <code>for (int i = 0; i &lt; 10; i++)</code> roda?</p>
+<label><input type="radio" name="q4"> 9</label>
+<label><input type="radio" name="q4"> 10</label>
+<label><input type="radio" name="q4"> 11</label>
+<label><input type="radio" name="q4"> Infinitas</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Em que ordem as partes do <code>for</code> rodam a cada volta (depois da primeira)?</p>
+<label><input type="radio" name="q5"> início → condição → corpo</label>
+<label><input type="radio" name="q5"> condição → passo → corpo</label>
+<label><input type="radio" name="q5"> corpo → passo → condição</label>
+<label><input type="radio" name="q5"> passo → corpo → condição</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que <code>for (int i = 1; i &lt;= 3; i++) { } System.out.println(i);</code> não compila?</p>
+<label><input type="radio" name="q6"> O <code>i</code> foi criado no cabeçalho e só existe dentro do laço.</label>
+<label><input type="radio" name="q6"> Falta um <code>;</code> depois das chaves.</label>
+<label><input type="radio" name="q6"> O corpo do laço não pode ficar vazio.</label>
+<label><input type="radio" name="q6"> <code>println</code> não aceita variáveis.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Qual laço combina melhor com "pedir a senha até a pessoa acertar"?</p>
+<label><input type="radio" name="q7"> <code>for (int i = 1; i &lt;= 3; i++)</code></label>
+<label><input type="radio" name="q7"> <code>for (char c = 'a'; c &lt;= 'z'; c++)</code></label>
+<label><input type="radio" name="q7"> Nenhum: não dá para repetir isso.</label>
+<label><input type="radio" name="q7"> <code>do-while</code> (ou <code>while</code>), porque não se sabe quantas tentativas serão.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Soma dos pares: 2550,src:\bfor\s*\(">
+<p class="try-task"><strong>Missão final:</strong> some todos os números <strong>pares</strong> de 2 a 100 (2 + 4 + 6 + … + 100) e mostre <code>Soma dos pares: </code> seguido do total. Use um <code>for</code>. Há pelo menos dois jeitos: passo 2, ou passo 1 com um <code>if</code> testando <code>i % 2 == 0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int soma = 0;
+        // escreva o for aqui
+
+        System.out.println("Soma dos pares: " + soma);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int soma = 0;
+        for (int i = 2; i &lt;= 100; i += 2) {
+            soma += i;
+        }
+        System.out.println("Soma dos pares: " + soma);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>for (início; condição; passo) { corpo }</code> junta as três peças de um contador numa linha.</li>
+  <li>Ordem: início (uma vez) → condição → corpo → passo → condição → …</li>
+  <li><code>i = 1; i &lt;= N</code> e <code>i = 0; i &lt; N</code> dão N voltas. O segundo é o padrão para arrays.</li>
+  <li>O passo pode ser <code>i++</code>, <code>i--</code>, <code>i += 2</code>, <code>i *= 2</code>… desde que leve a condição a ficar falsa.</li>
+  <li>Acumulador: crie <strong>antes</strong> do laço (<code>int soma = 0;</code>) e atualize dentro (<code>soma += i;</code>).</li>
+  <li>A variável criada no cabeçalho só existe dentro do laço; usá-la depois dá <code>cannot find symbol</code>.</li>
+  <li>Sabe quantas voltas? <code>for</code>. Repete até algo acontecer? <code>while</code>. Precisa de uma volta garantida? <code>do-while</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
