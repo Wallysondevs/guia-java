@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Arrays Multidimensionais — matrizes int[][] com linhas e colunas | Guia Java</title>
+<meta name="description" content="Aula de arrays multidimensionais (matrizes) em Java para iniciantes: criar int[][], acessar com [linha][coluna], length de linhas e colunas, percorrer com dois laços, Arrays.deepToString, médias por linha e coluna, arrays irregulares e os erros reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Arrays Multidimensionais</span></h1>
+
+<p class="intro">Um array comum é uma fileira de valores. Mas muita coisa no mundo é uma <strong>tabela</strong>: as notas de cada aluno em cada prova, os assentos de um cinema, o tabuleiro do jogo da velha, uma planilha. Para isso o Java tem os arrays de <strong>duas dimensões</strong>, chamados de <strong>matrizes</strong>: arrays cujos elementos são outros arrays.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma matriz e como o Java a monta ("um array de arrays").</li>
+  <li>Criar com chaves e com <code>new int[3][4]</code>.</li>
+  <li>Acessar e mudar um elemento com <code>[linha][coluna]</code>.</li>
+  <li>Descobrir o número de linhas e de colunas com <code>length</code>.</li>
+  <li>Percorrer com dois laços, somar por linha e por coluna.</li>
+  <li>Mostrar a matriz inteira com <code>Arrays.deepToString</code>.</li>
+  <li>Arrays <strong>irregulares</strong>, em que cada linha tem um tamanho.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25) com <code>java Main.java</code>. Antes desta aula, veja <a href="arrays.html">Arrays</a> e <a href="lacos-aninhados.html">Laços Aninhados</a>: uma matriz é exatamente um array percorrido por dois laços.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>A professora Ana anota as notas num caderno quadriculado: uma <strong>linha</strong> para cada aluno e uma <strong>coluna</strong> para cada prova.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Prova 0</th><th>Prova 1</th><th>Prova 2</th><th>Prova 3</th></tr>
+<tr><th>Aluno 0 (Ana)</th><td>7</td><td>8</td><td>6</td><td>9</td></tr>
+<tr><th>Aluno 1 (Bruno)</th><td>10</td><td>9</td><td><strong>9</strong></td><td>8</td></tr>
+<tr><th>Aluno 2 (Carla)</th><td>5</td><td>6</td><td>7</td><td>6</td></tr>
+</table>
+</div>
+
+<p>Para achar uma nota, você precisa de <strong>dois</strong> números: a linha e a coluna. "Aluno 1, prova 2" é a nota 9 em destaque. É como a batalha naval ("B-5") ou as coordenadas de uma planilha ("C3").</p>
+<p>Como o Java guarda isso? Com o que você já conhece: cada <strong>linha</strong> é um array comum de <code>int</code> (<code>{7, 8, 6, 9}</code>), e a tabela é um array <strong>dessas linhas</strong>. Um array de arrays.</p>
+
+<hr>
+
+<h2>Criar com os valores</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        System.out.println("Aluno 0, prova 0: " + notas[0][0]);
+        System.out.println("Aluno 1, prova 2: " + notas[1][2]);
+        System.out.println("Aluno 2, prova 3: " + notas[2][3]);
+        System.out.println("Linhas (alunos): " + notas.length);
+        System.out.println("Colunas (provas): " + notas[0].length);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Aluno 0, prova 0: 7
+Aluno 1, prova 2: 9
+Aluno 2, prova 3: 6
+Linhas (alunos): 3
+Colunas (provas): 4</pre>
+
+<dl class="anatomy">
+  <dt>int[][]</dt><dd>O tipo: dois pares de colchetes = duas dimensões. Leia como "array de arrays de <code>int</code>".</dd>
+  <dt>notas =</dt><dd>O nome e a atribuição.</dd>
+  <dt>{</dt><dd>Abre o array de fora (o das linhas).</dd>
+  <dt>{7, 8, 6, 9},</dt><dd>A linha 0: um array comum. As linhas são separadas por vírgula.</dd>
+  <dt>…</dt><dd>As linhas 1 e 2.</dd>
+  <dt>};</dt><dd>Fecha o array de fora. Escrever uma linha por linha do código deixa a tabela "desenhada", fácil de conferir.</dd>
+</dl>
+
+<h3>Acessar: <code>[linha][coluna]</code></h3>
+<dl class="anatomy">
+  <dt>notas</dt><dd>A matriz inteira.</dd>
+  <dt>[1]</dt><dd>Primeiro colchete: a <strong>linha</strong> 1 (o Bruno). O resultado já é um array: <code>{10, 9, 9, 8}</code>.</dd>
+  <dt>[2]</dt><dd>Segundo colchete: a <strong>coluna</strong> 2 dessa linha. O resultado é o <code>int</code> 9.</dd>
+</dl>
+
+<p>Os dois índices começam no <strong>0</strong>, como em todo array. A ordem é sempre <strong>linha primeiro, coluna depois</strong>.</p>
+
+<h3>Quantas linhas e quantas colunas?</h3>
+<ul>
+  <li><code>notas.length</code> é o tamanho do array de fora: o número de <strong>linhas</strong> (3).</li>
+  <li><code>notas[0].length</code> é o tamanho da linha 0: o número de <strong>colunas</strong> (4). Numa matriz "retangular", todas as linhas têm o mesmo tamanho, então qualquer linha serve.</li>
+</ul>
+
+<p>Uma linha sozinha é um array comum, e dá para guardá-la numa variável <code>int[]</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        int[] doBruno = notas[1];
+        System.out.println(Arrays.toString(doBruno));
+        System.out.println(notas[1].length);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[10, 9, 9, 8]
+4</pre>
+
+<hr>
+
+<h2>Criar vazia, com tamanho: <code>new int[3][4]</code></h2>
+<p>A sala de cinema tem 3 fileiras de 4 cadeiras. No início, todas estão livres (0). Quando alguém compra, a cadeira vira 1:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[][] assentos = new int[3][4];
+        assentos[0][1] = 1;
+        assentos[2][3] = 1;
+        System.out.println(Arrays.deepToString(assentos));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1]]</pre>
+
+<dl class="anatomy">
+  <dt>new int</dt><dd>Cria um array novo de <code>int</code>.</dd>
+  <dt>[3]</dt><dd>3 linhas.</dd>
+  <dt>[4]</dt><dd>4 colunas em cada linha. Total: 12 elementos, todos com o valor padrão (0, ou <code>0.0</code>, <code>false</code>, <code>null</code>, conforme o tipo; veja <a href="arrays.html">Arrays</a>).</dd>
+</dl>
+
+<hr>
+
+<h2>Mostrar a matriz: <code>Arrays.deepToString</code></h2>
+<p>Você já sabe que <code>println</code> de um array mostra o "crachá" (<code>[I@…</code>) e que <code>Arrays.toString</code> mostra o conteúdo. Com matrizes há uma pegadinha:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        System.out.println(notas);
+        System.out.println(Arrays.toString(notas));
+        System.out.println(Arrays.deepToString(notas));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[[I@2bbaf4f0                                     « o crachá da matriz: [[ = duas dimensões
+[[I@11c20519, [I@70beb599, [I@4e41089d]          « toString: os crachás das 3 linhas
+[[7, 8, 6, 9], [10, 9, 9, 8], [5, 6, 7, 6]]      « deepToString: tudo</pre>
+
+<p>O <code>Arrays.toString</code> só desce <strong>um</strong> nível: mostra os elementos do array de fora, e esses elementos são arrays, que aparecem como crachás. O <code>Arrays.deepToString</code> ("deep" = profundo) desce em todos os níveis. Regra: <strong>matriz → <code>deepToString</code></strong>.</p>
+
+<hr>
+
+<h2>Percorrer com dois laços</h2>
+<p>Para passar por todos os elementos, use a receita de <a href="lacos-aninhados.html">Laços Aninhados</a>: o laço de fora anda pelas linhas, o de dentro pelas colunas daquela linha:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        for (int aluno = 0; aluno &lt; notas.length; aluno++) {
+            for (int prova = 0; prova &lt; notas[aluno].length; prova++) {
+                System.out.print(notas[aluno][prova] + "\t");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+7	8	6	9
+10	9	9	8
+5	6	7	6	</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que faz</th></tr>
+<tr><td><code>aluno &lt; notas.length</code></td><td>Laço de fora: uma volta por linha (3).</td></tr>
+<tr><td><code>prova &lt; notas[aluno].length</code></td><td>Laço de dentro: uma volta por coluna <strong>desta</strong> linha. Usar <code>notas[aluno].length</code> (e não um 4 fixo) faz o código funcionar com qualquer tamanho, até com linhas de tamanhos diferentes.</td></tr>
+<tr><td><code>notas[aluno][prova]</code></td><td>O elemento da vez.</td></tr>
+<tr><td><code>"\t"</code> e <code>println()</code></td><td>Tabulação entre as colunas; quebra de linha no fim de cada aluno.</td></tr>
+</table>
+</div>
+
+<h3>Com for-each</h3>
+<p>Quando os índices não importam, dois for-each dão conta. Repare no tipo do laço de fora: cada "item" da matriz é uma linha, um <code>int[]</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        int total = 0;
+        for (int[] linha : notas) {
+            for (int nota : linha) {
+                total += nota;
+            }
+        }
+        System.out.println("Soma de todas as notas: " + total);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Soma de todas as notas: 90</pre>
+
+<div class="tryjava" data-goal="out:Total de ingressos vendidos: 5,src:\bfor\b[\s\S]*\bfor\b">
+<p class="try-task"><strong>Missão:</strong> no mapa do cinema, <code>1</code> é cadeira vendida e <code>0</code> é livre. Percorra a matriz com dois laços, conte as cadeiras vendidas e mostre <code>Total de ingressos vendidos: 5</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int[][] assentos = {
+            {0, 1, 1, 0},
+            {1, 0, 0, 0},
+            {0, 1, 0, 1}
+        };
+        int vendidos = 0;
+        // percorra a matriz aqui
+
+        System.out.println("Total de ingressos vendidos: " + vendidos);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int[][] assentos = {
+            {0, 1, 1, 0},
+            {1, 0, 0, 0},
+            {0, 1, 0, 1}
+        };
+        int vendidos = 0;
+        for (int[] fileira : assentos) {
+            for (int cadeira : fileira) {
+                if (cadeira == 1) {
+                    vendidos++;
+                }
+            }
+        }
+        System.out.println("Total de ingressos vendidos: " + vendidos);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Somar por linha e por coluna</h2>
+
+<h3>A média de cada aluno (por linha)</h3>
+<p>O acumulador nasce <strong>dentro</strong> do laço de fora, para recomeçar do zero a cada aluno:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla"};
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        for (int aluno = 0; aluno &lt; notas.length; aluno++) {
+            int soma = 0;
+            for (int prova = 0; prova &lt; notas[aluno].length; prova++) {
+                soma += notas[aluno][prova];
+            }
+            double media = (double) soma / notas[aluno].length;
+            System.out.println(alunos[aluno] + ": média " + media);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Ana: média 7.5
+Bruno: média 9.0
+Carla: média 6.0</pre>
+
+<p>Se o <code>int soma = 0;</code> ficasse <strong>antes</strong> dos dois laços, o Bruno herdaria a soma da Ana. O lugar da variável decide o que ela acumula.</p>
+
+<h3>A média de cada prova (por coluna)</h3>
+<p>Para somar uma coluna, os papéis dos laços se invertem: o de fora anda pelas <strong>colunas</strong> e o de dentro pelas <strong>linhas</strong>. O acesso continua sendo <code>notas[aluno][prova]</code>, linha primeiro:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        for (int prova = 0; prova &lt; notas[0].length; prova++) {
+            int soma = 0;
+            for (int aluno = 0; aluno &lt; notas.length; aluno++) {
+                soma += notas[aluno][prova];
+            }
+            System.out.println("Prova " + (prova + 1) + ": média da turma " + (double) soma / notas.length);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Prova 1: média da turma 7.333333333333333
+Prova 2: média da turma 7.666666666666667
+Prova 3: média da turma 7.333333333333333
+Prova 4: média da turma 7.666666666666667</pre>
+
+<p>As muitas casas decimais são o jeito do <code>println</code> mostrar um <code>double</code>; para arredondar na tela, use <code>printf("%.2f", …)</code>, que você verá em <a href="formatacao.html">Formatar Texto</a>.</p>
+
+<hr>
+
+<h2>Outro tipo: o jogo da velha</h2>
+<p>Matrizes podem ser de qualquer tipo. Um tabuleiro de jogo da velha é um <code>char[][]</code> 3 × 3:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        char[][] velha = {
+            {'X', 'O', 'X'},
+            {' ', 'X', 'O'},
+            {'O', ' ', 'X'}
+        };
+        for (char[] linha : velha) {
+            System.out.println(" " + linha[0] + " | " + linha[1] + " | " + linha[2]);
+        }
+        if (velha[0][0] == 'X' &amp;&amp; velha[1][1] == 'X' &amp;&amp; velha[2][2] == 'X') {
+            System.out.println("X venceu na diagonal!");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+ X | O | X
+   | X | O
+ O |   | X
+X venceu na diagonal!</pre>
+
+<p>A diagonal principal são as posições em que a linha é igual à coluna: <code>[0][0]</code>, <code>[1][1]</code>, <code>[2][2]</code>.</p>
+
+<hr>
+
+<h2>Arrays irregulares</h2>
+<p>Como cada linha é um array separado, nada obriga as linhas a terem o <strong>mesmo tamanho</strong>. Um array assim se chama <strong>irregular</strong> (em inglês, <em>jagged</em>, "dentado"). A Ana registra os minutos de corrida de cada semana, e cada semana teve um número diferente de treinos:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[][] treino = new int[3][];
+        treino[0] = new int[] {30, 45};
+        treino[1] = new int[] {20, 25, 30, 40};
+        treino[2] = new int[] {60};
+        System.out.println(Arrays.deepToString(treino));
+        for (int semana = 0; semana &lt; treino.length; semana++) {
+            System.out.println("Semana " + (semana + 1) + ": " + treino[semana].length + " treinos");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[[30, 45], [20, 25, 30, 40], [60]]
+Semana 1: 2 treinos
+Semana 2: 4 treinos
+Semana 3: 1 treinos</pre>
+
+<dl class="anatomy">
+  <dt>new int[3][]</dt><dd>Cria só o array de fora, com 3 linhas, e deixa as colunas em branco. Cada linha começa como <code>null</code> (ainda não existe).</dd>
+  <dt>treino[0] = new int[] {30, 45};</dt><dd>Cria a linha 0, com 2 elementos.</dd>
+  <dt>treino[1] = …</dt><dd>Cada linha recebe o seu próprio array, do tamanho que precisar.</dd>
+</dl>
+
+<p>Também dá para escrever com chaves: <code>int[][] treino = {{30, 45}, {20, 25, 30, 40}, {60}};</code>. Num array irregular, use sempre <code>treino[linha].length</code> no laço de dentro; um número fixo de colunas não funciona.</p>
+
+<p>As linhas também podem ser criadas num laço. Aqui a linha <code>i</code> tem <code>i + 1</code> elementos, formando um triângulo:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[][] triangulo = new int[4][];
+        for (int i = 0; i &lt; triangulo.length; i++) {
+            triangulo[i] = new int[i + 1];
+            for (int j = 0; j &lt;= i; j++) {
+                triangulo[i][j] = j + 1;
+            }
+        }
+        System.out.println(Arrays.deepToString(triangulo));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[[1], [1, 2], [1, 2, 3], [1, 2, 3, 4]]</pre>
+
+<div class="note">
+<strong>E três dimensões?</strong>
+<p>Existe: <code>int[][][] cubo = new int[2][3][4];</code> e o acesso é <code>cubo[a][b][c]</code>. Pense num prédio (andar, fileira, vaga) ou em várias planilhas (turma, aluno, prova). Na prática, passar de duas dimensões é raro; quando os dados ficam complexos assim, objetos e coleções (Nível 2 e 3) costumam ser mais claros.</p>
+</div>
+
+<hr>
+
+<h2>Formas de criar: qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Chaves</td><td><code>int[][] m = {{1, 2}, {3, 4}};</code></td><td>Você já sabe os valores.</td></tr>
+<tr><td><code>new</code> com as duas medidas</td><td><code>int[][] m = new int[3][4];</code></td><td>Tabela retangular a preencher depois.</td></tr>
+<tr><td><code>new</code> só com as linhas</td><td><code>int[][] m = new int[3][];</code> + <code>m[i] = new int[n];</code></td><td>Linhas de tamanhos diferentes (irregular).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>ArrayIndexOutOfBoundsException</code> na segunda dimensão</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        System.out.println(notas[1][4]);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 4 out of bounds for length 4
+	at Main.main(Main.java:8)</pre>
+<p><strong>O que quer dizer:</strong> a linha 1 existe, mas ela tem 4 colunas (0 a 3), e o código pediu a coluna 4. O <code>length 4</code> da mensagem é o tamanho <strong>da linha</strong>, não da matriz. Confira se não trocou linha e coluna: <code>notas[4][1]</code> daria o mesmo erro com <code>length 3</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma coluna "sumiu": o limite errado no laço de dentro</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        for (int i = 0; i &lt; notas.length; i++) {
+            for (int j = 0; j &lt; notas.length; j++) {
+                System.out.print(notas[i][j] + " ");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+7 8 6
+10 9 9
+5 6 7                        « a quarta prova não apareceu, e nenhum erro foi mostrado</pre>
+<p><strong>O que aconteceu:</strong> o laço de dentro usou <code>notas.length</code> (3 linhas) como limite das <strong>colunas</strong> (que são 4). Como 3 é menor que 4, nada estourou: a última coluna foi simplesmente ignorada. Se fosse ao contrário (mais linhas que colunas), daria <code>ArrayIndexOutOfBoundsException</code>.</p>
+<p><strong>Como consertar:</strong> no laço de dentro, use <code>notas[i].length</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException</code> num array irregular</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[][] treino = new int[3][];
+        treino[0][0] = 30;
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.NullPointerException: Cannot store to int array because "&lt;local1&gt;[0]" is null
+	at Main.main(Main.java:4)</pre>
+<p><strong>O que quer dizer:</strong> "não dá para guardar no array de int porque <code>treino[0]</code> é null" (o <code>&lt;local1&gt;</code> é a variável <code>treino</code>, sem o nome; veja a explicação em <a href="arrays.html">Arrays</a>). Com <code>new int[3][]</code>, as linhas ainda não existem.</p>
+<p><strong>Como consertar:</strong> crie a linha antes de usar: <code>treino[0] = new int[2];</code>. Ou, se todas as linhas têm o mesmo tamanho, <code>new int[3][2]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"int[] cannot be converted to int": faltou um índice</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        int x = notas[1];
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:8: error: incompatible types: int[] cannot be converted to int
+        int x = notas[1];
+                     ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> <code>notas[1]</code> é uma <strong>linha inteira</strong> (<code>int[]</code>), não um número. Para um elemento, são dois índices: <code>notas[1][2]</code>. Para a linha, a variável precisa ser <code>int[]</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>int[][] m = {{1, 2, 3}, {4, 5, 6}};</code></td><td>Matriz 2 × 3 com valores</td></tr>
+<tr><td><code>int[][] m = new int[2][3];</code></td><td>Matriz 2 × 3 com zeros</td></tr>
+<tr><td><code>int[][] m = new int[2][];</code></td><td>2 linhas ainda não criadas (irregular)</td></tr>
+<tr><td><code>m[1][2]</code></td><td>Elemento da linha 1, coluna 2</td></tr>
+<tr><td><code>m[1]</code></td><td>A linha 1 inteira (um <code>int[]</code>)</td></tr>
+<tr><td><code>m.length</code></td><td>Número de linhas</td></tr>
+<tr><td><code>m[i].length</code></td><td>Número de colunas da linha <code>i</code></td></tr>
+<tr><td><code>Arrays.deepToString(m)</code></td><td><code>[[1, 2, 3], [4, 5, 6]]</code></td></tr>
+<tr><td><code>for (int[] linha : m) for (int x : linha)</code></td><td>Passa por todos os elementos</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Acessar</h3>
+<p>Em <code>int[][] m = {{1, 2, 3}, {4, 5, 6}};</code>, complete para pegar o número 6:</p>
+<div class="ex-code">int seis = m<input data-answer="[1][2]" aria-label="índices">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Criar</h3>
+<p>Complete para criar uma matriz de <code>double</code> com 12 linhas (meses) e 31 colunas (dias):</p>
+<div class="ex-code">double[][] chuva = <input data-answer="new double[12][31];" aria-label="criação"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Mostrar</h3>
+<p>Complete para mostrar o conteúdo inteiro da matriz <code>m</code>:</p>
+<div class="ex-code">System.out.println(Arrays.<input data-answer="deepToString" aria-label="método">(m));</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Em <code>int[][] m = new int[4][7];</code>, quanto vale <code>m[0].length</code>?</p>
+<label><input type="radio" name="q4"> 4</label>
+<label><input type="radio" name="q4"> 7</label>
+<label><input type="radio" name="q4"> 28</label>
+<label><input type="radio" name="q4"> 0</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que <code>Arrays.toString(m)</code> mostra, se <code>m</code> é um <code>int[][]</code>?</p>
+<label><input type="radio" name="q5"> Todos os números, linha por linha.</label>
+<label><input type="radio" name="q5"> Só a primeira linha.</label>
+<label><input type="radio" name="q5"> Dá erro de compilação.</label>
+<label><input type="radio" name="q5"> Os "crachás" das linhas, como <code>[[I@11c20519, …]</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Para somar uma <strong>coluna</strong> da matriz, o laço de fora anda por…</p>
+<label><input type="radio" name="q6"> …as linhas, e o de dentro também.</label>
+<label><input type="radio" name="q6"> …as linhas, e o de dentro pelas colunas.</label>
+<label><input type="radio" name="q6"> …as colunas, e o de dentro pelas linhas.</label>
+<label><input type="radio" name="q6"> Não dá para somar colunas.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Ana: 30,out:Bruno: 36,out:Carla: 24,src:\bfor\b[\s\S]*\bfor\b">
+<p class="try-task"><strong>Missão final:</strong> mostre a <strong>soma</strong> das notas de cada aluno, uma linha por aluno: <code>Ana: 30</code>, <code>Bruno: 36</code> e <code>Carla: 24</code>. Lembre de recomeçar a soma a cada aluno.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla"};
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        // dois laços aqui
+
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla"};
+        int[][] notas = {
+            {7, 8, 6, 9},
+            {10, 9, 9, 8},
+            {5, 6, 7, 6}
+        };
+        for (int i = 0; i &lt; notas.length; i++) {
+            int soma = 0;
+            for (int j = 0; j &lt; notas[i].length; j++) {
+                soma += notas[i][j];
+            }
+            System.out.println(alunos[i] + ": " + soma);
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma matriz (<code>int[][]</code>) é um array de arrays: cada linha é um array comum.</li>
+  <li>Crie com chaves (<code>{{…}, {…}}</code>) ou com <code>new int[linhas][colunas]</code>.</li>
+  <li>Acesse com <code>m[linha][coluna]</code>, os dois a partir de 0.</li>
+  <li><code>m.length</code> = linhas; <code>m[i].length</code> = colunas da linha <code>i</code>.</li>
+  <li>Percorra com dois laços; no de dentro, use <code>m[i].length</code>.</li>
+  <li>Para mostrar, <code>Arrays.deepToString(m)</code> (o <code>toString</code> só mostra os crachás das linhas).</li>
+  <li>Em arrays irregulares (<code>new int[3][]</code>), cada linha precisa ser criada antes de usar, senão vem <code>NullPointerException</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
