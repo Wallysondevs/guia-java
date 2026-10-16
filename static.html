@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java static — membros da classe e do objeto | Guia Java</title>
+<meta name="description" content="O que static quer dizer em Java: atributos e métodos que pertencem à classe, e não a cada objeto. Contador de instâncias, Math.sqrt, por que o main é static, blocos static e o erro non-static variable cannot be referenced from a static context, com saídas reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">static</span></h1>
+
+<p class="intro">Até agora, cada objeto que você criou tinha os seus próprios dados: cada <code>Aluno</code> com o seu nome, cada <code>Conta</code> com o seu saldo. Mas algumas informações não são de um objeto: são da <strong>classe inteira</strong>, como "quantos alunos já foram criados". A palavra <code>static</code> serve para isso. Você já a escreve desde o primeiro programa, em <code>public static void main</code>; nesta aula você vai entender o que ela faz.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre um membro <strong>do objeto</strong> (de instância) e um membro <strong>da classe</strong> (<code>static</code>).</li>
+  <li>Como fazer um contador de objetos criados.</li>
+  <li>O que são métodos <code>static</code>, como <code>Math.sqrt</code>, e quando criar os seus.</li>
+  <li>Por que o <code>main</code> é <code>static</code> (e o que mudou no Java 25).</li>
+  <li>O que é um bloco <code>static { }</code> e quando ele roda.</li>
+  <li>O que um método <code>static</code> não pode acessar, e o erro <code>non-static variable … cannot be referenced from a static context</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula usa classes, atributos e construtores. Se algum desses nomes ainda é estranho, reveja <a href="classes-objetos.html">Classes e Objetos</a>, <a href="atributos.html">Atributos</a> e <a href="construtores.html">Construtores</a>.</p>
+
+<hr>
+
+<h2>A ideia: o caderno de cada aluno e o quadro da sala</h2>
+<p>Pense numa sala de aula. Cada aluno tem o <strong>seu caderno</strong>: o que a Ana escreve no dela não aparece no do Bruno. Mas a sala tem <strong>um quadro</strong> só, na parede, que todos veem. Se a professora escreve "prova na sexta" no quadro, todos os alunos leem a mesma frase; se ela apaga, some para todos.</p>
+
+<ul>
+  <li>O <strong>caderno</strong> é um atributo comum, de <strong>instância</strong>: cada objeto tem uma cópia. (<em>Instância</em> é outro nome para "objeto criado a partir de uma classe".)</li>
+  <li>O <strong>quadro</strong> é um atributo <code>static</code>: existe <strong>uma única cópia</strong>, que pertence à classe e é compartilhada por todos os objetos. Ele existe até antes de o primeiro aluno chegar.</li>
+</ul>
+
+<p>A palavra vem do inglês <em>static</em>, "estático", "parado". O nome é histórico (vem das linguagens C e C++, onde indicava algo que fica num lugar fixo da memória). Em Java, a melhor tradução mental é <strong>"da classe"</strong>: um membro <code>static</code> é da classe; um membro sem <code>static</code> é de cada objeto.</p>
+
+<hr>
+
+<h2>O contador de alunos</h2>
+<p>A Ana quer saber quantos objetos <code>Aluno</code> o programa criou. A primeira ideia é colocar um atributo <code>total</code> na classe e somar 1 no construtor. Veja o que acontece <strong>sem</strong> <code>static</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno a = new Aluno("Ana");
+        Aluno b = new Aluno("Bruno");
+        Aluno c = new Aluno("Carla");
+        System.out.println(a.nome + ", " + b.nome + ", " + c.nome);
+        System.out.println("Alunos criados: " + a.total + " " + b.total + " " + c.total);
+    }
+}
+
+class Aluno {
+    String nome;
+    int total = 0;          // SEM static: cada aluno tem o seu
+
+    Aluno(String nome) {
+        this.nome = nome;
+        total++;
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Ana, Bruno, Carla
+Alunos criados: 1 1 1          « cada aluno contou só a si mesmo</pre>
+
+<p>Cada objeto ganhou o <strong>seu</strong> <code>total</code>, que começou em 0 e virou 1 no construtor. É como se cada aluno escrevesse "1" no próprio caderno. O que a Ana quer é um número no <strong>quadro</strong>: basta uma palavra.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno a = new Aluno("Ana");
+        Aluno b = new Aluno("Bruno");
+        Aluno c = new Aluno("Carla");
+        System.out.println(a.nome + ", " + b.nome + ", " + c.nome);
+        System.out.println("Alunos criados: " + Aluno.total);
+    }
+}
+
+class Aluno {
+    String nome;            // cada aluno tem o seu
+    static int total = 0;   // um só, da classe Aluno
+
+    Aluno(String nome) {
+        this.nome = nome;
+        total++;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>String nome;</dt><dd>Atributo de <strong>instância</strong>: cada <code>new Aluno(…)</code> cria uma variável <code>nome</code> nova, dentro daquele objeto.</dd>
+  <dt>static</dt><dd>"Este atributo é da classe." Existe uma variável <code>total</code> só, criada quando a classe <code>Aluno</code> é carregada, antes de qualquer objeto.</dd>
+  <dt>int total = 0;</dt><dd>O tipo, o nome e o valor inicial, como em qualquer atributo. O <code>= 0</code> roda <strong>uma vez</strong>, e não a cada objeto.</dd>
+  <dt>total++;</dt><dd>Dentro do construtor, soma 1 ao <code>total</code> compartilhado. Três construtores rodaram: 0 → 1 → 2 → 3.</dd>
+  <dt>Aluno.total</dt><dd>Fora da classe, um membro <code>static</code> é acessado pelo <strong>nome da classe</strong>, sem precisar de objeto.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Ana, Bruno, Carla
+Alunos criados: 3</pre>
+
+<p>Agora o <code>total</code> é um só. Na memória, a situação fica assim:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Onde</th><th>O que existe ali</th><th>Quantas cópias</th></tr>
+<tr><td>Classe <code>Aluno</code></td><td><code>total = 3</code></td><td>1 (da classe)</td></tr>
+<tr><td>Objeto <code>a</code></td><td><code>nome = "Ana"</code></td><td rowspan="3">1 por objeto</td></tr>
+<tr><td>Objeto <code>b</code></td><td><code>nome = "Bruno"</code></td></tr>
+<tr><td>Objeto <code>c</code></td><td><code>nome = "Carla"</code></td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:Alunos criados: 5">
+<p class="try-task"><strong>Missão:</strong> crie mais dois alunos (<code>Daniel</code> e <code>Eva</code>) no <code>main</code> e rode de novo. O contador deve mostrar <code>Alunos criados: 5</code>, sem você mexer na classe <code>Aluno</code>. Depois, como teste, apague a palavra <code>static</code> e veja o erro que aparece na linha do <code>Aluno.total</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Aluno a = new Aluno("Ana");
+        Aluno b = new Aluno("Bruno");
+        Aluno c = new Aluno("Carla");
+        System.out.println("Alunos criados: " + Aluno.total);
+    }
+}
+
+class Aluno {
+    String nome;
+    static int total = 0;
+
+    Aluno(String nome) {
+        this.nome = nome;
+        total++;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Aluno a = new Aluno("Ana");
+        Aluno b = new Aluno("Bruno");
+        Aluno c = new Aluno("Carla");
+        Aluno d = new Aluno("Daniel");
+        Aluno e = new Aluno("Eva");
+        System.out.println("Alunos criados: " + Aluno.total);
+    }
+}
+
+class Aluno {
+    String nome;
+    static int total = 0;
+
+    Aluno(String nome) {
+        this.nome = nome;
+        total++;
+    }
+}
+</pre>
+</div>
+
+<h3>Pelo objeto também funciona (mas confunde)</h3>
+<p>O Java deixa acessar um membro <code>static</code> através de um objeto, como <code>a.total</code>. Funciona, mas engana quem lê: parece que o <code>total</code> é da Ana. Veja:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno a = new Aluno("Ana");
+        Aluno b = new Aluno("Bruno");
+        System.out.println(Aluno.total);
+        System.out.println(a.total);
+        a.total = 100;
+        System.out.println(b.total);
+    }
+}
+
+class Aluno {
+    String nome;
+    static int total = 0;
+
+    Aluno(String nome) {
+        this.nome = nome;
+        total++;
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+2
+2                  « a.total é o mesmo Aluno.total
+100                « mudou "pela Ana", apareceu "no Bruno": é o quadro, não o caderno</pre>
+
+<p>A regra de estilo é: <strong>membro <code>static</code>, acesse pelo nome da classe</strong> (<code>Aluno.total</code>). Assim fica claro que o valor é compartilhado. Editores como o IntelliJ e o VS Code até sublinham <code>a.total</code> com um aviso.</p>
+
+<hr>
+
+<h2>Métodos <code>static</code></h2>
+<p>Métodos também podem ser <code>static</code>. Um método <code>static</code> pertence à classe e é chamado pelo nome dela, <strong>sem criar objeto</strong>. Você já usa vários desde o Nível 1:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.sqrt(81));
+        System.out.println(Math.max(7, 12));
+        System.out.println(Integer.parseInt("42") + 1);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+9.0          « raiz quadrada de 81 (sqrt = square root)
+12           « o maior entre 7 e 12
+43           « o texto "42" virou o número 42, mais 1</pre>
+
+<p>Repare que você nunca escreveu <code>new Math()</code>. Nem pode: a classe <code>Math</code> foi feita só para guardar métodos <code>static</code> (veja <a href="math.html">Math</a>), e os criadores do Java proibiram criar objetos dela. Se você tentar:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: Math() has private access in Math
+        Math m = new Math();
+                 ^
+1 error</pre>
+
+<p>A mensagem diz que o construtor <code>Math()</code> é <code>private</code> (veja <a href="modificadores.html">Modificadores de Acesso</a>): só a própria classe pode usá-lo. Não faria sentido mesmo: um "objeto Math" não teria nada de seu para guardar. A raiz de 81 é 9 para todo mundo.</p>
+
+<h3>Criando o seu método <code>static</code></h3>
+<p>A Ana quer converter temperaturas de Celsius para Fahrenheit. A conta só depende do número recebido; não há "um objeto temperatura" com dados próprios. É o caso típico de método <code>static</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Temperatura.paraFahrenheit(25));
+        System.out.println(Temperatura.paraFahrenheit(100));
+    }
+}
+
+class Temperatura {
+    static double paraFahrenheit(double celsius) {
+        return celsius * 9 / 5 + 32;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>static</dt><dd>O método é da classe <code>Temperatura</code>: dá para chamá-lo sem <code>new Temperatura()</code>.</dd>
+  <dt>double</dt><dd>O tipo do valor que ele devolve (veja <a href="retorno.html">Valores de Retorno</a>).</dd>
+  <dt>paraFahrenheit(double celsius)</dt><dd>O nome e o parâmetro. Tudo o que o método precisa chega por aqui.</dd>
+  <dt>Temperatura.paraFahrenheit(25)</dt><dd>A chamada: nome da classe, ponto, nome do método. Igual a <code>Math.sqrt(81)</code>.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+77.0
+212.0          « 100 °C, a água fervendo, é 212 °F</pre>
+
+<p><strong>Quando um método deve ser <code>static</code>?</strong> Quando ele não usa nenhum atributo de objeto: recebe tudo pelos parâmetros e devolve uma resposta. Se o método precisa do <code>nome</code> ou do <code>saldo</code> <em>de um objeto</em>, ele é de instância (veja <a href="metodos-objeto.html">Métodos de Objeto</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Precisa de dados de um objeto?</th><th>Então é…</th></tr>
+<tr><td><code>Math.sqrt(81)</code></td><td>Não, só do número</td><td><code>static</code></td></tr>
+<tr><td><code>Temperatura.paraFahrenheit(25)</code></td><td>Não, só do número</td><td><code>static</code></td></tr>
+<tr><td><code>conta.depositar(50)</code></td><td>Sim, do saldo <em>daquela</em> conta</td><td>de instância</td></tr>
+<tr><td><code>"Ana".length()</code></td><td>Sim, <em>daquele</em> texto</td><td>de instância</td></tr>
+<tr><td><code>String.valueOf(10)</code></td><td>Não, só do número</td><td><code>static</code></td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:25.0,src:static\s+double\s+paraCelsius">
+<p class="try-task"><strong>Missão:</strong> crie, na classe <code>Temperatura</code>, um método <code>static double paraCelsius(double fahrenheit)</code> que faça a conta contrária: <code>(fahrenheit - 32) * 5 / 9</code>. No <code>main</code>, mostre <code>Temperatura.paraCelsius(77)</code>. A saída deve ter <code>25.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Temperatura.paraFahrenheit(25));
+        // mostre aqui Temperatura.paraCelsius(77)
+    }
+}
+
+class Temperatura {
+    static double paraFahrenheit(double celsius) {
+        return celsius * 9 / 5 + 32;
+    }
+
+    // crie aqui o método paraCelsius
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Temperatura.paraFahrenheit(25));
+        System.out.println(Temperatura.paraCelsius(77));
+    }
+}
+
+class Temperatura {
+    static double paraFahrenheit(double celsius) {
+        return celsius * 9 / 5 + 32;
+    }
+
+    static double paraCelsius(double fahrenheit) {
+        return (fahrenheit - 32) * 5 / 9;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Por que o <code>main</code> é <code>static</code></h2>
+<p>Quando você digita <code>java Main</code>, a JVM (a máquina virtual que roda o seu programa, veja <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>) precisa chamar o <code>main</code>. Nesse momento <strong>não existe nenhum objeto</strong>: o programa nem começou. Se o <code>main</code> fosse de instância, quem criaria o primeiro objeto para chamá-lo?</p>
+
+<p>Com <code>static</code>, a JVM faz o equivalente a <code>Main.main(args)</code>: chama o método pelo nome da classe, sem <code>new</code>. É por isso que, desde o Java 1.0, o modelo é:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá!");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>public</dt><dd>Visível de fora da classe: a JVM precisa enxergá-lo.</dd>
+  <dt>static</dt><dd>Da classe: a JVM chama sem criar objeto.</dd>
+  <dt>void</dt><dd>"Vazio": não devolve nada.</dd>
+  <dt>main(String[] args)</dt><dd>O nome que a JVM procura e os <a href="args.html">argumentos da linha de comando</a>.</dd>
+</dl>
+
+<h3>O <code>main</code> sem <code>static</code> do Java 25</h3>
+<p><span class="versao">Java 25+</span> A partir do Java 25, o lançador <code>java</code> ficou mais esperto: se o <code>main</code> não for <code>static</code>, ele mesmo cria um objeto da classe (com <code>new Main()</code>) e chama o método nesse objeto. O <code>public</code> e o <code>String[] args</code> também ficaram opcionais. No JDK 25 da Ana:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    void main() {
+        System.out.println("main sem static, Java 25");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+main sem static, Java 25</pre>
+
+<p>Isso foi feito para facilitar a vida de quem está começando. Mas a JVM continua precisando de um ponto de partida que funcione sem objetos; ela só passou a criar o objeto por você. Em programas reais, em livros e em todo código anterior a 2025, você vai ver <code>public static void main(String[] args)</code>, e é essa forma que o guia usa. Num JDK 21 ou mais antigo, o código acima não roda. Mais em <a href="primeiro-programa.html">Olá, Mundo</a> e em <a href="novidades.html">Novidades do Java 17 ao 25</a>.</p>
+
+<hr>
+
+<h2>O que um método <code>static</code> não pode acessar</h2>
+<p>Esta é a consequência mais importante, e a fonte de um dos erros mais comuns de quem começa. Um método <code>static</code> roda <strong>sem objeto</strong>. Então, dentro dele, não existe "o nome deste aluno" nem "o saldo desta conta": não há <em>este</em>. Veja o que acontece quando o <code>main</code> tenta usar coisas de instância:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    String saudacao = "Olá";
+
+    void cumprimentar() {
+        System.out.println("Bom dia!");
+    }
+
+    public static void main(String[] args) {
+        System.out.println(saudacao);
+        cumprimentar();
+        System.out.println(this.saudacao);
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:9: error: non-static variable saudacao cannot be referenced from a static context
+        System.out.println(saudacao);
+                           ^
+Main.java:10: error: non-static method cumprimentar() cannot be referenced from a static context
+        cumprimentar();
+        ^
+Main.java:11: error: non-static variable this cannot be referenced from a static context
+        System.out.println(this.saudacao);
+                           ^
+3 errors</pre>
+
+<p>Traduzindo: <em>non-static variable saudacao cannot be referenced from a static context</em> = "a variável não estática <code>saudacao</code> não pode ser usada num contexto estático". O <strong>contexto estático</strong> é o corpo de um método <code>static</code> (ou de um bloco <code>static</code>). Os três erros dizem a mesma coisa:</p>
+
+<ul>
+  <li><code>saudacao</code> é um atributo de instância: de <em>qual</em> objeto <code>Main</code>? Nenhum foi criado.</li>
+  <li><code>cumprimentar()</code> é um método de instância: precisa de um objeto para ser chamado.</li>
+  <li><code>this</code> quer dizer "o objeto atual" (veja <a href="this.html">this</a>). Num método <code>static</code>, não há objeto atual.</li>
+</ul>
+
+<p><strong>Como consertar:</strong> crie um objeto e use-o. Agora existe "um <code>Main</code>" com a sua <code>saudacao</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    String saudacao = "Olá";
+
+    void cumprimentar() {
+        System.out.println(saudacao + ", bom dia!");
+    }
+
+    public static void main(String[] args) {
+        Main programa = new Main();
+        System.out.println(programa.saudacao);
+        programa.cumprimentar();
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Olá
+Olá, bom dia!</pre>
+
+<p>A outra saída é colocar <code>static</code> no atributo e no método, se eles de fato forem "da classe". Qual escolher depende do significado: a saudação é de cada objeto ou é uma só para todos?</p>
+
+<p>O contrário <strong>não</strong> tem problema: um método de instância pode usar membros <code>static</code> à vontade (no contador, o construtor usou <code>total++</code>). Quem tem um objeto também enxerga a classe; quem só tem a classe não enxerga nenhum objeto.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>De onde → para onde</th><th>Membro <code>static</code></th><th>Membro de instância</th></tr>
+<tr><td>Método <code>static</code></td><td>Sim, direto</td><td><strong>Só através de um objeto</strong> (<code>obj.nome</code>)</td></tr>
+<tr><td>Método de instância / construtor</td><td>Sim, direto</td><td>Sim, direto (ou com <code>this.</code>)</td></tr>
+<tr><td>Fora da classe</td><td><code>Classe.membro</code></td><td><code>objeto.membro</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Blocos <code>static</code></h2>
+<p>Às vezes, preparar um atributo <code>static</code> exige mais que um <code>= valor</code>: um cálculo, um laço, uma mensagem. Para isso existe o <strong>bloco static</strong> (também chamado de <em>inicializador estático</em>): um trecho <code>static { … }</code> dentro da classe, fora de qualquer método. Ele roda <strong>uma vez só</strong>, quando a classe é carregada, isto é, na primeira vez que o programa usa a classe.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static {
+        System.out.println("1. bloco static de Main");
+    }
+
+    public static void main(String[] args) {
+        System.out.println("2. começou o main");
+        System.out.println("3. taxa = " + Config.TAXA);
+        System.out.println("4. taxa de novo = " + Config.TAXA);
+    }
+}
+
+class Config {
+    static double TAXA;
+
+    static {
+        System.out.println("   (bloco static de Config rodando)");
+        TAXA = 0.05;
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+1. bloco static de Main                   « antes do main: a JVM carregou Main para chamá-lo
+2. começou o main
+   (bloco static de Config rodando)       « primeira vez que Config foi usada
+3. taxa = 0.05
+4. taxa de novo = 0.05                    « segunda vez: o bloco não roda de novo</pre>
+
+<p>Leia a ordem com calma. O bloco de <code>Main</code> rodou <strong>antes</strong> do <code>main</code>, porque a JVM precisa carregar a classe para chamar o método. O bloco de <code>Config</code> só rodou quando o programa usou <code>Config.TAXA</code> pela primeira vez, e não rodou de novo no passo 4.</p>
+
+<p>Na prática, blocos <code>static</code> são raros em código do dia a dia. Você vai encontrá-los preparando tabelas, carregando configurações ou registrando drivers. Para um valor simples, prefira <code>static double TAXA = 0.05;</code>.</p>
+
+<hr>
+
+<h2><code>static</code> junto com <code>final</code>: as constantes</h2>
+<p>Uma combinação muito comum é <code>static final</code>: um valor que é da classe (uma cópia só) e que nunca muda. É assim que se escreve uma constante em Java, com o nome em MAIÚSCULAS:</p>
+
+<pre class="file" data-file="Escola.java">class Escola {
+    static final int NOTA_MINIMA = 6;
+}
+</pre>
+
+<p>O <code>Math.PI</code> (3.141592653589793) e o <code>Integer.MAX_VALUE</code> (2147483647) são exatamente isso. O <code>final</code> ganha a próxima aula inteira: <a href="final.html">final</a>. As constantes em si foram vistas em <a href="constantes.html">Constantes</a>.</p>
+
+<div class="tip">
+<strong>Chamar sem o nome da classe: <code>import static</code></strong>
+<p>Se você usa muito <code>Math.sqrt</code> e <code>Math.PI</code>, pode escrever <code>import static java.lang.Math.*;</code> no topo do arquivo e usar só <code>sqrt(81)</code> e <code>PI</code>. Essa forma de <code>import</code> aparece em <a href="pacotes.html">Pacotes e import</a>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"non-static variable … cannot be referenced from a static context"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: non-static variable nome cannot be referenced from a static context
+        System.out.println(Aluno.nome);
+                                ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o código usou <code>Aluno.nome</code>, pelo nome da classe, mas <code>nome</code> é de cada aluno. Qual aluno? O mesmo erro aparece quando o <code>main</code> usa direto um atributo ou método da própria classe que não é <code>static</code> (a variação <code>non-static method … cannot be referenced…</code>).</p>
+<p><strong>Como resolver:</strong> pergunte-se "isto é de cada objeto ou da classe?". Se for de cada objeto, crie o objeto e use <code>objeto.nome</code>. Se for da classe, acrescente <code>static</code> na declaração.</p>
+</div>
+
+<div class="cenario">
+<strong>"Math() has private access in Math"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: Math() has private access in Math
+        Math m = new Math();
+                 ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> tentou-se criar um objeto de uma classe que só tem membros <code>static</code>. Classes assim (<code>Math</code>, <code>Arrays</code>, <code>Collections</code>) escondem o construtor de propósito.</p>
+<p><strong>Como resolver:</strong> não crie o objeto; chame direto: <code>Math.sqrt(81)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O contador mostra sempre 1 (sem erro nenhum)</strong>
+<pre class="term">$ java Main.java
+Produtos cadastrados: 1</pre>
+<p><strong>O que aconteceu:</strong> o atributo do contador foi declarado sem <code>static</code>. Cada objeto tem o seu contador, que vai de 0 a 1 no próprio construtor. O programa compila e roda: o erro é de lógica, e o Java não tem como avisar.</p>
+<p><strong>Como resolver:</strong> <code>static int cadastrados = 0;</code>. É exatamente a missão do fim da aula.</p>
+</div>
+
+<div class="cenario">
+<strong>Mudei o valor num objeto e "mudou em todos"</strong>
+<p><strong>O que aconteceu:</strong> o atributo é <code>static</code>, e o código o acessou por um objeto (<code>a.total = 100</code>). Como só existe uma cópia, todos "veem" a mudança.</p>
+<p><strong>Como resolver:</strong> se cada objeto deveria ter o seu valor, tire o <code>static</code>. Se o valor é mesmo compartilhado, escreva <code>Aluno.total</code> para não enganar quem lê.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th><th>Como usar</th></tr>
+<tr><td><code>static int total;</code></td><td>Atributo da classe (uma cópia só)</td><td><code>Aluno.total</code></td></tr>
+<tr><td><code>int idade;</code></td><td>Atributo de instância (uma cópia por objeto)</td><td><code>aluno.idade</code></td></tr>
+<tr><td><code>static double f(double x) { … }</code></td><td>Método da classe, sem objeto</td><td><code>Classe.f(2)</code></td></tr>
+<tr><td><code>void g() { … }</code></td><td>Método de instância</td><td><code>objeto.g()</code></td></tr>
+<tr><td><code>static { … }</code></td><td>Bloco static: roda uma vez, ao carregar a classe</td><td>Preparar atributos <code>static</code></td></tr>
+<tr><td><code>static final int MAX = 10;</code></td><td>Constante da classe</td><td><code>Classe.MAX</code></td></tr>
+<tr><td><code>public static void main(String[] args)</code></td><td>Ponto de entrada clássico</td><td>Chamado pela JVM</td></tr>
+<tr><td><code>void main()</code> <span class="versao">Java 25+</span></td><td>Ponto de entrada sem <code>static</code></td><td>A JVM cria o objeto e chama</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Da classe</h3>
+<p>Complete para o atributo <code>visitantes</code> ser um só, compartilhado por todos os objetos:</p>
+<div class="ex-code"><input data-answer="static" aria-label="palavra-chave"> int visitantes = 0;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Chamar pela classe</h3>
+<p>A classe <code>Temperatura</code> tem o método <code>static double paraFahrenheit(double c)</code>. Complete a chamada para converter 30 graus:</p>
+<div class="ex-code">double f = <input data-answer="Temperatura.paraFahrenheit(30)|Temperatura.paraFahrenheit(30.0)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. O bloco que roda uma vez</h3>
+<p>Complete a primeira linha de um bloco que roda uma vez, quando a classe é carregada:</p>
+<div class="ex-code"><input data-answer="static {|static{" aria-label="início do bloco"> System.out.println("carregou"); }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Uma classe tem <code>static int contador = 0;</code> e o construtor faz <code>contador++</code>. O programa cria 4 objetos. Quanto vale <code>contador</code>?</p>
+<label><input type="radio" name="q4"> 1 em cada objeto</label>
+<label><input type="radio" name="q4"> 4</label>
+<label><input type="radio" name="q4"> 0, porque é static</label>
+<label><input type="radio" name="q4"> Dá erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Dentro de <code>public static void main</code>, você escreve <code>System.out.println(nome);</code>, e <code>nome</code> é um atributo sem <code>static</code> da mesma classe. O que acontece?</p>
+<label><input type="radio" name="q5"> Mostra <code>null</code></label>
+<label><input type="radio" name="q5"> Mostra o nome do primeiro objeto criado</label>
+<label><input type="radio" name="q5"> Erro: <code>non-static variable nome cannot be referenced from a static context</code></label>
+<label><input type="radio" name="q5"> Exceção <code>NullPointerException</code> ao rodar</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual destes métodos faz mais sentido como <code>static</code>?</p>
+<label><input type="radio" name="q6"> <code>calcularMedia(double n1, double n2)</code>, que só usa os parâmetros</label>
+<label><input type="radio" name="q6"> <code>depositar(double valor)</code>, que muda o saldo da conta</label>
+<label><input type="radio" name="q6"> <code>getNome()</code>, que devolve o nome do aluno</label>
+<label><input type="radio" name="q6"> <code>aniversario()</code>, que soma 1 na idade da pessoa</label>
+</div>
+
+<div class="tryjava" data-goal="out:Produtos cadastrados: 3,src:Produto\.mostrarTotal\(\)">
+<p class="try-task"><strong>Missão final:</strong> a loja da Ana cadastrou três produtos, mas o programa mostra <code>Produtos cadastrados: 1</code>. Rode e confira. Depois conserte: o contador deve ser da classe, o método <code>mostrarTotal</code> também, e o <code>main</code> deve chamá-lo como <code>Produto.mostrarTotal()</code>. A saída esperada é <code>Produtos cadastrados: 3</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Produto p1 = new Produto("Arroz");
+        Produto p2 = new Produto("Feijão");
+        Produto p3 = new Produto("Café");
+        p3.mostrarTotal();
+    }
+}
+
+class Produto {
+    String nome;
+    int cadastrados = 0;
+
+    Produto(String nome) {
+        this.nome = nome;
+        cadastrados++;
+    }
+
+    void mostrarTotal() {
+        System.out.println("Produtos cadastrados: " + cadastrados);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Produto p1 = new Produto("Arroz");
+        Produto p2 = new Produto("Feijão");
+        Produto p3 = new Produto("Café");
+        Produto.mostrarTotal();
+    }
+}
+
+class Produto {
+    String nome;
+    static int cadastrados = 0;
+
+    Produto(String nome) {
+        this.nome = nome;
+        cadastrados++;
+    }
+
+    static void mostrarTotal() {
+        System.out.println("Produtos cadastrados: " + cadastrados);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>static</code> = "da classe". Um atributo <code>static</code> tem <strong>uma cópia só</strong>, compartilhada por todos os objetos; sem <code>static</code>, cada objeto tem a sua.</li>
+  <li>Acesse membros <code>static</code> pelo nome da classe: <code>Aluno.total</code>, <code>Math.sqrt(81)</code>.</li>
+  <li>Um método deve ser <code>static</code> quando não precisa de dados de nenhum objeto, só dos parâmetros.</li>
+  <li>O <code>main</code> é <code>static</code> porque a JVM o chama antes de existir qualquer objeto. No Java 25, ele pode não ser <code>static</code>: o lançador cria o objeto por você.</li>
+  <li>Um bloco <code>static { }</code> roda uma vez, quando a classe é usada pela primeira vez.</li>
+  <li>Dentro de um método <code>static</code> não há <code>this</code>: atributos e métodos de instância só através de um objeto. Senão: <code>non-static … cannot be referenced from a static context</code>.</li>
+  <li><code>static final</code> é o jeito de fazer constantes. Próxima aula: <a href="final.html">final</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
