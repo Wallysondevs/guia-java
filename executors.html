@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java ExecutorService — pools de threads, Future e CompletableFuture | Guia Java</title>
+<meta name="description" content="ExecutorService no Java: Executors.newFixedThreadPool, submit e Future.get, invokeAll, shutdown e awaitTermination, executor em try-with-resources (Java 19+) e o básico de CompletableFuture (supplyAsync, thenApply, join), com saídas e tempos reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">ExecutorService</span></h1>
+
+<p class="intro">Na aula de <a href="threads.html">Threads</a>, você criou cada thread à mão com <code>new Thread</code>. Em programas de verdade quase ninguém faz isso: usa-se um <strong><code>ExecutorService</code></strong> ("serviço executor"), um time de threads prontas para trabalhar. Você entrega <strong>tarefas</strong> ao time, e ele cuida de quem faz o quê. De quebra, as tarefas podem <strong>devolver resultados</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um <em>pool</em> de threads e como criar um com <code>Executors.newFixedThreadPool</code>.</li>
+  <li>Enviar tarefas com <code>submit</code> e buscar o resultado com <code>Future.get</code>.</li>
+  <li>Enviar uma lista inteira com <code>invokeAll</code>.</li>
+  <li>Encerrar o time: <code>shutdown</code>, <code>awaitTermination</code> e o executor em <code>try</code>-with-resources <span class="versao">Java 19+</span>; e o que acontece se você esquecer.</li>
+  <li>O básico de <code>CompletableFuture</code>: <code>supplyAsync</code>, <code>thenApply</code> e <code>join</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula continua a de <a href="threads.html">Threads</a> e usa <a href="lambdas.html">lambdas</a>, <a href="generics.html">generics</a> e <a href="finally.html">try-with-resources</a>. Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense numa central de entregas. A Ana não contrata um motoboy novo para cada pedido e o demite na volta: isso seria caro e lento. Ela tem uma <strong>equipe fixa</strong> de, digamos, dois motoboys, e um <strong>quadro de pedidos</strong>. Cada pedido novo vai para o quadro; quem estiver livre pega o próximo. No fim do dia, ela avisa: "não entram mais pedidos; terminem o que falta e podem ir".</p>
+<ul>
+  <li>A equipe fixa é o <strong>pool de threads</strong> (<em>pool</em> = "grupo", "reserva").</li>
+  <li>O quadro é a <strong>fila de tarefas</strong>.</li>
+  <li>O pedido é a <strong>tarefa</strong>: um <code>Runnable</code> (não devolve nada) ou um <code>Callable</code> (devolve um resultado).</li>
+  <li>O comprovante que a Ana recebe ao entregar um pedido ao quadro é o <strong><code>Future</code></strong> ("futuro"): com ele, ela pergunta depois "já ficou pronto? qual o resultado?".</li>
+  <li>"Não entram mais pedidos" é o <code>shutdown()</code>.</li>
+</ul>
+
+<hr>
+
+<h2>1. Criar o time e enviar tarefas</h2>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ExecutorService equipe = Executors.newFixedThreadPool(2);
+        for (int i = 1; i &lt;= 5; i++) {
+            int pedido = i;
+            equipe.submit(() -&gt; {
+                System.out.println(Thread.currentThread().getName() + " embalou o pedido " + pedido);
+            });
+        }
+        equipe.shutdown();
+        equipe.awaitTermination(10, TimeUnit.SECONDS);
+        System.out.println("Expediente encerrado.");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+pool-1-thread-1 embalou o pedido 1
+pool-1-thread-2 embalou o pedido 2
+pool-1-thread-1 embalou o pedido 3
+pool-1-thread-2 embalou o pedido 4
+pool-1-thread-1 embalou o pedido 5
+Expediente encerrado.</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>import java.util.concurrent.…</code></td><td>O pacote da concorrência (<em>concurrent</em> = "simultâneo").</td></tr>
+<tr><td><code>Executors.newFixedThreadPool(2)</code></td><td>Cria um time <strong>fixo</strong> de 2 threads. <code>Executors</code> (com "s") é a "fábrica" de executores.</td></tr>
+<tr><td><code>int pedido = i;</code></td><td>Uma cópia de <code>i</code> para a lambda. Lambdas só podem usar variáveis que não mudam depois (<em>effectively final</em>), e <code>i</code> muda a cada volta.</td></tr>
+<tr><td><code>equipe.submit(() -&gt; { … })</code></td><td>"Submeter": põe a tarefa na fila. Volta na hora, sem esperar a tarefa rodar.</td></tr>
+<tr><td><code>equipe.shutdown()</code></td><td>"Desligar": não aceita mais tarefas, mas termina as que estão na fila.</td></tr>
+<tr><td><code>awaitTermination(10, TimeUnit.SECONDS)</code></td><td>"Aguardar o término": a <code>main</code> espera o time terminar tudo, por no máximo 10 segundos.</td></tr>
+</table>
+</div>
+
+<p>Cinco pedidos e só duas threads: <code>pool-1-thread-1</code> e <code>pool-1-thread-2</code> (os nomes que o Java dá às threads do primeiro pool) se revezaram. As threads foram <strong>reaproveitadas</strong>: nenhuma foi criada para um pedido só. Como na aula anterior, a ordem e a divisão entre as threads podem mudar de uma execução para outra.</p>
+
+<hr>
+
+<h2>2. Tarefas que devolvem resultado: <code>submit</code> + <code>Future.get</code></h2>
+<p>Se a lambda <strong>devolve</strong> um valor, ela é um <code>Callable</code> ("chamável"), e o <code>submit</code> entrega um <code>Future</code> com o resultado prometido. A Ana precisa consultar o estoque de três frutas num sistema lento, que demora 1 segundo por consulta:</p>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    static int consultarEstoque(String fruta) throws InterruptedException {
+        Thread.sleep(1000); // finge que demora: consulta a um sistema lento
+        return fruta.length() * 10;
+    }
+
+    public static void main(String[] args) throws Exception {
+        ExecutorService equipe = Executors.newFixedThreadPool(3);
+        long inicio = System.currentTimeMillis();
+
+        Future&lt;Integer&gt; maca = equipe.submit(() -&gt; consultarEstoque("maçã"));
+        Future&lt;Integer&gt; banana = equipe.submit(() -&gt; consultarEstoque("banana"));
+        Future&lt;Integer&gt; uva = equipe.submit(() -&gt; consultarEstoque("uva"));
+
+        System.out.println("Pedidos enviados; esperando as respostas...");
+        int total = maca.get() + banana.get() + uva.get();
+
+        long ms = System.currentTimeMillis() - inicio;
+        System.out.println("Estoque total: " + total);
+        System.out.println("Tempo: cerca de " + ms / 100 * 100 + " ms");
+        equipe.shutdown();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Pedidos enviados; esperando as respostas...
+Estoque total: 130
+Tempo: cerca de 1000 ms</pre>
+
+<dl class="anatomy">
+  <dt>Future&lt;Integer&gt;</dt><dd>"Um <code>Integer</code> que vai existir no futuro." É o comprovante do pedido.</dd>
+  <dt>maca</dt><dd>O nome da variável.</dd>
+  <dt>= equipe.submit(</dt><dd>Entrega a tarefa ao time e recebe o comprovante na hora.</dd>
+  <dt>() -&gt; consultarEstoque("maçã"))</dt><dd>A tarefa: um <code>Callable&lt;Integer&gt;</code>, porque devolve um <code>int</code>. Um <code>Callable</code> pode lançar exceções checked (o <code>InterruptedException</code> do <code>sleep</code>), diferente do <code>Runnable</code>.</dd>
+</dl>
+
+<p>E <code>maca.get()</code> ("pegar") <strong>espera</strong> o resultado ficar pronto e o devolve. As três consultas rodaram ao mesmo tempo, então o total levou cerca de 1 segundo, e não 3. Para conferir, a Ana trocou <code>newFixedThreadPool(3)</code> por <code>newFixedThreadPool(1)</code> (um motoboy só):</p>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Pedidos enviados; esperando as respostas...
+Estoque total: 130
+Tempo: cerca de 3000 ms</pre>
+
+<p>Com uma thread, as consultas fizeram fila: 3 segundos. Esse é o ganho de um pool quando as tarefas passam a maior parte do tempo <strong>esperando</strong> (rede, disco, outro sistema).</p>
+
+<div class="tryjava" data-goal="out:Total: 30,src:\.submit\(,src:\.get\(\)">
+<p class="try-task"><strong>Missão:</strong> envie ao time as duas contas como tarefas com <code>submit</code> (uma devolve <code>12 + 8</code>, a outra <code>7 + 3</code>), guarde os dois <code>Future&lt;Integer&gt;</code> e mostre <code>Total: 30</code> somando os resultados com <code>get()</code>.</p>
+<pre class="script">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        ExecutorService equipe = Executors.newFixedThreadPool(2);
+        // envie as duas tarefas e some os resultados
+
+        equipe.shutdown();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        ExecutorService equipe = Executors.newFixedThreadPool(2);
+        Future&lt;Integer&gt; manha = equipe.submit(() -&gt; 12 + 8);
+        Future&lt;Integer&gt; tarde = equipe.submit(() -&gt; 7 + 3);
+        System.out.println("Total: " + (manha.get() + tarde.get()));
+        equipe.shutdown();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Uma lista de tarefas: <code>invokeAll</code> e o executor em <code>try</code></h2>
+<p>Quando as tarefas já estão numa lista, <code>invokeAll</code> ("invocar todas") envia todas, <strong>espera todas</strong> terminarem e devolve a lista de <code>Future</code>s na mesma ordem. E desde o Java 19, o <code>ExecutorService</code> pode ficar num <a href="finally.html">try-with-resources</a>: ao sair do bloco, ele faz o <code>shutdown</code> e espera as tarefas sozinho.</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        List&lt;String&gt; frutas = List.of("maçã", "banana", "uva", "kiwi");
+        List&lt;Callable&lt;String&gt;&gt; tarefas = frutas.stream()
+            .map(f -&gt; (Callable&lt;String&gt;) () -&gt; f.toUpperCase() + " (" + Thread.currentThread().getName() + ")")
+            .toList();
+
+        try (ExecutorService equipe = Executors.newFixedThreadPool(2)) {
+            List&lt;Future&lt;String&gt;&gt; resultados = equipe.invokeAll(tarefas);
+            for (Future&lt;String&gt; r : resultados) {
+                System.out.println(r.get());
+            }
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+MAÇÃ (pool-1-thread-1)
+BANANA (pool-1-thread-2)
+UVA (pool-1-thread-2)
+KIWI (pool-1-thread-2)
+Fim</pre>
+
+<p>Os resultados saíram na ordem da lista de frutas, mesmo que as tarefas tenham terminado em outra ordem: quem garante isso é a lista de <code>Future</code>s. A coluna entre parênteses mostra qual thread fez cada uma (a <code>thread-2</code> pegou três: estava livre antes). O <code>.map(…)</code> transforma cada fruta numa tarefa (veja <a href="streams.html">streams</a>); o <code>(Callable&lt;String&gt;)</code> diz ao compilador que tipo de lambda é aquela.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Encerrar o executor</th><th>Como</th><th>Desde</th></tr>
+<tr><td>À mão</td><td><code>shutdown()</code> + <code>awaitTermination(tempo, unidade)</code></td><td>Java 5</td></tr>
+<tr><td>Automático</td><td><code>try (ExecutorService e = …) { … }</code>: o <code>close()</code> faz o <code>shutdown</code> e espera</td><td><span class="versao">Java 19+</span></td></tr>
+<tr><td>Urgente</td><td><code>shutdownNow()</code>: tenta interromper as tarefas em andamento e devolve as que nem começaram</td><td>Java 5</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>4. <code>CompletableFuture</code>: encadear passos</h2>
+<p>Com o <code>Future</code> comum, a única forma de usar o resultado é parar e esperar com <code>get()</code>. O <code>CompletableFuture</code> ("futuro completável") permite dizer <strong>o que fazer depois</strong>, como uma receita: "busque o preço; quando chegar, aplique o desconto; depois monte a etiqueta".</p>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.CompletableFuture;
+
+public class Main {
+    static double buscarPreco(String produto) {
+        System.out.println("Buscando " + produto + " em " + Thread.currentThread().getName());
+        return 50.0;
+    }
+
+    public static void main(String[] args) {
+        CompletableFuture&lt;String&gt; etiqueta = CompletableFuture
+            .supplyAsync(() -&gt; buscarPreco("café"))
+            .thenApply(preco -&gt; preco * 0.9)
+            .thenApply(preco -&gt; "Café com desconto: R$ " + preco);
+
+        System.out.println("main continua livre...");
+        System.out.println(etiqueta.join());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+main continua livre...
+Buscando café em ForkJoinPool.commonPool-worker-1
+Café com desconto: R$ 45.0</pre>
+
+<dl class="anatomy">
+  <dt>CompletableFuture.supplyAsync(</dt><dd>"Fornecer de forma assíncrona": roda a lambda em outra thread e promete o resultado. Sem um executor indicado, usa o pool comum do Java (<code>ForkJoinPool.commonPool</code>, como mostra a saída).</dd>
+  <dt>.thenApply(preco -&gt; preco * 0.9)</dt><dd>"Depois, aplique": quando o preço chegar, transforma-o (10% de desconto). Devolve outro <code>CompletableFuture</code>, por isso dá para encadear.</dd>
+  <dt>.thenApply(preco -&gt; "…" + preco)</dt><dd>Mais um passo: transforma o número em texto.</dd>
+  <dt>etiqueta.join()</dt><dd>"Juntar": espera o resultado final e o devolve, como o <code>get()</code>, mas sem exceção checked.</dd>
+</dl>
+
+<p>Repare que a <code>main</code> mostrou "continua livre" antes mesmo de a busca começar: montar a receita não trava ninguém. Só o <code>join()</code> espera. Outros métodos úteis:</p>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.CompletableFuture;
+
+public class Main {
+    public static void main(String[] args) {
+        CompletableFuture&lt;Double&gt; cafe = CompletableFuture.supplyAsync(() -&gt; 18.0);
+        CompletableFuture&lt;Double&gt; pao = CompletableFuture.supplyAsync(() -&gt; 6.5);
+        double total = cafe.thenCombine(pao, Double::sum).join();
+        System.out.println("Total do pedido: " + total);
+
+        CompletableFuture&lt;Integer&gt; erro = CompletableFuture.supplyAsync(() -&gt; 10 / 0);
+        int r = erro.exceptionally(e -&gt; {
+            System.out.println("Deu problema: " + e.getMessage());
+            return -1;
+        }).join();
+        System.out.println("Resultado: " + r);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Total do pedido: 24.5
+Deu problema: java.lang.ArithmeticException: / by zero
+Resultado: -1</pre>
+
+<p><code>thenCombine</code> ("depois, combine") junta dois resultados independentes: café e pão foram buscados ao mesmo tempo e somados com <code>Double::sum</code> (uma <a href="method-references.html">referência de método</a>). <code>exceptionally</code> ("em caso de exceção") dá um valor de reserva quando algum passo falha.</p>
+
+<hr>
+
+<h2>Formas diferentes de criar o executor</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Fábrica</th><th>O time</th><th>Quando usar</th></tr>
+<tr><td><code>Executors.newFixedThreadPool(n)</code></td><td><code>n</code> threads fixas</td><td>O caso geral. Para contas pesadas, <code>n</code> = número de núcleos (<code>Runtime.getRuntime().availableProcessors()</code>).</td></tr>
+<tr><td><code>Executors.newSingleThreadExecutor()</code></td><td>1 thread</td><td>Tarefas que precisam rodar uma de cada vez, em ordem.</td></tr>
+<tr><td><code>Executors.newCachedThreadPool()</code></td><td>Cria threads conforme a necessidade e reaproveita as livres</td><td>Muitas tarefas curtas (cuidado: sem limite de threads).</td></tr>
+<tr><td><code>Executors.newVirtualThreadPerTaskExecutor()</code> <span class="versao">Java 21+</span></td><td>Uma thread virtual nova por tarefa</td><td>Milhares de tarefas que esperam (rede, disco). Veja <a href="virtual-threads.html">Threads Virtuais</a>.</td></tr>
+<tr><td><code>CompletableFuture.supplyAsync(…)</code></td><td>Pool comum do Java (ou um executor que você passar)</td><td>Encadear passos assíncronos.</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>No editor do guia</strong>
+<p>O simulador executa as tarefas do <code>ExecutorService</code> <strong>em sequência</strong>, numa thread só, e o <code>Thread.sleep</code> não espera de verdade. As missões funcionam, mas os tempos medidos e a mistura das saídas só aparecem no JDK real, como nos terminais desta página.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3>Esquecer o <code>shutdown</code>: o programa não termina</h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Main {
+    public static void main(String[] args) {
+        ExecutorService equipe = Executors.newFixedThreadPool(2);
+        equipe.submit(() -&gt; System.out.println("Pedido embalado"));
+        System.out.println("Fim do main");
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+$ timeout 5 java Main      « o timeout encerra o programa à força depois de 5 segundos
+Fim do main
+Pedido embalado
+$ echo $?
+124                        « 124 = o timeout teve de matar o programa</pre>
+<p><strong>O que aconteceu:</strong> o trabalho terminou, mas as threads do pool continuaram vivas, esperando novos pedidos que nunca vão chegar. A JVM só termina quando as threads comuns acabam, então o programa ficaria parado para sempre (sem o <code>timeout</code>, você teria de apertar <kbd>Ctrl</kbd>+<kbd>C</kbd>). <strong>Conserto:</strong> <code>shutdown()</code> no fim, ou o executor num <code>try</code>-with-resources.</p>
+</div>
+
+<div class="cenario">
+<h3>A tarefa lançou uma exceção: <code>ExecutionException</code></h3>
+<pre class="file" data-file="Main.java">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        try (ExecutorService equipe = Executors.newFixedThreadPool(2)) {
+            Future&lt;Integer&gt; conta = equipe.submit(() -&gt; 100 / 0);
+            System.out.println("Tarefa enviada");
+            System.out.println(conta.get());
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Tarefa enviada
+Exception in thread "main" java.util.concurrent.ExecutionException: java.lang.ArithmeticException: / by zero
+	at java.base/java.util.concurrent.FutureTask.report(FutureTask.java:124)
+	at java.base/java.util.concurrent.FutureTask.get(FutureTask.java:193)
+	at Main.main(Main.java:10)
+Caused by: java.lang.ArithmeticException: / by zero
+	at Main.lambda$main$0(Main.java:8)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:328)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)</pre>
+<p><strong>O que quer dizer:</strong> a divisão por zero aconteceu <strong>dentro</strong> da tarefa, numa thread do pool (linha 8, <code>lambda$main$0</code>). O pool guardou a exceção no <code>Future</code>, e ela só apareceu no <code>get()</code> (linha 10), embrulhada numa <code>ExecutionException</code> ("exceção de execução"). A causa verdadeira vem em <code>Caused by:</code>. <strong>Conserto:</strong> trate a <code>ExecutionException</code> com <code>try/catch</code> em volta do <code>get()</code> e olhe <code>e.getCause()</code>. Atenção: se você nunca chamar <code>get()</code>, a exceção some em silêncio.</p>
+</div>
+
+<div class="cenario">
+<h3>Enviar tarefa depois do <code>shutdown</code></h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">        ExecutorService equipe = Executors.newFixedThreadPool(2);
+        equipe.shutdown();
+        equipe.submit(() -&gt; System.out.println("Pedido atrasado"));
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.util.concurrent.RejectedExecutionException: Task java.util.concurrent.FutureTask@33909752[Not completed, task = java.util.concurrent.Executors$RunnableAdapter@70dea4e[Wrapped task = Main$$Lambda/0x000000009e040210@5c647e05]] rejected from java.util.concurrent.ThreadPoolExecutor@764c12b6[Terminated, pool size = 0, active threads = 0, queued tasks = 0, completed tasks = 0]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$AbortPolicy.rejectedExecution(ThreadPoolExecutor.java:2032)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.reject(ThreadPoolExecutor.java:787)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.execute(ThreadPoolExecutor.java:1328)
+	at java.base/java.util.concurrent.AbstractExecutorService.submit(AbstractExecutorService.java:125)
+	at Main.main(Main.java:8)</pre>
+<p><strong>O que quer dizer:</strong> "execução rejeitada". A mensagem é enorme, mas o essencial está no começo (<code>RejectedExecutionException</code>), no meio (<code>rejected from … ThreadPoolExecutor</code>) e no estado do pool (<code>Terminated</code>, encerrado). Os números depois de <code>@</code> mudam a cada execução. <strong>Conserto:</strong> envie todas as tarefas antes do <code>shutdown()</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>Executors.newFixedThreadPool(n)</code></td><td>Cria um time de <code>n</code> threads</td></tr>
+<tr><td><code>ex.submit(runnable)</code> / <code>ex.submit(callable)</code></td><td>Envia a tarefa; devolve um <code>Future</code></td></tr>
+<tr><td><code>ex.execute(runnable)</code></td><td>Envia sem devolver <code>Future</code></td></tr>
+<tr><td><code>ex.invokeAll(listaDeCallables)</code></td><td>Envia todas, espera todas; devolve <code>List&lt;Future&gt;</code></td></tr>
+<tr><td><code>ex.shutdown()</code></td><td>Não aceita mais tarefas; termina as da fila</td></tr>
+<tr><td><code>ex.awaitTermination(t, TimeUnit.SECONDS)</code></td><td>Espera o fim, até o tempo limite</td></tr>
+<tr><td><code>try (ExecutorService ex = …) { }</code></td><td>Fecha e espera sozinho (Java 19+)</td></tr>
+<tr><td><code>future.get()</code></td><td>Espera e devolve o resultado (<code>ExecutionException</code> se a tarefa falhou)</td></tr>
+<tr><td><code>future.isDone()</code></td><td>Já terminou?</td></tr>
+<tr><td><code>CompletableFuture.supplyAsync(() -&gt; …)</code></td><td>Começa um cálculo assíncrono</td></tr>
+<tr><td><code>cf.thenApply(x -&gt; …)</code></td><td>Transforma o resultado quando chegar</td></tr>
+<tr><td><code>cf.thenCombine(outro, (a, b) -&gt; …)</code></td><td>Junta dois resultados</td></tr>
+<tr><td><code>cf.exceptionally(e -&gt; valor)</code></td><td>Valor de reserva se der erro</td></tr>
+<tr><td><code>cf.join()</code></td><td>Espera e devolve o resultado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete para criar um time fixo de 4 threads:</p>
+<div class="ex-code">ExecutorService ex = Executors.<input data-answer="newFixedThreadPool(4)">;</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete para esperar o resultado do <code>Future</code> <code>f</code>:</p>
+<div class="ex-code">int valor = f.<input data-answer="get()">;</div>
+</div>
+
+<div class="exercise">
+<p>3. Complete para transformar o resultado quando ele chegar:</p>
+<div class="ex-code">CompletableFuture.supplyAsync(() -&gt; 10).<input data-answer="thenApply">(x -&gt; x * 2).join();</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um programa cria um pool, envia tarefas e não chama <code>shutdown()</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> As tarefas não rodam.</label>
+<label><input type="radio" name="q4"> As tarefas rodam, mas o programa não termina: as threads do pool continuam esperando.</label>
+<label><input type="radio" name="q4"> Erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Uma tarefa enviada com <code>submit</code> lança <code>ArithmeticException</code>. Onde você fica sabendo?</p>
+<label><input type="radio" name="q5"> Na hora do <code>submit</code>.</label>
+<label><input type="radio" name="q5"> Nunca: o pool engole a exceção para sempre.</label>
+<label><input type="radio" name="q5"> No <code>get()</code> do <code>Future</code>, embrulhada numa <code>ExecutionException</code>.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Faturamento do dia: 245,src:invokeAll,src:try\s*\(\s*ExecutorService">
+<p class="try-task"><strong>Missão:</strong> os três caixas da loja são tarefas que devolvem o faturamento de cada um. Abra o executor num <code>try</code>-with-resources, use <code>invokeAll</code> e some os resultados para mostrar <code>Faturamento do dia: 245</code>.</p>
+<pre class="script">import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        List&lt;Callable&lt;Integer&gt;&gt; caixas = List.of(() -&gt; 120, () -&gt; 85, () -&gt; 40);
+        int soma = 0;
+        // abra o executor num try, chame invokeAll e some
+
+        System.out.println("Faturamento do dia: " + soma);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        List&lt;Callable&lt;Integer&gt;&gt; caixas = List.of(() -&gt; 120, () -&gt; 85, () -&gt; 40);
+        int soma = 0;
+        try (ExecutorService equipe = Executors.newFixedThreadPool(3)) {
+            for (Future&lt;Integer&gt; f : equipe.invokeAll(caixas)) {
+                soma = soma + f.get();
+            }
+        }
+        System.out.println("Faturamento do dia: " + soma);
+    }
+}
+</pre>
+</div>
+
+<div class="tryjava" data-goal="out:Preço final: 45.0,src:supplyAsync,src:thenApply">
+<p class="try-task"><strong>Missão final:</strong> monte uma receita com <code>CompletableFuture</code>: <code>supplyAsync</code> fornece o preço <code>50.0</code>, um <code>thenApply</code> aplica 10% de desconto (<code>* 0.9</code>), outro monta o texto <code>"Preço final: " + preco</code>, e o <code>join()</code> busca o resultado para mostrar.</p>
+<pre class="script">import java.util.concurrent.CompletableFuture;
+
+public class Main {
+    public static void main(String[] args) {
+        String r = "";   // troque pela receita com CompletableFuture
+        System.out.println(r);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.concurrent.CompletableFuture;
+
+public class Main {
+    public static void main(String[] args) {
+        String r = CompletableFuture
+            .supplyAsync(() -&gt; 50.0)
+            .thenApply(preco -&gt; preco * 0.9)
+            .thenApply(preco -&gt; "Preço final: " + preco)
+            .join();
+        System.out.println(r);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>ExecutorService</code> é um time de threads reaproveitáveis; você envia <strong>tarefas</strong>, não cria threads.</li>
+  <li><code>submit</code> devolve um <code>Future</code>; <code>get()</code> espera o resultado (e lança <code>ExecutionException</code> se a tarefa falhou). <code>invokeAll</code> envia e espera uma lista inteira.</li>
+  <li>Sempre encerre: <code>shutdown()</code> + <code>awaitTermination</code>, ou <code>try</code>-with-resources <span class="versao">Java 19+</span>. Sem isso, o programa não termina.</li>
+  <li><code>CompletableFuture</code> encadeia passos: <code>supplyAsync</code> → <code>thenApply</code> → <code>join</code>.</li>
+  <li>O ganho de tempo vem quando as tarefas <strong>esperam</strong> (3 consultas de 1 s: cerca de 1000 ms com 3 threads, 3000 ms com 1).</li>
+</ul>
+
+<p>Próxima aula: <a href="virtual-threads.html">Threads Virtuais</a>, para quando são milhares de tarefas esperando.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
