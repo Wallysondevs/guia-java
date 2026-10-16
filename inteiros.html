@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java int, long, short e byte — números inteiros e overflow | Guia Java</title>
+<meta name="description" content="Os tipos inteiros do Java: int, long (com o sufixo L), short e byte, seus limites MAX_VALUE e MIN_VALUE, o overflow (Integer.MAX_VALUE + 1), Math.addExact, sublinhado em números, binário, hexadecimal e octal, com erros e saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">int, long, short e byte</span></h1>
+
+<p class="intro">Números inteiros são os mais usados em qualquer programa: quantidades, idades, contadores, códigos. O Java tem quatro tipos para eles, que diferem só no <strong>tamanho</strong>. Nesta aula você vai ver quando usar cada um, como escrever números grandes e o que acontece quando um número <strong>não cabe</strong> no tipo, o famoso <em>overflow</em>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os tipos <code>int</code>, <code>long</code>, <code>short</code> e <code>byte</code>, e por que o <code>int</code> é o padrão.</li>
+  <li>O sufixo <code>L</code> e o erro <code>integer number too large</code>.</li>
+  <li>Os limites <code>MAX_VALUE</code> e <code>MIN_VALUE</code>.</li>
+  <li>O <strong>overflow</strong>: por que <code>Integer.MAX_VALUE + 1</code> dá um número negativo, e como se proteger com <code>Math.addExact</code>.</li>
+  <li>Como escrever <code>1_000_000</code>, números em binário, hexadecimal e octal.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>Os quatro tipos inteiros</h2>
+<p>Pense em potes de tamanhos diferentes. Todos guardam a mesma coisa (números inteiros, positivos ou negativos, sem vírgula); o que muda é <strong>até onde</strong> cabe.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Bits</th><th>Menor valor</th><th>Maior valor</th><th>Use para</th></tr>
+<tr><td><code>byte</code></td><td>8</td><td>-128</td><td>127</td><td>Dados brutos de arquivos e da rede (assunto avançado)</td></tr>
+<tr><td><code>short</code></td><td>16</td><td>-32.768</td><td>32.767</td><td>Raramente; economizar memória em grandes volumes</td></tr>
+<tr><td><code>int</code></td><td>32</td><td>-2.147.483.648</td><td>2.147.483.647</td><td><strong>Quase tudo</strong>: quantidades, idades, contadores</td></tr>
+<tr><td><code>long</code></td><td>64</td><td>-9.223.372.036.854.775.808</td><td>9.223.372.036.854.775.807</td><td>Números que podem passar de 2 bilhões</td></tr>
+</table>
+</div>
+
+<p>Cada bit a mais dobra a quantidade de valores possíveis. Com 8 bits há 2<sup>8</sup> = 256 combinações: metade para os negativos (-128 a -1) e o resto para o zero e os positivos (0 a 127). Por isso o maior valor é sempre "um a menos" que o menor, sem o sinal.</p>
+
+<h2><code>int</code>: o padrão</h2>
+<p>Todo número inteiro que você escreve no código, como <code>29</code> ou <code>-5</code>, é um <code>int</code> para o Java. É o tipo mais rápido para o processador e cabe até cerca de 2,1 bilhões, o que basta para a grande maioria das contas:</p>
+
+<pre class="file" data-file="trecho">int alunos = 32;
+int temperaturaMinima = -3;
+int habitantesDoBrasil = 213000000;</pre>
+
+<p>Use <code>int</code> sempre que não houver um bom motivo para outro tipo.</p>
+
+<hr>
+
+<h2><code>long</code> e o sufixo <code>L</code></h2>
+<p>A população mundial passa de 8 bilhões, mais do que cabe num <code>int</code>. É trabalho para o <code>long</code>. Mas veja o que acontece na primeira tentativa:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        long populacaoMundial = 3000000000;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: integer number too large
+        long populacaoMundial = 3000000000;
+                                ^
+1 error</pre>
+
+<p>"Número inteiro grande demais". Mas a variável é <code>long</code>! O problema não é a variável, é o <strong>número escrito</strong>: como dito acima, todo número inteiro no código é um <code>int</code>, e <code>3000000000</code> não cabe num <code>int</code>. O Java reclama antes mesmo de olhar para a variável.</p>
+
+<p>A solução é dizer que o número é <code>long</code>, colocando um <code>L</code> no fim:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        long populacaoMundial = 8100000000L;
+        long visitas = 25;
+        System.out.println(populacaoMundial);
+        System.out.println(visitas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+8100000000
+25</pre>
+
+<dl class="anatomy">
+  <dt>long</dt><dd>O tipo da variável: inteiro de 64 bits.</dd>
+  <dt>populacaoMundial</dt><dd>O nome.</dd>
+  <dt>8100000000L</dt><dd>Um <strong>literal</strong> <code>long</code> ("literal" é um valor escrito direto no código). O <code>L</code> não aparece na saída; só avisa o compilador.</dd>
+</dl>
+
+<p>Repare na segunda variável: <code>long visitas = 25;</code> funciona sem <code>L</code>, porque 25 cabe num <code>int</code> e o Java converte sozinho um <code>int</code> para <code>long</code> (um pote menor sempre cabe num maior; veja <a href="conversao-tipos.html">Conversão de Tipos</a>). O <code>L</code> só é <strong>obrigatório</strong> quando o número passa de 2.147.483.647.</p>
+
+<div class="tip">
+<strong>Use <code>L</code> maiúsculo</strong>
+<p>O Java também aceita <code>l</code> minúsculo (<code>25l</code>), mas ele parece o dígito <code>1</code>: <code>25l</code> lê-se facilmente como "251". Use sempre <code>L</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="compila,out:149600000000">
+<p class="try-task"><strong>Missão:</strong> a distância da Terra ao Sol é cerca de 149.600.000.000 metros. O código não compila. Corrija para que ele mostre <code>149600000000</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        long distanciaAoSol = 149600000000;
+        System.out.println(distanciaAoSol);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        long distanciaAoSol = 149600000000L;
+        System.out.println(distanciaAoSol);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>short</code> e <code>byte</code></h2>
+<p>São os potes pequenos. Você pode atribuir a eles um número escrito no código desde que ele <strong>caiba</strong>; o Java confere na compilação:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        short s = 32767;
+        byte b = -128;
+        short s2 = 40000;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: incompatible types: possible lossy conversion from int to short
+        short s2 = 40000;
+                   ^
+1 error</pre>
+
+<p>As linhas 3 e 4 passaram: 32.767 e -128 são exatamente os limites. Já 40.000 não cabe num <code>short</code>, e o Java avisa que guardar esse <code>int</code> ali seria uma "conversão com perda". Em programas do dia a dia você quase não vai usar <code>short</code> e <code>byte</code>; o <code>byte</code> aparece quando se lê arquivos e dados da rede, byte a byte.</p>
+
+<hr>
+
+<h2>Os limites: <code>MAX_VALUE</code> e <code>MIN_VALUE</code></h2>
+<p>Cada tipo tem duas constantes na sua classe embrulho (<a href="wrappers.html">wrapper</a>) com o maior e o menor valor:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Constante</th><th>Valor</th></tr>
+<tr><td><code>Byte.MIN_VALUE</code> / <code>Byte.MAX_VALUE</code></td><td>-128 / 127</td></tr>
+<tr><td><code>Short.MIN_VALUE</code> / <code>Short.MAX_VALUE</code></td><td>-32768 / 32767</td></tr>
+<tr><td><code>Integer.MIN_VALUE</code> / <code>Integer.MAX_VALUE</code></td><td>-2147483648 / 2147483647</td></tr>
+<tr><td><code>Long.MIN_VALUE</code> / <code>Long.MAX_VALUE</code></td><td>-9223372036854775808 / 9223372036854775807</td></tr>
+</table>
+</div>
+
+<p>Repare que a classe do <code>int</code> se chama <code>Integer</code>, não <code>Int</code>. Esses valores foram impressos pelo JDK em <a href="tipos-primitivos.html">Tipos Primitivos</a>.</p>
+
+<hr>
+
+<h2>Overflow: quando o número "dá a volta"</h2>
+<p>O que acontece se você somar 1 ao maior <code>int</code>? Na escrita do código o Java confere os limites, mas durante uma <strong>conta</strong> ele não confere nada. Veja:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int maior = Integer.MAX_VALUE;
+        System.out.println(maior);
+        System.out.println(maior + 1);
+        int menor = Integer.MIN_VALUE;
+        System.out.println(menor - 1);
+        byte b = 127;
+        b++;
+        System.out.println(b);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+2147483647
+-2147483648          « maior + 1 virou o MENOR int
+2147483647           « menor - 1 virou o MAIOR int
+-128                 « 127 + 1 num byte virou -128</pre>
+
+<p>Nenhum erro, nenhum aviso: o programa simplesmente deu a resposta errada. Isso é o <strong>overflow</strong> ("transbordamento"). Pense no <strong>hodômetro</strong> de um carro antigo, com 6 rodinhas: depois de 999.999 km, ele volta para 000.000. O <code>int</code> faz o mesmo, só que a "volta" leva do maior positivo ao menor negativo, por causa do jeito como os negativos são guardados em bits.</p>
+
+<p>A linha <code>b++;</code> soma 1 a <code>b</code> (o <code>++</code> é explicado em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>).</p>
+
+<div class="tryjshell" data-goal="out:-2147483648">
+<p class="try-task"><strong>Missão:</strong> veja o overflow com seus próprios olhos. No JShell, digite <code>Integer.MAX_VALUE + 1</code>. Depois compare com <code>Integer.MAX_VALUE + 1L</code> (com o <code>L</code>, a conta é feita em <code>long</code> e não transborda).</p>
+<pre class="solucao">Integer.MAX_VALUE + 1</pre>
+</div>
+
+<h3>O overflow escondido: conta de <code>int</code> guardada em <code>long</code></h3>
+<p>Este é o caso que engana até programadores experientes. A Ana quer saber quantos microssegundos há num dia e, prevenida, usa um <code>long</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        long microsPorDia = 24 * 60 * 60 * 1000 * 1000;
+        System.out.println(microsPorDia);
+        long certo = 24L * 60 * 60 * 1000 * 1000;
+        System.out.println(certo);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+500654080            « errado!
+86400000000          « certo: 86,4 bilhões</pre>
+
+<p>Por que a primeira deu errado se a variável é <code>long</code>? Porque o Java faz a conta <strong>primeiro</strong> e só depois guarda. Todos os números da conta (<code>24</code>, <code>60</code>, <code>1000</code>) são <code>int</code>, então a conta inteira é feita em <code>int</code>, transborda no caminho, e o resultado já errado é guardado no <code>long</code>. Na segunda linha, o <code>24L</code> faz a conta ser feita em <code>long</code> desde o começo. Essa regra ("o tipo da conta depende dos números envolvidos") se chama <strong>promoção</strong> e está em <a href="conversao-tipos.html">Conversão de Tipos</a>.</p>
+
+<h3>Como se proteger: <code>Math.addExact</code></h3>
+<p>Quando um overflow seria grave (dinheiro, estoque, contagens importantes), o Java oferece métodos que <strong>fazem a conta e conferem</strong>: <code>Math.addExact</code> (somar), <code>Math.subtractExact</code> (subtrair), <code>Math.multiplyExact</code> (multiplicar). Se o resultado não couber, em vez de dar a volta eles param o programa com um erro:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int saldo = 2_000_000_000;
+        int deposito = 500_000_000;
+        System.out.println(saldo + deposito);
+        int total = Math.addExact(saldo, deposito);
+        System.out.println(total);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+-1794967296
+Exception in thread "main" java.lang.ArithmeticException: integer overflow
+	at java.base/java.lang.Math.addExact(Math.java:915)
+	at Main.main(Main.java:6)</pre>
+
+<dl class="anatomy">
+  <dt>Math.addExact</dt><dd>Método da classe <a href="math.html">Math</a> que soma dois números com conferência de overflow (<em>exact</em> = "exato").</dd>
+  <dt>(saldo, deposito)</dt><dd>Os dois números a somar, separados por vírgula.</dd>
+</dl>
+
+<p>A linha 5 mostrou o saldo "negativo" sem reclamar. A linha 6 parou o programa com uma <strong>exceção</strong>: <code>ArithmeticException: integer overflow</code> ("exceção aritmética: overflow de inteiro"). As linhas que começam com <code>at</code> mostram onde aconteceu: dentro de <code>Math.addExact</code>, chamado na linha 6 do <code>Main.java</code>. O <code>println(total)</code> nunca rodou. Parar com erro parece pior, mas é muito melhor do que seguir com um saldo errado. Exceções têm um capítulo inteiro, começando em <a href="excecoes.html">O que são Exceções</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>O que fazer</th></tr>
+<tr><td>Os números nunca chegam perto de 2 bilhões</td><td><code>int</code> e contas normais.</td></tr>
+<tr><td>Podem passar de 2 bilhões</td><td><code>long</code> (e <code>L</code> em pelo menos um número da conta).</td></tr>
+<tr><td>Passar do limite seria um erro grave</td><td><code>Math.addExact</code>, <code>Math.multiplyExact</code>…</td></tr>
+<tr><td>Números sem limite (criptografia, fatorial de 100)</td><td><code>BigInteger</code>, irmão do <a href="bigdecimal.html">BigDecimal</a>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Escrevendo números: sublinhado e outras bases</h2>
+
+<h3>O sublinhado: <code>1_000_000</code></h3>
+<p>Quantos zeros tem <code>1000000000</code>? Difícil de contar. Desde o Java 7 você pode separar os dígitos com <code>_</code> (sublinhado), como faria com os pontos em <code>1.000.000.000</code>. O Java ignora os sublinhados:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int milhao = 1_000_000;
+        long cartao = 1234_5678_9012_3456L;
+        int binario = 0b1010;
+        int hexa = 0xFF;
+        int octal = 010;
+        System.out.println(milhao);
+        System.out.println(cartao);
+        System.out.println(binario);
+        System.out.println(hexa);
+        System.out.println(octal);
+        System.out.println(Integer.toBinaryString(10));
+        System.out.println(Integer.toHexString(255));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+1000000
+1234567890123456
+10
+255
+8                    « 010 NÃO é dez!
+1010
+ff</pre>
+
+<p>O sublinhado só serve para os seus olhos; na saída ele não aparece. Pode ficar entre dígitos, mas não no começo nem no fim do número, nem colado no <code>L</code>.</p>
+
+<h3>Outras bases</h3>
+<p>Normalmente escrevemos números na base 10 (dígitos de 0 a 9). O Java aceita outras três, indicadas por um prefixo:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Prefixo</th><th>Base</th><th>Dígitos</th><th>Exemplo</th><th>Vale</th><th>Onde aparece</th></tr>
+<tr><td>(nenhum)</td><td>10, decimal</td><td>0–9</td><td><code>255</code></td><td>255</td><td>Sempre</td></tr>
+<tr><td><code>0b</code></td><td>2, binário</td><td>0 e 1</td><td><code>0b1010</code></td><td>10</td><td>Bits, permissões, sinais de hardware</td></tr>
+<tr><td><code>0x</code></td><td>16, hexadecimal</td><td>0–9 e A–F</td><td><code>0xFF</code></td><td>255</td><td>Cores (<code>0xFF8800</code>), endereços de memória</td></tr>
+<tr><td><code>0</code></td><td>8, octal</td><td>0–7</td><td><code>010</code></td><td>8</td><td>Quase nunca (permissões de arquivo no Linux)</td></tr>
+</table>
+</div>
+
+<p><code>Integer.toBinaryString(10)</code> e <code>Integer.toHexString(255)</code> fazem o caminho inverso: mostram um número em binário e em hexadecimal.</p>
+
+<div class="warning">
+<strong>A armadilha do zero à esquerda</strong>
+<p>Um zero no começo transforma o número em <strong>octal</strong>: <code>int codigo = 010;</code> guarda <strong>oito</strong>, não dez. E se aparecer um 8 ou 9 depois do zero, nem compila (veja "illegal digit in an octal literal" abaixo). Nunca escreva zeros à esquerda em números; se o zero importa (CEP, código de produto), o dado é texto: <code>String cep = "09010-000";</code>.</p>
+</div>
+
+<hr>
+
+<h2>Divisão de inteiros: sem casas decimais</h2>
+<p>Uma última característica que pega todo iniciante: quando os dois números são inteiros, a divisão também dá um <strong>inteiro</strong>, e a parte decimal é descartada (não arredondada). <code>7 / 2</code> dá <code>3</code>, e <code>-7 / 2</code> dá <code>-3</code>. O resto da divisão é obtido com <code>%</code>: <code>7 % 2</code> dá <code>1</code>. Esse assunto tem explicação completa, com exemplos, em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"integer number too large"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: integer number too large
+        long populacaoMundial = 3000000000;
+                                ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o número escrito no código passa de 2.147.483.647, o limite de um literal <code>int</code>. Acontece mesmo que a variável seja <code>long</code>.</p>
+<p><strong>Como consertar:</strong> coloque <code>L</code> no fim: <code>3000000000L</code>. Se a variável for <code>int</code>, troque também o tipo para <code>long</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"possible lossy conversion from long to int"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        long a = 10;
+        int b = a;
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: possible lossy conversion from long to int
+        int b = a;
+                ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o pote maior (<code>long</code>) não cabe automaticamente no menor (<code>int</code>). O Java não olha o valor guardado (10 caberia); olha só os <strong>tipos</strong>.</p>
+<p><strong>Como consertar:</strong> se você tem certeza de que o valor cabe, peça a conversão explicitamente: <code>int b = (int) a;</code>. Isso é o <em>casting</em>, explicado em <a href="conversao-tipos.html">Conversão de Tipos</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>"illegal digit in an octal literal"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int cep = 09;
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal digit in an octal literal
+        int cep = 09;
+                   ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "dígito ilegal num literal octal". O zero à esquerda fez o Java ler o número em base 8, que não tem o dígito 9.</p>
+<p><strong>Como consertar:</strong> tire o zero (<code>9</code>) ou, se o zero faz parte do dado, use <code>String</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"illegal underscore"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal underscore
+        int x = 100_;
+                   ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o sublinhado está num lugar proibido: no fim do número. Também é proibido antes do <code>L</code> (<code>100_L</code>) e logo depois de <code>0x</code> ou <code>0b</code>. No começo (<code>_100</code>) o erro é outro: o Java acha que é o <strong>nome</strong> de uma variável e responde <code>cannot find symbol</code>.</p>
+<p><strong>Como consertar:</strong> sublinhados só <strong>entre</strong> dígitos: <code>1_000</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Resultado negativo ou absurdo, sem erro nenhum</strong>
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+-1794967296</pre>
+<p><strong>O que aconteceu:</strong> overflow. Uma conta passou do limite do tipo e "deu a volta". O <code>javac</code> e o <code>java</code> não avisam.</p>
+<p><strong>Como consertar:</strong> use <code>long</code> (com <code>L</code> nos números da conta, como <code>24L * 60</code>) ou <code>Math.addExact</code>/<code>Math.multiplyExact</code>, que lançam <code>ArithmeticException: integer overflow</code> em vez de errar em silêncio.</p>
+</div>
+
+<div class="tryjava" data-goal="excecao:ArithmeticException,src:Math\.multiplyExact">
+<p class="try-task"><strong>Missão:</strong> o estoque da loja da Ana tem 50.000 caixas com 50.000 parafusos cada. A conta transborda e mostra um número sem sentido. Troque a multiplicação por <code>Math.multiplyExact(caixas, porCaixa)</code> para que o programa <strong>pare com <code>ArithmeticException</code></strong> em vez de mostrar o valor errado.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int caixas = 50_000;
+        int porCaixa = 50_000;
+        int parafusos = caixas * porCaixa;
+        System.out.println("Parafusos: " + parafusos);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int caixas = 50_000;
+        int porCaixa = 50_000;
+        int parafusos = Math.multiplyExact(caixas, porCaixa);
+        System.out.println("Parafusos: " + parafusos);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th><th>Exemplo</th></tr>
+<tr><td><code>123</code></td><td>Literal <code>int</code> (decimal)</td><td><code>int n = 123;</code></td></tr>
+<tr><td><code>123L</code></td><td>Literal <code>long</code></td><td><code>long n = 8100000000L;</code></td></tr>
+<tr><td><code>1_000_000</code></td><td>Sublinhado para separar dígitos</td><td><code>int milhao = 1_000_000;</code></td></tr>
+<tr><td><code>0b1010</code></td><td>Binário (10)</td><td><code>int flags = 0b1010;</code></td></tr>
+<tr><td><code>0xFF</code></td><td>Hexadecimal (255)</td><td><code>int cor = 0xFF8800;</code></td></tr>
+<tr><td><code>010</code></td><td>Octal (8) — evite</td><td></td></tr>
+<tr><td><code>Integer.MAX_VALUE</code></td><td>Maior <code>int</code>: 2147483647</td><td>Também <code>Long.MAX_VALUE</code>, <code>Short.MAX_VALUE</code>, <code>Byte.MAX_VALUE</code></td></tr>
+<tr><td><code>Integer.MIN_VALUE</code></td><td>Menor <code>int</code>: -2147483648</td><td></td></tr>
+<tr><td><code>Math.addExact(a, b)</code></td><td>Soma com conferência de overflow</td><td>Também <code>subtractExact</code>, <code>multiplyExact</code></td></tr>
+<tr><td><code>Integer.toBinaryString(n)</code></td><td>Texto com <code>n</code> em binário</td><td><code>"1010"</code></td></tr>
+<tr><td><code>Integer.toHexString(n)</code></td><td>Texto com <code>n</code> em hexadecimal</td><td><code>"ff"</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O sufixo</h3>
+<p>Complete para o código compilar:</p>
+<div class="ex-code">long habitantes = 8100000000<input data-answer="L|l" aria-label="sufixo">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O maior int</h3>
+<p>Complete com a constante que guarda o maior <code>int</code>:</p>
+<div class="ex-code">int limite = <input data-answer="Integer.MAX_VALUE" aria-label="constante">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Um milhão legível</h3>
+<p>Escreva o número um milhão usando sublinhados para separar os milhares:</p>
+<div class="ex-code">int premio = <input data-answer="1_000_000" aria-label="número">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>System.out.println(Integer.MAX_VALUE + 1);</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>2147483648</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação.</label>
+<label><input type="radio" name="q4"> <code>-2147483648</code></label>
+<label><input type="radio" name="q4"> <code>ArithmeticException</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Quanto vale <code>int x = 010;</code>?</p>
+<label><input type="radio" name="q5"> 10</label>
+<label><input type="radio" name="q5"> 8</label>
+<label><input type="radio" name="q5"> 2</label>
+<label><input type="radio" name="q5"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que <code>long x = 24 * 60 * 60 * 1000 * 1000;</code> guarda um valor errado?</p>
+<label><input type="radio" name="q6"> A conta é feita em <code>int</code> (todos os números são <code>int</code>) e transborda antes de ser guardada.</label>
+<label><input type="radio" name="q6"> Um <code>long</code> não cabe 86 bilhões.</label>
+<label><input type="radio" name="q6"> Faltou o ponto e vírgula.</label>
+<label><input type="radio" name="q6"> O Java arredonda contas grandes.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Quatro inteiros, do menor ao maior: <code>byte</code> (8 bits), <code>short</code> (16), <code>int</code> (32) e <code>long</code> (64). Use <code>int</code> por padrão e <code>long</code> acima de 2 bilhões.</li>
+  <li>Todo número inteiro escrito no código é <code>int</code>; acima de 2.147.483.647, escreva <code>L</code> no fim, senão: <code>integer number too large</code>.</li>
+  <li><code>Integer.MAX_VALUE</code>, <code>Integer.MIN_VALUE</code> e companhia guardam os limites.</li>
+  <li>Overflow: passar do limite numa conta não dá erro; o número "dá a volta" (<code>MAX_VALUE + 1</code> vira <code>MIN_VALUE</code>).</li>
+  <li><code>Math.addExact</code>/<code>multiplyExact</code> lançam <code>ArithmeticException: integer overflow</code> em vez de errar em silêncio.</li>
+  <li><code>1_000_000</code> é só mais legível. <code>0b</code> = binário, <code>0x</code> = hexadecimal, <code>0</code> à esquerda = octal (cuidado!).</li>
+  <li>Divisão de inteiros descarta a parte decimal: <code>7 / 2</code> é <code>3</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
