@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java LinkedList — lista encadeada, fila e pilha (ArrayDeque) | Guia Java</title>
+<meta name="description" content="LinkedList em Java: lista encadeada, addFirst, addLast, removeFirst, uso como fila (offer, poll, peek), comparação com ArrayList e ArrayDeque como pilha e fila, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">LinkedList</span></h1>
+
+<p class="intro">A <code>LinkedList</code> é a "outra" lista do Java. Ela faz tudo o que a <a href="arraylist.html">ArrayList</a> faz, mas guarda os elementos de um jeito diferente: como vagões de um trem, cada um engatado no próximo. Isso a deixa boa para mexer nas <strong>pontas</strong> (começo e fim) e, por isso, ela também serve de <strong>fila</strong>. Nesta aula você vai vê-la como lista e como fila, entender quando ela ganha (e quando perde) da <code>ArrayList</code>, e conhecer a <code>ArrayDeque</code>, a melhor escolha para filas e pilhas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma lista <strong>encadeada</strong> e como ela difere da <code>ArrayList</code>.</li>
+  <li><code>addFirst</code>, <code>addLast</code>, <code>getFirst</code>, <code>getLast</code>, <code>removeFirst</code>, <code>removeLast</code>.</li>
+  <li>A <code>LinkedList</code> como <strong>fila</strong> (<code>Queue</code>): <code>offer</code>, <code>poll</code>, <code>peek</code>.</li>
+  <li>ArrayList × LinkedList: qual escolher (spoiler: quase sempre <code>ArrayList</code>).</li>
+  <li>A <code>ArrayDeque</code> como <strong>pilha</strong> (<code>push</code>, <code>pop</code>) e como fila.</li>
+  <li>A exceção <code>NoSuchElementException</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: um trem de vagões</h2>
+<p>A <code>ArrayList</code> guarda os elementos lado a lado, numa fileira de cadeiras numeradas. Para achar a cadeira 500, basta ir direto a ela. Mas, para encaixar alguém na cadeira 0, todo mundo precisa levantar e andar uma cadeira para o lado.</p>
+
+<p>A <code>LinkedList</code> guarda cada elemento num "vagão" (o nome técnico é <strong>nó</strong>) que sabe quem é o vagão da frente e o de trás. Daí o nome: <em>linked</em> = ligada, encadeada.</p>
+
+<pre class="syntax">ArrayList:   [ Ana | Bruno | Carla | Duda ]        « fileira numerada: 0, 1, 2, 3
+
+LinkedList:  Ana ⇄ Bruno ⇄ Carla ⇄ Duda             « cada vagão conhece o vizinho
+             ↑ primeiro                ↑ último</pre>
+
+<p>As consequências:</p>
+<ul>
+  <li><strong>Engatar ou soltar um vagão na ponta é instantâneo</strong>: basta mudar dois engates. Ninguém precisa andar.</li>
+  <li><strong>Achar o vagão número 500 é lento</strong>: não há número pintado nos vagões. É preciso começar da ponta e contar um por um.</li>
+</ul>
+
+<hr>
+
+<h2>A LinkedList como lista</h2>
+<p>Tudo o que você aprendeu de <code>List</code> funciona igual: <code>add</code>, <code>get</code>, <code>set</code>, <code>remove</code>, <code>size</code>, <code>contains</code>… Além disso, ela tem métodos próprios para as pontas:</p>
+
+<pre class="file" data-file="Main.java">import java.util.LinkedList;
+
+public class Main {
+    public static void main(String[] args) {
+        LinkedList&lt;String&gt; trem = new LinkedList&lt;&gt;();
+        trem.add("vagão 1");
+        trem.add("vagão 2");
+        System.out.println("Início:        " + trem);
+
+        trem.addFirst("locomotiva");
+        trem.addLast("vagão 3");
+        System.out.println("addFirst/Last: " + trem);
+
+        System.out.println("getFirst(): " + trem.getFirst());
+        System.out.println("getLast():  " + trem.getLast());
+        System.out.println("get(2):     " + trem.get(2));
+
+        String saiu1 = trem.removeFirst();
+        String saiu2 = trem.removeLast();
+        System.out.println("removeFirst tirou " + saiu1 + ", removeLast tirou " + saiu2);
+        System.out.println("Sobrou:        " + trem);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>LinkedList&lt;String&gt; trem</dt><dd>Aqui a variável é do tipo <code>LinkedList</code>, e não <code>List</code>, de propósito: os métodos <code>addFirst</code>, <code>removeFirst</code>… são da <code>LinkedList</code> (vêm da interface <code>Deque</code>, que você vai ver adiante).</dd>
+  <dt>addFirst(x) / addLast(x)</dt><dd>Engata no começo / no fim. <code>addLast</code> é o mesmo que <code>add</code>.</dd>
+  <dt>getFirst() / getLast()</dt><dd>Lê o primeiro / o último, sem tirar.</dd>
+  <dt>removeFirst() / removeLast()</dt><dd>Tira o primeiro / o último e <strong>devolve</strong> quem saiu.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Início:        [vagão 1, vagão 2]
+addFirst/Last: [locomotiva, vagão 1, vagão 2, vagão 3]
+getFirst(): locomotiva
+getLast():  vagão 3
+get(2):     vagão 2                    « funciona, mas conta vagão por vagão
+removeFirst tirou locomotiva, removeLast tirou vagão 3
+Sobrou:        [vagão 1, vagão 2]</pre>
+
+<p>A <code>LinkedList</code> se imprime igual à <code>ArrayList</code>, entre colchetes. Olhando a saída, não dá para saber qual das duas é: a diferença está só em <strong>como</strong> os dados são guardados.</p>
+
+<div class="note">
+<strong><code>getFirst</code> e companhia também existem na ArrayList</strong> <span class="versao">Java 21+</span>
+<p>Desde o Java 21, toda <code>List</code> ganhou <code>getFirst</code>, <code>getLast</code>, <code>addFirst</code>, <code>addLast</code>, <code>removeFirst</code> e <code>removeLast</code> (a novidade se chama <em>sequenced collections</em>). Na <code>ArrayList</code>, porém, <code>addFirst</code> e <code>removeFirst</code> continuam tendo que "arrastar" todo mundo. Em versões anteriores ao 21, só a <code>LinkedList</code> (e a <code>ArrayDeque</code>) têm esses métodos.</p>
+</div>
+
+<hr>
+
+<h2>A LinkedList como fila (<code>Queue</code>)</h2>
+<p>Uma <strong>fila</strong> funciona como a da cantina: quem chega entra no <strong>fim</strong>; quem é atendido sai do <strong>começo</strong>. Em inglês isso se chama <em>FIFO</em>, <em>first in, first out</em> ("o primeiro a entrar é o primeiro a sair"). A interface do Java para filas é a <code>Queue</code> (pronuncia-se "kiú", fila), e a <code>LinkedList</code> é uma das classes que a implementam.</p>
+
+<pre class="file" data-file="Main.java">import java.util.LinkedList;
+import java.util.Queue;
+
+public class Main {
+    public static void main(String[] args) {
+        Queue&lt;String&gt; fila = new LinkedList&lt;&gt;();
+        fila.offer("Ana");
+        fila.offer("Bruno");
+        fila.offer("Carla");
+        System.out.println("Fila: " + fila);
+        System.out.println("Próxima (peek): " + fila.peek());
+
+        while (!fila.isEmpty()) {
+            String pessoa = fila.poll();
+            System.out.println("Atendendo " + pessoa + " | ainda esperam: " + fila);
+        }
+        System.out.println("poll() na fila vazia: " + fila.poll());
+        System.out.println("peek() na fila vazia: " + fila.peek());
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Tradução</th><th>O que faz</th><th>Com a fila vazia</th></tr>
+<tr><td><code>offer(x)</code></td><td>oferecer</td><td>Entra no fim da fila.</td><td>—</td></tr>
+<tr><td><code>peek()</code></td><td>espiar</td><td>Mostra quem é o próximo, <strong>sem tirar</strong>.</td><td>devolve <code>null</code></td></tr>
+<tr><td><code>poll()</code></td><td>"chamar a vez"</td><td>Tira o primeiro da fila e devolve.</td><td>devolve <code>null</code></td></tr>
+</table>
+</div>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Fila: [Ana, Bruno, Carla]
+Próxima (peek): Ana
+Atendendo Ana | ainda esperam: [Bruno, Carla]
+Atendendo Bruno | ainda esperam: [Carla]
+Atendendo Carla | ainda esperam: []
+poll() na fila vazia: null            « fila vazia: null, sem exceção
+peek() na fila vazia: null</pre>
+
+<p>O laço <code>while (!fila.isEmpty())</code> se lê "enquanto a fila <strong>não</strong> estiver vazia": atende um por vez até acabar. Repare que a variável foi declarada como <code>Queue</code>: assim ela só mostra os métodos de fila, e ninguém "fura a fila" com um <code>add(0, …)</code> por engano.</p>
+
+<h3>Cada operação tem duas versões</h3>
+<p>A <code>Queue</code> tem dois métodos para cada operação. A diferença está no que acontece quando não dá certo (por exemplo, fila vazia):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operação</th><th>Lança exceção se falhar</th><th>Devolve um valor especial</th></tr>
+<tr><td>Entrar no fim</td><td><code>add(x)</code></td><td><code>offer(x)</code> (devolve <code>false</code>)</td></tr>
+<tr><td>Tirar o primeiro</td><td><code>remove()</code></td><td><code>poll()</code> (devolve <code>null</code>)</td></tr>
+<tr><td>Ver o primeiro</td><td><code>element()</code></td><td><code>peek()</code> (devolve <code>null</code>)</td></tr>
+</table>
+</div>
+
+<p>Para filas, prefira a coluna da direita (<code>offer</code>, <code>poll</code>, <code>peek</code>): uma fila vazia é uma situação normal, não um erro.</p>
+
+<div class="tryjava" data-goal="out:Atendendo Duda,outre:Ana[\s\S]*Bruno[\s\S]*Carla[\s\S]*Duda,src:poll\(">
+<p class="try-task"><strong>Missão:</strong> a Duda chegou depois da Carla. Coloque-a no fim da fila com <code>offer</code> e escreva um laço que atenda todo mundo com <code>poll()</code>, mostrando <code>Atendendo NOME</code> para cada um, na ordem de chegada.</p>
+<pre class="script">import java.util.LinkedList;
+import java.util.Queue;
+
+public class Main {
+    public static void main(String[] args) {
+        Queue&lt;String&gt; fila = new LinkedList&lt;&gt;();
+        fila.offer("Ana");
+        fila.offer("Bruno");
+        fila.offer("Carla");
+
+        // a Duda chegou
+
+        // atenda todo mundo
+    }
+}
+</pre>
+<pre class="solucao">import java.util.LinkedList;
+import java.util.Queue;
+
+public class Main {
+    public static void main(String[] args) {
+        Queue&lt;String&gt; fila = new LinkedList&lt;&gt;();
+        fila.offer("Ana");
+        fila.offer("Bruno");
+        fila.offer("Carla");
+        fila.offer("Duda");
+
+        while (!fila.isEmpty()) {
+            System.out.println("Atendendo " + fila.poll());
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>ArrayList × LinkedList</h2>
+<p>As duas são <code>List</code>. Qual escolher? Veja o que cada operação custa em cada uma:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operação</th><th><code>ArrayList</code> (fileira)</th><th><code>LinkedList</code> (trem)</th></tr>
+<tr><td><code>get(i)</code> / <code>set(i, x)</code></td><td><strong>Rápido</strong>: vai direto à posição.</td><td>Lento: conta nó por nó desde a ponta mais próxima.</td></tr>
+<tr><td><code>add(x)</code> no fim</td><td><strong>Rápido</strong> (de vez em quando copia o array interno, mas na média é rápido).</td><td><strong>Rápido</strong>.</td></tr>
+<tr><td><code>addFirst</code> / <code>removeFirst</code></td><td>Lento: todos andam uma casa.</td><td><strong>Rápido</strong>: só muda os engates.</td></tr>
+<tr><td><code>add(i, x)</code> / <code>remove(i)</code> no meio</td><td>Lento: arrasta metade da lista (em média).</td><td>Lento também: precisa <strong>achar</strong> a posição i, contando nós.</td></tr>
+<tr><td><code>contains</code> / <code>indexOf</code></td><td>Lento: olha um por um.</td><td>Lento: olha um por um.</td></tr>
+<tr><td>Memória</td><td>Pouca: só os elementos.</td><td>Mais: cada nó guarda o elemento e dois engates.</td></tr>
+</table>
+</div>
+
+<p>Veja a diferença do <code>get(i)</code> na prática. Este programa enche cada lista com 20 mil números e depois lê todos com <code>get(i)</code>, medindo o tempo com <code>System.nanoTime()</code> (o relógio do computador, em nanossegundos):</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+public class Main {
+    static long medir(List&lt;Integer&gt; lista) {
+        for (int i = 0; i &lt; 20_000; i++) {
+            lista.add(i);
+        }
+        long inicio = System.nanoTime();
+        long soma = 0;
+        for (int i = 0; i &lt; lista.size(); i++) {
+            soma += lista.get(i);
+        }
+        return (System.nanoTime() - inicio) / 1_000_000;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("ArrayList,  20 mil get(i): " + medir(new ArrayList&lt;&gt;()) + " ms");
+        System.out.println("LinkedList, 20 mil get(i): " + medir(new LinkedList&lt;&gt;()) + " ms");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+ArrayList,  20 mil get(i): 2 ms
+LinkedList, 20 mil get(i): 247 ms        « mais de 100 vezes mais lento</pre>
+
+<p>Os números mudam de computador para computador e de uma execução para outra, mas a diferença é sempre enorme. Repare que o método <code>medir</code> recebe <code>List&lt;Integer&gt;</code>: graças a <a href="colecoes.html">programar para a interface</a>, o mesmo método serve para as duas.</p>
+
+<div class="tip">
+<strong>Regra prática: quase sempre <code>ArrayList</code></strong>
+<p>Na maioria dos programas, o que mais se faz com uma lista é acrescentar no fim, ler por posição e percorrer, e nisso a <code>ArrayList</code> ganha. Os computadores modernos também são muito rápidos para copiar blocos de memória contínuos, o que diminui a desvantagem dela no meio da lista. Se você precisa de uma <strong>fila</strong> ou <strong>pilha</strong>, a melhor escolha é a <code>ArrayDeque</code>, logo abaixo. A <code>LinkedList</code> fica para quando você precisa, ao mesmo tempo, de uma <code>List</code> e de uma fila de duas pontas, ou de guardar <code>null</code> numa fila.</p>
+</div>
+
+<hr>
+
+<h2><code>ArrayDeque</code>: pilha e fila rápidas</h2>
+<p><code>Deque</code> (pronuncia-se "déc") vem de <em>double-ended queue</em>, "fila de duas pontas": dá para entrar e sair pelos dois lados. A <code>ArrayDeque</code> implementa isso com um array "circular", sem nós: é mais rápida e gasta menos memória do que a <code>LinkedList</code> para esse uso. Com ela você monta tanto uma fila quanto uma <strong>pilha</strong>.</p>
+
+<h3>Pilha: o último a entrar é o primeiro a sair</h3>
+<p>Pense numa pilha de pratos: você põe um prato <strong>em cima</strong> e, quando precisa, tira o de <strong>cima</strong>. Em inglês, <em>LIFO</em> (<em>last in, first out</em>). O exemplo clássico é o "desfazer" (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) de um editor: ele desfaz primeiro a última coisa que você fez.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayDeque;
+import java.util.Deque;
+
+public class Main {
+    public static void main(String[] args) {
+        Deque&lt;String&gt; desfazer = new ArrayDeque&lt;&gt;();
+        desfazer.push("digitou 'Olá'");
+        desfazer.push("apagou uma palavra");
+        desfazer.push("colou um texto");
+        System.out.println("Pilha: " + desfazer);
+        System.out.println("Topo (peek): " + desfazer.peek());
+
+        System.out.println("Ctrl+Z desfaz: " + desfazer.pop());
+        System.out.println("Ctrl+Z desfaz: " + desfazer.pop());
+        System.out.println("Pilha: " + desfazer);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Deque&lt;String&gt; desfazer = new ArrayDeque&lt;&gt;();</dt><dd>A variável é a interface <code>Deque</code>; o objeto, uma <code>ArrayDeque</code>.</dd>
+  <dt>push(x)</dt><dd>"Empurrar": põe <code>x</code> no topo da pilha (na prática, no começo do deque).</dd>
+  <dt>peek()</dt><dd>Olha o topo sem tirar.</dd>
+  <dt>pop()</dt><dd>"Estourar": tira o topo e devolve.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Pilha: [colou um texto, apagou uma palavra, digitou 'Olá']     « o topo aparece primeiro
+Topo (peek): colou um texto
+Ctrl+Z desfaz: colou um texto
+Ctrl+Z desfaz: apagou uma palavra
+Pilha: [digitou 'Olá']</pre>
+
+<p>A ordem impressa é a do topo para o fundo: o último que entrou (<code>colou um texto</code>) aparece primeiro e é o primeiro a sair.</p>
+
+<h3>Fila com as duas pontas</h3>
+<p>A mesma <code>ArrayDeque</code> serve de fila. Com os métodos <code>…First</code>/<code>…Last</code>, você escolhe a ponta:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayDeque;
+import java.util.Deque;
+
+public class Main {
+    public static void main(String[] args) {
+        Deque&lt;String&gt; fila = new ArrayDeque&lt;&gt;();
+        fila.offerLast("Ana");
+        fila.offerLast("Bruno");
+        fila.offerFirst("Dona Zélia (prioridade)");
+        System.out.println("Fila: " + fila);
+        System.out.println("Atende: " + fila.pollFirst());
+        System.out.println("Desistiu do fim: " + fila.pollLast());
+        System.out.println("Fila: " + fila);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Fila: [Dona Zélia (prioridade), Ana, Bruno]     « offerFirst furou a fila (de propósito)
+Atende: Dona Zélia (prioridade)
+Desistiu do fim: Bruno
+Fila: [Ana]</pre>
+
+<h3>Qual usar para fila e pilha?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Declare</th><th>Métodos</th></tr>
+<tr><td>Uma fila simples (FIFO)</td><td><code>Queue&lt;T&gt; f = new ArrayDeque&lt;&gt;();</code></td><td><code>offer</code>, <code>poll</code>, <code>peek</code></td></tr>
+<tr><td>Uma pilha (LIFO)</td><td><code>Deque&lt;T&gt; p = new ArrayDeque&lt;&gt;();</code></td><td><code>push</code>, <code>pop</code>, <code>peek</code></td></tr>
+<tr><td>Entrar e sair pelos dois lados</td><td><code>Deque&lt;T&gt; d = new ArrayDeque&lt;&gt;();</code></td><td><code>offerFirst/Last</code>, <code>pollFirst/Last</code>, <code>peekFirst/Last</code></td></tr>
+<tr><td>Fila que precisa aceitar <code>null</code>, ou que também precisa de <code>get(i)</code></td><td><code>LinkedList</code></td><td>todos acima + os de <code>List</code></td></tr>
+<tr><td>Fila em que sai primeiro o "menor" (por prioridade)</td><td><code>PriorityQueue</code></td><td><code>offer</code>, <code>poll</code> (sai o menor)</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>E a classe <code>Stack</code>?</strong>
+<p>Em código antigo você vai encontrar <code>Stack&lt;T&gt;</code> ("pilha"), com <code>push</code> e <code>pop</code>. Ela ainda funciona, mas é uma classe dos anos 1990, mais lenta (é sincronizada, uma proteção para threads que custa tempo). A própria documentação do Java recomenda usar <code>Deque</code>/<code>ArrayDeque</code> no lugar. Outra diferença: a <code>ArrayDeque</code> <strong>não aceita <code>null</code></strong>: <code>push(null)</code> termina em <code>java.lang.NullPointerException</code>, lançada de dentro de <code>ArrayDeque.addFirst</code>.</p>
+</div>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> troque <code>push</code> por <code>offerLast</code> e <code>pop</code> por <code>pollFirst</code>. A pilha virou fila? O que muda na ordem de saída?</p>
+<pre class="script">import java.util.ArrayDeque;
+import java.util.Deque;
+
+public class Main {
+    public static void main(String[] args) {
+        Deque&lt;Integer&gt; d = new ArrayDeque&lt;&gt;();
+        d.push(1);
+        d.push(2);
+        d.push(3);
+        System.out.println("Deque: " + d);
+        while (!d.isEmpty()) {
+            System.out.println("saiu " + d.pop());
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>NoSuchElementException</code>: tirou de uma pilha vazia</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.ArrayDeque;
+import java.util.Deque;
+
+public class Main {
+    public static void main(String[] args) {
+        Deque&lt;String&gt; pilha = new ArrayDeque&lt;&gt;();
+        pilha.push("único");
+        System.out.println(pilha.pop());
+        System.out.println(pilha.pop());
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+$ java Main
+único
+Exception in thread "main" java.util.NoSuchElementException
+	at java.base/java.util.ArrayDeque.removeFirst(ArrayDeque.java:360)
+	at java.base/java.util.ArrayDeque.pop(ArrayDeque.java:591)
+	at Main.main(Main.java:9)</pre>
+<p><strong>O que quer dizer:</strong> "não existe tal elemento". O primeiro <code>pop</code> tirou o único prato; o segundo tentou tirar de uma pilha vazia. Repare na pilha de chamadas: <code>pop</code> chama <code>removeFirst</code> por dentro. Na <code>LinkedList</code> é igual:</p>
+<pre class="term">$ java Main
+Exception in thread "main" java.util.NoSuchElementException
+	at java.base/java.util.LinkedList.removeFirst(LinkedList.java:282)
+	at Main.main(Main.java:6)</pre>
+<p><strong>Como consertar:</strong> confira antes com <code>isEmpty()</code> (<code>while (!pilha.isEmpty())</code>), ou use os métodos que devolvem <code>null</code> em vez de lançar exceção: <code>poll()</code>, <code>pollFirst()</code>, <code>peek()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … method addFirst" numa variável <code>List</code> (Java 17 ou anterior)</strong>
+<pre class="file" data-file="Main.java">import java.util.LinkedList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; trem = new LinkedList&lt;&gt;();
+        trem.addFirst("locomotiva");
+        System.out.println(trem);
+    }
+}
+</pre>
+<p>A opção <code>--release 17</code> faz o <code>javac</code> do JDK 25 compilar como se fosse o Java 17:</p>
+<pre class="term">$ javac --release 17 Main.java
+Main.java:7: error: cannot find symbol
+        trem.addFirst("locomotiva");
+            ^
+  symbol:   method addFirst(String)
+  location: variable trem of type List&lt;String&gt;
+1 error
+$ javac Main.java &amp;&amp; java Main
+[locomotiva]                     « no Java 21+ compila e funciona</pre>
+<p><strong>O que aconteceu:</strong> o compilador só deixa usar os métodos do <strong>tipo da variável</strong> (<code>List</code>), não os do objeto (<code>LinkedList</code>). Até o Java 17, <code>List</code> não tinha <code>addFirst</code>: "variável trem do tipo List&lt;String&gt;" não tem esse método.</p>
+<p><strong>Como consertar:</strong> declare a variável como <code>Deque&lt;String&gt;</code> (ou <code>LinkedList&lt;String&gt;</code>), ou use <code>add(0, x)</code> e <code>remove(0)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Onde</th><th>O que faz</th><th>Se vazia</th></tr>
+<tr><td><code>addFirst(x)</code> / <code>addLast(x)</code></td><td><code>LinkedList</code>, <code>Deque</code></td><td>Põe no começo / fim</td><td>—</td></tr>
+<tr><td><code>getFirst()</code> / <code>getLast()</code></td><td><code>LinkedList</code>, <code>Deque</code>, <code>List</code> (21+)</td><td>Lê a ponta</td><td><code>NoSuchElementException</code></td></tr>
+<tr><td><code>removeFirst()</code> / <code>removeLast()</code></td><td><code>LinkedList</code>, <code>Deque</code></td><td>Tira a ponta e devolve</td><td><code>NoSuchElementException</code></td></tr>
+<tr><td><code>offer(x)</code></td><td><code>Queue</code></td><td>Entra no fim</td><td>—</td></tr>
+<tr><td><code>poll()</code></td><td><code>Queue</code></td><td>Tira o primeiro</td><td><code>null</code></td></tr>
+<tr><td><code>peek()</code></td><td><code>Queue</code>, <code>Deque</code></td><td>Olha o primeiro / topo</td><td><code>null</code></td></tr>
+<tr><td><code>push(x)</code></td><td><code>Deque</code></td><td>Põe no topo da pilha</td><td>—</td></tr>
+<tr><td><code>pop()</code></td><td><code>Deque</code></td><td>Tira do topo da pilha</td><td><code>NoSuchElementException</code></td></tr>
+<tr><td><code>offerFirst/Last</code>, <code>pollFirst/Last</code>, <code>peekFirst/Last</code></td><td><code>Deque</code></td><td>Fila de duas pontas</td><td><code>poll</code>/<code>peek</code>: <code>null</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Furar a fila</h3>
+<p>Complete para colocar "Dona Zélia" no <strong>começo</strong> da <code>LinkedList</code> chamada <code>fila</code>:</p>
+<div class="ex-code">fila.<input data-answer="addFirst(&quot;Dona Zélia&quot;)|offerFirst(&quot;Dona Zélia&quot;)|add(0, &quot;Dona Zélia&quot;)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Pilha</h3>
+<p>Complete a declaração da pilha recomendada pelo Java:</p>
+<div class="ex-code">Deque&lt;String&gt; pilha = new <input data-answer="ArrayDeque&lt;&gt;()" aria-label="classe">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Numa pilha, a Ana fez <code>push("A")</code>, <code>push("B")</code>, <code>push("C")</code>. O que o primeiro <code>pop()</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>A</code></label>
+<label><input type="radio" name="q3"> <code>C</code></label>
+<label><input type="radio" name="q3"> <code>B</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>poll()</code> devolve numa <code>Queue</code> vazia?</p>
+<label><input type="radio" name="q4"> Lança <code>NoSuchElementException</code></label>
+<label><input type="radio" name="q4"> <code>0</code></label>
+<label><input type="radio" name="q4"> <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. A Ana vai ler milhares de vezes "o aluno da posição i" de uma lista. Qual implementação?</p>
+<label><input type="radio" name="q5"> <code>ArrayList</code></label>
+<label><input type="radio" name="q5"> <code>LinkedList</code></label>
+<label><input type="radio" name="q5"> Tanto faz</label>
+</div>
+
+<div class="tryjava" data-goal="out:avaJ,src:push\(,src:pop\(">
+<p class="try-task"><strong>Missão final:</strong> use uma pilha para <strong>inverter</strong> a palavra "Java". Empilhe cada letra com <code>push</code> e depois desempilhe todas com <code>pop</code>, juntando numa String. A saída deve ser <code>avaJ</code>. (O <code>toCharArray()</code> transforma a String num array de <code>char</code>; veja <a href="metodos-string.html">Métodos de String</a>.)</p>
+<pre class="script">import java.util.ArrayDeque;
+import java.util.Deque;
+
+public class Main {
+    public static void main(String[] args) {
+        String palavra = "Java";
+        Deque&lt;Character&gt; pilha = new ArrayDeque&lt;&gt;();
+        for (char c : palavra.toCharArray()) {
+            // empilhe a letra
+        }
+        String invertida = "";
+        // desempilhe tudo, juntando em invertida
+        System.out.println(invertida);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayDeque;
+import java.util.Deque;
+
+public class Main {
+    public static void main(String[] args) {
+        String palavra = "Java";
+        Deque&lt;Character&gt; pilha = new ArrayDeque&lt;&gt;();
+        for (char c : palavra.toCharArray()) {
+            pilha.push(c);
+        }
+        String invertida = "";
+        while (!pilha.isEmpty()) {
+            invertida += pilha.pop();
+        }
+        System.out.println(invertida);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>A <code>LinkedList</code> guarda os elementos em nós encadeados: rápida nas pontas, lenta para achar uma posição.</li>
+  <li>Métodos das pontas: <code>addFirst</code>, <code>addLast</code>, <code>getFirst</code>, <code>getLast</code>, <code>removeFirst</code>, <code>removeLast</code>.</li>
+  <li>Como fila (<code>Queue</code>): <code>offer</code> entra no fim, <code>poll</code> tira do começo, <code>peek</code> espia; com fila vazia, devolvem <code>null</code>.</li>
+  <li>ArrayList × LinkedList: quase sempre <code>ArrayList</code>; <code>get(i)</code> numa <code>LinkedList</code> é muito mais lento.</li>
+  <li>Para fila e pilha, use <code>ArrayDeque</code>: <code>push</code>/<code>pop</code>/<code>peek</code> (pilha) ou <code>offer</code>/<code>poll</code> (fila). Evite a antiga <code>Stack</code>.</li>
+  <li>Tirar de uma estrutura vazia com <code>pop</code>/<code>removeFirst</code> dá <code>NoSuchElementException</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="hashmap.html">HashMap</a>, para guardar pares chave → valor.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
