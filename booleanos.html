@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Expressões Booleanas — verdadeiro ou falso | Guia Java</title>
+<meta name="description" content="Expressões booleanas em Java: perguntas que respondem true ou false, variáveis boolean com bons nomes, combinar condições com &amp;&amp;, || e !, faixas de valores, curto-circuito contra NullPointerException e Boolean.parseBoolean, com saídas e erros reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Expressões Booleanas</span></h1>
+
+<p class="intro">Todo programa toma decisões: "a aluna foi aprovada?", "a senha está certa?", "é fim de semana?". Antes de decidir, o programa precisa <strong>perguntar</strong>, e a resposta é sempre <code>true</code> (verdadeiro) ou <code>false</code> (falso). Uma pergunta assim, escrita em Java, se chama <strong>expressão booleana</strong>. Esta aula abre a seção "Decisões": tudo o que vem depois (<code>if</code>, ternário, <code>switch</code>) depende dela.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma expressão booleana e onde ela aparece.</li>
+  <li>Como guardar a resposta numa variável <code>boolean</code> com um nome que se lê como uma pergunta.</li>
+  <li>Como combinar perguntas com <code>&amp;&amp;</code> (e), <code>||</code> (ou) e <code>!</code> (não), incluindo faixas como "entre 0 e 10".</li>
+  <li>Como a ordem das perguntas evita uma <code>NullPointerException</code> (curto-circuito).</li>
+  <li>Como transformar o texto <code>"true"</code> em <code>boolean</code> com <code>Boolean.parseBoolean</code>.</li>
+  <li>Os erros que o <code>javac</code> mostra quando a expressão não é booleana.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: perguntas de sim ou não</h2>
+<p>Pense num formulário com caixinhas de marcar: "Maior de 18 anos? ☐", "Possui carteira de motorista? ☐". Cada caixinha só tem dois estados: marcada ou não. Em Java, cada caixinha é um valor <code>boolean</code>, e a <strong>pergunta</strong> que decide se ela fica marcada é uma expressão booleana.</p>
+
+<p>O nome vem de George Boole, matemático inglês do século XIX que criou a "álgebra" do verdadeiro e falso. Você conheceu o tipo <code>boolean</code> em <a href="char-boolean.html">char e boolean</a>, e os operadores que fazem as perguntas em <a href="operadores-comparacao.html">Operadores de Comparação</a> e <a href="operadores-logicos.html">Operadores Lógicos</a>. Aqui vamos juntar tudo para escrever perguntas reais.</p>
+
+<hr>
+
+<h2>Perguntas que viram <code>true</code> ou <code>false</code></h2>
+<p>Qualquer comparação é uma expressão booleana. O Java calcula a resposta, e você pode guardá-la numa variável <code>boolean</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 17;
+        double nota = 8.5;
+        String cidade = "Recife";
+        boolean maiorDeIdade = idade &gt;= 18;
+        boolean aprovada = nota &gt;= 7.0;
+        boolean ehRecife = cidade.equals("Recife");
+        System.out.println(maiorDeIdade);
+        System.out.println(aprovada);
+        System.out.println(ehRecife);
+        System.out.println(idade == 17);
+        System.out.println(10 &gt; 3);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+false    « 17 &gt;= 18? não
+true     « 8.5 &gt;= 7.0? sim
+true     « a cidade é "Recife"? sim
+true     « a pergunta pode ir direto no println
+true</pre>
+
+<dl class="anatomy">
+  <dt>boolean maiorDeIdade</dt><dd>Uma variável que guarda <code>true</code> ou <code>false</code>.</dd>
+  <dt>=</dt><dd>Atribuição: "guarde aqui o resultado da pergunta".</dd>
+  <dt>idade &gt;= 18</dt><dd>A pergunta (a expressão booleana): "a idade é maior ou igual a 18?". O Java a calcula <strong>na hora</strong>, com o valor que <code>idade</code> tem naquele momento.</dd>
+  <dt>cidade.equals("Recife")</dt><dd>Métodos também podem ser perguntas. Todo método que devolve <code>boolean</code> (<code>equals</code>, <code>isEmpty</code>, <code>contains</code>, <code>startsWith</code>…) serve como expressão booleana. Lembre que Strings se comparam com <code>equals</code>, não com <code>==</code> (veja <a href="strings.html">Strings</a>).</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo de pergunta</th><th>Exemplo</th></tr>
+<tr><td>Comparação de números</td><td><code>idade &gt;= 18</code>, <code>nota == 10</code>, <code>saldo &lt; 0</code>, <code>x != 0</code></td></tr>
+<tr><td>Comparação de textos</td><td><code>nome.equals("Ana")</code>, <code>resposta.equalsIgnoreCase("sim")</code></td></tr>
+<tr><td>Método que devolve <code>boolean</code></td><td><code>texto.isBlank()</code>, <code>email.contains("@")</code>, <code>Character.isDigit(c)</code></td></tr>
+<tr><td>Uma variável <code>boolean</code></td><td><code>aprovada</code></td></tr>
+<tr><td>Os valores literais</td><td><code>true</code>, <code>false</code></td></tr>
+<tr><td>Combinações</td><td><code>idade &gt;= 18 &amp;&amp; temCarteira</code></td></tr>
+</table>
+</div>
+
+<h3>Dê nomes que se leem como perguntas</h3>
+<p>Uma variável <code>boolean</code> bem nomeada torna o código quase uma frase em português. Bons padrões: <code>ehMaior</code>, <code>estaAprovada</code>, <code>temDesconto</code>, <code>podeVotar</code>, <code>fimDeSemana</code>. Em inglês, o costume é <code>isActive</code>, <code>hasDiscount</code>, <code>canVote</code>. Evite nomes vagos como <code>flag</code>, <code>teste</code> ou <code>b</code>: daqui a um mês, ninguém vai saber o que <code>true</code> quer dizer ali.</p>
+
+<hr>
+
+<h2>Combinar perguntas: <code>&amp;&amp;</code>, <code>||</code> e <code>!</code></h2>
+<p>Perguntas da vida real raramente são simples. "Pode dirigir?" depende da idade <strong>e</strong> da carteira. "É fim de semana?" é sábado <strong>ou</strong> domingo. Os operadores lógicos juntam perguntas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Lê-se</th><th>É <code>true</code> quando…</th></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>"a <strong>e</strong> b"</td><td>as <strong>duas</strong> são verdadeiras</td></tr>
+<tr><td><code>a || b</code></td><td>"a <strong>ou</strong> b"</td><td><strong>pelo menos uma</strong> é verdadeira</td></tr>
+<tr><td><code>!a</code></td><td>"<strong>não</strong> a"</td><td><code>a</code> é falsa (inverte)</td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        boolean temCarteira = false;
+        boolean podeDirigir = idade &gt;= 18 &amp;&amp; temCarteira;
+        System.out.println("Pode dirigir? " + podeDirigir);
+
+        String dia = "sábado";
+        boolean fimDeSemana = dia.equals("sábado") || dia.equals("domingo");
+        System.out.println("Fim de semana? " + fimDeSemana);
+
+        double nota = 11.0;
+        boolean notaValida = nota &gt;= 0 &amp;&amp; nota &lt;= 10;
+        System.out.println("Nota válida? " + notaValida);
+
+        boolean chovendo = true;
+        boolean levaGuardaChuva = chovendo;
+        boolean vaiAPraia = !chovendo;
+        System.out.println(levaGuardaChuva + " " + vaiAPraia);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Pode dirigir? false      « tem idade, mas não tem carteira: o &amp;&amp; exige as duas
+Fim de semana? true      « é sábado: basta uma para o || dar true
+Nota válida? false       « 11 passa de 10
+true false               « ! inverte: chovendo → não vai à praia</pre>
+
+<h3>Faixas: "entre 0 e 10"</h3>
+<p>Na matemática escrevemos <code>0 ≤ nota ≤ 10</code>. Em Java, isso não funciona (veja "Quando dá errado"): é preciso fazer <strong>duas</strong> perguntas e juntar com <code>&amp;&amp;</code>: <code>nota &gt;= 0 &amp;&amp; nota &lt;= 10</code>. Leia em voz alta: "nota maior ou igual a zero <strong>e</strong> nota menor ou igual a dez".</p>
+
+<p>O contrário, "fora da faixa", usa <code>||</code>: <code>nota &lt; 0 || nota &gt; 10</code> ("menor que zero <strong>ou</strong> maior que dez"). Uma nota não pode ser as duas coisas ao mesmo tempo, então <code>nota &lt; 0 &amp;&amp; nota &gt; 10</code> seria <strong>sempre</strong> <code>false</code>, um erro de lógica comum.</p>
+
+<h3>Inverter uma combinação</h3>
+<p>Quando você coloca um <code>!</code> na frente de uma combinação, o <code>&amp;&amp;</code> vira <code>||</code> e vice-versa (as "leis de De Morgan"):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        boolean a = true;
+        boolean b = false;
+        System.out.println(!(a &amp;&amp; b));
+        System.out.println(!a || !b);
+        System.out.println(!(a || b));
+        System.out.println(!a &amp;&amp; !b);
+        System.out.println(a ^ b);
+        System.out.println(a != b);
+        System.out.println(a == b);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+true     « !(a &amp;&amp; b) …
+true     « … é o mesmo que !a || !b
+false    « !(a || b) …
+false    « … é o mesmo que !a &amp;&amp; !b
+true     « ^ (ou exclusivo): true quando são DIFERENTES
+true     « != entre booleanos faz o mesmo que ^
+false</pre>
+
+<p>Exemplo do dia a dia: "não é (sábado ou domingo)" é o mesmo que "não é sábado <strong>e</strong> não é domingo", ou seja, dia útil. O <code>^</code> (<em>ou exclusivo</em>, "um ou outro, mas não os dois") é raro; <code>a != b</code> diz a mesma coisa de um jeito mais claro.</p>
+
+<div class="tryjava" data-goal="out:Meia-entrada: true,src:\|\|">
+<p class="try-task"><strong>Missão:</strong> no cinema, tem meia-entrada quem tem <strong>menos de 18</strong> anos, <strong>ou</strong> <strong>60 ou mais</strong>, <strong>ou</strong> é estudante. Complete a expressão de <code>meia</code> usando <code>||</code>. Com <code>idade = 65</code>, a saída deve ser <code>Meia-entrada: true</code>. Depois teste com outras idades.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int idade = 65;
+        boolean estudante = false;
+        boolean meia = false; // troque false pela expressão
+        System.out.println("Meia-entrada: " + meia);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int idade = 65;
+        boolean estudante = false;
+        boolean meia = idade &lt; 18 || idade &gt;= 60 || estudante;
+        System.out.println("Meia-entrada: " + meia);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>A ordem importa: curto-circuito</h2>
+<p>O <code>&amp;&amp;</code> e o <code>||</code> são "preguiçosos": avaliam da esquerda para a direita e <strong>param assim que a resposta está decidida</strong>. Num <code>&amp;&amp;</code>, se a primeira pergunta é <code>false</code>, o resultado já é <code>false</code>, e a segunda nem é feita. Num <code>||</code>, se a primeira é <code>true</code>, pronto. Isso se chama <strong>avaliação em curto-circuito</strong>, e é uma proteção valiosa:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = null;
+        boolean temNome = nome != null &amp;&amp; nome.length() &gt; 0;
+        System.out.println(temNome);
+        boolean quebra = nome.length() &gt; 0 &amp;&amp; nome != null;
+        System.out.println(quebra);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+false
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "&lt;local1&gt;" is null
+	at Main.main(Main.java:6)</pre>
+
+<p>As duas linhas fazem as mesmas perguntas, em ordem diferente:</p>
+<ul>
+  <li>Linha 4: <code>nome != null</code> é <code>false</code>, e o <code>&amp;&amp;</code> para ali. O <code>nome.length()</code> nunca roda. Resultado: <code>false</code>, sem erro.</li>
+  <li>Linha 6: <code>nome.length()</code> roda primeiro, com <code>nome</code> valendo <code>null</code>, e derruba o programa (a <code>NullPointerException</code> que você conheceu em <a href="strings.html">Strings</a>).</li>
+</ul>
+<p>Regra: <strong>coloque primeiro a pergunta que protege</strong> ("existe?", "não é zero?") e depois a que depende dela. Outro exemplo clássico: <code>divisor != 0 &amp;&amp; total / divisor &gt; 5</code>.</p>
+
+<hr>
+
+<h2>Validar com várias perguntas</h2>
+<p>Quando a condição fica grande, quebre em variáveis com nomes claros, e junte no fim. Fica muito mais fácil de ler e de achar erros:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String email = "ana@exemplo.com";
+        String senha = "java2026";
+        boolean emailOk = email.contains("@") &amp;&amp; email.endsWith(".com");
+        boolean senhaLonga = senha.length() &gt;= 8;
+        boolean temDigito = Character.isDigit(senha.charAt(senha.length() - 1));
+        boolean cadastroOk = emailOk &amp;&amp; senhaLonga &amp;&amp; temDigito;
+        System.out.println("E-mail ok: " + emailOk);
+        System.out.println("Senha longa: " + senhaLonga);
+        System.out.println("Termina com dígito: " + temDigito);
+        System.out.println("Cadastro ok: " + cadastroOk);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+E-mail ok: true
+Senha longa: true
+Termina com dígito: true
+Cadastro ok: true</pre>
+
+<p><code>Character.isDigit(c)</code> pergunta "este caractere é um dígito?" (veja <a href="char-boolean.html">char e boolean</a>); <code>senha.charAt(senha.length() - 1)</code> é o último caractere (veja <a href="metodos-string.html">Métodos de String</a>). Compare com a versão "tudo numa linha só": <code>email.contains("@") &amp;&amp; email.endsWith(".com") &amp;&amp; senha.length() &gt;= 8 &amp;&amp; Character.isDigit(senha.charAt(senha.length() - 1))</code>. Funciona, mas qual parte falhou quando dá <code>false</code>?</p>
+
+<hr>
+
+<h2>Usar um <code>boolean</code> numa decisão</h2>
+<p>O lugar natural de uma expressão booleana é a condição de um <code>if</code> (assunto da <a href="if-else.html">próxima aula</a>). Um detalhe de estilo: como a variável <strong>já é</strong> <code>true</code> ou <code>false</code>, não precisa compará-la com <code>true</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        boolean aprovado = true;
+        if (aprovado == true) {
+            System.out.println("Parabéns!");
+        }
+        if (aprovado) {
+            System.out.println("Parabéns de novo!");
+        }
+        if (!aprovado) {
+            System.out.println("Não aparece");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Parabéns!
+Parabéns de novo!</pre>
+
+<p><code>if (aprovado == true)</code> e <code>if (aprovado)</code> fazem o mesmo, mas a segunda se lê como português: "se aprovado". Para o contrário, <code>if (!aprovado)</code>: "se não aprovado", em vez de <code>aprovado == false</code>.</p>
+
+<hr>
+
+<h2>Texto para <code>boolean</code>: <code>Boolean.parseBoolean</code></h2>
+<p>Às vezes a resposta chega como <strong>texto</strong>: de um arquivo de configuração, de um <a href="args.html">argumento da linha de comando</a>, do teclado. <code>Boolean.parseBoolean(texto)</code> ("analisar como booleano") transforma em <code>boolean</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Boolean.parseBoolean("true"));
+        System.out.println(Boolean.parseBoolean("TRUE"));
+        System.out.println(Boolean.parseBoolean("True"));
+        System.out.println(Boolean.parseBoolean("sim"));
+        System.out.println(Boolean.parseBoolean("yes"));
+        System.out.println(Boolean.parseBoolean(" true"));
+        System.out.println(Boolean.parseBoolean(null));
+        boolean ativo = true;
+        String texto = String.valueOf(ativo);
+        System.out.println(texto + " tem " + texto.length() + " letras");
+        System.out.println(Boolean.TRUE + " " + Boolean.FALSE);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+true      « "true"
+true      « maiúsculas não importam
+true
+false     « "sim" não é reconhecido
+false     « nem "yes"
+false     « nem com espaço na frente
+false     « null também dá false, sem erro
+true tem 4 letras      « o caminho contrário: boolean para texto
+true false</pre>
+
+<p>A regra é simples e rígida: <strong>só o texto <code>true</code></strong> (em qualquer combinação de maiúsculas) vira <code>true</code>; <strong>todo o resto</strong> vira <code>false</code>, sem erro nenhum. Isso é perigoso: um <code>"ture"</code> digitado errado vira <code>false</code> calado. Se o texto vem de uma pessoa, limpe-o antes (<code>texto.strip()</code>) e, se quiser aceitar "sim", compare você mesmo: <code>resposta.strip().equalsIgnoreCase("sim")</code>.</p>
+
+<p><code>Boolean</code>, com B maiúsculo, é a classe "embrulho" (<em>wrapper</em>) do tipo <code>boolean</code>; ela guarda esses métodos de ajuda. Você vai ver os wrappers em detalhe em <a href="wrappers.html">Wrappers e Autoboxing</a>.</p>
+
+<div class="tryjshell">
+<p class="try-task"><strong>Brinque no JShell:</strong> teste <code>Boolean.parseBoolean("TRUE")</code>, <code>Boolean.parseBoolean("sim")</code>, e crie <code>int idade = 30</code> para perguntar <code>idade &gt;= 18 &amp;&amp; idade &lt; 65</code>. O JShell real responde assim:</p>
+</div>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; Boolean.parseBoolean("TRUE")
+$1 ==&gt; true
+
+jshell&gt; Boolean.parseBoolean("sim")
+$2 ==&gt; false
+
+jshell&gt; int idade = 30
+idade ==&gt; 30
+
+jshell&gt; idade &gt;= 18 &amp;&amp; idade &lt; 65
+$4 ==&gt; true
+
+jshell&gt; /exit
+|  Goodbye</pre>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: incompatible types: int cannot be converted to boolean</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        boolean ligado = 1;
+        System.out.println(ligado);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: int cannot be converted to boolean
+        boolean ligado = 1;
+                         ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> em algumas linguagens (C, Python, JavaScript), 1 vale como verdadeiro e 0 como falso. Em Java, não: <code>boolean</code> só aceita <code>true</code> e <code>false</code>.</p>
+<p><strong>Como resolver:</strong> <code>boolean ligado = true;</code>. Se você tem um número, faça a pergunta: <code>boolean ligado = codigo == 1;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: incompatible types: String cannot be converted to boolean</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        boolean ativo = "true";
+        System.out.println(ativo);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: String cannot be converted to boolean
+        boolean ativo = "true";
+                        ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> com aspas, <code>"true"</code> é um texto, não o valor <code>true</code>.</p>
+<p><strong>Como resolver:</strong> tire as aspas (<code>true</code>) ou, se o texto vem de fora, <code>Boolean.parseBoolean("true")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: bad operand types for binary operator '&lt;='</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int nota = 5;
+        boolean entre = 0 &lt;= nota &lt;= 10;
+        System.out.println(entre);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: bad operand types for binary operator '&lt;='
+        boolean entre = 0 &lt;= nota &lt;= 10;
+                                  ^
+  first type:  boolean
+  second type: int
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o Java faz uma comparação por vez, da esquerda para a direita. <code>0 &lt;= nota</code> virou <code>true</code>; depois tentou <code>true &lt;= 10</code>, comparando um <code>boolean</code> (<code>first type</code>) com um <code>int</code> (<code>second type</code>), o que não existe.</p>
+<p><strong>Como resolver:</strong> duas perguntas ligadas por <code>&amp;&amp;</code>: <code>nota &gt;= 0 &amp;&amp; nota &lt;= 10</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: illegal start of type</code> (pergunta pela metade)</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        boolean ok = idade &gt; 18 &amp; &lt; 65;
+        System.out.println(ok);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: illegal start of type
+        boolean ok = idade &gt; 18 &amp; &lt; 65;
+                                    ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> em português dizemos "idade maior que 18 e menor que 65", sem repetir "idade". Em Java, cada lado do operador precisa de uma pergunta completa. O <code>javac</code> encontrou <code>&lt;</code> onde esperava um valor. (Repare também que foi usado <code>&amp;</code>, um só, em vez de <code>&amp;&amp;</code>; o <code>&amp;</code> sozinho existe, mas não faz curto-circuito.)</p>
+<p><strong>Como resolver:</strong> <code>idade &gt; 18 &amp;&amp; idade &lt; 65</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: ';' expected</code> com <code>and</code> ou <code>or</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        boolean adulto = idade &gt;= 18 and idade &lt; 65;
+        System.out.println(adulto);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: ';' expected
+        boolean adulto = idade &gt;= 18 and idade &lt; 65;
+                                    ^
+Main.java:4: error: ';' expected
+        boolean adulto = idade &gt;= 18 and idade &lt; 65;
+                                              ^
+Main.java:4: error: illegal start of type
+        boolean adulto = idade &gt;= 18 and idade &lt; 65;
+                                                 ^
+3 errors</pre>
+<p><strong>O que aconteceu:</strong> <code>and</code>, <code>or</code> e <code>not</code> são palavras do Python, não do Java. O <code>javac</code> achou que a linha terminava em <code>18</code> e pediu um <code>;</code>.</p>
+<p><strong>Como resolver:</strong> <code>&amp;&amp;</code>, <code>||</code> e <code>!</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException</code> numa condição com <code>&amp;&amp;</code></strong>
+<p><strong>O que aconteceu:</strong> a pergunta que usa o objeto veio antes da que verifica se ele existe: <code>nome.length() &gt; 0 &amp;&amp; nome != null</code>.</p>
+<p><strong>Como resolver:</strong> inverta a ordem: <code>nome != null &amp;&amp; nome.length() &gt; 0</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th><th>Exemplo</th></tr>
+<tr><td><code>boolean b = expr;</code></td><td>Guarda a resposta</td><td><code>boolean maior = idade &gt;= 18;</code></td></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>E (curto-circuito)</td><td><code>idade &gt;= 18 &amp;&amp; temCarteira</code></td></tr>
+<tr><td><code>a || b</code></td><td>Ou (curto-circuito)</td><td><code>dia.equals("sábado") || dia.equals("domingo")</code></td></tr>
+<tr><td><code>!a</code></td><td>Não</td><td><code>!chovendo</code></td></tr>
+<tr><td><code>x &gt;= min &amp;&amp; x &lt;= max</code></td><td>Dentro da faixa</td><td><code>nota &gt;= 0 &amp;&amp; nota &lt;= 10</code></td></tr>
+<tr><td><code>x &lt; min || x &gt; max</code></td><td>Fora da faixa</td><td><code>nota &lt; 0 || nota &gt; 10</code></td></tr>
+<tr><td><code>!(a &amp;&amp; b)</code> = <code>!a || !b</code></td><td>De Morgan</td><td></td></tr>
+<tr><td><code>a != b</code> (ou <code>a ^ b</code>)</td><td>Ou exclusivo</td><td></td></tr>
+<tr><td><code>Boolean.parseBoolean(s)</code></td><td>Texto → <code>boolean</code> (só "true" dá <code>true</code>)</td><td><code>Boolean.parseBoolean("TRUE")</code> → <code>true</code></td></tr>
+<tr><td><code>String.valueOf(b)</code></td><td><code>boolean</code> → texto</td><td><code>String.valueOf(false)</code> → <code>"false"</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Senha válida: false,out:Sem espaço: false,src:&amp;&amp;,src:!senha">
+<p class="try-task"><strong>Missão final:</strong> uma senha é válida se tem <strong>pelo menos 8 caracteres</strong>, <strong>não contém espaço</strong> e <strong>não é igual ao usuário</strong>. Crie as três variáveis <code>boolean</code> e a variável <code>valida</code>, que junta as três. Mostre as quatro, no formato abaixo. Com a senha <code>"ana 2026"</code>, a saída é:<br><code>Tamanho ok: true</code><br><code>Sem espaço: false</code><br><code>Diferente do usuário: true</code><br><code>Senha válida: false</code></p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String usuario = "ana";
+        String senha = "ana 2026";
+        // crie tamanhoOk, semEspaco, diferente e valida
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String usuario = "ana";
+        String senha = "ana 2026";
+        boolean tamanhoOk = senha.length() &gt;= 8;
+        boolean semEspaco = !senha.contains(" ");
+        boolean diferente = !senha.equals(usuario);
+        boolean valida = tamanhoOk &amp;&amp; semEspaco &amp;&amp; diferente;
+        System.out.println("Tamanho ok: " + tamanhoOk);
+        System.out.println("Sem espaço: " + semEspaco);
+        System.out.println("Diferente do usuário: " + diferente);
+        System.out.println("Senha válida: " + valida);
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. Faixa</h3>
+<p>Complete para saber se <code>temperatura</code> está entre 20 e 30 (incluindo os dois):</p>
+<div class="ex-code">boolean agradavel = temperatura &gt;= 20 <input data-answer="&amp;&amp;" aria-label="operador"> temperatura &lt;= 30;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Inverter</h3>
+<p>Complete para que <code>diaUtil</code> seja o contrário de <code>fimDeSemana</code>:</p>
+<div class="ex-code">boolean diaUtil = <input data-answer="!fimDeSemana" aria-label="expressão">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Texto para boolean</h3>
+<p>Quanto vale <code>Boolean.parseBoolean("verdadeiro")</code>?</p>
+<div class="ex-code"><input data-answer="false" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com <code>int x = 15;</code>, quanto vale <code>x &gt; 10 &amp;&amp; x &lt; 12 || x == 15</code>?</p>
+<label><input type="radio" name="q4"> <code>false</code></label>
+<label><input type="radio" name="q4"> Não compila</label>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> <code>15</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual expressão <strong>não</strong> lança exceção quando <code>texto</code> é <code>null</code>?</p>
+<label><input type="radio" name="q5"> <code>texto != null &amp;&amp; texto.isBlank()</code></label>
+<label><input type="radio" name="q5"> <code>texto.isBlank() &amp;&amp; texto != null</code></label>
+<label><input type="radio" name="q5"> <code>texto.isBlank() || texto == null</code></label>
+<label><input type="radio" name="q5"> <code>texto.length() == 0</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Qual expressão é <strong>sempre</strong> <code>false</code>, para qualquer <code>nota</code>?</p>
+<label><input type="radio" name="q6"> <code>nota &lt; 0 || nota &gt; 10</code></label>
+<label><input type="radio" name="q6"> <code>nota &gt;= 0 &amp;&amp; nota &lt;= 10</code></label>
+<label><input type="radio" name="q6"> <code>nota == 5 || nota != 5</code></label>
+<label><input type="radio" name="q6"> <code>nota &lt; 0 &amp;&amp; nota &gt; 10</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma expressão booleana é uma pergunta cuja resposta é <code>true</code> ou <code>false</code>: comparações, métodos como <code>equals</code> e <code>isEmpty</code>, variáveis <code>boolean</code>.</li>
+  <li>Dê às variáveis <code>boolean</code> nomes que se leem como perguntas: <code>podeVotar</code>, <code>temDesconto</code>.</li>
+  <li><code>&amp;&amp;</code> exige as duas; <code>||</code> basta uma; <code>!</code> inverte. Faixa: <code>x &gt;= min &amp;&amp; x &lt;= max</code> (nunca <code>min &lt;= x &lt;= max</code>).</li>
+  <li><code>&amp;&amp;</code> e <code>||</code> param assim que sabem a resposta (curto-circuito): ponha primeiro a pergunta que protege, como <code>nome != null</code>.</li>
+  <li>Use <code>if (aprovado)</code> e <code>if (!aprovado)</code>, sem <code>== true</code>.</li>
+  <li><code>Boolean.parseBoolean</code> só reconhece <code>"true"</code> (qualquer caixa); todo o resto vira <code>false</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
