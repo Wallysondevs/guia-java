@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java POO — o que é programação orientada a objetos | Guia Java</title>
+<meta name="description" content="O que é programação orientada a objetos em Java: classe como molde e objeto como cada coisa criada a partir dele, estado e comportamento, e a ideia dos 4 pilares (encapsulamento, herança, polimorfismo e abstração), com o exemplo da classe Aluno.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">O que é POO</span></h1>
+
+<p class="intro">Java é uma linguagem <strong>orientada a objetos</strong>. Isso quer dizer que os programas são organizados em torno de "coisas" do mundo do problema (alunos, contas, produtos, pedidos), cada uma com os seus dados e as suas ações. Esta aula apresenta a ideia, sem pressa; as próximas ensinam cada peça em detalhe.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que problema a <strong>programação orientada a objetos</strong> (POO) resolve.</li>
+  <li>A diferença entre <strong>classe</strong> (o molde) e <strong>objeto</strong> (cada coisa feita com o molde).</li>
+  <li>O que são <strong>estado</strong> (os dados de um objeto) e <strong>comportamento</strong> (o que ele sabe fazer).</li>
+  <li>Que você já usa objetos desde o Nível 1 (<code>String</code>, <code>Scanner</code>).</li>
+  <li>A ideia dos <strong>quatro pilares</strong>: encapsulamento, herança, polimorfismo e abstração.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O problema: dados espalhados</h2>
+<p>A Ana quer guardar, para cada aluno, o nome e duas notas, e calcular a média. Com o que você aprendeu até aqui (<a href="arrays.html">arrays</a> e <a href="metodos.html">métodos</a>), a solução natural é usar um array para cada informação:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] nomes = {"Bruno", "Carla", "Davi"};
+        double[] notas1 = {8.0, 9.5, 5.0};
+        double[] notas2 = {7.0, 9.0, 6.0};
+
+        for (int i = 0; i &lt; nomes.length; i++) {
+            double media = (notas1[i] + notas2[i]) / 2;
+            System.out.println(nomes[i] + ": média " + media);
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Bruno: média 7.5
+Carla: média 9.25
+Davi: média 5.5</pre>
+
+<p>Funciona. Mas repare como as informações de um aluno estão <strong>espalhadas</strong>: o nome do Bruno está em <code>nomes[0]</code>, as notas dele em <code>notas1[0]</code> e <code>notas2[0]</code>. Nada no código diz que essas três posições formam "o Bruno"; é só um combinado de que o índice 0 de cada array é a mesma pessoa. Agora imagine:</p>
+<ul>
+  <li>A Ana acrescenta e-mail, telefone, turma e faltas: são sete arrays andando juntos.</li>
+  <li>Ela ordena os nomes em ordem alfabética, mas esquece de reordenar as notas: o Bruno fica com as notas da Carla, sem nenhum erro na tela.</li>
+  <li>Ela quer um método <code>mostrarAluno</code>: precisa passar o índice e todos os arrays como parâmetros.</li>
+</ul>
+<p>O que falta é um jeito de dizer ao Java: "um aluno é uma <strong>coisa só</strong>, que tem nome, nota1 e nota2, e sabe calcular a própria média". É exatamente isso que a orientação a objetos oferece.</p>
+
+<hr>
+
+<h2>A ideia: classe é o molde, objeto é o que sai dele</h2>
+<p>Pense na secretaria da escola da Ana. Existe uma <strong>ficha de matrícula em branco</strong>, impressa igual para todo mundo, com os campos "Nome", "Nota 1" e "Nota 2". Cada aluno que se matricula recebe <strong>uma ficha preenchida</strong>, com os seus dados.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na secretaria</th><th>Em Java</th><th>No exemplo</th></tr>
+<tr><td>O modelo da ficha (em branco)</td><td><strong>Classe</strong></td><td><code>Aluno</code></td></tr>
+<tr><td>Os campos da ficha</td><td><strong>Atributos</strong> (ou campos)</td><td><code>nome</code>, <code>nota1</code>, <code>nota2</code></td></tr>
+<tr><td>Uma ficha preenchida</td><td><strong>Objeto</strong> (ou <strong>instância</strong>)</td><td>o aluno Bruno, a aluna Carla</td></tr>
+<tr><td>"Imprimir uma ficha nova"</td><td>Criar um objeto com <code>new</code></td><td><code>new Aluno()</code></td></tr>
+<tr><td>O que a ficha "sabe fazer" (calcular a média do aluno)</td><td><strong>Métodos</strong></td><td><code>media()</code></td></tr>
+</table>
+</div>
+
+<p>Outra comparação muito usada: a <strong>forma de biscoito</strong> é a classe; cada <strong>biscoito</strong> é um objeto. A forma define o formato de todos, mas cada biscoito é um biscoito diferente, que pode ter cobertura diferente. E a forma não se come: você não usa a classe diretamente, usa os objetos criados com ela.</p>
+
+<p>Em código, a classe <code>Aluno</code> e dois objetos dela ficam assim:</p>
+
+<pre class="file" data-file="Main.java">class Aluno {
+    String nome;
+    double nota1;
+    double nota2;
+
+    double media() {
+        return (nota1 + nota2) / 2;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno bruno = new Aluno();
+        bruno.nome = "Bruno";
+        bruno.nota1 = 8.0;
+        bruno.nota2 = 7.0;
+
+        Aluno carla = new Aluno();
+        carla.nome = "Carla";
+        carla.nota1 = 9.5;
+        carla.nota2 = 9.0;
+
+        System.out.println(bruno.nome + ": média " + bruno.media());
+        System.out.println(carla.nome + ": média " + carla.media());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Bruno: média 7.5
+Carla: média 9.25
+$ ls
+Aluno.class  Main.class  Main.java        « o javac gerou um .class para cada classe</pre>
+
+<p>Você vai estudar cada linha nas próximas aulas. Por enquanto, uma leitura geral:</p>
+
+<dl class="anatomy">
+  <dt>class Aluno { … }</dt><dd>Declara a <strong>classe</strong> <code>Aluno</code>: o molde. Ela fica no mesmo arquivo, antes da <code>Main</code>; em <a href="classes-objetos.html">Classes e Objetos</a> você verá como separá-la em outro arquivo.</dd>
+  <dt>String nome; double nota1; double nota2;</dt><dd>Os <strong>atributos</strong>: o que todo aluno tem. São variáveis declaradas na classe, fora dos métodos, e <strong>sem</strong> <code>static</code> (veja <a href="atributos.html">Atributos</a>).</dd>
+  <dt>double media() { … }</dt><dd>Um <strong>método</strong> do aluno, também sem <code>static</code>. Ele usa <code>nota1</code> e <code>nota2</code> do próprio aluno (veja <a href="metodos-objeto.html">Métodos de Objeto</a>).</dd>
+  <dt>Aluno bruno = new Aluno();</dt><dd>Cria um <strong>objeto</strong> novo da classe <code>Aluno</code> (uma ficha em branco) e guarda-o na variável <code>bruno</code>. O tipo da variável é a própria classe.</dd>
+  <dt>bruno.nome = "Bruno";</dt><dd>O <strong>ponto</strong> quer dizer "de": "o nome <strong>do</strong> bruno recebe Bruno". Preenche um campo da ficha.</dd>
+  <dt>bruno.media()</dt><dd>Pede ao objeto <code>bruno</code> que calcule a média <strong>dele</strong>. A mesma chamada em <code>carla</code> usa as notas da Carla.</dd>
+</dl>
+
+<p>Agora tudo o que é do Bruno está junto, dentro de um objeto só. Não há índice para combinar, nem arrays para manter em ordem.</p>
+
+<div class="tryjava" data-goal="out:Davi: média 5.5,src:new\s+Aluno\s*\(\s*\)">
+<p class="try-task"><strong>Missão:</strong> crie um terceiro aluno, <code>davi</code>, com notas 5.0 e 6.0, e mostre a média dele no mesmo formato: <code>Davi: média 5.5</code>. Siga o modelo do Bruno.</p>
+<pre class="script">class Aluno {
+    String nome;
+    double nota1;
+    double nota2;
+
+    double media() {
+        return (nota1 + nota2) / 2;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno bruno = new Aluno();
+        bruno.nome = "Bruno";
+        bruno.nota1 = 8.0;
+        bruno.nota2 = 7.0;
+
+        System.out.println(bruno.nome + ": média " + bruno.media());
+    }
+}
+</pre>
+<pre class="solucao">class Aluno {
+    String nome;
+    double nota1;
+    double nota2;
+
+    double media() {
+        return (nota1 + nota2) / 2;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno bruno = new Aluno();
+        bruno.nome = "Bruno";
+        bruno.nota1 = 8.0;
+        bruno.nota2 = 7.0;
+
+        Aluno davi = new Aluno();
+        davi.nome = "Davi";
+        davi.nota1 = 5.0;
+        davi.nota2 = 6.0;
+
+        System.out.println(bruno.nome + ": média " + bruno.media());
+        System.out.println(davi.nome + ": média " + davi.media());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Estado e comportamento</h2>
+<p>Todo objeto tem duas coisas:</p>
+<ul>
+  <li><strong>Estado</strong>: o que ele <strong>é</strong> ou <strong>tem</strong> agora. São os valores dos atributos. O estado do Bruno é "nome Bruno, nota1 8.0, nota2 7.0". Se a Ana corrige uma nota, o estado muda.</li>
+  <li><strong>Comportamento</strong>: o que ele <strong>sabe fazer</strong>. São os métodos. Todo aluno sabe calcular a sua média.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Coisa</th><th>Estado (atributos)</th><th>Comportamento (métodos)</th></tr>
+<tr><td>Aluno</td><td>nome, notas, turma</td><td>calcular a média, dizer se foi aprovado</td></tr>
+<tr><td>Conta bancária</td><td>titular, saldo</td><td>depositar, sacar, mostrar extrato</td></tr>
+<tr><td>Fruta da loja da Ana</td><td>nome, preço, estoque</td><td>aplicar desconto, vender uma unidade</td></tr>
+<tr><td>Lâmpada</td><td>ligada ou desligada, potência</td><td>ligar, desligar</td></tr>
+</table>
+</div>
+
+<p>Uma dica para descobrir as classes de um problema: os <strong>substantivos</strong> (aluno, conta, fruta) costumam virar classes; as <strong>características</strong> deles viram atributos; os <strong>verbos</strong> (depositar, vender) viram métodos.</p>
+
+<hr>
+
+<h2>Você já usa objetos</h2>
+<p>Desde o Nível 1, toda <code>String</code> é um objeto. A classe <code>String</code> foi escrita pelos criadores do Java; cada texto que você cria é um objeto dela, com o seu próprio estado (as letras) e os métodos da classe:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String fruta = "banana";
+        String outra = "maçã";
+        System.out.println(fruta.length());
+        System.out.println(outra.length());
+        System.out.println(fruta.toUpperCase());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+6          « o comportamento length() aplicado ao estado "banana"
+4          « o mesmo método, outro objeto, outro resultado
+BANANA</pre>
+
+<p>É a mesma estrutura do <code>bruno.media()</code>: <code>objeto.metodo()</code>. O <code>Scanner</code> de <a href="scanner.html">Ler do Teclado</a> também: <code>new Scanner(System.in)</code> cria um objeto, e <code>teclado.nextInt()</code> chama um método dele. A diferença, a partir de agora, é que você vai escrever as suas próprias classes.</p>
+
+<hr>
+
+<h2>Programar "com procedimentos" × "com objetos"</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Procedural (o que você fez até aqui)</th><th>Orientado a objetos</th></tr>
+<tr><td>Organização</td><td>Dados de um lado (variáveis, arrays), funções do outro (métodos <code>static</code>)</td><td>Dados e as ações sobre eles juntos, dentro de cada objeto</td></tr>
+<tr><td>Pergunta que guia</td><td>"Quais passos o programa executa?"</td><td>"Quais coisas existem e o que cada uma faz?"</td></tr>
+<tr><td>Chamada típica</td><td><code>media(notas1[i], notas2[i])</code></td><td><code>aluno.media()</code></td></tr>
+<tr><td>Bom para</td><td>Programas pequenos, scripts, cálculos</td><td>Sistemas que crescem, com muitas "coisas" diferentes</td></tr>
+</table>
+</div>
+<p>Uma não substitui a outra: dentro dos métodos de um objeto você continua usando <code>if</code>, laços e variáveis do jeito que aprendeu. A POO é uma forma de <strong>organizar</strong> o programa em partes maiores.</p>
+
+<hr>
+
+<h2>Os quatro pilares (só a ideia)</h2>
+<p>Quatro ideias sustentam a orientação a objetos. Você não precisa dominá-las agora: cada uma tem a sua aula. O importante é saber que existem e reconhecer os nomes.</p>
+
+<h3>1. Encapsulamento: esconder os detalhes</h3>
+<p>O objeto protege os seus dados e só deixa mexer neles pelos métodos que ele oferece. Pense no caixa eletrônico: você não abre o cofre e pega o dinheiro; você pede um saque, e a máquina confere o saldo antes. Em Java, isso se faz com <code>private</code> e métodos <em>get</em>/<em>set</em>. Aulas: <a href="modificadores.html">Modificadores de Acesso</a> e <a href="encapsulamento.html">Encapsulamento</a>.</p>
+
+<h3>2. Herança: aproveitar uma classe para criar outra</h3>
+<p>Uma classe pode <strong>herdar</strong> tudo de outra e acrescentar o que é seu. Um <code>AlunoBolsista</code> é um <code>Aluno</code> com um campo a mais, o valor da bolsa; não é preciso reescrever nome, notas e média. Aula: <a href="heranca.html">Herança</a>.</p>
+
+<h3>3. Polimorfismo: a mesma mensagem, respostas diferentes</h3>
+<p>"Poli" = muitas, "morfo" = formas. Objetos diferentes podem responder ao mesmo pedido cada um do seu jeito. Se a loja da Ana pede <code>calcularPreco()</code> a uma fruta vendida por quilo e a uma vendida por unidade, cada uma calcula à sua maneira, e quem pediu não precisa saber qual é qual. Aula: <a href="polimorfismo.html">Polimorfismo</a>.</p>
+
+<h3>4. Abstração: ficar só com o que importa</h3>
+<p>Um modelo nunca copia a realidade inteira: ele escolhe o que é relevante para o programa. Para a secretaria, um aluno tem nome e notas; a cor do cabelo dele não interessa. A abstração também aparece como "contratos" que dizem <strong>o que</strong> fazer sem dizer <strong>como</strong>. Aulas: <a href="abstratas.html">Classes Abstratas</a> e <a href="interfaces.html">Interfaces</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pilar</th><th>Em uma frase</th><th>Palavras do Java</th><th>Aula</th></tr>
+<tr><td>Encapsulamento</td><td>Esconder os dados e expor ações seguras</td><td><code>private</code>, <code>public</code>, get/set</td><td><a href="encapsulamento.html">Encapsulamento</a></td></tr>
+<tr><td>Herança</td><td>Uma classe reaproveita outra e acrescenta</td><td><code>extends</code>, <code>super</code></td><td><a href="heranca.html">Herança</a></td></tr>
+<tr><td>Polimorfismo</td><td>Mesmo pedido, comportamento conforme o objeto</td><td><code>@Override</code></td><td><a href="polimorfismo.html">Polimorfismo</a></td></tr>
+<tr><td>Abstração</td><td>Modelar só o essencial; contratos sem detalhes</td><td><code>abstract</code>, <code>interface</code></td><td><a href="abstratas.html">Classes Abstratas</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Vocabulário</h2>
+<p>Você vai ver estes termos em livros, vagas de emprego e documentação. Vários são sinônimos:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo</th><th>Significado</th><th>Também chamado</th></tr>
+<tr><td>Classe</td><td>O molde, a descrição de um tipo de coisa</td><td>tipo</td></tr>
+<tr><td>Objeto</td><td>Uma coisa concreta criada a partir da classe</td><td>instância</td></tr>
+<tr><td>Instanciar</td><td>Criar um objeto (<code>new Aluno()</code>)</td><td>criar uma instância</td></tr>
+<tr><td>Atributo</td><td>Variável declarada na classe, que cada objeto tem</td><td>campo, propriedade, variável de instância (<em>field</em>)</td></tr>
+<tr><td>Método</td><td>Ação que o objeto sabe fazer</td><td>comportamento, operação</td></tr>
+<tr><td>Estado</td><td>Os valores atuais dos atributos de um objeto</td><td></td></tr>
+<tr><td>Referência</td><td>O "endereço" de um objeto, guardado numa variável</td><td>veja <a href="classes-objetos.html">Classes e Objetos</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+<p>Os primeiros erros com objetos quase sempre vêm de confundir a <strong>classe</strong> (o molde) com um <strong>objeto</strong> (uma ficha preenchida).</p>
+
+<div class="cenario">
+<strong>Usar a classe no lugar do objeto: "non-static … cannot be referenced from a static context"</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">class Aluno {
+    String nome;
+    double nota1;
+    double nota2;
+
+    double media() {
+        return (nota1 + nota2) / 2;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno.nome = "Bruno";
+        System.out.println(Aluno.media());
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:13: error: non-static variable nome cannot be referenced from a static context
+        Aluno.nome = "Bruno";
+             ^
+Main.java:14: error: non-static method media() cannot be referenced from a static context
+        System.out.println(Aluno.media());
+                                ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> <code>Aluno.nome</code> é como escrever o nome na ficha <strong>em branco</strong>, o modelo. O Java pergunta: o nome de qual aluno? Atributos e métodos sem <code>static</code> pertencem a cada objeto, não à classe.</p>
+<p><strong>Como resolver:</strong> crie um objeto e use a variável dele: <code>Aluno bruno = new Aluno(); bruno.nome = "Bruno";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esquecer o <code>new</code>: "cannot find symbol … method Aluno()"</strong>
+<pre class="term">$ javac Main.java
+Main.java:7: error: cannot find symbol
+        Aluno bruno = Aluno();
+                      ^
+  symbol:   method Aluno()
+  location: class Main
+1 error</pre>
+<p><strong>O que aconteceu:</strong> sem o <code>new</code>, <code>Aluno()</code> parece a chamada de um <strong>método</strong> chamado <code>Aluno</code>, que não existe.</p>
+<p><strong>Como resolver:</strong> <code>Aluno bruno = new Aluno();</code>. O <code>new</code> é o que cria o objeto.</p>
+</div>
+
+<div class="cenario">
+<strong>Duas classes <code>public</code> no mesmo arquivo</strong>
+<pre class="term">$ javac Main.java
+Main.java:1: error: class Aluno is public, should be declared in a file named Aluno.java
+public class Aluno {
+       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> num arquivo <code>.java</code>, só uma classe pode ser <code>public</code>, e ela precisa ter o mesmo nome do arquivo. Aqui, <code>Main.java</code> tinha <code>public class Aluno</code> e <code>public class Main</code>.</p>
+<p><strong>Como resolver:</strong> tire o <code>public</code> de <code>Aluno</code> (como nos exemplos desta aula) ou mova a classe para um arquivo <code>Aluno.java</code>. As duas formas estão em <a href="classes-objetos.html">Classes e Objetos</a>.</p>
+</div>
+
+<hr>
+
+<h2>Missão final: a classe Fruta</h2>
+<div class="tryjava" data-goal="out:maçã: R$ 7.9,out:banana: R$ 3.5,src:new\s+Fruta\s*\(\s*\)[\s\S]*new\s+Fruta\s*\(\s*\)">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Fruta</code> já está pronta, com os atributos <code>nome</code> e <code>preco</code> e o método <code>mostrar()</code>. No <code>main</code>, crie <strong>dois</strong> objetos: uma maçã de 7.9 e uma banana de 3.5, e chame <code>mostrar()</code> em cada um.</p>
+<pre class="script">class Fruta {
+    String nome;
+    double preco;
+
+    void mostrar() {
+        System.out.println(nome + ": R$ " + preco);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        // crie a maçã e a banana aqui
+
+    }
+}
+</pre>
+<pre class="solucao">class Fruta {
+    String nome;
+    double preco;
+
+    void mostrar() {
+        System.out.println(nome + ": R$ " + preco);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta();
+        maca.nome = "maçã";
+        maca.preco = 7.9;
+
+        Fruta banana = new Fruta();
+        banana.nome = "banana";
+        banana.preco = 3.5;
+
+        maca.mostrar();
+        banana.mostrar();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Molde ou coisa?</h3>
+<p>Como se chama o "molde" que descreve como são todos os alunos?</p>
+<div class="ex-code"><input data-answer="classe|class|Classe" aria-label="termo"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Criar um objeto</h3>
+<p>Complete para criar um novo objeto da classe <code>Conta</code>:</p>
+<div class="ex-code">Conta minha = <input data-answer="new Conta()" aria-label="criação">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Os dados do objeto</h3>
+<p>Como se chama o conjunto dos valores atuais dos atributos de um objeto?</p>
+<div class="ex-code"><input data-answer="estado|Estado|o estado" aria-label="termo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Na loja da Ana, "fruta" tem nome e preço e sabe aplicar desconto. O que é "aplicar desconto"?</p>
+<label><input type="radio" name="q4"> Uma classe.</label>
+<label><input type="radio" name="q4"> Um atributo.</label>
+<label><input type="radio" name="q4"> Um comportamento (método).</label>
+<label><input type="radio" name="q4"> Um objeto.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Quantos objetos <code>Aluno</code> existem depois de <code>Aluno a = new Aluno(); Aluno b = new Aluno(); Aluno c = new Aluno();</code>?</p>
+<label><input type="radio" name="q5"> 1</label>
+<label><input type="radio" name="q5"> 3</label>
+<label><input type="radio" name="q5"> 0: classes não criam objetos.</label>
+<label><input type="radio" name="q5"> 4, contando a classe.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual pilar da POO descreve "um <code>AlunoBolsista</code> aproveita tudo de <code>Aluno</code> e acrescenta a bolsa"?</p>
+<label><input type="radio" name="q6"> Herança</label>
+<label><input type="radio" name="q6"> Encapsulamento</label>
+<label><input type="radio" name="q6"> Polimorfismo</label>
+<label><input type="radio" name="q6"> Recursão</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>A <strong>POO</strong> organiza o programa em objetos que juntam dados e ações, em vez de dados espalhados em arrays paralelos.</li>
+  <li><strong>Classe</strong> = o molde (a ficha em branco). <strong>Objeto</strong> = cada coisa criada com ele, com <code>new</code> (cada ficha preenchida).</li>
+  <li><strong>Estado</strong> = os valores dos atributos; <strong>comportamento</strong> = os métodos.</li>
+  <li>O ponto liga o objeto ao que é dele: <code>bruno.nome</code>, <code>bruno.media()</code>. Você já fazia isso com <code>texto.length()</code>.</li>
+  <li>Os quatro pilares: <strong>encapsulamento</strong> (esconder), <strong>herança</strong> (reaproveitar), <strong>polimorfismo</strong> (cada um responde do seu jeito), <strong>abstração</strong> (só o essencial).</li>
+  <li>Próximo passo: <a href="classes-objetos.html">Classes e Objetos</a>, onde você cria classes e objetos linha por linha.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
