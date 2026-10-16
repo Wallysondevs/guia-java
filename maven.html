@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Maven — projeto, pom.xml, dependências e build | Guia Java</title>
+<meta name="description" content="Maven do zero: o que é, mvn archetype:generate, o pom.xml mínimo para Java 25 explicado linha por linha, src/main/java, mvn compile, test, package, a pasta target, o repositório ~/.m2, adicionar uma dependência e os erros reais BUILD FAILURE.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Maven</span></h1>
+
+<p class="intro">Na aula de <a href="jar.html">JAR</a>, a Ana compilou, montou o classpath e criou o JAR à mão, com vários comandos. Num projeto de verdade, com dezenas de classes, testes e bibliotecas, isso vira um pesadelo. O <strong>Maven</strong> é a ferramenta que faz todo esse trabalho com um comando: <code>mvn package</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o Maven e quais problemas ele resolve (dependências e build padronizado).</li>
+  <li>Criar um projeto com <code>mvn archetype:generate</code> e, também, escrevendo o <code>pom.xml</code> à mão.</li>
+  <li>O <code>pom.xml</code> mínimo para Java 25, linha por linha.</li>
+  <li>A estrutura de pastas padrão (<code>src/main/java</code>, <code>src/test/java</code>).</li>
+  <li><code>mvn compile</code>, <code>mvn test</code>, <code>mvn package</code>, <code>mvn clean</code> e a pasta <code>target/</code>.</li>
+  <li>O repositório local <code>~/.m2/repository</code> e como adicionar uma biblioteca.</li>
+  <li>Ler um <code>BUILD FAILURE</code>: erro de compilação, dependência inexistente, pasta errada.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam na máquina fictícia da Ana, com <strong>Maven 3.10.0</strong> e <strong>JDK 25</strong>. As saídas do Maven são longas; quando um trecho for repetitivo (como centenas de linhas de download), ele aparece encurtado com <code>…</code> e um aviso.</p>
+
+<hr>
+
+<h2>A ideia: uma receita de bolo que a cozinha entende</h2>
+<p>Pense numa padaria. Cada confeiteiro tinha o seu jeito de organizar a cozinha, e cada receita dizia "pegue a farinha no armário da esquerda, depois ligue o forno…". Quando alguém novo chegava, levava dias para entender a cozinha do outro.</p>
+<p>O Maven é uma cozinha <strong>padronizada</strong>: a farinha está sempre no mesmo lugar, o forno sempre liga do mesmo jeito. A sua receita (o arquivo <code>pom.xml</code>) só precisa dizer <strong>o que é diferente</strong> no seu bolo: o nome, a versão, os ingredientes comprados prontos (as <strong>dependências</strong>). Isso tem até nome: <em>convention over configuration</em>, "convenção em vez de configuração".</p>
+
+<p>O Maven resolve dois problemas:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Problema</th><th>Sem Maven</th><th>Com Maven</th></tr>
+<tr><td><strong>Dependências</strong> (bibliotecas de outras pessoas)</td><td>Procurar o JAR na internet, baixar, baixar também os JARs de que ele precisa, montar o <code>-cp</code> à mão</td><td>Escrever 5 linhas no <code>pom.xml</code>; o Maven baixa tudo, inclusive as dependências das dependências</td></tr>
+<tr><td><strong>Build</strong> (compilar, testar, empacotar)</td><td><code>javac -d … -cp …</code>, rodar os testes, <code>jar cfe …</code>, cada projeto de um jeito</td><td><code>mvn package</code>, igual em qualquer projeto Maven do mundo</td></tr>
+</table>
+</div>
+<p><strong>Maven</strong> é uma palavra do iídiche que quer dizer "especialista, quem acumula conhecimento". O comando é <code>mvn</code>. É a ferramenta de build mais usada em Java; a outra grande é o <a href="gradle.html">Gradle</a>.</p>
+
+<hr>
+
+<h2>1. Instalar e conferir</h2>
+<p>No laboratório da Ana, o Maven já está instalado em <code>/opt/maven</code>. No Ubuntu/Debian, você instalaria com <code>sudo apt install maven</code> (pode vir uma versão mais antiga) ou baixando o <code>.tar.gz</code> do site <code>maven.apache.org</code> e pondo a pasta <code>bin</code> no <code>PATH</code>, do mesmo jeito que o JDK em <a href="instalar-linux.html">Instalar no Linux</a>. O Maven precisa de um JDK instalado. Confira:</p>
+
+<pre class="term">$ mvn -version
+Apache Maven 3.10.0 (c43a36b8d67be7e0805a411bc0898af1a51f5472)
+Maven home: /opt/maven
+Java version: 25.0.4.1, vendor: Eclipse Adoptium, runtime: /opt/jdk-25
+Default locale: pt_BR, platform encoding: UTF-8, time zone: America/Sao_Paulo
+OS name: "linux", version: "7.0.0-38-generic", arch: "amd64", family: "unix"</pre>
+
+<p>A linha importante é <code>Java version</code>: é o JDK que o Maven vai usar para compilar (o da variável <code>JAVA_HOME</code>). Se aparecer um Java antigo, o seu projeto para Java 25 não compila.</p>
+
+<hr>
+
+<h2>2. Criar um projeto com <code>mvn archetype:generate</code></h2>
+<p>Um <strong>arquétipo</strong> (<em>archetype</em>, "modelo original") é um molde de projeto. O Maven tem um para "aplicativo simples", o <code>maven-archetype-quickstart</code>. Normalmente o comando faz perguntas; com <code>-DinteractiveMode=false</code> ele usa o que você passar e não pergunta nada:</p>
+
+<pre class="term">$ mvn archetype:generate -DgroupId=br.com.ana -DartifactId=loja -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.5 -DjavaCompilerVersion=25 -DinteractiveMode=false</pre>
+
+<dl class="anatomy">
+  <dt>mvn archetype:generate</dt><dd>Rode o <strong>plugin</strong> <code>archetype</code>, tarefa (<em>goal</em>, "objetivo") <code>generate</code>. Quase tudo no Maven é feito por plugins.</dd>
+  <dt>-DgroupId=br.com.ana</dt><dd>O <strong>grupo</strong>: quem fez o projeto, normalmente um domínio ao contrário (como os <a href="pacotes.html">pacotes</a>). Cada <code>-Dnome=valor</code> passa uma configuração.</dd>
+  <dt>-DartifactId=loja</dt><dd>O <strong>artefato</strong>: o nome do projeto. Vira o nome da pasta e do JAR.</dd>
+  <dt>-DarchetypeArtifactId=maven-archetype-quickstart</dt><dd>Qual molde usar.</dd>
+  <dt>-DarchetypeVersion=1.5</dt><dd>A versão do molde. Sem isso, o Maven usa a versão 1.0, de 2006, que gera um projeto com JUnit 3.</dd>
+  <dt>-DjavaCompilerVersion=25</dt><dd>Para qual versão do Java compilar (o molde usa 17 se você não disser).</dd>
+  <dt>-DinteractiveMode=false</dt><dd>Não fazer perguntas.</dd>
+</dl>
+
+<p>Na <strong>primeira vez</strong> que você usa o Maven, ele baixa da internet os plugins de que precisa. A saída começa com uma parede de downloads (encurtada aqui: foram 149 arquivos e quase um minuto):</p>
+
+<pre class="term">[INFO] Scanning for projects...
+[INFO] Loaded 24119 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+Downloading from central: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-clean-plugin/3.5.0/maven-clean-plugin-3.5.0.pom
+Downloaded from central: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-clean-plugin/3.5.0/maven-clean-plugin-3.5.0.pom (5.7 kB at 79 kB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-plugins/44/maven-plugins-44.pom
+Downloaded from central: https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-plugins/44/maven-plugins-44.pom (8.4 kB at 58 kB/s)
+…                                                    « mais ~145 downloads</pre>
+
+<p>Depois dos downloads vem o que interessa:</p>
+
+<pre class="term">[INFO] --- archetype:3.4.1:generate (default-cli) @ standalone-pom ---
+[INFO] Generating project in Batch mode
+…                                                    « um aviso [WARNING] sobre o catálogo, que pode ignorar
+[INFO] ----------------------------------------------------------------------------
+[INFO] Using following parameters for creating project from Archetype: maven-archetype-quickstart:1.5
+[INFO] ----------------------------------------------------------------------------
+[INFO] Parameter: groupId, Value: br.com.ana
+[INFO] Parameter: artifactId, Value: loja
+[INFO] Parameter: version, Value: 1.0-SNAPSHOT
+[INFO] Parameter: package, Value: br.com.ana
+…                                                    « outros parâmetros (alguns repetidos)
+[INFO] Parameter: javaCompilerVersion, Value: 25
+[INFO] Parameter: version, Value: 1.0-SNAPSHOT
+[WARNING] Don't override file /home/ana/loja/src/main/java/br/com/ana
+[WARNING] Don't override file /home/ana/loja/src/test/java/br/com/ana
+[WARNING] CP Don't override file /home/ana/loja/.mvn
+[INFO] Project created from Archetype in dir: /home/ana/loja
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.181 s
+[INFO] Finished at: 2026-10-16T18:24:00-03:00
+[INFO] ------------------------------------------------------------------------</pre>
+
+<p>Como ler: cada linha começa com o <strong>nível</strong> da mensagem, <code>[INFO]</code> (informação), <code>[WARNING]</code> (aviso, o build continua) ou <code>[ERROR]</code>. O que decide se deu certo é o fim: <strong><code>BUILD SUCCESS</code></strong>. Os três <code>Don't override file</code> são uma esquisitice dessa versão do molde, mesmo numa pasta nova; não atrapalham.</p>
+
+<h3>O que foi criado</h3>
+<pre class="term">$ cd loja
+$ find . -type f
+./src/test/java/br/com/ana/AppTest.java
+./src/main/java/br/com/ana/App.java
+./pom.xml
+./.mvn/maven.config
+./.mvn/jvm.config</pre>
+
+<p>O <code>App.java</code> é um "Hello World!" no pacote <code>br.com.ana</code>; o <code>AppTest.java</code> é um teste de exemplo (você vai escrever testes de verdade em <a href="junit.html">Testes com JUnit</a>). A pasta <code>.mvn</code> guarda opções extras do Maven e da JVM para este projeto (os dois arquivos vêm vazios). O <code>pom.xml</code> gerado tem uns 80 linhas, cheio de comentários e versões de plugins. Para entender cada parte, é melhor começar por um <code>pom.xml</code> <strong>mínimo</strong>, escrito à mão.</p>
+
+<hr>
+
+<h2>3. O <code>pom.xml</code> mínimo, escrito à mão</h2>
+<p><strong>POM</strong> é <em>Project Object Model</em>, "modelo do projeto". É um arquivo <strong>XML</strong>: texto com marcações entre <code>&lt; &gt;</code>, em que cada <code>&lt;nome&gt;</code> abre um item e <code>&lt;/nome&gt;</code> fecha (parecido com HTML). A Ana criou um projeto novo, <code>caixa</code>, só com este arquivo:</p>
+
+<pre class="file" data-file="caixa/pom.xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;groupId&gt;br.com.ana&lt;/groupId&gt;
+    &lt;artifactId&gt;caixa&lt;/artifactId&gt;
+    &lt;version&gt;1.0&lt;/version&gt;
+
+    &lt;properties&gt;
+        &lt;maven.compiler.release&gt;25&lt;/maven.compiler.release&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+    &lt;/properties&gt;
+&lt;/project&gt;
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;</code></td><td>"Este é um arquivo XML, em UTF-8." Fica sempre na primeira linha.</td></tr>
+<tr><td><code>&lt;project xmlns=… xsi:schemaLocation=…&gt;</code></td><td>Abre o projeto. Os endereços dizem "este XML segue o formato de POM 4.0.0"; servem para o editor completar e conferir o arquivo. Copie como está.</td></tr>
+<tr><td><code>&lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;</code></td><td>A versão do formato do POM. É sempre <code>4.0.0</code> no Maven 3.</td></tr>
+<tr><td><code>&lt;groupId&gt;br.com.ana&lt;/groupId&gt;</code></td><td>Quem fez: o grupo.</td></tr>
+<tr><td><code>&lt;artifactId&gt;caixa&lt;/artifactId&gt;</code></td><td>O nome do projeto.</td></tr>
+<tr><td><code>&lt;version&gt;1.0&lt;/version&gt;</code></td><td>A versão do <strong>seu</strong> projeto. Junto com o grupo e o nome, forma as <strong>coordenadas</strong> <code>br.com.ana:caixa:1.0</code>, o "endereço" único do projeto no mundo Maven.</td></tr>
+<tr><td><code>&lt;properties&gt;</code></td><td>Configurações em forma de "nome = valor".</td></tr>
+<tr><td><code>&lt;maven.compiler.release&gt;25&lt;/…&gt;</code></td><td>Compilar para o Java 25 (vira o <code>javac --release 25</code>).</td></tr>
+<tr><td><code>&lt;project.build.sourceEncoding&gt;UTF-8&lt;/…&gt;</code></td><td>Os <code>.java</code> estão em UTF-8 (para acentos como em <code>"pão"</code> não virarem lixo).</td></tr>
+<tr><td><code>&lt;/project&gt;</code></td><td>Fecha o projeto.</td></tr>
+</table>
+</div>
+
+<p>Só isso. Não há uma linha dizendo onde está o código, como compilar, nem como gerar o JAR: tudo segue a <strong>convenção</strong>. O <code>1.0-SNAPSHOT</code> que o arquétipo usou é uma versão "em andamento" (<em>snapshot</em> = "foto do momento"): o <code>-SNAPSHOT</code> avisa que aquela versão ainda muda.</p>
+
+<h3>A estrutura de pastas padrão</h3>
+<p>O código vai em <code>src/main/java</code>, seguindo as pastas do pacote. A Ana criou o caixa da aula de JAR, agora com <code>printf</code>:</p>
+
+<pre class="term">$ mkdir -p caixa/src/main/java/br/com/ana/caixa &amp;&amp; cd caixa</pre>
+
+<pre class="file" data-file="src/main/java/br/com/ana/caixa/Caixa.java">package br.com.ana.caixa;
+
+public class Caixa {
+    public static void main(String[] args) {
+        double total = 0;
+        for (String a : args) {
+            total += Double.parseDouble(a);
+        }
+        System.out.printf("Itens: %d%n", args.length);
+        System.out.printf("Total: R$ %.2f%n", total);
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pasta</th><th>O que vai nela</th></tr>
+<tr><td><code>pom.xml</code></td><td>A receita, na raiz do projeto</td></tr>
+<tr><td><code>src/main/java/</code></td><td>O código do programa (<code>.java</code>), em pastas por pacote</td></tr>
+<tr><td><code>src/main/resources/</code></td><td>Arquivos que não são código e vão junto no JAR (textos, configurações, imagens)</td></tr>
+<tr><td><code>src/test/java/</code></td><td>Os testes automatizados (não vão para o JAR)</td></tr>
+<tr><td><code>src/test/resources/</code></td><td>Arquivos usados só pelos testes</td></tr>
+<tr><td><code>target/</code></td><td>Tudo o que o Maven <strong>gera</strong>. Nunca edite; pode apagar quando quiser</td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-args="4.50 10 2.25" data-goal="out:Média: R$ 5\,58">
+<p class="try-task"><strong>Missão:</strong> esta é a classe <code>Caixa</code> do projeto (sem o <code>package</code>, porque o editor do guia usa um arquivo só). Ela recebe os preços como argumentos. Acrescente uma linha que mostre a <strong>média</strong> dos preços, no mesmo formato: <code>Média: R$ 5,58</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double total = 0;
+        for (String a : args) {
+            total += Double.parseDouble(a);
+        }
+        System.out.printf("Itens: %d%n", args.length);
+        System.out.printf("Total: R$ %.2f%n", total);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double total = 0;
+        for (String a : args) {
+            total += Double.parseDouble(a);
+        }
+        System.out.printf("Itens: %d%n", args.length);
+        System.out.printf("Total: R$ %.2f%n", total);
+        System.out.printf("Média: R$ %.2f%n", total / args.length);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O ciclo de vida: <code>compile</code>, <code>test</code>, <code>package</code></h2>
+<p>O Maven organiza o build em <strong>fases</strong>, numa ordem fixa, como as etapas de uma linha de montagem. Quando você pede uma fase, ele roda <strong>todas as anteriores</strong> antes:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Fase</th><th>O que faz</th></tr>
+<tr><td><code>validate</code></td><td>Confere se o <code>pom.xml</code> está certo</td></tr>
+<tr><td><code>compile</code></td><td>Compila <code>src/main/java</code> para <code>target/classes</code></td></tr>
+<tr><td><code>test</code></td><td>Compila <code>src/test/java</code> e roda os testes</td></tr>
+<tr><td><code>package</code></td><td>Cria o JAR em <code>target/</code></td></tr>
+<tr><td><code>verify</code></td><td>Verificações extras de qualidade (se configuradas)</td></tr>
+<tr><td><code>install</code></td><td>Copia o JAR para o seu <code>~/.m2/repository</code>, para outros projetos seus usarem</td></tr>
+<tr><td><code>deploy</code></td><td>Publica o JAR num repositório remoto (para a equipe ou o mundo)</td></tr>
+</table>
+</div>
+<p>Então <code>mvn package</code> = validar + compilar + testar + empacotar. Fora dessa fila existe o <code>mvn clean</code>, que apaga a pasta <code>target</code>.</p>
+
+<h3><code>mvn compile</code></h3>
+<p>No projeto <code>loja</code> (o do arquétipo):</p>
+<pre class="term">$ mvn compile
+[INFO] Scanning for projects...
+[INFO] Loaded 24119 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO]
+[INFO] --------------------------&lt; br.com.ana:loja &gt;---------------------------
+[INFO] Building loja 1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Loaded 74 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots.txt)
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ loja ---
+[INFO] skip non existing resourceDirectory /home/ana/loja/src/main/resources
+[INFO]
+[INFO] --- compiler:3.13.0:compile (default-compile) @ loja ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 1 source file with javac [debug release 25] to target/classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  20.224 s
+[INFO] Finished at: 2026-10-16T18:24:28-03:00
+[INFO] ------------------------------------------------------------------------</pre>
+<p>(As linhas de download dos plugins de compilação foram omitidas: 64 arquivos, só na primeira vez.)</p>
+
+<dl class="anatomy">
+  <dt>&lt; br.com.ana:loja &gt;</dt><dd>As coordenadas do projeto (grupo:artefato).</dd>
+  <dt>[ jar ]</dt><dd>O tipo de pacote que este projeto gera: um JAR (é o padrão).</dd>
+  <dt>--- resources:3.3.1:resources</dt><dd>Plugin <code>resources</code>, versão 3.3.1: copiaria <code>src/main/resources</code>, mas a pasta não existe (<code>skip non existing</code>).</dd>
+  <dt>--- compiler:3.13.0:compile</dt><dd>Plugin <code>compiler</code>: chama o <code>javac</code> por você, com <code>--release 25</code>, e põe as classes em <code>target/classes</code>.</dd>
+  <dt>Total time: 20.224 s</dt><dd>Lento por causa dos downloads. Da segunda vez, leva poucos segundos.</dd>
+</dl>
+
+<h3><code>mvn test</code></h3>
+<p>Roda o <code>compile</code> e depois compila e executa os testes, com o plugin <strong>Surefire</strong> (o "executor de testes" do Maven):</p>
+<pre class="term">$ mvn test
+…                                                    « o começo é igual ao do compile
+[INFO] --- compiler:3.13.0:compile (default-compile) @ loja ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO]
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ loja ---
+[INFO] skip non existing resourceDirectory /home/ana/loja/src/test/resources
+[INFO]
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ loja ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 1 source file with javac [debug release 25] to target/test-classes
+[INFO]
+[INFO] --- surefire:3.3.0:test (default-test) @ loja ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO]
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running br.com.ana.AppTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.058 s -- in br.com.ana.AppTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------</pre>
+<p>Repare no <code>Nothing to compile - all classes are up to date</code>: o Maven só recompila o que mudou. O resumo <code>Tests run: 1, Failures: 0</code> diz que o único teste passou. Como escrever testes e ler as falhas fica para <a href="junit.html">Testes com JUnit</a>.</p>
+
+<h3><code>mvn package</code> e a pasta <code>target/</code></h3>
+<p>No projeto <code>caixa</code>, o do <code>pom.xml</code> mínimo:</p>
+<pre class="term">$ mvn package
+[INFO] Scanning for projects...
+[INFO]
+[INFO] --------------------------&lt; br.com.ana:caixa &gt;--------------------------
+[INFO] Building caixa 1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Loaded 24119 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO]
+[INFO] --- resources:3.5.0:resources (default-resources) @ caixa ---
+[INFO] skip non existing resourceDirectory /home/ana/caixa/src/main/resources
+[INFO]
+[INFO] --- compiler:3.16.0:compile (default-compile) @ caixa ---
+[INFO] Loaded 74 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots.txt)
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 1 source file with javac [debug release 25] to target/classes
+[INFO]
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ caixa ---
+[INFO] skip non existing resourceDirectory /home/ana/caixa/src/test/resources
+[INFO]
+[INFO] --- compiler:3.16.0:testCompile (default-testCompile) @ caixa ---
+[INFO] No sources to compile
+[INFO]
+[INFO] --- surefire:3.6.0:test (default-test) @ caixa ---
+[INFO] No tests to run.
+[INFO]
+[INFO] --- jar:3.5.1:jar (default-jar) @ caixa ---
+[INFO] Building jar: /home/ana/caixa/target/caixa-1.0.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  12.083 s
+[INFO] Finished at: 2026-10-16T18:26:09-03:00
+[INFO] ------------------------------------------------------------------------
+$ ls target
+caixa-1.0.jar                « o JAR: artifactId-version.jar
+classes                      « os .class
+generated-sources
+maven-archiver
+maven-status
+$ java -cp target/caixa-1.0.jar br.com.ana.caixa.Caixa 4.50 10 2.25
+Itens: 3
+Total: R$ 16,75</pre>
+
+<p>Repare que as versões dos plugins são outras (<code>compiler:3.16.0</code> em vez de <code>3.13.0</code>). O <code>pom.xml</code> do arquétipo <strong>fixa</strong> as versões; o mínimo deixa o Maven 3.10.0 escolher as dele. Os dois jeitos funcionam; fixar garante que o build será igual daqui a anos.</p>
+
+<p>No projeto <code>loja</code>, a pasta <code>target</code> depois do <code>mvn package</code> mostra tudo o que o Maven gerou:</p>
+<pre class="term">$ find target -type f | sort
+target/classes/br/com/ana/App.class
+target/loja-1.0-SNAPSHOT.jar
+target/maven-archiver/pom.properties
+target/maven-status/…                                   « 4 arquivos internos do Maven
+target/surefire-reports/br.com.ana.AppTest.txt          « relatório dos testes
+target/surefire-reports/TEST-br.com.ana.AppTest.xml
+target/test-classes/br/com/ana/AppTest.class</pre>
+
+<h3>JAR executável com o Maven</h3>
+<p>O JAR do Maven vem sem <code>Main-Class</code>, então dá o erro que você conhece da aula de JAR:</p>
+<pre class="term">$ java -jar target/caixa-1.0.jar
+nenhum atributo de manifesto principal em target/caixa-1.0.jar</pre>
+
+<p>Para o Maven escrever o <code>Main-Class</code>, configure o plugin <code>maven-jar-plugin</code> no <code>pom.xml</code>, depois de <code>&lt;/properties&gt;</code>:</p>
+
+<pre class="file" data-file="pom.xml (trecho)">    &lt;build&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-jar-plugin&lt;/artifactId&gt;
+                &lt;version&gt;3.5.1&lt;/version&gt;
+                &lt;configuration&gt;
+                    &lt;archive&gt;
+                        &lt;manifest&gt;
+                            &lt;mainClass&gt;br.com.ana.caixa.Caixa&lt;/mainClass&gt;
+                        &lt;/manifest&gt;
+                    &lt;/archive&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;build&gt;&lt;plugins&gt;&lt;plugin&gt;</dt><dd>"Quero mudar a configuração de um plugin do build."</dd>
+  <dt>groupId / artifactId / version</dt><dd>Qual plugin: o que cria o JAR, versão 3.5.1 (a que o Maven já estava usando).</dd>
+  <dt>&lt;mainClass&gt;</dt><dd>O nome completo da classe principal; vira o <code>Main-Class</code> do manifesto.</dd>
+</dl>
+
+<pre class="term">$ mvn package -q                « -q (quiet, "quieto"): só mostra erros
+$ java -jar target/caixa-1.0.jar 4.50 10 2.25
+Itens: 3
+Total: R$ 16,75
+$ unzip -p target/caixa-1.0.jar META-INF/MANIFEST.MF
+Manifest-Version: 1.0
+Created-By: Maven JAR Plugin 3.5.1
+Java-Version: 25
+Build-Jdk-Spec: 25
+Main-Class: br.com.ana.caixa.Caixa
+</pre>
+
+<h3><code>mvn clean</code></h3>
+<pre class="term">$ mvn clean
+…
+[INFO] --- clean:3.5.0:clean (default-clean) @ caixa ---
+[INFO] Deleting /home/ana/caixa/target
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+…
+$ ls
+pom.xml
+src</pre>
+<p>Use <code>mvn clean package</code> (as duas coisas, nessa ordem) quando quiser um build "do zero", por exemplo antes de entregar o JAR ou quando algo estranho acontecer.</p>
+
+<hr>
+
+<h2>5. O repositório local <code>~/.m2/repository</code></h2>
+<p>Tudo o que o Maven baixa fica guardado na pasta <code>.m2/repository</code> dentro da sua pasta pessoal. É uma <strong>despensa</strong>: o Maven só vai ao "mercado" (o repositório <strong>Maven Central</strong>, em <code>repo.maven.apache.org</code>) quando falta algo. Por isso o primeiro build demora e os outros são rápidos.</p>
+
+<pre class="term">$ du -sh ~/.m2/repository
+83M	/home/ana/.m2/repository
+$ ls ~/.m2/repository
+archetype-catalog-central.xml
+archetype-catalog-central.xml.md5
+archetype-catalog-central.xml.sha1
+com
+commons-codec
+commons-collections
+commons-io
+io
+javax
+org
+resolver-status.properties
+$ ls ~/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.11.0
+junit-jupiter-api-5.11.0.jar             « a biblioteca
+junit-jupiter-api-5.11.0.jar.md5         « "impressões digitais" para conferir o download
+junit-jupiter-api-5.11.0.jar.sha1
+junit-jupiter-api-5.11.0.pom             « o pom.xml da biblioteca (diz de que ELA depende)
+junit-jupiter-api-5.11.0.pom.md5
+junit-jupiter-api-5.11.0.pom.sha1
+_remote.repositories</pre>
+
+<p>O caminho segue as coordenadas: <code>org.junit.jupiter</code> vira <code>org/junit/jupiter</code>, depois o artefato e a versão. São 83 MB só para gerar dois projetos pequenos (a maior parte são os próprios plugins do Maven); a pasta cresce com o tempo. Apagá-la é seguro: o Maven baixa de novo o que precisar.</p>
+
+<hr>
+
+<h2>6. Adicionar uma dependência</h2>
+<p>A Ana quer que o caixa gere um recibo em <strong>JSON</strong>, o formato de texto que sites e aplicativos usam para trocar dados. Escrever JSON à mão é chato e cheio de detalhes; existe uma biblioteca pequena do Google que faz isso, a <strong>Gson</strong>. A classe nova:</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/caixa/Recibo.java">package br.com.ana.caixa;
+
+import com.google.gson.Gson;
+import java.util.List;
+
+public class Recibo {
+    record Item(String nome, double preco) {}
+
+    public static void main(String[] args) {
+        List&lt;Item&gt; itens = List.of(
+                new Item("pão", 4.50),
+                new Item("café", 10.0),
+                new Item("leite", 2.25));
+        Gson gson = new Gson();
+        System.out.println(gson.toJson(itens));
+    }
+}
+</pre>
+
+<p>(O <code>record</code> está explicado em <a href="records.html">Records</a> e o <code>List.of</code> em <a href="arraylist.html">ArrayList</a>.) Antes de mexer no <code>pom.xml</code>, veja o que o Maven diz:</p>
+
+<div class="warning"><strong>Este build falha de propósito</strong></div>
+<pre class="term">$ mvn compile
+…
+[INFO] --- compiler:3.16.0:compile (default-compile) @ caixa ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 2 source files with javac [debug release 25] to target/classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR :
+[INFO] -------------------------------------------------------------
+[ERROR] /home/ana/caixa/src/main/java/br/com/ana/caixa/Recibo.java:[3,23] package com.google.gson does not exist
+[ERROR] /home/ana/caixa/src/main/java/br/com/ana/caixa/Recibo.java:[14,9] cannot find symbol
+  symbol:   class Gson
+  location: class br.com.ana.caixa.Recibo
+[ERROR] /home/ana/caixa/src/main/java/br/com/ana/caixa/Recibo.java:[14,25] cannot find symbol
+  symbol:   class Gson
+  location: class br.com.ana.caixa.Recibo
+[INFO] 3 errors
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.905 s
+[INFO] Finished at: 2026-10-16T18:26:33-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.16.0:compile (default-compile) on project caixa: Compilation failure: Compilation failure:
+[ERROR] /home/ana/caixa/src/main/java/br/com/ana/caixa/Recibo.java:[3,23] package com.google.gson does not exist
+…                                                    « os mesmos 3 erros, repetidos
+[ERROR] -&gt; [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException</pre>
+
+<p><strong>Como ler um <code>BUILD FAILURE</code>:</strong> não comece pelo fim. Procure o <strong>primeiro <code>[ERROR]</code></strong>: é a mensagem do <code>javac</code>, a mesma que você já conhece (veja <a href="erros-compilacao.html">Lendo Erros do javac</a>), com o arquivo e <code>[linha,coluna]</code>: <code>Recibo.java:[3,23] package com.google.gson does not exist</code>. O bloco final repete os erros e dá dicas genéricas (<code>-e</code>, <code>-X</code>, um link); raramente ajuda.</p>
+
+<h3>As 5 linhas da dependência</h3>
+<p>Para dizer ao Maven "este projeto usa a Gson", acrescente um bloco <code>&lt;dependencies&gt;</code> no <code>pom.xml</code>, depois de <code>&lt;/properties&gt;</code>:</p>
+
+<pre class="file" data-file="pom.xml (trecho)">    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.google.code.gson&lt;/groupId&gt;
+            &lt;artifactId&gt;gson&lt;/artifactId&gt;
+            &lt;version&gt;2.13.1&lt;/version&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;dependencies&gt;</dt><dd>A lista de ingredientes comprados prontos. Cabem quantos <code>&lt;dependency&gt;</code> você quiser.</dd>
+  <dt>groupId, artifactId, version</dt><dd>As coordenadas da biblioteca: <code>com.google.code.gson:gson:2.13.1</code>. Você as encontra no site da biblioteca ou pesquisando em <code>central.sonatype.com</code> (a busca do Maven Central), que mostra o bloco pronto para copiar.</dd>
+  <dt>(sem <code>&lt;scope&gt;</code>)</dt><dd>Usada pelo programa. Bibliotecas usadas só nos testes, como o JUnit, levam <code>&lt;scope&gt;test&lt;/scope&gt;</code>.</dd>
+</dl>
+
+<pre class="term">$ mvn compile
+[INFO] Scanning for projects...
+[INFO]
+[INFO] --------------------------&lt; br.com.ana:caixa &gt;--------------------------
+[INFO] Building caixa 1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Loaded 24119 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+Downloading from central: https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.13.1/gson-2.13.1.pom
+Downloaded from central: https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.13.1/gson-2.13.1.pom (13 kB at 27 kB/s)
+…                                                    « mais 3 arquivos .pom, entre eles o da error_prone_annotations
+Downloading from central: https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.13.1/gson-2.13.1.jar
+Downloaded from central: https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.13.1/gson-2.13.1.jar (287 kB at 1.7 MB/s)
+Downloading from central: https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.38.0/error_prone_annotations-2.38.0.jar
+Downloaded from central: https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.38.0/error_prone_annotations-2.38.0.jar (20 kB at 291 kB/s)
+[INFO]
+[INFO] --- resources:3.5.0:resources (default-resources) @ caixa ---
+[INFO] skip non existing resourceDirectory /home/ana/caixa/src/main/resources
+[INFO]
+[INFO] --- compiler:3.16.0:compile (default-compile) @ caixa ---
+[INFO] Loaded 74 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots.txt)
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 2 source files with javac [debug release 25] to target/classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------</pre>
+
+<p>Leia os downloads: o Maven baixou o <code>gson-2.13.1.pom</code>, descobriu nele que a Gson precisa de <strong>outra</strong> biblioteca, a <code>error_prone_annotations</code>, e baixou essa também. Isso se chama <strong>dependência transitiva</strong> ("a dependência da sua dependência"). Num projeto real, 5 dependências escritas no <code>pom.xml</code> podem virar 50 JARs; o Maven cuida de todos.</p>
+
+<p>A biblioteca agora está na despensa, e o <code>javac</code> do Maven a usou no classpath. Para rodar o <code>Recibo</code> fora do Maven, o classpath precisa da Gson também (sem ela, o erro é o mesmo da aula de JAR):</p>
+
+<pre class="term">$ java -cp target/classes br.com.ana.caixa.Recibo
+Exception in thread "main" java.lang.NoClassDefFoundError: com/google/gson/Gson
+	at br.com.ana.caixa.Recibo.main(Recibo.java:14)
+Caused by: java.lang.ClassNotFoundException: com.google.gson.Gson
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:580)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
+	... 1 more
+$ java -cp target/classes:$HOME/.m2/repository/com/google/code/gson/gson/2.13.1/gson-2.13.1.jar br.com.ana.caixa.Recibo
+[{"nome":"pão","preco":4.5},{"nome":"café","preco":10.0},{"nome":"leite","preco":2.25}]</pre>
+
+<p>Esse <code>-cp</code> gigante mostra o problema que o Maven resolve. Na prática, para rodar com todas as dependências, usa-se um plugin (como o <code>exec-maven-plugin</code>, com <code>mvn exec:java</code>) ou um que gera um JAR "gordo" com as bibliotecas dentro (<code>maven-shade-plugin</code>); o <a href="gradle.html">Gradle</a> já traz isso pronto com <code>gradle run</code>.</p>
+
+<div class="tryjava" data-goal="out:[{&quot;nome&quot;:&quot;pão&quot;\,&quot;preco&quot;:4.5}\,{&quot;nome&quot;:&quot;café&quot;\,&quot;preco&quot;:10.0}\,{&quot;nome&quot;:&quot;leite&quot;\,&quot;preco&quot;:2.25}]">
+<p class="try-task"><strong>Missão:</strong> sinta o que a biblioteca economiza. Sem a Gson, monte você mesmo o JSON do recibo, idêntico ao que ela gerou: <code>[{"nome":"pão","preco":4.5},{"nome":"café","preco":10.0},{"nome":"leite","preco":2.25}]</code>. Falta pôr a vírgula <strong>entre</strong> os itens (não antes do primeiro).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] nomes = {"pão", "café", "leite"};
+        double[] precos = {4.5, 10.0, 2.25};
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i &lt; nomes.length; i++) {
+            json.append("{\"nome\":\"").append(nomes[i])
+                .append("\",\"preco\":").append(precos[i]).append("}");
+        }
+        json.append("]");
+        System.out.println(json);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] nomes = {"pão", "café", "leite"};
+        double[] precos = {4.5, 10.0, 2.25};
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i &lt; nomes.length; i++) {
+            if (i &gt; 0) {
+                json.append(",");
+            }
+            json.append("{\"nome\":\"").append(nomes[i])
+                .append("\",\"preco\":").append(precos[i]).append("}");
+        }
+        json.append("]");
+        System.out.println(json);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>7. Formas diferentes de criar um projeto Maven</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Vantagem</th><th>Desvantagem</th></tr>
+<tr><td><code>mvn archetype:generate … -DinteractiveMode=false</code></td><td>Um comando; já vem com JUnit 5 e versões de plugins fixadas</td><td><code>pom.xml</code> longo, com coisas que você ainda não entende</td></tr>
+<tr><td><code>mvn archetype:generate</code> (sem opções)</td><td>Pergunta tudo, passo a passo</td><td>Mostra uma lista enorme de moldes; fácil se perder</td></tr>
+<tr><td><code>pom.xml</code> escrito à mão</td><td>Você entende cada linha</td><td>Precisa criar as pastas e lembrar do formato</td></tr>
+<tr><td>Pela IDE (IntelliJ, VS Code, Eclipse)</td><td>Formulário com botões; a IDE roda o Maven por você</td><td>Esconde o que acontece (veja <a href="editores-ide.html">Editores e IDEs</a>)</td></tr>
+</table>
+</div>
+<p>Para estudar, comece pelo <code>pom.xml</code> mínimo e acrescente só o que precisar. Em qualquer caso, o projeto final é igual: um <code>pom.xml</code> e a pasta <code>src</code>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Dependência que não existe</strong>
+<p>A Ana digitou a versão errada (<code>2.99.0</code>, que não existe):</p>
+<pre class="term">$ mvn compile
+…
+Downloading from central: https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.99.0/gson-2.99.0.pom
+[WARNING] The POM for com.google.code.gson:gson:jar:2.99.0 is missing, no dependency information available
+Downloading from central: https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.99.0/gson-2.99.0.jar
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.967 s
+[INFO] Finished at: 2026-10-16T18:26:43-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal on project caixa: Could not resolve dependencies for project br.com.ana:caixa:jar:1.0
+[ERROR] dependency: com.google.code.gson:gson:jar:2.99.0 (compile)
+[ERROR] 	Could not find artifact com.google.code.gson:gson:jar:2.99.0 in central (https://repo.maven.apache.org/maven2)
+[ERROR] -&gt; [Help 1]
+…</pre>
+<p><strong>O que aconteceu:</strong> <code>Could not resolve dependencies</code> = "não consegui obter as dependências". <code>Could not find artifact … in central</code>: o Maven procurou as coordenadas no Maven Central e não achou. Causas: versão, <code>groupId</code> ou <code>artifactId</code> digitados errado, ou sem internet (aí a mensagem fala em conexão).</p>
+<p><strong>Rodando de novo</strong>, a mensagem muda:</p>
+<pre class="term">[ERROR] 	com.google.code.gson:gson:jar:2.99.0 was not found in https://repo.maven.apache.org/maven2 during a previous attempt. This failure was cached in the local repository and resolution is not reattempted until the update interval of central has elapsed or updates are forced</pre>
+<p>O Maven <strong>anotou a falha</strong> na despensa e não tenta de novo por um tempo. <strong>Como resolver:</strong> corrija as coordenadas (copie de <code>central.sonatype.com</code>). Se a versão era certa e o problema foi a internet, force uma nova tentativa com <code>mvn -U compile</code> (<code>-U</code> = <em>update</em>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>there is no POM in this directory</code></strong>
+<pre class="term">$ mvn compile
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.095 s
+[INFO] Finished at: 2026-10-16T18:27:24-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] The goal you specified requires a project to execute but there is no POM in this directory (/home/ana). Please verify you invoked Maven from the correct directory. -&gt; [Help 1]
+…</pre>
+<p><strong>O que aconteceu:</strong> você rodou o Maven fora da pasta do projeto (aqui, em <code>/home/ana</code>). <strong>Como resolver:</strong> <code>cd</code> para a pasta onde está o <code>pom.xml</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>COMPILATION ERROR</code> / <code>BUILD FAILURE</code></strong>
+<p><strong>O que aconteceu:</strong> o <code>javac</code> recusou o código. A mensagem é a do <code>javac</code>, no formato <code>Arquivo.java:[linha,coluna] mensagem</code>. <strong>Como resolver:</strong> leia o <strong>primeiro</strong> <code>[ERROR]</code>, corrija o código como faria sem o Maven. Se for <code>package … does not exist</code> de uma biblioteca, falta a <code>&lt;dependency&gt;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Aviso: <code>'build.plugins.plugin.version' … is missing</code></strong>
+<p>Quando a Ana configurou o <code>maven-jar-plugin</code> pela primeira vez, esqueceu a linha <code>&lt;version&gt;</code>:</p>
+<pre class="term">$ mvn clean
+[INFO] Scanning for projects...
+[WARNING]
+[WARNING] Some problems were encountered while building the effective model for br.com.ana:caixa:jar:1.0
+[WARNING] 'build.plugins.plugin.version' for org.apache.maven.plugins:maven-jar-plugin is missing. @ line 27, column 21
+[WARNING]
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING]
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING]
+…</pre>
+<p><strong>O que quer dizer:</strong> é só um aviso (o build continuou), mas sério: sem versão, o plugin pode mudar sozinho quando o Maven for atualizado. <strong>Como resolver:</strong> ponha <code>&lt;version&gt;</code> em todo plugin que aparecer em <code>&lt;build&gt;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>release version 26 not supported</code></strong>
+<p>O projeto pede um Java mais novo do que o JDK que o Maven está usando. A Ana testou trocando o <code>25</code> por <code>26</code> no <code>pom.xml</code> (o laboratório tem o JDK 25):</p>
+<pre class="term">$ mvn compile
+…
+[INFO] Compiling 2 source files with javac [debug release 26] to target/classes
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.996 s
+[INFO] Finished at: 2026-10-16T18:30:53-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.16.0:compile (default-compile) on project caixa: Fatal error compiling: error: release version 26 not supported -&gt; [Help 1]
+…</pre>
+<p><strong>O que aconteceu:</strong> o <code>javac</code> do JDK 25 não sabe gerar código para o Java 26. O mesmo acontece com um projeto para Java 25 num computador com JDK 21 (<code>release version 25 not supported</code>). <strong>Como confirmar:</strong> <code>mvn -version</code>, linha <code>Java version</code>. <strong>Como resolver:</strong> use no <code>pom.xml</code> uma versão igual ou menor que a do seu JDK, ou aponte a variável <code>JAVA_HOME</code> para um JDK mais novo (veja <a href="instalar-linux.html">Instalar no Linux</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>mvn -version</code></td><td>Versão do Maven e do Java que ele usa</td></tr>
+<tr><td><code>mvn archetype:generate -DgroupId=… -DartifactId=… -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.5 -DinteractiveMode=false</code></td><td>Cria um projeto a partir de um molde</td></tr>
+<tr><td><code>mvn compile</code></td><td>Compila <code>src/main/java</code> → <code>target/classes</code></td></tr>
+<tr><td><code>mvn test</code></td><td>Compila e roda os testes</td></tr>
+<tr><td><code>mvn package</code></td><td>Compila, testa e cria o JAR em <code>target/</code></td></tr>
+<tr><td><code>mvn clean</code></td><td>Apaga <code>target/</code></td></tr>
+<tr><td><code>mvn clean package</code></td><td>Build do zero</td></tr>
+<tr><td><code>mvn install</code></td><td>Package + copia o JAR para <code>~/.m2/repository</code></td></tr>
+<tr><td><code>mvn -q …</code></td><td>Saída silenciosa (só erros)</td></tr>
+<tr><td><code>mvn -U …</code></td><td>Força procurar de novo dependências que falharam</td></tr>
+<tr><td><code>mvn -e …</code> / <code>mvn -X …</code></td><td>Mais detalhes do erro / modo depuração (muito texto)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Onde vai o código?</h3>
+<p>A classe <code>br.com.ana.agenda.Contato</code> num projeto Maven fica no arquivo:</p>
+<div class="ex-code"><input data-answer="src/main/java/br/com/ana/agenda/Contato.java" aria-label="caminho do arquivo"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Gerar o JAR</h3>
+<p>Complete o comando que apaga o <code>target</code> e gera o JAR do zero:</p>
+<div class="ex-code">mvn <input data-answer="clean package" aria-label="fases"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Java 25 no pom</h3>
+<p>Complete a propriedade que manda compilar para o Java 25:</p>
+<div class="ex-code">&lt;<input data-answer="maven.compiler.release" aria-label="nome da propriedade">&gt;25&lt;/…&gt;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Você roda <code>mvn package</code>. Quais fases o Maven executa?</p>
+<label><input type="radio" name="q4"> Só <code>package</code>.</label>
+<label><input type="radio" name="q4"> <code>package</code> e <code>install</code>.</label>
+<label><input type="radio" name="q4"> <code>validate</code>, <code>compile</code>, <code>test</code> e <code>package</code>.</label>
+<label><input type="radio" name="q4"> <code>clean</code> e <code>package</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Num <code>BUILD FAILURE</code> longo, onde está a informação mais útil?</p>
+<label><input type="radio" name="q5"> Na última linha, com o link <code>[Help 1]</code>.</label>
+<label><input type="radio" name="q5"> No primeiro <code>[ERROR]</code>, com o arquivo e a linha.</label>
+<label><input type="radio" name="q5"> No <code>Total time</code>.</label>
+<label><input type="radio" name="q5"> Nas linhas <code>Downloading from central</code>.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Você pôs a Gson no <code>pom.xml</code>, e o Maven baixou também a <code>error_prone_annotations</code>. Por quê?</p>
+<label><input type="radio" name="q6"> Porque o Maven baixa tudo o que existe do Google.</label>
+<label><input type="radio" name="q6"> Por engano; pode apagar.</label>
+<label><input type="radio" name="q6"> Porque o JUnit precisa dela.</label>
+<label><input type="radio" name="q6"> Porque o <code>pom</code> da Gson diz que ela depende dessa biblioteca: é uma dependência transitiva.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O Maven baixa as <strong>dependências</strong> (e as dependências delas) e faz o <strong>build</strong> do mesmo jeito em qualquer projeto.</li>
+  <li>O <code>pom.xml</code> descreve o projeto: coordenadas <code>groupId:artifactId:version</code>, propriedades (como <code>maven.compiler.release</code>), dependências e plugins.</li>
+  <li>Convenção: código em <code>src/main/java</code>, testes em <code>src/test/java</code>, tudo o que é gerado em <code>target/</code>.</li>
+  <li>Fases: <code>compile</code> → <code>test</code> → <code>package</code> → <code>install</code>; pedir uma roda as anteriores. <code>clean</code> apaga o <code>target</code>.</li>
+  <li>Downloads ficam em <code>~/.m2/repository</code>: o primeiro build é lento, os outros não.</li>
+  <li>Para ler um <code>BUILD FAILURE</code>, procure o primeiro <code>[ERROR]</code>.</li>
+  <li><code>Could not resolve dependencies</code> = coordenadas erradas ou sem internet; depois de corrigir, <code>-U</code> força nova tentativa.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
