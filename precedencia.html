@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Precedência de Operadores — a ordem das contas | Guia Java</title>
+<meta name="description" content="A precedência e a associatividade dos operadores em Java: tabela completa, por que 2 + 3 * 4 dá 14, por que &quot;a&quot; + 1 + 2 dá a12 e 1 + 2 + &quot;a&quot; dá 3a, a ordem de &amp;&amp; e ||, e por que usar parênteses, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Precedência</span></h1>
+
+<p class="intro">Quanto é <code>2 + 3 * 4</code>? Se você fizer da esquerda para a direita, dá 20; se fizer a multiplicação antes, dá 14. O Java precisa de uma regra para não haver dúvida, e essa regra se chama <strong>precedência de operadores</strong>: quais operações são feitas primeiro. Nesta aula, a última sobre operadores, você vai ver a tabela completa, os casos que mais confundem (principalmente com texto) e o melhor remédio para tudo isso: parênteses.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que são <strong>precedência</strong> e <strong>associatividade</strong>.</li>
+  <li>A tabela de precedência dos operadores do Java.</li>
+  <li>Por que <code>"a" + 1 + 2</code> dá <code>a12</code>, mas <code>1 + 2 + "a"</code> dá <code>3a</code>.</li>
+  <li>A ordem entre comparações, <code>&amp;&amp;</code>, <code>||</code> e atribuição.</li>
+  <li>Quando e como usar parênteses para deixar o código claro.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: a mesma regra da escola</h2>
+<p>Na escola você aprendeu que "multiplicação e divisão vêm antes de soma e subtração" e que "o que está entre parênteses vem primeiro". O Java segue exatamente essas regras e acrescenta os operadores que não existem na matemática da escola (<code>%</code>, <code>==</code>, <code>&amp;&amp;</code>, <code>=</code>…).</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(2 + 3 * 4);
+        System.out.println((2 + 3) * 4);
+        System.out.println(10 - 4 - 3);
+        System.out.println(10 - (4 - 3));
+        System.out.println(100 / 10 / 5);
+        System.out.println(10 / 2 * 5);
+        System.out.println(10 / (2 * 5));
+        System.out.println(7 + 8 / 2);
+        System.out.println((7 + 8) / 2);
+        System.out.println(-2 * -3);
+        System.out.println(2 * 3 % 4);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+14                 « 3 * 4 primeiro, depois 2 + 12
+20                 « parênteses primeiro: 5 * 4
+3                  « (10 - 4) - 3: da esquerda para a direita
+9                  « 10 - 1
+2                  « (100 / 10) / 5
+25                 « (10 / 2) * 5, NÃO 10 / 10
+1                  « 10 / 10
+11                 « 7 + 4: a "média" errada!
+7                  « 15 / 2 = 7 (divisão inteira)
+6                  « o sinal (-) vem antes da multiplicação
+2                  « (2 * 3) % 4 = 6 % 4</pre>
+
+<p>Duas regras explicam todas essas linhas:</p>
+
+<dl class="anatomy">
+  <dt>Precedência</dt><dd>Entre operadores <strong>diferentes</strong>, qual vem primeiro. <code>*</code>, <code>/</code> e <code>%</code> têm precedência maior que <code>+</code> e <code>-</code>, por isso <code>2 + 3 * 4</code> é <code>2 + (3 * 4)</code>.</dd>
+  <dt>Associatividade</dt><dd>Entre operadores de <strong>mesma</strong> precedência, de que lado se começa. Quase todos vão da <strong>esquerda para a direita</strong>: <code>10 - 4 - 3</code> é <code>(10 - 4) - 3</code>, e <code>10 / 2 * 5</code> é <code>(10 / 2) * 5</code>.</dd>
+</dl>
+
+<p>A linha <code>10 / 2 * 5</code> engana muita gente: <code>*</code> e <code>/</code> têm a <strong>mesma</strong> precedência, então não é "multiplicação primeiro"; é "quem estiver à esquerda primeiro".</p>
+
+<div class="tryjshell" data-goal="out:14">
+<p class="try-task"><strong>Missão:</strong> no JShell, calcule <code>2 + 3 * 4</code> e confira que dá 14. Depois coloque parênteses para obter 20, e teste <code>10 / 2 * 5</code>.</p>
+<pre class="solucao">2 + 3 * 4</pre>
+</div>
+
+<hr>
+
+<h2>A tabela de precedência</h2>
+<p>Da maior precedência (feito primeiro) para a menor (feito por último). Operadores na mesma linha têm a mesma precedência. Você não precisa decorar a tabela: decore as quatro ou cinco regras do resumo e use parênteses no resto.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ordem</th><th>Operadores</th><th>Nome</th><th>Associatividade</th></tr>
+<tr><td>1</td><td><code>x++</code> <code>x--</code> <code>()</code> <code>.</code> <code>[]</code></td><td>Pós-fixos, chamada de método, acesso a membro e a array</td><td>esquerda → direita</td></tr>
+<tr><td>2</td><td><code>++x</code> <code>--x</code> <code>+x</code> <code>-x</code> <code>!</code> <code>~</code> <code>(tipo)</code></td><td>Unários e casting</td><td>direita → esquerda</td></tr>
+<tr><td>3</td><td><code>*</code> <code>/</code> <code>%</code></td><td>Multiplicativos</td><td>esquerda → direita</td></tr>
+<tr><td>4</td><td><code>+</code> <code>-</code></td><td>Aditivos (e concatenação de <code>String</code>)</td><td>esquerda → direita</td></tr>
+<tr><td>5</td><td><code>&lt;&lt;</code> <code>&gt;&gt;</code> <code>&gt;&gt;&gt;</code></td><td>Deslocamento de bits</td><td>esquerda → direita</td></tr>
+<tr><td>6</td><td><code>&lt;</code> <code>&gt;</code> <code>&lt;=</code> <code>&gt;=</code> <code>instanceof</code></td><td>Relacionais</td><td>esquerda → direita</td></tr>
+<tr><td>7</td><td><code>==</code> <code>!=</code></td><td>Igualdade</td><td>esquerda → direita</td></tr>
+<tr><td>8</td><td><code>&amp;</code></td><td>E de bits / E sem curto-circuito</td><td>esquerda → direita</td></tr>
+<tr><td>9</td><td><code>^</code></td><td>Ou exclusivo</td><td>esquerda → direita</td></tr>
+<tr><td>10</td><td><code>|</code></td><td>Ou de bits / Ou sem curto-circuito</td><td>esquerda → direita</td></tr>
+<tr><td>11</td><td><code>&amp;&amp;</code></td><td>E lógico</td><td>esquerda → direita</td></tr>
+<tr><td>12</td><td><code>||</code></td><td>Ou lógico</td><td>esquerda → direita</td></tr>
+<tr><td>13</td><td><code>? :</code></td><td><a href="ternario.html">Ternário</a></td><td>direita → esquerda</td></tr>
+<tr><td>14</td><td><code>=</code> <code>+=</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> …</td><td>Atribuição</td><td>direita → esquerda</td></tr>
+</table>
+</div>
+
+<p>Em resumo, de cima para baixo: <strong>unários → aritmética (multiplicação antes de soma) → comparações → lógicos (<code>&amp;&amp;</code> antes de <code>||</code>) → atribuição</strong>. Faz sentido: primeiro se calculam os números, depois se comparam, depois se combinam as comparações e, por último, o resultado é guardado.</p>
+
+<hr>
+
+<h2>Texto e números: <code>"a" + 1 + 2</code> × <code>1 + 2 + "a"</code></h2>
+<p>O <code>+</code> tem dois papéis: soma números e cola textos (<a href="concatenacao.html">Concatenação</a>). Como ele vai da esquerda para a direita, o papel muda <strong>no meio da expressão</strong>, assim que aparece um texto:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("a" + 1 + 2);
+        System.out.println(1 + 2 + "a");
+        System.out.println("a" + (1 + 2));
+        System.out.println(1 + 2 + "a" + 1 + 2);
+        System.out.println("Total: " + 2 * 3);
+        System.out.println("Total: " + 10 / 2);
+        System.out.println('a' + 'b' + "c");
+        System.out.println("c" + 'a' + 'b');
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+a12                « ("a" + 1) + 2 = "a1" + 2 = "a12"
+3a                 « (1 + 2) + "a" = 3 + "a" = "3a"
+a3                 « parênteses: a soma acontece antes
+3a12               « soma até aparecer o texto, depois só cola
+Total: 6           « * vem antes de +: não precisa de parênteses
+Total: 5           « / também
+195c               « 'a' + 'b' = 97 + 98 = 195 (números!), depois cola "c"
+cab                « começando com texto, tudo é colado</pre>
+
+<p>Acompanhe passo a passo a quarta linha, <code>1 + 2 + "a" + 1 + 2</code>:</p>
+
+<ol class="passo">
+  <li><code>1 + 2</code>: dois números, soma. Resultado: <code>3</code>.</li>
+  <li><code>3 + "a"</code>: um dos lados é texto, então cola. Resultado: <code>"3a"</code>.</li>
+  <li><code>"3a" + 1</code>: texto com número, cola. Resultado: <code>"3a1"</code>.</li>
+  <li><code>"3a1" + 2</code>: cola. Resultado final: <code>"3a12"</code>.</li>
+</ol>
+
+<p>E por que <code>"Total: " + 2 * 3</code> funciona sem parênteses? Porque <code>*</code> tem precedência maior que <code>+</code>: a multiplicação acontece antes de qualquer colagem. Já <code>"Total: " + 2 + 3</code> mostraria <code>Total: 23</code>. Para somar dentro de um texto, <strong>sempre parênteses</strong>: <code>"Total: " + (2 + 3)</code>.</p>
+
+<div class="tryjava" data-goal="out:Soma: 15">
+<p class="try-task"><strong>Missão:</strong> o programa deveria mostrar <code>Soma: 15</code>, mas mostra <code>Soma: 105</code>. Use parênteses para a soma acontecer antes da colagem.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int a = 10;
+        int b = 5;
+        System.out.println("Soma: " + a + b);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int a = 10;
+        int b = 5;
+        System.out.println("Soma: " + (a + b));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Comparações, lógicos e atribuição</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int a, b, c;
+        a = b = c = 5;
+        System.out.println(a + " " + b + " " + c);
+        int x = 10;
+        x += x * 2;
+        System.out.println(x);
+        boolean r = 5 &gt; 3 == true;
+        System.out.println(r);
+        System.out.println(1 + 2 == 3);
+        System.out.println(true || false &amp;&amp; false);
+        System.out.println(!false &amp;&amp; false);
+        System.out.println(!(false &amp;&amp; false));
+        int idade = 20;
+        System.out.println(idade &gt;= 18 &amp;&amp; idade &lt; 60 || idade == 0);
+        int i = 5;
+        int j = i++ + ++i;
+        System.out.println(i + " " + j);
+        double media = (double) 7 / 2;
+        System.out.println(media);
+        System.out.println((double) (7 / 2));
+        System.out.println(-3 % 2 + 1);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+5 5 5              « atribuição: da direita para a esquerda
+30                 « x += (x * 2): o lado direito inteiro primeiro
+true               « (5 &gt; 3) == true
+true               « (1 + 2) == 3: a soma vem antes da comparação
+true               « true || (false &amp;&amp; false)
+false              « (!false) &amp;&amp; false: o ! vale só para o false
+true               « !(false &amp;&amp; false): o ! vale para tudo
+true               « ((idade &gt;= 18) &amp;&amp; (idade &lt; 60)) || (idade == 0)
+7 12               « 5 + 7: leia a explicação abaixo
+3.5                « o casting vem antes da divisão
+3.0                « com parênteses, a divisão (inteira) vem antes
+0                  « (-3 % 2) + 1 = -1 + 1</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>Como o Java lê</th><th>Regra</th></tr>
+<tr><td><code>a = b = c = 5</code></td><td><code>a = (b = (c = 5))</code></td><td>Atribuição associa da direita para a esquerda</td></tr>
+<tr><td><code>x += x * 2</code></td><td><code>x = x + (x * 2)</code></td><td>Atribuição é a última de todas</td></tr>
+<tr><td><code>1 + 2 == 3</code></td><td><code>(1 + 2) == 3</code></td><td>Aritmética antes de comparação</td></tr>
+<tr><td><code>true || false &amp;&amp; false</code></td><td><code>true || (false &amp;&amp; false)</code></td><td><code>&amp;&amp;</code> antes de <code>||</code></td></tr>
+<tr><td><code>!false &amp;&amp; false</code></td><td><code>(!false) &amp;&amp; false</code></td><td>Unários antes de tudo</td></tr>
+<tr><td><code>(double) 7 / 2</code></td><td><code>((double) 7) / 2</code></td><td>Casting é unário: vem antes da divisão</td></tr>
+</table>
+</div>
+
+<h3>O caso <code>i++ + ++i</code></h3>
+<p>Com <code>i</code> valendo 5, <code>j = i++ + ++i</code> deu <code>12</code> e <code>i</code> terminou em 7. O Java calcula os operandos da <strong>esquerda para a direita</strong>: <code>i++</code> produz 5 e deixa <code>i</code> em 6; depois <code>++i</code> leva <code>i</code> a 7 e produz 7; por fim, 5 + 7 = 12. Funciona sempre igual em Java, mas é ilegível: veja a dica sobre <code>++</code> em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</p>
+
+<hr>
+
+<h2>Use parênteses</h2>
+<p>A tabela existe, mas quem lê seu código não a tem decorada (e daqui a seis meses, nem você). Parênteses <strong>não custam nada</strong>, não deixam o programa mais lento e eliminam a dúvida. Use-os sempre que:</p>
+
+<ul>
+  <li>misturar <code>&amp;&amp;</code> e <code>||</code>: <code>(idade &gt;= 18 &amp;&amp; idade &lt; 60) || convidado</code>;</li>
+  <li>fazer contas dentro de um texto: <code>"Total: " + (preco * qtd)</code>;</li>
+  <li>a conta tiver uma ordem que não é a da tabela: médias, fórmulas;</li>
+  <li>usar casting numa expressão: <code>(double) soma / n</code> ou <code>(int) (preco * 100)</code>.</li>
+</ul>
+
+<p>As fórmulas são onde a precedência mais causa erros "silenciosos" (compila, roda, e o resultado está errado):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int n1 = 8, n2 = 6, n3 = 7;
+        double media = n1 + n2 + n3 / 3.0;
+        System.out.println(media);
+        double certa = (n1 + n2 + n3) / 3.0;
+        System.out.println(certa);
+        double celsius = 25;
+        double fahrenheit = celsius * 9 / 5 + 32;
+        System.out.println(fahrenheit);
+        double errado = celsius * (9 / 5) + 32;
+        System.out.println(errado);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+16.333333333333332 « 8 + 6 + (7 / 3.0): só o n3 foi dividido
+7.0                « (8 + 6 + 7) / 3.0
+77.0               « ((25 * 9) / 5) + 32: certo
+57.0               « 9 / 5 entre parênteses é divisão inteira = 1!</pre>
+
+<p>A última linha mostra que parênteses também podem atrapalhar: <code>(9 / 5)</code> força a divisão de dois inteiros a acontecer sozinha, e ela dá <code>1</code>. Parênteses decidem a <strong>ordem</strong>; as regras de tipo (<a href="conversao-tipos.html">Conversão de Tipos</a>) continuam valendo dentro deles. Escrever <code>9.0 / 5</code> resolveria.</p>
+
+<div class="tryjava" data-goal="out:7.0,src:\(\s*n1">
+<p class="try-task"><strong>Missão:</strong> a média das três notas está saindo <code>16.333333333333332</code>. Coloque parênteses para somar as três antes de dividir, e o programa deve mostrar <code>7.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int n1 = 8, n2 = 6, n3 = 7;
+        double media = n1 + n2 + n3 / 3.0;
+        System.out.println(media);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int n1 = 8, n2 = 6, n3 = 7;
+        double media = (n1 + n2 + n3) / 3.0;
+        System.out.println(media);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Comparação dentro de texto: "bad operand types for binary operator '&gt;'"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int x = 5;
+        System.out.println("x é positivo? " + x &gt; 0);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: bad operand types for binary operator '&gt;'
+        System.out.println("x é positivo? " + x &gt; 0);
+                                                ^
+  first type:  String
+  second type: int
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o <code>+</code> tem precedência maior que o <code>&gt;</code>, então o Java colou primeiro (<code>"x é positivo? 5"</code>) e depois tentou comparar esse texto com <code>0</code>. O erro diz exatamente isso: <code>first type: String</code>.</p>
+<p><strong>Como consertar:</strong> parênteses em volta da comparação: <code>"x é positivo? " + (x &gt; 0)</code>. O mesmo erro aparece com o ternário, <code>"Idade: " + idade &gt;= 18 ? …</code>, desta vez para o operador <code>'&gt;='</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>!idade &gt; 18</code>: "bad operand type int for unary operator '!'"</strong>
+<p><strong>O que quer dizer:</strong> o <code>!</code> (unário) vem antes do <code>&gt;</code>, e "não idade" não existe. O erro real está em <a href="operadores-logicos.html">Operadores Lógicos</a>.</p>
+<p><strong>Como consertar:</strong> <code>!(idade &gt; 18)</code>, ou <code>idade &lt;= 18</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O resultado está errado, sem nenhuma mensagem</strong>
+<p><strong>O que aconteceu:</strong> a precedência fez a conta numa ordem diferente da que você imaginou: <code>a + b / 2</code> divide só o <code>b</code>; <code>"Total: " + a + b</code> cola em vez de somar; <code>x &gt; 0 || y &gt; 0 &amp;&amp; z &gt; 0</code> agrupa o <code>&amp;&amp;</code> primeiro.</p>
+<p><strong>Como consertar:</strong> escreva os parênteses que deixam a sua intenção explícita. Se quiser conferir como o Java está lendo, teste pedaços da expressão no <a href="jshell.html">JShell</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Regra</th><th>Exemplo → resultado</th></tr>
+<tr><td>Parênteses primeiro</td><td><code>(2 + 3) * 4</code> → <code>20</code></td></tr>
+<tr><td>Unários (<code>-</code>, <code>!</code>, <code>++</code>, casting) antes dos binários</td><td><code>(double) 7 / 2</code> → <code>3.5</code></td></tr>
+<tr><td><code>* / %</code> antes de <code>+ -</code></td><td><code>2 + 3 * 4</code> → <code>14</code></td></tr>
+<tr><td>Mesma precedência: esquerda → direita</td><td><code>10 / 2 * 5</code> → <code>25</code>; <code>"a" + 1 + 2</code> → <code>a12</code></td></tr>
+<tr><td>Aritmética antes de comparação</td><td><code>1 + 2 == 3</code> → <code>true</code></td></tr>
+<tr><td>Comparação antes de <code>&amp;&amp;</code> e <code>||</code></td><td><code>x &gt; 0 &amp;&amp; x &lt; 10</code></td></tr>
+<tr><td><code>&amp;&amp;</code> antes de <code>||</code></td><td><code>true || false &amp;&amp; false</code> → <code>true</code></td></tr>
+<tr><td>Atribuição por último, direita → esquerda</td><td><code>a = b = 5</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Multiplicação primeiro</h3>
+<p>Quanto vale <code>5 + 2 * 3</code>?</p>
+<div class="ex-code"><input data-answer="11" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Esquerda para a direita</h3>
+<p>Quanto vale <code>20 / 4 * 2</code>?</p>
+<div class="ex-code"><input data-answer="10" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Texto e números</h3>
+<p>O que <code>System.out.println(2 + 3 + "x" + 2 + 3);</code> mostra?</p>
+<div class="ex-code"><input data-answer="5x23" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>System.out.println("Nota: " + 7 + 1);</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>Nota: 8</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação.</label>
+<label><input type="radio" name="q4"> <code>Nota: 71</code></label>
+<label><input type="radio" name="q4"> <code>Nota: 7 1</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual expressão calcula corretamente a média de <code>a</code> e <code>b</code> (ambos <code>int</code>) com casas decimais?</p>
+<label><input type="radio" name="q5"> <code>(a + b) / 2.0</code></label>
+<label><input type="radio" name="q5"> <code>a + b / 2.0</code></label>
+<label><input type="radio" name="q5"> <code>(double) ((a + b) / 2)</code></label>
+<label><input type="radio" name="q5"> <code>a + b / 2</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Como o Java lê <code>a || b &amp;&amp; c</code>?</p>
+<label><input type="radio" name="q6"> <code>(a || b) &amp;&amp; c</code></label>
+<label><input type="radio" name="q6"> <code>a || (b &amp;&amp; c)</code></label>
+<label><input type="radio" name="q6"> Da esquerda para a direita, sem regra.</label>
+<label><input type="radio" name="q6"> Não compila sem parênteses.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Precedência</strong> decide qual operador vem primeiro; <strong>associatividade</strong> decide o lado, entre operadores de mesma precedência (quase sempre esquerda → direita).</li>
+  <li>Ordem geral: parênteses → unários e casting → <code>* / %</code> → <code>+ -</code> → comparações → <code>==</code> <code>!=</code> → <code>&amp;&amp;</code> → <code>||</code> → ternário → atribuição.</li>
+  <li><code>"a" + 1 + 2</code> = <code>a12</code>; <code>1 + 2 + "a"</code> = <code>3a</code>: o <code>+</code> soma até aparecer um texto e depois só cola.</li>
+  <li>Para somar dentro de um texto ou comparar dentro de um texto, parênteses: <code>"Total: " + (a + b)</code>.</li>
+  <li>Na dúvida, parênteses. Eles não custam nada e deixam a intenção clara.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
