@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java HashMap — chave e valor: put, get, getOrDefault, merge | Guia Java</title>
+<meta name="description" content="HashMap em Java do zero: put, get (e o null da chave que não existe), getOrDefault, containsKey, remove, percorrer com keySet, values e entrySet, contar palavras com merge, por que a ordem não é garantida, LinkedHashMap e Map.of, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">HashMap</span></h1>
+
+<p class="intro">Numa lista, você encontra as coisas pela <strong>posição</strong> (o 1º, o 2º…). Mas muitas vezes você quer encontrar pelo <strong>nome</strong>: o preço <em>do café</em>, a nota <em>da Ana</em>, a capital <em>de Pernambuco</em>. Para isso existe o <strong>mapa</strong> (<code>Map</code>), que liga cada <strong>chave</strong> a um <strong>valor</strong>, e a sua implementação mais usada, o <code>HashMap</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que são chave e valor, e como criar um <code>HashMap</code>.</li>
+  <li><code>put</code>, <code>get</code> (e o <code>null</code> de uma chave que não existe), <code>getOrDefault</code>, <code>containsKey</code>, <code>remove</code>.</li>
+  <li>Percorrer um mapa com <code>keySet</code>, <code>values</code> e <code>entrySet</code>.</li>
+  <li>Contar palavras (frequência) de três jeitos, até o <code>merge</code>.</li>
+  <li>Por que <strong>a ordem não é garantida</strong>, e o <code>LinkedHashMap</code>, que guarda a ordem.</li>
+  <li>Mapas prontos e imutáveis com <code>Map.of</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: um dicionário</h2>
+<p>Num dicionário de papel, você não procura "a palavra número 3.512": você procura <strong>pela palavra</strong> e encontra o significado. A palavra é a <strong>chave</strong> (<em>key</em>); o significado é o <strong>valor</strong> (<em>value</em>). Um mapa funciona igual:</p>
+
+<pre class="syntax">  chave       valor
+  "pão"    →  0.75
+  "leite"  →  5.49
+  "café"   →  18.90</pre>
+
+<p>Duas regras definem um mapa:</p>
+<ul>
+  <li><strong>Cada chave aparece uma vez só.</strong> Não existem dois "pão" na tabela. Se você guardar "pão" de novo, o valor antigo é <strong>substituído</strong>.</li>
+  <li><strong>Valores podem se repetir.</strong> O pão e a banana podem custar o mesmo.</li>
+</ul>
+
+<p>Em outras linguagens isso se chama "dicionário" (Python), "objeto" ou "tabela associativa". No Java, a interface é <code>Map&lt;K, V&gt;</code>: <code>K</code> é o tipo da chave (<em>key</em>) e <code>V</code>, o do valor (<em>value</em>).</p>
+
+<hr>
+
+<h2>Criar, guardar e buscar: <code>put</code> e <code>get</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Double&gt; precos = new HashMap&lt;&gt;();
+        precos.put("pão", 0.75);
+        precos.put("leite", 5.49);
+        precos.put("café", 18.90);
+        System.out.println(precos);
+        System.out.println("Tamanho: " + precos.size());
+
+        System.out.println("Preço do leite: " + precos.get("leite"));
+        System.out.println("Preço do queijo: " + precos.get("queijo"));
+
+        Double antigo = precos.put("leite", 5.99);
+        System.out.println("O leite custava " + antigo + ", agora " + precos.get("leite"));
+        System.out.println(precos);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Map&lt;String, Double&gt;</dt><dd>"Um mapa de <code>String</code> para <code>Double</code>": a chave é um texto (o produto), o valor é um número decimal (o preço). Lembre: coleções guardam objetos, por isso <code>Double</code> e não <code>double</code> (veja <a href="wrappers.html">Wrappers</a>).</dd>
+  <dt>new HashMap&lt;&gt;()</dt><dd>Cria o mapa vazio. A variável é a interface <code>Map</code>; o objeto, um <code>HashMap</code> (veja <a href="colecoes.html">programar para a interface</a>).</dd>
+  <dt>precos.put("pão", 0.75)</dt><dd><code>put</code> = colocar. Liga a chave <code>"pão"</code> ao valor <code>0.75</code>. Se a chave já existia, troca o valor e <strong>devolve o antigo</strong>.</dd>
+  <dt>precos.get("leite")</dt><dd><code>get</code> = pegar. Devolve o valor ligado à chave, ou <code>null</code> se a chave não existe.</dd>
+  <dt>precos.size()</dt><dd>Quantos <strong>pares</strong> chave-valor existem.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+{leite=5.49, pão=0.75, café=18.9}             « chaves { }, pares chave=valor
+Tamanho: 3
+Preço do leite: 5.49
+Preço do queijo: null                          « chave que não existe: null, sem erro
+O leite custava 5.49, agora 5.99               « put numa chave existente substitui
+{leite=5.99, pão=0.75, café=18.9}</pre>
+
+<p>Quatro coisas para reparar:</p>
+<ol>
+  <li>O mapa se imprime entre <strong>chaves</strong> <code>{ }</code>, com cada par no formato <code>chave=valor</code>.</li>
+  <li><strong>A ordem não é a da inserção</strong>: o leite apareceu antes do pão. Isso tem explicação, e você vai vê-la <a href="#ordem">mais abaixo</a>.</li>
+  <li><code>get("queijo")</code> não deu erro: devolveu <code>null</code>, o "nada" do Java. Isso é cômodo, mas perigoso, como mostra o <a href="#npe">cenário de erro</a> no fim da aula.</li>
+  <li>O segundo <code>put("leite", …)</code> não criou outro leite: o mapa continua com 3 pares, e o <code>put</code> devolveu o preço antigo.</li>
+</ol>
+
+<hr>
+
+<h2>Perguntar e remover</h2>
+
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Integer&gt; estoque = new HashMap&lt;&gt;();
+        estoque.put("maçã", 12);
+        estoque.put("banana", 30);
+        estoque.put("uva", 0);
+
+        System.out.println("getOrDefault(\"kiwi\", 0): " + estoque.getOrDefault("kiwi", 0));
+        System.out.println("getOrDefault(\"maçã\", 0): " + estoque.getOrDefault("maçã", 0));
+        System.out.println("containsKey(\"uva\"): " + estoque.containsKey("uva"));
+        System.out.println("containsKey(\"kiwi\"): " + estoque.containsKey("kiwi"));
+        System.out.println("containsValue(30): " + estoque.containsValue(30));
+
+        Integer tirado = estoque.remove("uva");
+        System.out.println("remove(\"uva\") devolveu " + tirado + ": " + estoque);
+        System.out.println("remove(\"kiwi\") devolveu " + estoque.remove("kiwi"));
+
+        estoque.putIfAbsent("banana", 999);
+        estoque.putIfAbsent("pera", 7);
+        System.out.println("depois de putIfAbsent: " + estoque);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+getOrDefault("kiwi", 0): 0                 « não tem kiwi: devolveu o padrão
+getOrDefault("maçã", 0): 12
+containsKey("uva"): true                   « a uva existe, mesmo com estoque 0
+containsKey("kiwi"): false
+containsValue(30): true
+remove("uva") devolveu 0: {banana=30, maçã=12}
+remove("kiwi") devolveu null               « não existia: null, sem erro
+depois de putIfAbsent: {banana=30, pera=7, maçã=12}   « a banana NÃO virou 999</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Tradução</th><th>O que faz</th></tr>
+<tr><td><code>getOrDefault(k, padrao)</code></td><td>"pegar ou o padrão"</td><td>O valor de <code>k</code>; se <code>k</code> não existe, devolve <code>padrao</code> em vez de <code>null</code>.</td></tr>
+<tr><td><code>containsKey(k)</code></td><td>"contém a chave"</td><td><code>true</code> se a chave existe. Rápido.</td></tr>
+<tr><td><code>containsValue(v)</code></td><td>"contém o valor"</td><td><code>true</code> se algum par tem esse valor. Lento: olha todos.</td></tr>
+<tr><td><code>remove(k)</code></td><td>remover</td><td>Tira o par da chave <code>k</code> e devolve o valor que estava lá (ou <code>null</code>).</td></tr>
+<tr><td><code>putIfAbsent(k, v)</code></td><td>"colocar se ausente"</td><td>Só coloca se a chave ainda não existe.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong><code>containsKey</code> ou <code>get(k) != null</code>?</strong>
+<p>Os dois costumam dar a mesma resposta, mas não sempre: um <code>HashMap</code> aceita <code>null</code> como valor (<code>put("x", null)</code>). Aí <code>get("x")</code> devolve <code>null</code> mesmo com a chave existindo. Para a pergunta "a chave existe?", use <code>containsKey</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:kiwi: 0,out:maçã: 12,src:getOrDefault">
+<p class="try-task"><strong>Missão:</strong> rode e veja <code>kiwi: null</code>. Troque os dois <code>get</code> por <code>getOrDefault</code> com padrão <code>0</code>, para a saída ser <code>maçã: 12</code> e <code>kiwi: 0</code>.</p>
+<pre class="script">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Integer&gt; estoque = new HashMap&lt;&gt;();
+        estoque.put("maçã", 12);
+        estoque.put("banana", 30);
+
+        System.out.println("maçã: " + estoque.get("maçã"));
+        System.out.println("kiwi: " + estoque.get("kiwi"));
+    }
+}
+</pre>
+<pre class="solucao">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Integer&gt; estoque = new HashMap&lt;&gt;();
+        estoque.put("maçã", 12);
+        estoque.put("banana", 30);
+
+        System.out.println("maçã: " + estoque.getOrDefault("maçã", 0));
+        System.out.println("kiwi: " + estoque.getOrDefault("kiwi", 0));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Percorrer um mapa</h2>
+<p>Um mapa não é uma <code>Collection</code>, então não dá para fazer um for-each direto nele. Mas ele oferece três "visões" que <strong>são</strong> coleções:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Visão</th><th>Tipo</th><th>Contém</th></tr>
+<tr><td><code>keySet()</code></td><td><code>Set&lt;K&gt;</code></td><td>só as chaves (um conjunto: sem repetidos)</td></tr>
+<tr><td><code>values()</code></td><td><code>Collection&lt;V&gt;</code></td><td>só os valores (podem se repetir)</td></tr>
+<tr><td><code>entrySet()</code></td><td><code>Set&lt;Map.Entry&lt;K, V&gt;&gt;</code></td><td>os pares; cada par (<em>entry</em>, "entrada") tem <code>getKey()</code> e <code>getValue()</code></td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Double&gt; notas = new HashMap&lt;&gt;();
+        notas.put("Ana", 9.5);
+        notas.put("Bruno", 7.0);
+        notas.put("Carla", 8.25);
+
+        System.out.println("keySet(): " + notas.keySet());
+        System.out.println("values(): " + notas.values());
+        System.out.println("entrySet(): " + notas.entrySet());
+
+        for (String nome : notas.keySet()) {
+            System.out.println("Aluno: " + nome);
+        }
+
+        double soma = 0;
+        for (double n : notas.values()) {
+            soma += n;
+        }
+        System.out.println("Média: " + soma / notas.size());
+
+        for (Map.Entry&lt;String, Double&gt; par : notas.entrySet()) {
+            System.out.println(par.getKey() + " tirou " + par.getValue());
+        }
+
+        notas.forEach((nome, nota) -&gt; System.out.println(nome + " -&gt; " + nota));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+keySet(): [Bruno, Carla, Ana]
+values(): [7.0, 8.25, 9.5]
+entrySet(): [Bruno=7.0, Carla=8.25, Ana=9.5]
+Aluno: Bruno
+Aluno: Carla
+Aluno: Ana
+Média: 8.25
+Bruno tirou 7.0
+Carla tirou 8.25
+Ana tirou 9.5
+Bruno -&gt; 7.0
+Carla -&gt; 8.25
+Ana -&gt; 9.5</pre>
+
+<dl class="anatomy">
+  <dt>for (String nome : notas.keySet())</dt><dd>"Para cada nome no conjunto de chaves". Use quando só precisa das chaves.</dd>
+  <dt>for (double n : notas.values())</dt><dd>"Para cada valor". Bom para somar, achar o maior… O Java converte cada <code>Double</code> em <code>double</code> sozinho.</dd>
+  <dt>Map.Entry&lt;String, Double&gt; par</dt><dd><code>Entry</code> é um tipo que mora "dentro" de <code>Map</code> (por isso <code>Map.Entry</code>). Cada <code>par</code> tem <code>getKey()</code> e <code>getValue()</code>.</dd>
+  <dt>notas.forEach((nome, nota) -&gt; …)</dt><dd>A forma curta: uma <a href="lambdas.html">lambda</a> que recebe a chave e o valor.</dd>
+</dl>
+
+<p>Quando precisar da chave <strong>e</strong> do valor, prefira <code>entrySet()</code> ou <code>forEach</code>: fazer <code>for (String k : keySet())</code> e chamar <code>get(k)</code> dentro do laço funciona, mas busca cada chave duas vezes.</p>
+
+<hr>
+
+<h2>Contar coisas: a frequência das palavras</h2>
+<p>O uso mais clássico de um mapa: contar quantas vezes cada coisa aparece. A chave é a coisa (a palavra), o valor é a contagem. Veja três formas, da mais explicada à mais curta. As três dão o mesmo resultado:</p>
+
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        String frase = "o rato roeu a roupa do rei de roma e o rato fugiu";
+        String[] palavras = frase.split(" ");
+
+        // Forma 1: if com containsKey
+        Map&lt;String, Integer&gt; f1 = new HashMap&lt;&gt;();
+        for (String p : palavras) {
+            if (f1.containsKey(p)) {
+                f1.put(p, f1.get(p) + 1);
+            } else {
+                f1.put(p, 1);
+            }
+        }
+
+        // Forma 2: getOrDefault
+        Map&lt;String, Integer&gt; f2 = new HashMap&lt;&gt;();
+        for (String p : palavras) {
+            f2.put(p, f2.getOrDefault(p, 0) + 1);
+        }
+
+        // Forma 3: merge
+        Map&lt;String, Integer&gt; f3 = new HashMap&lt;&gt;();
+        for (String p : palavras) {
+            f3.merge(p, 1, Integer::sum);
+        }
+
+        System.out.println(f1);
+        System.out.println(f2);
+        System.out.println(f3);
+        System.out.println("\"rato\" aparece " + f3.get("rato") + " vezes");
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como se lê</th></tr>
+<tr><td>1. <code>if (f1.containsKey(p))</code></td><td>"Se a palavra já está no mapa, some 1 ao que estava; senão, comece com 1."</td></tr>
+<tr><td>2. <code>f2.getOrDefault(p, 0) + 1</code></td><td>"Pegue a contagem atual (ou 0, se é a primeira vez) e some 1."</td></tr>
+<tr><td>3. <code>f3.merge(p, 1, Integer::sum)</code></td><td><code>merge</code> = mesclar. "Se a palavra não existe, guarde <code>1</code>; se existe, junte o valor velho com o <code>1</code> usando a soma." <code>Integer::sum</code> é uma <a href="method-references.html">referência de método</a>: o mesmo que <code>(velho, novo) -&gt; velho + novo</code>.</td></tr>
+</table>
+</div>
+
+<pre class="term">$ javac Main.java
+$ java Main
+{fugiu=1, a=1, de=1, roupa=1, roma=1, e=1, rei=1, roeu=1, do=1, o=2, rato=2}
+{fugiu=1, a=1, de=1, roupa=1, roma=1, e=1, rei=1, roeu=1, do=1, o=2, rato=2}
+{fugiu=1, de=1, a=1, roupa=1, roma=1, e=1, rei=1, roeu=1, do=1, rato=2, o=2}
+"rato" aparece 2 vezes</pre>
+
+<p>As contagens são iguais nas três: <code>o</code> e <code>rato</code> com 2, o resto com 1. Mas olhe com atenção a terceira linha: <code>de</code> e <code>a</code> trocaram de lugar, e <code>rato</code> e <code>o</code> também. Os <strong>mesmos</strong> dados, no <strong>mesmo</strong> tipo de mapa, saíram em outra ordem só porque foram colocados com outro método. É o assunto da próxima seção.</p>
+
+<hr>
+
+<h2 id="ordem">A ordem não é garantida</h2>
+<p>Por que o <code>HashMap</code> embaralha? Pense num <strong>gaveteiro</strong> com gavetas numeradas. Para guardar uma chave, o <code>HashMap</code> calcula um número a partir dela (o <strong><em>hash code</em></strong>, uma espécie de "impressão digital" numérica; veja <a href="object.html">A Classe Object</a>) e usa esse número para escolher a gaveta. Para achar a chave depois, faz a mesma conta e vai direto à gaveta certa, sem olhar as outras. É por isso que o <code>get</code> é tão rápido, mesmo com milhões de chaves.</p>
+
+<p>O preço disso: ao imprimir, o <code>HashMap</code> percorre as gavetas na ordem das gavetas, que não tem nada a ver com a ordem em que você guardou nem com a ordem alfabética. Veja as mesmas sete frutas em três mapas diferentes:</p>
+
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"uva", "banana", "maçã", "kiwi", "abacaxi", "laranja", "pera"};
+
+        Map&lt;String, Integer&gt; hash = new HashMap&lt;&gt;();
+        Map&lt;String, Integer&gt; linked = new LinkedHashMap&lt;&gt;();
+        Map&lt;String, Integer&gt; tree = new TreeMap&lt;&gt;();
+        for (int i = 0; i &lt; frutas.length; i++) {
+            hash.put(frutas[i], i + 1);
+            linked.put(frutas[i], i + 1);
+            tree.put(frutas[i], i + 1);
+        }
+        System.out.println("HashMap:       " + hash);
+        System.out.println("LinkedHashMap: " + linked);
+        System.out.println("TreeMap:       " + tree);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+HashMap:       {banana=2, pera=7, uva=1, kiwi=4, maçã=3, abacaxi=5, laranja=6}   « ordem das "gavetas"
+LinkedHashMap: {uva=1, banana=2, maçã=3, kiwi=4, abacaxi=5, laranja=6, pera=7}   « ordem de inserção
+TreeMap:       {abacaxi=5, banana=2, kiwi=4, laranja=6, maçã=3, pera=7, uva=1}   « ordem das chaves (A→Z)</pre>
+
+<p>O número depois de cada fruta é a ordem em que ela foi colocada. No <code>HashMap</code> saiu 2, 7, 1, 4, 3, 5, 6: nenhuma ordem que faça sentido para nós. E essa ordem pode mudar se o mapa crescer, se os dados forem colocados com outro método (como você viu com o <code>merge</code>) ou numa outra versão do Java.</p>
+
+<div class="warning">
+<strong>Nunca escreva um programa que dependa da ordem de um <code>HashMap</code></strong>
+<p>Se o seu programa "funciona" porque o <code>HashMap</code> por acaso imprime na ordem certa, ele pode quebrar amanhã. Quando a ordem importa, escolha o mapa certo:</p>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mapa</th><th>Ordem ao percorrer</th><th>Quando usar</th></tr>
+<tr><td><code>HashMap</code></td><td>Nenhuma garantida</td><td>O padrão: você só busca por chave e a ordem não importa.</td></tr>
+<tr><td><code>LinkedHashMap</code></td><td>A de inserção (quem entrou primeiro sai primeiro)</td><td>Um cardápio, um relatório, um formulário: a ordem em que você colocou é a que deve sair.</td></tr>
+<tr><td><code>TreeMap</code></td><td>Chaves em ordem crescente (alfabética, numérica)</td><td>Listagens ordenadas, "a primeira chave depois de X". Veja <a href="treemap-treeset.html">TreeMap e TreeSet</a>.</td></tr>
+</table>
+</div>
+
+<p>Trocar é fácil: como a variável é do tipo <code>Map</code>, basta mudar o <code>new</code>. O <code>LinkedHashMap</code> funciona exatamente como o <code>HashMap</code>, com os mesmos métodos, só lembrando a ordem; é um pouco mais pesado, porque mantém também uma "corrente" ligando os pares na ordem de chegada.</p>
+
+<hr>
+
+<h2>Mapas prontos: <code>Map.of</code></h2>
+<p>Como <code>List.of</code>, o <code>Map.of</code> cria um mapa pronto e <strong>imutável</strong>, passando chave, valor, chave, valor…</p>
+
+<pre class="file" data-file="Main.java">import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, String&gt; capitais = Map.of(
+            "PE", "Recife",
+            "RN", "Natal",
+            "PB", "João Pessoa"
+        );
+        System.out.println(capitais.get("PE"));
+        System.out.println(capitais.size());
+        capitais.put("CE", "Fortaleza");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Recife
+3
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableMap.put(ImmutableCollections.java:1318)
+	at Main.main(Main.java:12)</pre>
+
+<p>Ler funciona; <code>put</code> dá <code>UnsupportedOperationException</code>. Para um mapa que pode mudar, copie: <code>new HashMap&lt;&gt;(Map.of(…))</code>. O <code>Map.of</code> aceita até 10 pares; para mais, existe <code>Map.ofEntries(Map.entry("PE", "Recife"), …)</code>.</p>
+
+<p>E a ordem? No <code>Map.of</code> ela é embaralhada <strong>de propósito</strong>, e muda a cada execução, justamente para ninguém depender dela. O mesmo programa rodado três vezes:</p>
+
+<pre class="file" data-file="Main.java">        Map&lt;String, String&gt; capitais = Map.of("PE", "Recife", "RN", "Natal", "PB", "João Pessoa", "CE", "Fortaleza");
+        System.out.println(capitais);
+</pre>
+
+<pre class="term">$ java Main
+{PB=João Pessoa, CE=Fortaleza, RN=Natal, PE=Recife}
+$ java Main
+{PE=Recife, RN=Natal, CE=Fortaleza, PB=João Pessoa}     « outra ordem, mesmo código
+$ java Main
+{PE=Recife, RN=Natal, CE=Fortaleza, PB=João Pessoa}</pre>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> troque <code>HashMap</code> por <code>LinkedHashMap</code> e depois por <code>TreeMap</code> (lembre do <code>import</code>, ou use <code>java.util.*</code>). Acrescente produtos e veja a ordem de cada um.</p>
+<pre class="script">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Double&gt; cardapio = new HashMap&lt;&gt;();
+        cardapio.put("suco", 6.0);
+        cardapio.put("café", 4.5);
+        cardapio.put("pão de queijo", 3.0);
+        cardapio.put("bolo", 7.25);
+
+        for (Map.Entry&lt;String, Double&gt; item : cardapio.entrySet()) {
+            System.out.println(item.getKey() + ": R$ " + item.getValue());
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario" id="npe">
+<strong><code>NullPointerException</code> ao guardar o <code>get</code> num <code>int</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Integer&gt; idades = new HashMap&lt;&gt;();
+        idades.put("Ana", 29);
+        int idade = idades.get("Zeca");
+        System.out.println(idade);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+$ java Main
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "java.lang.Integer.intValue()" because the return value of "java.util.Map.get(Object)" is null
+	at Main.main(Main.java:8)</pre>
+<p><strong>O que quer dizer:</strong> "não posso chamar <code>Integer.intValue()</code> porque o valor devolvido por <code>Map.get</code> é null". O Zeca não está no mapa, então <code>get</code> devolveu <code>null</code>. Para guardar num <code>int</code>, o Java tenta desembrulhar o <code>Integer</code> (chamando <code>intValue()</code>), e não existe nada para desembrulhar.</p>
+<p><strong>Como consertar:</strong> use <code>idades.getOrDefault("Zeca", 0)</code>, confira antes com <code>containsKey</code>, ou guarde num <code>Integer</code> e teste <code>if (idade != null)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>IllegalArgumentException: duplicate key</code> no <code>Map.of</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, String&gt; capitais = Map.of("PE", "Recife", "PE", "Olinda");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+$ java Main
+Exception in thread "main" java.lang.IllegalArgumentException: duplicate key: PE
+	at java.base/java.util.ImmutableCollections$MapN.&lt;init&gt;(ImmutableCollections.java:1440)
+	at java.base/java.util.Map.of(Map.java:1384)
+	at Main.main(Main.java:5)</pre>
+<p><strong>O que quer dizer:</strong> "argumento ilegal: chave duplicada: PE". Com <code>put</code>, repetir uma chave substitui o valor em silêncio; o <code>Map.of</code> é mais rigoroso e recusa, porque chave repetida ali é quase sempre erro de digitação.</p>
+<p><strong>Como consertar:</strong> remova a chave repetida.</p>
+</div>
+
+<div class="cenario">
+<strong>A saída saiu "embaralhada"</strong>
+<p><strong>O que aconteceu:</strong> não é erro: o <code>HashMap</code> não guarda ordem. Veja <a href="#ordem">A ordem não é garantida</a>.</p>
+<p><strong>Como consertar:</strong> <code>LinkedHashMap</code> para a ordem de inserção; <code>TreeMap</code> para ordem alfabética.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>put(k, v)</code></td><td>Liga <code>k</code> a <code>v</code> (substitui se <code>k</code> já existe)</td><td>O valor antigo ou <code>null</code></td></tr>
+<tr><td><code>get(k)</code></td><td>Busca o valor de <code>k</code></td><td>O valor ou <code>null</code></td></tr>
+<tr><td><code>getOrDefault(k, d)</code></td><td>Busca, com padrão</td><td>O valor ou <code>d</code></td></tr>
+<tr><td><code>containsKey(k)</code> / <code>containsValue(v)</code></td><td>Existe a chave / o valor?</td><td><code>boolean</code></td></tr>
+<tr><td><code>remove(k)</code></td><td>Remove o par</td><td>O valor removido ou <code>null</code></td></tr>
+<tr><td><code>putIfAbsent(k, v)</code></td><td>Coloca só se <code>k</code> não existe</td><td>O valor atual ou <code>null</code></td></tr>
+<tr><td><code>merge(k, v, função)</code></td><td>Se não existe, guarda <code>v</code>; se existe, combina</td><td>O novo valor</td></tr>
+<tr><td><code>size()</code>, <code>isEmpty()</code>, <code>clear()</code></td><td>Quantidade, vazio?, apagar tudo</td><td>—</td></tr>
+<tr><td><code>keySet()</code>, <code>values()</code>, <code>entrySet()</code></td><td>Visões para percorrer</td><td><code>Set</code>, <code>Collection</code>, <code>Set&lt;Entry&gt;</code></td></tr>
+<tr><td><code>forEach((k, v) -&gt; …)</code></td><td>Faz algo com cada par</td><td>—</td></tr>
+<tr><td><code>Map.of(k1, v1, k2, v2…)</code></td><td>Mapa pronto e imutável (até 10 pares)</td><td><code>Map</code></td></tr>
+<tr><td><code>new HashMap&lt;&gt;(outro)</code></td><td>Cópia mutável</td><td>—</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Guardar</h3>
+<p>Complete para ligar a chave "Ana" ao valor 9.5 no mapa <code>notas</code>:</p>
+<div class="ex-code">notas.<input data-answer="put(&quot;Ana&quot;, 9.5)|put(&quot;Ana&quot;,9.5)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Sem null</h3>
+<p>Complete para buscar a nota do "Zeca" devolvendo <code>0.0</code> se ele não existir:</p>
+<div class="ex-code">double n = notas.<input data-answer="getOrDefault(&quot;Zeca&quot;, 0.0)|getOrDefault(&quot;Zeca&quot;,0.0)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Chave e valor juntos</h3>
+<p>Complete o tipo do par no for-each:</p>
+<div class="ex-code">for (<input data-answer="Map.Entry&lt;String, Double&gt;|Map.Entry&lt;String,Double&gt;|var" aria-label="tipo"> par : notas.entrySet()) { … }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O mapa tem <code>{pão=0.75}</code>. Depois de <code>put("pão", 0.80)</code>, quantos pares ele tem?</p>
+<label><input type="radio" name="q4"> 2</label>
+<label><input type="radio" name="q4"> 1</label>
+<label><input type="radio" name="q4"> Dá erro de chave duplicada</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. A Ana quer imprimir um cardápio na ordem em que escreveu os itens. Qual mapa?</p>
+<label><input type="radio" name="q5"> <code>HashMap</code></label>
+<label><input type="radio" name="q5"> <code>TreeMap</code></label>
+<label><input type="radio" name="q5"> <code>LinkedHashMap</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que <code>get</code> devolve para uma chave que não existe?</p>
+<label><input type="radio" name="q6"> <code>null</code></label>
+<label><input type="radio" name="q6"> <code>0</code></label>
+<label><input type="radio" name="q6"> Lança <code>NoSuchElementException</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:pizza: 3,out:lanche: 2,out:sushi: 1,src:merge\(">
+<p class="try-task"><strong>Missão final:</strong> a turma votou no lanche da festa. Conte os votos num <code>Map&lt;String, Integer&gt;</code> usando <code>merge</code> e mostre <code>pizza: 3</code>, <code>lanche: 2</code> e <code>sushi: 1</code> (cada um numa linha, buscando com <code>get</code>).</p>
+<pre class="script">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] votos = {"pizza", "lanche", "pizza", "sushi", "pizza", "lanche"};
+
+        Map&lt;String, Integer&gt; contagem = new HashMap&lt;&gt;();
+        // conte os votos
+
+        // mostre o resultado
+    }
+}
+</pre>
+<pre class="solucao">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] votos = {"pizza", "lanche", "pizza", "sushi", "pizza", "lanche"};
+
+        Map&lt;String, Integer&gt; contagem = new HashMap&lt;&gt;();
+        for (String v : votos) {
+            contagem.merge(v, 1, Integer::sum);
+        }
+
+        System.out.println("pizza: " + contagem.get("pizza"));
+        System.out.println("lanche: " + contagem.get("lanche"));
+        System.out.println("sushi: " + contagem.get("sushi"));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Map&lt;K, V&gt;</code> liga cada chave (única) a um valor. <code>HashMap</code> é a implementação padrão.</li>
+  <li><code>put</code> guarda (e substitui), <code>get</code> busca (e devolve <code>null</code> se não achar), <code>getOrDefault</code> evita o <code>null</code>.</li>
+  <li><code>containsKey</code> pergunta, <code>remove</code> tira, <code>putIfAbsent</code> só coloca se não existe.</li>
+  <li>Percorra com <code>keySet()</code>, <code>values()</code>, <code>entrySet()</code> ou <code>forEach((k, v) -&gt; …)</code>.</li>
+  <li>Para contar: <code>mapa.merge(chave, 1, Integer::sum)</code>.</li>
+  <li><code>HashMap</code> não garante ordem; <code>LinkedHashMap</code> guarda a de inserção; <code>TreeMap</code> ordena as chaves.</li>
+  <li><code>Map.of</code> cria mapas imutáveis, recusa chaves repetidas e embaralha a ordem a cada execução.</li>
+  <li><code>int x = mapa.get(chaveQueNaoExiste)</code> dá <code>NullPointerException</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="hashset.html">HashSet</a>, o "mapa só de chaves" para guardar coisas sem repetição.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
