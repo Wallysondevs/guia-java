@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Parâmetros e Argumentos — passar dados para métodos | Guia Java</title>
+<meta name="description" content="Parâmetros e argumentos em Java: um ou vários parâmetros, tipos, passagem por valor (primitivos não mudam; com arrays a referência é copiada) e varargs (int... numeros), com saídas reais do JDK 25 e os erros do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Parâmetros e Argumentos</span></h1>
+
+<p class="intro">Na aula de <a href="metodos.html">Métodos</a>, o método <code>saudar()</code> sempre imprimia a mesma coisa. Para ele saudar a Ana, o Bruno ou a Carla, ele precisa <strong>receber</strong> o nome de quem chamou. É isso que os <strong>parâmetros</strong> fazem: são as "entradas" de um método, e os valores que você manda na chamada são os <strong>argumentos</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <strong>parâmetro</strong> (na declaração) e <strong>argumento</strong> (na chamada).</li>
+  <li>Como declarar um ou vários parâmetros, cada um com seu tipo.</li>
+  <li>O que o <code>javac</code> diz quando os argumentos não combinam.</li>
+  <li>A <strong>passagem por valor</strong>: por que mudar um <code>int</code> dentro do método não muda o de fora, mas mudar um array muda.</li>
+  <li>Como receber "quantos valores vierem" com <strong>varargs</strong> (<code>int... numeros</code>).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código: o formulário</h2>
+<p>Pense num formulário de matrícula. Ele tem <strong>campos</strong> com nome: "Nome do aluno: ____", "Idade: ____". O formulário em branco é sempre o mesmo; o que muda é o que cada pessoa escreve nos campos.</p>
+<ul>
+  <li>Os <strong>campos em branco</strong> do formulário são os <strong>parâmetros</strong>: fazem parte da <strong>declaração</strong> do método e dizem "aqui vai chegar um nome".</li>
+  <li>O que a pessoa <strong>escreve</strong> nos campos são os <strong>argumentos</strong>: os valores de verdade, enviados na <strong>chamada</strong>.</li>
+</ul>
+<p>Uma frase para lembrar: <strong>o parâmetro é a vaga; o argumento é quem ocupa a vaga</strong>.</p>
+
+<hr>
+
+<h2>Um parâmetro</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void saudar(String nome) {
+        System.out.println("Olá, " + nome + "! Bem-vindo à escola.");
+    }
+
+    public static void main(String[] args) {
+        saudar("Ana");
+        saudar("Bruno");
+        String aluna = "Carla";
+        saudar(aluna);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Olá, Ana! Bem-vindo à escola.
+Olá, Bruno! Bem-vindo à escola.
+Olá, Carla! Bem-vindo à escola.</pre>
+
+<dl class="anatomy">
+  <dt>static void saudar</dt><dd>O começo de sempre: um método da classe, que não devolve nada, chamado <code>saudar</code>.</dd>
+  <dt>(String nome)</dt><dd>O <strong>parâmetro</strong>. Dentro dos parênteses você declara uma variável: o <strong>tipo</strong> (<code>String</code>, um texto) e o <strong>nome</strong> (<code>nome</code>). É igual a declarar <code>String nome;</code>, só que o valor vem de quem chama.</dd>
+  <dt>"Olá, " + nome + "!…"</dt><dd>Dentro do corpo, <code>nome</code> é uma variável comum. A cada chamada, ela vale o argumento recebido.</dd>
+  <dt>saudar("Ana")</dt><dd>A chamada com um <strong>argumento</strong>: o texto <code>"Ana"</code> é copiado para o parâmetro <code>nome</code>, e o corpo roda.</dd>
+  <dt>saudar(aluna)</dt><dd>O argumento pode ser uma variável. O método recebe o <strong>valor</strong> dela (<code>"Carla"</code>); o nome da variável de fora (<code>aluna</code>) não importa para o método.</dd>
+</dl>
+
+<p>Repare na última chamada: no <code>main</code> a variável se chama <code>aluna</code>, no método o parâmetro se chama <code>nome</code>. Não precisa ser o mesmo nome. Na chamada, o Java faz algo como <code>String nome = aluna;</code> e pronto.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Parâmetro</th><th>Argumento</th></tr>
+<tr><td>Onde aparece</td><td>Na <strong>declaração</strong> do método</td><td>Na <strong>chamada</strong> do método</td></tr>
+<tr><td>Exemplo</td><td><code>String nome</code> em <code>saudar(String nome)</code></td><td><code>"Ana"</code> em <code>saudar("Ana")</code></td></tr>
+<tr><td>O que é</td><td>Uma variável, com tipo e nome</td><td>Um valor: literal, variável ou conta (<code>"Ana" + "!"</code>)</td></tr>
+<tr><td>Em inglês</td><td><em>parameter</em> (às vezes "formal parameter")</td><td><em>argument</em> (às vezes "actual argument")</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Você já usa argumentos desde a primeira aula</strong>
+<p>Em <code>System.out.println("Olá")</code>, o texto <code>"Olá"</code> é o argumento do método <code>println</code>. Em <code>Math.max(3, 7)</code>, os argumentos são <code>3</code> e <code>7</code>. E o <code>String[] args</code> do <code>main</code> é um parâmetro, que recebe os <a href="args.html">argumentos da linha de comando</a>.</p>
+</div>
+
+<hr>
+
+<h2>Vários parâmetros</h2>
+<p>Para mandar mais de uma informação, separe os parâmetros com <strong>vírgula</strong>. Cada um tem o seu tipo, mesmo que os tipos se repitam:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void mostrarNota(String aluno, double nota) {
+        System.out.println(aluno + " tirou " + nota);
+    }
+
+    public static void main(String[] args) {
+        mostrarNota("Bruno", 8.5);
+        mostrarNota("Carla", 9);
+        mostrarNota("Davi", 7.25);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Bruno tirou 8.5
+Carla tirou 9.0       « o 9 (int) virou 9.0 (double) ao entrar no parâmetro
+Davi tirou 7.25</pre>
+
+<dl class="anatomy">
+  <dt>String aluno</dt><dd>Primeiro parâmetro: um texto.</dd>
+  <dt>,</dt><dd>A vírgula separa um parâmetro do outro.</dd>
+  <dt>double nota</dt><dd>Segundo parâmetro: um número com casas decimais.</dd>
+  <dt>mostrarNota("Bruno", 8.5)</dt><dd>Os argumentos são distribuídos <strong>pela posição</strong>: o primeiro vai para o primeiro parâmetro, o segundo para o segundo.</dd>
+</dl>
+
+<p>Três regras que o compilador confere em toda chamada:</p>
+<ol>
+  <li><strong>Quantidade</strong>: o número de argumentos é igual ao de parâmetros.</li>
+  <li><strong>Ordem</strong>: os argumentos seguem a ordem dos parâmetros. Java não tem "argumentos com nome".</li>
+  <li><strong>Tipo</strong>: cada argumento combina com o tipo do parâmetro, ou pode ser convertido sem perda. Por isso o <code>9</code> (um <code>int</code>) foi aceito num <code>double</code> e virou <code>9.0</code>: é a conversão automática que você viu em <a href="conversao-tipos.html">Conversão de Tipos</a>. O contrário (um <code>double</code> num parâmetro <code>int</code>) é erro.</li>
+</ol>
+
+<div class="warning">
+<strong>Cada parâmetro precisa do seu tipo</strong>
+<p>Na declaração de variáveis você pode escrever <code>double a, b;</code>. Nos parâmetros, não: <code>static void media(double a, b)</code> é erro. Escreva <code>static void media(double a, double b)</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:banana custa R$ 3.5,out:maçã custa R$ 7.9,src:static\s+void\s+mostrarPreco\s*\(\s*String\s+\w+\s*\,\s*double\s+\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> complete o método <code>mostrarPreco</code> com dois parâmetros, <code>String fruta</code> e <code>double preco</code>, para o programa imprimir <code>banana custa R$ 3.5</code> e <code>maçã custa R$ 7.9</code>.</p>
+<pre class="script">public class Main {
+    static void mostrarPreco() {
+        System.out.println(fruta + " custa R$ " + preco);
+    }
+
+    public static void main(String[] args) {
+        mostrarPreco("banana", 3.5);
+        mostrarPreco("maçã", 7.9);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static void mostrarPreco(String fruta, double preco) {
+        System.out.println(fruta + " custa R$ " + preco);
+    }
+
+    public static void main(String[] args) {
+        mostrarPreco("banana", 3.5);
+        mostrarPreco("maçã", 7.9);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando os argumentos não combinam</h2>
+<p>O compilador compara a chamada com a declaração. Se algo não bate, o programa nem chega a rodar. Estes são os três casos mais comuns.</p>
+
+<h3>Argumentos a menos (ou a mais)</h3>
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    static void mostrarNota(String aluno, double nota) {
+        System.out.println(aluno + " tirou " + nota);
+    }
+
+    public static void main(String[] args) {
+        mostrarNota("Bruno");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:7: error: method mostrarNota in class Main cannot be applied to given types;
+        mostrarNota("Bruno");
+        ^
+  required: String,double
+  found:    String
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha da mensagem</th><th>Tradução</th></tr>
+<tr><td><code>method mostrarNota in class Main cannot be applied to given types;</code></td><td>O método <code>mostrarNota</code> não pode ser usado com os tipos que você passou.</td></tr>
+<tr><td><code>required: String,double</code></td><td>O que a declaração pede: um <code>String</code> e um <code>double</code>.</td></tr>
+<tr><td><code>found: String</code></td><td>O que a chamada mandou: só um <code>String</code>.</td></tr>
+<tr><td><code>reason: actual and formal argument lists differ in length</code></td><td>Motivo: a lista de argumentos (<em>actual</em>) e a de parâmetros (<em>formal</em>) têm tamanhos diferentes.</td></tr>
+</table>
+</div>
+
+<h3>Argumentos na ordem errada (ou do tipo errado)</h3>
+<pre class="term">$ javac Main.java
+Main.java:7: error: incompatible types: double cannot be converted to String
+        mostrarNota(8.5, "Bruno");
+                    ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+1 error</pre>
+<p>A Ana trocou a ordem: mandou o número primeiro. O primeiro parâmetro é <code>String</code>, e um <code>double</code> não vira <code>String</code> sozinho. A setinha aponta para o argumento culpado. A nota no fim diz que a mensagem foi <strong>simplificada</strong>; com a opção <code>-Xdiags:verbose</code>, o <code>javac</code> mostra a versão completa, no mesmo formato do caso anterior:</p>
+<pre class="term">$ javac -Xdiags:verbose Main.java
+Main.java:7: error: method mostrarNota in class Main cannot be applied to given types;
+        mostrarNota(8.5, "Bruno");
+        ^
+  required: String,double
+  found:    double,String
+  reason: argument mismatch; double cannot be converted to String
+1 error</pre>
+
+<h3>Parâmetro sem tipo</h3>
+<pre class="term">$ javac Main.java
+Main.java:2: error: &lt;identifier&gt; expected
+    static void saudar(nome) {
+                           ^
+1 error</pre>
+<p>A declaração foi <code>static void saudar(nome)</code>. O Java leu <code>nome</code> como se fosse o <strong>tipo</strong> e ficou esperando o nome da variável (<em>identifier</em> = identificador, um nome). A correção: <code>static void saudar(String nome)</code>.</p>
+
+<hr>
+
+<h2 id="por-valor">Passagem por valor: o método recebe uma cópia</h2>
+<p>Esta é a parte mais importante (e a que mais confunde) da aula. Em Java, quando você chama um método, cada argumento é <strong>copiado</strong> para o parâmetro. O nome técnico é <strong>passagem por valor</strong>. O método trabalha com a cópia, nunca com a variável original de quem chamou.</p>
+
+<h3>Com tipos primitivos: o original não muda</h3>
+<pre class="file" data-file="Main.java">public class Main {
+    static void dobrar(int numero) {
+        numero = numero * 2;
+        System.out.println("Dentro do método: " + numero);
+    }
+
+    public static void main(String[] args) {
+        int pontos = 5;
+        dobrar(pontos);
+        System.out.println("No main: " + pontos);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Dentro do método: 10
+No main: 5            « a variável do main continua com 5</pre>
+
+<p>Na chamada <code>dobrar(pontos)</code>, o Java copiou o <strong>valor</strong> <code>5</code> para o parâmetro <code>numero</code>. São duas caixinhas diferentes na memória:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Momento</th><th><code>pontos</code> (no <code>main</code>)</th><th><code>numero</code> (no <code>dobrar</code>)</th></tr>
+<tr><td>Antes da chamada</td><td>5</td><td>(não existe)</td></tr>
+<tr><td>Começo do <code>dobrar</code>: cópia</td><td>5</td><td>5</td></tr>
+<tr><td>Depois de <code>numero = numero * 2</code></td><td>5</td><td>10</td></tr>
+<tr><td>O método termina</td><td>5</td><td>(apagado)</td></tr>
+</table>
+</div>
+
+<p>É como fotocopiar uma prova e entregar a cópia: o aluno pode rabiscar a cópia o quanto quiser, a original continua limpa. Isso vale para todos os <a href="tipos-primitivos.html">tipos primitivos</a>: <code>int</code>, <code>double</code>, <code>char</code>, <code>boolean</code>… Se você quer que o método produza um valor novo para o <code>main</code> usar, ele precisa <strong>devolver</strong> esse valor com <code>return</code>, o assunto da próxima aula, <a href="retorno.html">Valores de Retorno</a>.</p>
+
+<h3>Com arrays: a cópia é do endereço</h3>
+<p>Agora o mesmo teste com um <a href="arrays.html">array</a>. A Ana quer dar um ponto de bônus em todas as notas:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    static void darBonus(int[] notas) {
+        for (int i = 0; i &lt; notas.length; i++) {
+            notas[i] = notas[i] + 1;
+        }
+        System.out.println("Dentro do método: " + Arrays.toString(notas));
+    }
+
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6};
+        darBonus(notas);
+        System.out.println("No main: " + Arrays.toString(notas));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Dentro do método: [8, 9, 7]
+No main: [8, 9, 7]      « o array do main MUDOU</pre>
+
+<p>Desta vez o <code>main</code> viu a mudança. Isso contradiz a passagem por valor? Não. A explicação está no que uma variável de array guarda: ela não guarda os números, guarda o <strong>endereço</strong> de onde os números estão na memória. Esse endereço se chama <strong>referência</strong>.</p>
+
+<ul>
+  <li>A variável <code>notas</code> do <code>main</code> guarda uma referência: "os números estão no armário 42".</li>
+  <li>Na chamada, o Java copia <strong>essa referência</strong> para o parâmetro. Agora há duas variáveis com o mesmo endereço: "armário 42".</li>
+  <li><code>notas[i] = …</code> dentro do método abre o armário 42 e troca o que está lá dentro.</li>
+  <li>Quando o <code>main</code> abre o armário 42, encontra os números novos.</li>
+</ul>
+
+<p>A prova de que a referência foi <strong>copiada</strong> (e não compartilhada) é este outro teste. Em vez de mexer dentro do array, o método faz o parâmetro apontar para um array <strong>novo</strong>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    static void trocarLista(int[] notas) {
+        notas = new int[] {10, 10, 10};
+        System.out.println("Dentro do método: " + Arrays.toString(notas));
+    }
+
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6};
+        trocarLista(notas);
+        System.out.println("No main: " + Arrays.toString(notas));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Dentro do método: [10, 10, 10]
+No main: [7, 8, 6]      « o main não foi afetado</pre>
+
+<p>O <code>notas = new int[] {…}</code> trocou o endereço guardado <strong>na cópia</strong>: o parâmetro passou a apontar para o "armário 77", com três 10. A variável do <code>main</code> continuou com "armário 42", intacta.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que o método faz com o parâmetro</th><th>Primitivo (<code>int</code>, <code>double</code>…)</th><th>Array (e, mais tarde, objetos)</th></tr>
+<tr><td>Muda o parâmetro inteiro (<code>x = …</code>)</td><td>Quem chamou não vê</td><td>Quem chamou <strong>não</strong> vê</td></tr>
+<tr><td>Muda o <strong>conteúdo</strong> (<code>x[0] = …</code>)</td><td>(não existe)</td><td>Quem chamou <strong>vê</strong>, porque é o mesmo armário</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>E a <code>String</code>?</strong>
+<p>Uma <code>String</code> também é passada por referência copiada, mas ela é <strong>imutável</strong>: nenhum método muda o texto que está lá dentro. <code>texto.toUpperCase()</code> cria um texto novo. Então, na prática, ela se comporta como um primitivo:</p>
+<pre class="term">$ java Main.java
+Dentro do método: BANANA
+No main: banana</pre>
+<p>(O método fez <code>texto = texto.toUpperCase();</code>, que só troca a cópia, como no <code>trocarLista</code>.) Os objetos que você vai criar em <a href="classes-objetos.html">Classes e Objetos</a> seguem a regra dos arrays: mudar um campo dentro do método aparece para quem chamou.</p>
+</div>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> rode como está. Depois troque o <code>int pontos</code> por um array <code>int[] pontos = {5}</code>, o parâmetro por <code>int[] numero</code> e a conta por <code>numero[0] = numero[0] * 2;</code>. O que o <code>main</code> mostra agora?</p>
+<pre class="script">public class Main {
+    static void dobrar(int numero) {
+        numero = numero * 2;
+        System.out.println("Dentro do método: " + numero);
+    }
+
+    public static void main(String[] args) {
+        int pontos = 5;
+        dobrar(pontos);
+        System.out.println("No main: " + pontos);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Varargs: quantos argumentos vierem</h2>
+<p>Às vezes você não sabe quantos valores vão chegar. A Ana quer um método que some as notas de um aluno, e cada aluno fez um número diferente de provas. Para isso existe o <strong>varargs</strong> (de <em>variable arguments</em>, "argumentos variáveis"): três pontos depois do tipo.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void mostrarSoma(int... numeros) {
+        int total = 0;
+        for (int n : numeros) {
+            total = total + n;
+        }
+        System.out.println(numeros.length + " número(s), soma = " + total);
+    }
+
+    public static void main(String[] args) {
+        mostrarSoma();
+        mostrarSoma(10);
+        mostrarSoma(7, 8, 6);
+        mostrarSoma(1, 2, 3, 4, 5);
+        int[] notas = {9, 9, 9};
+        mostrarSoma(notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+0 número(s), soma = 0       « nenhum argumento: um array vazio
+1 número(s), soma = 10
+3 número(s), soma = 21
+5 número(s), soma = 15
+3 número(s), soma = 27      « também aceita um array pronto</pre>
+
+<dl class="anatomy">
+  <dt>int...</dt><dd>"Zero ou mais <code>int</code>". Os três pontos ficam colados ao tipo (com ou sem espaço depois).</dd>
+  <dt>numeros</dt><dd>Dentro do método, <code>numeros</code> é um <strong>array</strong> de <code>int</code> comum: tem <code>.length</code>, funciona com <code>for</code> e <a href="for-each.html">for-each</a>. O Java monta esse array com os argumentos da chamada.</dd>
+  <dt>mostrarSoma(7, 8, 6)</dt><dd>Você passa os valores soltos, separados por vírgula. O Java junta os três num array <code>{7, 8, 6}</code>.</dd>
+  <dt>mostrarSoma()</dt><dd>Sem argumentos também vale: <code>numeros</code> chega como um array vazio (<code>length</code> 0), nunca <code>null</code>.</dd>
+</dl>
+
+<p>Você já usou um método com varargs: o <code>System.out.printf("%s tem %d anos", nome, idade)</code> aceita quantos valores você quiser depois do texto (veja <a href="formatacao.html">Formatar Texto</a>).</p>
+
+<h3>Varargs com outros parâmetros</h3>
+<p>Um método pode ter parâmetros normais e um varargs, mas o varargs tem de ser o <strong>último</strong> (e só pode haver um):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void mostrarNotas(String aluno, int... notas) {
+        System.out.print(aluno + ":");
+        for (int n : notas) {
+            System.out.print(" " + n);
+        }
+        System.out.println();
+    }
+
+    public static void main(String[] args) {
+        mostrarNotas("Bruno", 7, 8, 6);
+        mostrarNotas("Carla", 10);
+        mostrarNotas("Davi");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Bruno: 7 8 6
+Carla: 10
+Davi:</pre>
+
+<p>O primeiro argumento vai para <code>aluno</code>; todos os outros, para <code>notas</code>. Se você inverter a ordem na declaração:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:2: error: varargs parameter must be the last parameter
+    static void mostrarNotas(int... notas, String aluno) {
+                                    ^
+1 error</pre>
+
+<p>"O parâmetro varargs precisa ser o último parâmetro". Faz sentido: se ele viesse primeiro, o Java não saberia onde terminam as notas e onde começa o nome.</p>
+
+<h3>Varargs ou array?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Declaração</th><th>Como chamar</th><th>Quando usar</th></tr>
+<tr><td><code>void soma(int[] numeros)</code></td><td>Só com um array: <code>soma(new int[] {7, 8, 6})</code> ou <code>soma(notas)</code></td><td>Os dados já estão num array (lidos de um arquivo, do teclado…).</td></tr>
+<tr><td><code>void soma(int... numeros)</code></td><td>Com valores soltos <code>soma(7, 8, 6)</code>, sem nada <code>soma()</code> ou com um array <code>soma(notas)</code></td><td>Quem chama vai escrever os valores direto na chamada.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de mandar dados para um método</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer mandar…</th><th>Use</th><th>Exemplo</th></tr>
+<tr><td>Uma informação</td><td>Um parâmetro</td><td><code>saudar(String nome)</code></td></tr>
+<tr><td>Algumas informações fixas</td><td>Vários parâmetros, separados por vírgula</td><td><code>mostrarNota(String aluno, double nota)</code></td></tr>
+<tr><td>Uma quantidade que varia, todos do mesmo tipo</td><td>Varargs (no fim)</td><td><code>mostrarSoma(int... numeros)</code></td></tr>
+<tr><td>Uma lista que já existe</td><td>Um array (ou, mais tarde, uma <a href="arraylist.html">ArrayList</a>)</td><td><code>darBonus(int[] notas)</code></td></tr>
+<tr><td>Muitas informações sobre a mesma "coisa" (nome, idade, notas de um aluno)</td><td>Um objeto, que você aprende a criar em <a href="classes-objetos.html">Classes e Objetos</a></td><td><code>mostrarBoletim(Aluno a)</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Quantos parâmetros é demais?</strong>
+<p>Não há limite prático, mas um método com cinco, seis parâmetros fica difícil de chamar: é fácil trocar a ordem de dois <code>double</code> e o compilador não percebe. Quando isso acontecer, é sinal de que os dados querem virar um objeto.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot be applied to given types … differ in length"</strong>
+<pre class="term">$ javac Main.java
+Main.java:7: error: method saudar in class Main cannot be applied to given types;
+        saudar("Ana", "Bruno");
+        ^
+  required: String
+  found:    String,String
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o método pede um argumento (<code>required: String</code>) e a chamada mandou dois (<code>found: String,String</code>).</p>
+<p><strong>Como resolver:</strong> compare a chamada com a declaração. Se o método precisa mesmo receber mais coisas, acrescente parâmetros na declaração; se não, tire argumentos da chamada.</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible types: int cannot be converted to String"</strong>
+<pre class="term">$ javac Main.java
+Main.java:7: error: incompatible types: int cannot be converted to String
+        saudar(29);
+               ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o parâmetro é <code>String</code> e o argumento é o número <code>29</code>. O Java não converte número em texto sozinho numa chamada.</p>
+<p><strong>Como resolver:</strong> mande um texto (<code>saudar("29")</code> ou <code>saudar(String.valueOf(29))</code>) ou mude o tipo do parâmetro. Se os argumentos estão na ordem trocada, desfaça a troca.</p>
+</div>
+
+<div class="cenario">
+<strong>O método mudou a variável, mas o <code>main</code> não viu</strong>
+<pre class="term">$ java Main.java
+Dentro do método: 10
+No main: 5</pre>
+<p><strong>O que aconteceu:</strong> não é erro do Java: é a <a href="#por-valor">passagem por valor</a>. O método recebeu uma cópia do <code>int</code> e mudou só a cópia.</p>
+<p><strong>Como resolver:</strong> faça o método devolver o valor novo e guarde-o no <code>main</code>: <code>pontos = dobrar(pontos);</code>. Como escrever um método que devolve valor é a próxima aula, <a href="retorno.html">Valores de Retorno</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>"varargs parameter must be the last parameter"</strong>
+<p><strong>O que aconteceu:</strong> o <code>tipo...</code> não está no fim da lista de parâmetros, ou há dois deles.</p>
+<p><strong>Como resolver:</strong> mova o varargs para o fim: <code>(String aluno, int... notas)</code>. Se precisa de duas listas variáveis, use dois arrays.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>static void m(Tipo nome)</code></td><td>Um parâmetro</td></tr>
+<tr><td><code>static void m(Tipo1 a, Tipo2 b)</code></td><td>Vários parâmetros; cada um com seu tipo, separados por vírgula</td></tr>
+<tr><td><code>m(valor1, valor2)</code></td><td>Chamada: argumentos na mesma quantidade, ordem e tipo dos parâmetros</td></tr>
+<tr><td><code>static void m(int... nums)</code></td><td>Varargs: zero ou mais <code>int</code>; dentro do método, <code>nums</code> é um <code>int[]</code></td></tr>
+<tr><td><code>static void m(String s, int... nums)</code></td><td>Parâmetros normais + varargs (sempre o último)</td></tr>
+<tr><td>Passagem por valor</td><td>Todo argumento é copiado. Primitivos: o original nunca muda. Arrays/objetos: a referência é copiada; o conteúdo pode mudar, a variável original não</td></tr>
+<tr><td><code>javac -Xdiags:verbose</code></td><td>Mostra a mensagem completa dos erros de chamada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: a maior nota</h2>
+<div class="tryjava" data-goal="out:Bruno: maior nota 9,out:Carla: maior nota 10,src:int\s*\.\.\.">
+<p class="try-task"><strong>Missão:</strong> escreva o método <code>mostrarMaior</code>, que recebe o nome do aluno e <strong>quantas notas vierem</strong> (varargs), e imprime a maior, no formato <code>Bruno: maior nota 9</code>. Dica: comece com <code>int maior = notas[0];</code> e percorra o array (todo aluno tem pelo menos uma nota).</p>
+<pre class="script">public class Main {
+    // escreva o método mostrarMaior aqui
+
+    public static void main(String[] args) {
+        mostrarMaior("Bruno", 7, 9, 6, 8);
+        mostrarMaior("Carla", 10, 8);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static void mostrarMaior(String aluno, int... notas) {
+        int maior = notas[0];
+        for (int n : notas) {
+            if (n &gt; maior) {
+                maior = n;
+            }
+        }
+        System.out.println(aluno + ": maior nota " + maior);
+    }
+
+    public static void main(String[] args) {
+        mostrarMaior("Bruno", 7, 9, 6, 8);
+        mostrarMaior("Carla", 10, 8);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Declarar o parâmetro</h3>
+<p>Complete a declaração para o método receber a idade (um número inteiro) com o nome <code>idade</code>:</p>
+<div class="ex-code">static void mostrarIdade(<input data-answer="int idade" aria-label="parâmetro">) {</div>
+</div>
+
+<div class="exercise">
+<h3>2. Dois parâmetros</h3>
+<p>O método é <code>static void mostrarNota(String aluno, double nota)</code>. Complete a chamada para mostrar que a Ana tirou 9.5:</p>
+<div class="ex-code">mostrarNota(<input data-answer="&quot;Ana&quot;, 9.5|&quot;Ana&quot;,9.5" aria-label="argumentos">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Varargs</h3>
+<p>Complete o parâmetro para o método aceitar quantos <code>double</code> vierem, com o nome <code>valores</code>:</p>
+<div class="ex-code">static void somar(<input data-answer="double... valores|double ...valores|double ... valores" aria-label="parâmetro varargs">) {</div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Em <code>static void saudar(String nome)</code> e na chamada <code>saudar("Bia")</code>, quem é o parâmetro e quem é o argumento?</p>
+<label><input type="radio" name="q4"> <code>nome</code> é o parâmetro; <code>"Bia"</code> é o argumento.</label>
+<label><input type="radio" name="q4"> <code>"Bia"</code> é o parâmetro; <code>nome</code> é o argumento.</label>
+<label><input type="radio" name="q4"> Os dois são parâmetros.</label>
+<label><input type="radio" name="q4"> <code>saudar</code> é o parâmetro.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. <code>static void zerar(int x) { x = 0; }</code>. No <code>main</code>: <code>int n = 7; zerar(n); System.out.println(n);</code>. O que aparece?</p>
+<label><input type="radio" name="q5"> <code>0</code></label>
+<label><input type="radio" name="q5"> Erro de compilação</label>
+<label><input type="radio" name="q5"> <code>7</code></label>
+<label><input type="radio" name="q5"> <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. <code>static void zerar(int[] v) { v[0] = 0; }</code>. No <code>main</code>: <code>int[] n = {7, 8}; zerar(n); System.out.println(n[0]);</code>. O que aparece?</p>
+<label><input type="radio" name="q6"> <code>7</code></label>
+<label><input type="radio" name="q6"> <code>0</code></label>
+<label><input type="radio" name="q6"> <code>8</code></label>
+<label><input type="radio" name="q6"> Erro de compilação</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Parâmetro</strong>: a variável declarada nos parênteses do método (<code>String nome</code>). <strong>Argumento</strong>: o valor mandado na chamada (<code>"Ana"</code>).</li>
+  <li>Vários parâmetros são separados por vírgula e cada um tem o seu tipo. A chamada precisa da mesma quantidade, ordem e tipos.</li>
+  <li>Erros de chamada: <code>cannot be applied to given types</code> (quantidade) e <code>incompatible types</code> (tipo ou ordem). <code>-Xdiags:verbose</code> dá a versão completa.</li>
+  <li>Java sempre passa <strong>por valor</strong>: o argumento é copiado. Com primitivos, o original nunca muda.</li>
+  <li>Com arrays (e objetos), a <strong>referência</strong> é copiada: mudar o conteúdo (<code>v[0] = …</code>) aparece para quem chamou; trocar o parâmetro inteiro (<code>v = new …</code>) não.</li>
+  <li><strong>Varargs</strong> (<code>int... numeros</code>) aceita zero ou mais valores; dentro do método é um array; tem de ser o último parâmetro.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
