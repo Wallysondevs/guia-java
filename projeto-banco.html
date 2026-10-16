@@ -1,0 +1,1334 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Projeto Conta Bancária com Testes — BigDecimal, exceções e JUnit 5 | Guia Java</title>
+<meta name="description" content="Projeto passo a passo: uma conta bancária em Java com BigDecimal, depósito, saque, transferência e SaldoInsuficienteException, testada com JUnit 5 num projeto Maven. Saídas reais de mvn test, com uma falha proposital e a correção.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Conta Bancária com Testes</span></h1>
+
+<p class="intro">Dinheiro não aceita "quase certo". Neste projeto você constrói uma conta bancária que deposita, saca e transfere com <strong>centavos exatos</strong>, recusa saques sem saldo com uma exceção própria e, o mais importante, vem com <strong>testes automáticos</strong>: pequenos programas que conferem a conta inteira com um único comando, <code>mvn test</code>. No fim, você vai quebrar o código de propósito e ver os testes pegarem o erro antes de qualquer cliente.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Montar um projeto <a href="maven.html">Maven</a> do zero, com o JUnit como dependência.</li>
+  <li>Representar dinheiro com <a href="bigdecimal.html">BigDecimal</a> (e entender por que não <code>double</code>).</li>
+  <li><a href="encapsulamento.html">Encapsulamento</a>: o saldo só muda por depósito, saque e transferência.</li>
+  <li><a href="excecoes-proprias.html">Exceção própria</a> checked: <code>SaldoInsuficienteException</code>.</li>
+  <li><a href="junit.html">Testes com JUnit 5</a>: <code>@Test</code>, <code>@BeforeEach</code>, <code>assertEquals</code>, <code>assertThrows</code>.</li>
+  <li>Ler um relatório de teste que falhou e consertar o código.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>Um projeto Maven com quatro arquivos de código e um <code>pom.xml</code>:</p>
+
+<pre class="term" data-cwd="~/java/banco">$ find . -type f | sort
+./pom.xml
+./src/main/java/br/com/ana/banco/App.java
+./src/main/java/br/com/ana/banco/Conta.java
+./src/main/java/br/com/ana/banco/SaldoInsuficienteException.java
+./src/test/java/br/com/ana/banco/ContaTest.java</pre>
+
+<p>Sete testes que rodam em menos de um segundo e um programa de demonstração:</p>
+
+<pre class="term" data-cwd="~/java/banco">$ mvn test
+…                                          « compilação: veja a saída completa na etapa 3
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running br.com.ana.banco.ContaTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.100 s -- in br.com.ana.banco.ContaTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+…
+$ java -cp target/classes br.com.ana.banco.App
+Ana: R$ 749.25
+Bruno: R$ 250.75
+Erro: Saldo insuficiente: saldo 250.75, pedido 300.00</pre>
+
+<ol class="passo">
+  <li><a href="#etapa1">O projeto Maven</a> (pastas e <code>pom.xml</code>).</li>
+  <li><a href="#etapa2">A conta e o dinheiro exato</a> (<code>BigDecimal</code>, depósito).</li>
+  <li><a href="#etapa3">O primeiro teste</a> (JUnit, <code>mvn test</code>).</li>
+  <li><a href="#etapa4">Saque e SaldoInsuficienteException</a> (<code>assertThrows</code>).</li>
+  <li><a href="#etapa5">Transferência</a> (um método que usa os outros dois).</li>
+  <li><a href="#etapa6">Uma falha de propósito</a> (o teste vermelho e a correção).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Leia antes <a href="maven.html">Maven</a> e <a href="junit.html">Testes com JUnit</a>: lá cada linha do <code>pom.xml</code> e cada anotação do JUnit é explicada com calma. Aqui vamos usar tudo junto. Na aula de JUnit a conta guardava o saldo num <code>double</code>; neste projeto vamos fazer do jeito certo para dinheiro.</p>
+
+<div class="warning">
+<strong>As missões rodam sem Maven</strong>
+<p>O editor do guia não roda Maven nem JUnit. Por isso, as caixas <em>Experimente</em> usam a mesma <code>Conta</code> num arquivo só, com um <code>main</code> que confere os resultados "na mão". As saídas de <code>mvn</code> desta página foram rodadas de verdade, na máquina da Ana; repita-as no seu computador.</p>
+</div>
+
+<hr>
+
+<h2 id="etapa1">Etapa 1 · O projeto Maven</h2>
+<p>O Maven espera uma estrutura de pastas fixa: código em <code>src/main/java</code>, testes em <code>src/test/java</code>, e dentro delas as pastas do <a href="pacotes.html">pacote</a>. O nosso pacote é <code>br.com.ana.banco</code> (o "endereço" das classes, ao contrário do domínio de um site), que vira as pastas <code>br/com/ana/banco</code>:</p>
+
+<pre class="term">$ mkdir -p java/banco
+$ cd java/banco
+$ mkdir -p src/main/java/br/com/ana/banco src/test/java/br/com/ana/banco</pre>
+
+<p>Na raiz do projeto, o <code>pom.xml</code>, igual ao da aula de JUnit:</p>
+
+<pre class="file" data-file="pom.xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;groupId&gt;br.com.ana&lt;/groupId&gt;
+    &lt;artifactId&gt;banco&lt;/artifactId&gt;
+    &lt;version&gt;1.0&lt;/version&gt;
+
+    &lt;properties&gt;
+        &lt;maven.compiler.release&gt;25&lt;/maven.compiler.release&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+    &lt;/properties&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.junit.jupiter&lt;/groupId&gt;
+            &lt;artifactId&gt;junit-jupiter&lt;/artifactId&gt;
+            &lt;version&gt;5.13.4&lt;/version&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+&lt;/project&gt;
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>Para quê</th></tr>
+<tr><td><code>groupId</code>, <code>artifactId</code>, <code>version</code></td><td>A identidade do projeto: <code>br.com.ana:banco:1.0</code>.</td></tr>
+<tr><td><code>maven.compiler.release</code> = 25</td><td>Compila para o Java 25.</td></tr>
+<tr><td><code>sourceEncoding</code> = UTF-8</td><td>Acentos nos textos (<code>"Saldo insuficiente…"</code>) saem certos.</td></tr>
+<tr><td>dependência <code>junit-jupiter</code> com <code>&lt;scope&gt;test&lt;/scope&gt;</code></td><td>O JUnit 5. O escopo <code>test</code> diz que ele só é usado para compilar e rodar os testes, não vai junto com o programa.</td></tr>
+</table>
+</div>
+
+<p>Para conferir que o projeto está montado, uma classe mínima, <code>App</code>, com um <code>main</code>:</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/banco/App.java">package br.com.ana.banco;
+
+public class App {
+    public static void main(String[] args) {
+        System.out.println("Banco da Ana: projeto funcionando!");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/banco">$ mvn compile
+[INFO] Scanning for projects...
+[INFO]
+[INFO] --------------------------&lt; br.com.ana:banco &gt;--------------------------
+[INFO] Building banco 1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Loaded 24119 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO]
+[INFO] --- resources:3.5.0:resources (default-resources) @ banco ---
+[INFO] skip non existing resourceDirectory /home/ana/java/banco/src/main/resources
+[INFO]
+[INFO] --- compiler:3.16.0:compile (default-compile) @ banco ---
+[INFO] Loaded 74 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots.txt)
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 1 source file with javac [debug release 25] to target/classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.556 s
+[INFO] Finished at: 2026-10-16T18:53:15-03:00
+[INFO] ------------------------------------------------------------------------
+$ java -cp target/classes br.com.ana.banco.App
+Banco da Ana: projeto funcionando!</pre>
+
+<dl class="anatomy">
+  <dt>mvn compile</dt><dd>Compila o código de <code>src/main/java</code> e põe os <code>.class</code> em <code>target/classes</code>. Na <strong>primeira vez</strong>, antes dessas linhas aparecem dezenas de <code>Downloading from central…</code>: o Maven baixando os plugins que usa. Depois fica tudo guardado em <code>~/.m2</code>.</dd>
+  <dt>java -cp target/classes</dt><dd><code>-cp</code> (<em>classpath</em>, "caminho das classes") diz onde procurar os <code>.class</code>.</dd>
+  <dt>br.com.ana.banco.App</dt><dd>O nome <strong>completo</strong> da classe, com o pacote na frente.</dd>
+</dl>
+
+<hr>
+
+<h2 id="etapa2">Etapa 2 · A conta e o dinheiro exato</h2>
+<p>Por que não guardar o saldo num <code>double</code>? Porque o <code>double</code> guarda números em binário, e a maioria dos centavos não tem representação exata em binário (como 1/3 não tem em decimal). Veja no <a href="jshell.html">JShell</a>:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; 0.1 + 0.2
+$1 ==&gt; 0.30000000000000004
+
+jshell&gt; new java.math.BigDecimal("0.1").add(new java.math.BigDecimal("0.2"))
+$2 ==&gt; 0.3</pre>
+
+<p>Para um jogo, 0.30000000000000004 não faz diferença. Para um banco, depois de milhões de operações, faz. O <code>BigDecimal</code> guarda o número em <strong>decimal</strong>, dígito por dígito, e as contas saem exatas. A <code>Conta</code>, por enquanto só com depósito:</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/banco/Conta.java">package br.com.ana.banco;
+
+import java.math.BigDecimal;
+
+public class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    public Conta(String titular) {
+        this.titular = titular;
+    }
+
+    public String getTitular() {
+        return titular;
+    }
+
+    public BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    public void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>package br.com.ana.banco;</code></td><td>Primeira linha de todo arquivo do projeto: o pacote, igual às pastas.</td></tr>
+<tr><td><code>BigDecimal.ZERO</code></td><td>Uma constante pronta com o valor 0.</td></tr>
+<tr><td><code>saldo = saldo.add(valor);</code></td><td><code>BigDecimal</code> não usa <code>+</code>: usa métodos (<code>add</code>, <code>subtract</code>, <code>multiply</code>). E ele é <strong>imutável</strong>: <code>add</code> devolve um número novo, que precisa ser guardado de volta em <code>saldo</code>. Só escrever <code>saldo.add(valor);</code> não muda nada.</td></tr>
+<tr><td><code>valor.signum() &lt;= 0</code></td><td><code>signum</code> ("sinal") devolve -1, 0 ou 1. Recusamos zero e negativos.</td></tr>
+<tr><td><code>private static void validar</code></td><td>Um método auxiliar só da classe; o depósito e (logo mais) o saque usam o mesmo.</td></tr>
+<tr><td>Sem <code>setSaldo</code></td><td>O saldo só muda por operações bancárias (encapsulamento).</td></tr>
+</table>
+</div>
+
+<p>Um <code>App</code> para experimentar, que também mostra a conta com <code>double</code> e um depósito inválido:</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/banco/App.java">package br.com.ana.banco;
+
+import java.math.BigDecimal;
+
+public class App {
+    public static void main(String[] args) {
+        Conta ana = new Conta("Ana");
+        ana.depositar(new BigDecimal("0.10"));
+        ana.depositar(new BigDecimal("0.20"));
+        System.out.println(ana.getTitular() + ": R$ " + ana.getSaldo());
+
+        double d = 0.10 + 0.20;
+        System.out.println("Com double: " + d);
+
+        ana.depositar(new BigDecimal("-5.00"));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/banco">$ mvn -q compile
+$ java -cp target/classes br.com.ana.banco.App
+Ana: R$ 0.30
+Com double: 0.30000000000000004
+Exception in thread "main" java.lang.IllegalArgumentException: O valor deve ser positivo: -5.00
+	at br.com.ana.banco.Conta.validar(Conta.java:28)
+	at br.com.ana.banco.Conta.depositar(Conta.java:22)
+	at br.com.ana.banco.App.main(App.java:15)</pre>
+
+<p>O <code>-q</code> (<em>quiet</em>, "quieto") faz o Maven só falar se der erro. Repare no <code>0.30</code>, com duas casas: o <code>BigDecimal</code> lembra a <strong>escala</strong> (o número de casas decimais) dos valores que você usou. Isso vai importar na etapa 3.</p>
+
+<div class="warning">
+<strong>Crie <code>BigDecimal</code> a partir de texto</strong>
+<p><code>new BigDecimal("0.1")</code> é exatamente 0,1. Já <code>new BigDecimal(0.1)</code> recebe o <code>double</code>, que já nasceu errado, e mostra o erro todo: <code>0.1000000000000000055511151231257827021181583404541015625</code>. Use sempre a versão com aspas (ou <code>BigDecimal.valueOf(0.1)</code>). Detalhes em <a href="bigdecimal.html">BigDecimal e Dinheiro</a>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Saldo: 0.30,src:BigDecimal">
+<p class="try-task"><strong>Missão (etapa 2):</strong> este programa soma centavos com <code>double</code> e mostra <code>0.30000000000000004</code>. Reescreva com <code>BigDecimal</code> (comece em <code>BigDecimal.ZERO</code> e use <code>add</code> com <code>new BigDecimal("0.10")</code>) para mostrar <code>Saldo: 0.30</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double saldo = 0;
+        saldo = saldo + 0.10;
+        saldo = saldo + 0.20;
+        System.out.println("Saldo: " + saldo);
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal saldo = BigDecimal.ZERO;
+        saldo = saldo.add(new BigDecimal("0.10"));
+        saldo = saldo.add(new BigDecimal("0.20"));
+        System.out.println("Saldo: " + saldo);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa3">Etapa 3 · O primeiro teste</h2>
+<p>Até agora, para saber se a conta funciona, você roda o <code>App</code> e olha a saída. Um <strong>teste automático</strong> faz isso por você: ele chama a conta e <strong>confere</strong> o resultado, sem ninguém precisar olhar. O arquivo fica em <code>src/test/java</code>, no mesmo pacote:</p>
+
+<pre class="file" data-file="src/test/java/br/com/ana/banco/ContaTest.java">package br.com.ana.banco;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.math.BigDecimal;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class ContaTest {
+    private Conta ana;
+    private Conta bruno;
+
+    @BeforeEach
+    void preparar() {
+        ana = new Conta("Ana");
+        bruno = new Conta("Bruno");
+    }
+
+    @Test
+    void depositoAumentaOSaldo() {
+        ana.depositar(new BigDecimal("100.50"));
+        assertEquals(new BigDecimal("100.50"), ana.getSaldo());
+    }
+
+    @Test
+    void centavosSomamSemErro() {
+        ana.depositar(new BigDecimal("0.10"));
+        ana.depositar(new BigDecimal("0.20"));
+        assertEquals(new BigDecimal("0.30"), ana.getSaldo());
+    }
+
+    @Test
+    void depositoNegativoEhRecusado() {
+        assertThrows(IllegalArgumentException.class, () -&gt; ana.depositar(new BigDecimal("-5.00")));
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import static …Assertions.assertEquals;</dt><dd>Um <em>import static</em> traz o método para usar sem o nome da classe: <code>assertEquals(…)</code> em vez de <code>Assertions.assertEquals(…)</code>.</dd>
+  <dt>@BeforeEach void preparar()</dt><dd>Roda <strong>antes de cada</strong> teste: cada um começa com contas novas, zeradas, sem depender dos outros.</dd>
+  <dt>@Test</dt><dd>Marca um método como teste. O nome do método descreve o que se espera: <code>depositoAumentaOSaldo</code>.</dd>
+  <dt>assertEquals(esperado, obtido)</dt><dd>"Afirme que são iguais." Se não forem, o teste falha. Primeiro o <strong>esperado</strong>, depois o que o código produziu.</dd>
+  <dt>assertThrows(IllegalArgumentException.class, () -&gt; …)</dt><dd>"Afirme que isto lança essa exceção." O <code>() -&gt; …</code> é uma <a href="lambdas.html">lambda</a>: um pedaço de código que o JUnit roda dentro de uma proteção. Se a exceção <strong>não</strong> vier, o teste falha.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/java/banco">$ mvn test
+[INFO] Scanning for projects...
+[INFO]
+[INFO] --------------------------&lt; br.com.ana:banco &gt;--------------------------
+[INFO] Building banco 1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] Loaded 24119 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO]
+[INFO] --- resources:3.5.0:resources (default-resources) @ banco ---
+[INFO] skip non existing resourceDirectory /home/ana/java/banco/src/main/resources
+[INFO]
+[INFO] --- compiler:3.16.0:compile (default-compile) @ banco ---
+[INFO] Loaded 74 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots.txt)
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 2 source files with javac [debug release 25] to target/classes
+[INFO]
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ banco ---
+[INFO] skip non existing resourceDirectory /home/ana/java/banco/src/test/resources
+[INFO]
+[INFO] --- compiler:3.16.0:testCompile (default-testCompile) @ banco ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target/test-classes
+[INFO]
+[INFO] --- surefire:3.6.0:test (default-test) @ banco ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO]
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running br.com.ana.banco.ContaTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.098 s -- in br.com.ana.banco.ContaTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.864 s
+[INFO] Finished at: 2026-10-16T18:53:29-03:00
+[INFO] ------------------------------------------------------------------------</pre>
+
+<p>O <code>mvn test</code> compila o código (<code>compile</code>), compila os testes (<code>testCompile</code>, em <code>target/test-classes</code>) e roda os testes com o plugin <strong>surefire</strong>. <code>Tests run: 3, Failures: 0</code>: três testes, nenhum falhou. <code>BUILD SUCCESS</code> é a luz verde.</p>
+
+<div class="cenario">
+<strong>Quando dá errado: 100 não é igual a 100.00</strong>
+<p>A Ana escreveu o primeiro teste assim:</p>
+<pre class="file" data-file="ContaTest.java">        ana.depositar(new BigDecimal("100.00"));
+        assertEquals(new BigDecimal("100"), ana.getSaldo());
+</pre>
+<pre class="term" data-cwd="~/java/banco">$ mvn test
+…                                          « compilação igual à anterior
+[INFO] Running br.com.ana.banco.ContaTest
+[ERROR] Tests run: 3, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.120 s &lt;&lt;&lt; FAILURE! -- in br.com.ana.banco.ContaTest
+[ERROR] br.com.ana.banco.ContaTest.depositoAumentaOSaldo -- Time elapsed: 0.010 s &lt;&lt;&lt; FAILURE!
+org.opentest4j.AssertionFailedError: expected: &lt;100&gt; but was: &lt;100.00&gt;
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:177)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1145)
+	at br.com.ana.banco.ContaTest.depositoAumentaOSaldo(ContaTest.java:23)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[INFO]
+[INFO] Results:
+[INFO]
+[ERROR] Failures:
+[ERROR]   ContaTest.depositoAumentaOSaldo:23 expected: &lt;100&gt; but was: &lt;100.00&gt;
+[INFO]
+[ERROR] Tests run: 3, Failures: 1, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE
+…                                          « mais algumas linhas [ERROR] com dicas do Maven</pre>
+<p>"Esperado 100, mas era 100.00." Para o <code>equals</code> do <code>BigDecimal</code>, <code>100</code> (escala 0) e <code>100.00</code> (escala 2) são <strong>diferentes</strong>, e o <code>assertEquals</code> usa o <code>equals</code>. O código da conta está certo; o teste é que comparou do jeito errado. Duas saídas: escrever o esperado com a mesma escala (<code>new BigDecimal("100.00")</code>, como fizemos) ou comparar com <code>compareTo</code>, que ignora a escala: <code>assertEquals(0, new BigDecimal("100").compareTo(ana.getSaldo()))</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:OK: depósito aumenta o saldo,out:OK: centavos somam sem erro">
+<p class="try-task"><strong>Missão (etapa 3):</strong> sem JUnit, o método <code>confere</code> faz o papel do <code>assertEquals</code>. Escreva o segundo teste: uma conta nova do Bruno, depósitos de <code>0.10</code> e <code>0.20</code>, e <code>confere("centavos somam sem erro", …)</code> com o esperado <code>0.30</code>.</p>
+<pre class="script">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        Conta ana = new Conta("Ana");
+        ana.depositar(new BigDecimal("100.50"));
+        confere("depósito aumenta o saldo", new BigDecimal("100.50"), ana.getSaldo());
+
+        // segundo teste: uma conta nova, depósitos de 0.10 e 0.20, saldo esperado 0.30
+    }
+
+    static void confere(String teste, BigDecimal esperado, BigDecimal obtido) {
+        if (esperado.equals(obtido)) {
+            System.out.println("OK: " + teste);
+        } else {
+            System.out.println("FALHOU: " + teste + " (esperado " + esperado + ", obtido " + obtido + ")");
+        }
+    }
+}
+
+class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    String getTitular() {
+        return titular;
+    }
+
+    BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        Conta ana = new Conta("Ana");
+        ana.depositar(new BigDecimal("100.50"));
+        confere("depósito aumenta o saldo", new BigDecimal("100.50"), ana.getSaldo());
+
+        Conta bruno = new Conta("Bruno");
+        bruno.depositar(new BigDecimal("0.10"));
+        bruno.depositar(new BigDecimal("0.20"));
+        confere("centavos somam sem erro", new BigDecimal("0.30"), bruno.getSaldo());
+    }
+
+    static void confere(String teste, BigDecimal esperado, BigDecimal obtido) {
+        if (esperado.equals(obtido)) {
+            System.out.println("OK: " + teste);
+        } else {
+            System.out.println("FALHOU: " + teste + " (esperado " + esperado + ", obtido " + obtido + ")");
+        }
+    }
+}
+
+class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    String getTitular() {
+        return titular;
+    }
+
+    BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa4">Etapa 4 · Saque e SaldoInsuficienteException</h2>
+<p>Sacar mais do que se tem não é um "erro de programação": é uma situação normal do banco, que quem chama o <code>sacar</code> <strong>precisa</strong> tratar (mostrar uma mensagem, oferecer um valor menor…). Por isso a exceção é <strong>checked</strong> (estende <code>Exception</code>):</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/banco/SaldoInsuficienteException.java">package br.com.ana.banco;
+
+import java.math.BigDecimal;
+
+public class SaldoInsuficienteException extends Exception {
+    public SaldoInsuficienteException(BigDecimal saldo, BigDecimal pedido) {
+        super("Saldo insuficiente: saldo " + saldo + ", pedido " + pedido);
+    }
+}
+</pre>
+
+<p>E o método novo da <code>Conta</code>:</p>
+
+<pre class="file" data-file="Conta.java">    public void sacar(BigDecimal valor) throws SaldoInsuficienteException {
+        validar(valor);
+        if (valor.compareTo(saldo) &gt; 0) {
+            throw new SaldoInsuficienteException(saldo, valor);
+        }
+        saldo = saldo.subtract(valor);
+    }
+</pre>
+
+<dl class="anatomy">
+  <dt>throws SaldoInsuficienteException</dt><dd>Avisa que o saque pode falhar por falta de saldo. Quem chamar é obrigado a tratar ou repassar.</dd>
+  <dt>valor.compareTo(saldo) &gt; 0</dt><dd>Com <code>BigDecimal</code> não se usa <code>&gt;</code>. <code>a.compareTo(b)</code> devolve um número negativo (a menor), 0 (iguais) ou positivo (a maior). "<code>&gt; 0</code>" = o valor pedido é maior que o saldo.</dd>
+  <dt>throw new SaldoInsuficienteException(saldo, valor)</dt><dd>Lança antes de mexer no saldo: se falhar, a conta fica como estava.</dd>
+  <dt>saldo.subtract(valor)</dt><dd>Subtração, de novo guardando o resultado.</dd>
+</dl>
+
+<p>Dois testes novos no <code>ContaTest</code>:</p>
+
+<pre class="file" data-file="ContaTest.java">    @Test
+    void saqueDiminuiOSaldo() throws SaldoInsuficienteException {
+        ana.depositar(new BigDecimal("100.00"));
+        ana.sacar(new BigDecimal("30.25"));
+        assertEquals(new BigDecimal("69.75"), ana.getSaldo());
+    }
+
+    @Test
+    void saqueMaiorQueOSaldoLancaExcecao() {
+        ana.depositar(new BigDecimal("50.00"));
+        SaldoInsuficienteException erro = assertThrows(SaldoInsuficienteException.class,
+                () -&gt; ana.sacar(new BigDecimal("80.00")));
+        assertEquals("Saldo insuficiente: saldo 50.00, pedido 80.00", erro.getMessage());
+        assertEquals(new BigDecimal("50.00"), ana.getSaldo());
+    }
+</pre>
+
+<p>O primeiro teste tem <code>throws SaldoInsuficienteException</code> porque chama <code>sacar</code> sem <code>try</code>; se a exceção vier, o JUnit marca o teste como erro. O segundo confere três coisas: que a exceção veio, que a mensagem está certa e que <strong>o saldo não mudou</strong>.</p>
+
+<pre class="term" data-cwd="~/java/banco">$ mvn test
+…
+[INFO] Running br.com.ana.banco.ContaTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.112 s -- in br.com.ana.banco.ContaTest
+…
+[INFO] BUILD SUCCESS</pre>
+
+<p>E se ninguém tratar a exceção? Um <code>App</code> com <code>throws</code> no <code>main</code> deixa ela subir até a JVM:</p>
+
+<pre class="term" data-cwd="~/java/banco">$ java -cp target/classes br.com.ana.banco.App
+Exception in thread "main" br.com.ana.banco.SaldoInsuficienteException: Saldo insuficiente: saldo 50.00, pedido 80.00
+	at br.com.ana.banco.Conta.sacar(Conta.java:29)
+	at br.com.ana.banco.App.main(App.java:9)</pre>
+
+<p>Repare no nome completo da sua exceção, com o pacote, logo depois de <code>Exception in thread "main"</code>.</p>
+
+<div class="tryjava" data-goal="out:Saldo: 69.75,out:Erro: Saldo insuficiente: saldo 69.75\, pedido 80.00,src:throw new SaldoInsuficienteException">
+<p class="try-task"><strong>Missão (etapa 4):</strong> o método <code>sacar</code> está vazio: o saldo nunca muda. Escreva-o: valide o valor, lance <code>SaldoInsuficienteException</code> se o valor for maior que o saldo (use <code>compareTo</code>) e subtraia com <code>subtract</code>.</p>
+<pre class="script">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        Conta ana = new Conta("Ana");
+        ana.depositar(new BigDecimal("100.00"));
+        try {
+            ana.sacar(new BigDecimal("30.25"));
+            System.out.println("Saldo: " + ana.getSaldo());
+            ana.sacar(new BigDecimal("80.00"));
+            System.out.println("Saldo: " + ana.getSaldo());
+        } catch (SaldoInsuficienteException e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+}
+
+class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    String getTitular() {
+        return titular;
+    }
+
+    BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    void sacar(BigDecimal valor) throws SaldoInsuficienteException {
+        // confira o saldo e lance SaldoInsuficienteException se faltar dinheiro
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+
+class SaldoInsuficienteException extends Exception {
+    SaldoInsuficienteException(BigDecimal saldo, BigDecimal pedido) {
+        super("Saldo insuficiente: saldo " + saldo + ", pedido " + pedido);
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        Conta ana = new Conta("Ana");
+        ana.depositar(new BigDecimal("100.00"));
+        try {
+            ana.sacar(new BigDecimal("30.25"));
+            System.out.println("Saldo: " + ana.getSaldo());
+            ana.sacar(new BigDecimal("80.00"));
+            System.out.println("Saldo: " + ana.getSaldo());
+        } catch (SaldoInsuficienteException e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+}
+
+class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    String getTitular() {
+        return titular;
+    }
+
+    BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    void sacar(BigDecimal valor) throws SaldoInsuficienteException {
+        validar(valor);
+        if (valor.compareTo(saldo) &gt; 0) {
+            throw new SaldoInsuficienteException(saldo, valor);
+        }
+        saldo = saldo.subtract(valor);
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+
+class SaldoInsuficienteException extends Exception {
+    SaldoInsuficienteException(BigDecimal saldo, BigDecimal pedido) {
+        super("Saldo insuficiente: saldo " + saldo + ", pedido " + pedido);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa5">Etapa 5 · Transferência</h2>
+<p>Transferir é sacar de uma conta e depositar na outra. Como os dois métodos já existem e já têm as regras, a transferência fica com duas linhas:</p>
+
+<pre class="file" data-file="Conta.java">    public void transferir(Conta destino, BigDecimal valor) throws SaldoInsuficienteException {
+        this.sacar(valor);
+        destino.depositar(valor);
+    }
+</pre>
+
+<p>A <strong>ordem</strong> importa: primeiro o saque, que pode falhar. Se falhar, a exceção interrompe o método antes do depósito, e nenhum dinheiro "aparece" no destino. Guarde isso: a etapa 6 é sobre essa ordem. Os testes novos:</p>
+
+<pre class="file" data-file="ContaTest.java">    @Test
+    void transferenciaMoveODinheiro() throws SaldoInsuficienteException {
+        ana.depositar(new BigDecimal("1000.00"));
+        ana.transferir(bruno, new BigDecimal("250.75"));
+        assertEquals(new BigDecimal("749.25"), ana.getSaldo());
+        assertEquals(new BigDecimal("250.75"), bruno.getSaldo());
+    }
+
+    @Test
+    void transferenciaSemSaldoNaoMexeEmNenhumaConta() {
+        ana.depositar(new BigDecimal("30.00"));
+        assertThrows(SaldoInsuficienteException.class,
+                () -&gt; ana.transferir(bruno, new BigDecimal("100.00")));
+        assertEquals(new BigDecimal("30.00"), ana.getSaldo());
+        assertEquals(BigDecimal.ZERO, bruno.getSaldo());
+    }
+</pre>
+
+<p>O <code>App</code> final (completo no fim da página) faz uma transferência e um saque recusado, agora tratado com <code>try/catch</code>:</p>
+
+<pre class="term" data-cwd="~/java/banco">$ mvn test
+…
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+…
+[INFO] BUILD SUCCESS
+$ java -cp target/classes br.com.ana.banco.App
+Ana: R$ 749.25
+Bruno: R$ 250.75
+Erro: Saldo insuficiente: saldo 250.75, pedido 300.00</pre>
+
+<div class="tryjava" data-goal="out:Ana: R$ 749.25,out:Bruno: R$ 250.75">
+<p class="try-task"><strong>Missão (etapa 5):</strong> escreva o <code>transferir</code>, reaproveitando <code>sacar</code> e <code>depositar</code>, para a Ana ficar com <code>R$ 749.25</code> e o Bruno com <code>R$ 250.75</code>.</p>
+<pre class="script">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) throws SaldoInsuficienteException {
+        Conta ana = new Conta("Ana");
+        Conta bruno = new Conta("Bruno");
+        ana.depositar(new BigDecimal("1000.00"));
+        ana.transferir(bruno, new BigDecimal("250.75"));
+        System.out.println(ana.getTitular() + ": R$ " + ana.getSaldo());
+        System.out.println(bruno.getTitular() + ": R$ " + bruno.getSaldo());
+    }
+}
+
+class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    String getTitular() {
+        return titular;
+    }
+
+    BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    void sacar(BigDecimal valor) throws SaldoInsuficienteException {
+        validar(valor);
+        if (valor.compareTo(saldo) &gt; 0) {
+            throw new SaldoInsuficienteException(saldo, valor);
+        }
+        saldo = saldo.subtract(valor);
+    }
+
+    void transferir(Conta destino, BigDecimal valor) throws SaldoInsuficienteException {
+        // tire o dinheiro desta conta e coloque no destino
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+
+class SaldoInsuficienteException extends Exception {
+    SaldoInsuficienteException(BigDecimal saldo, BigDecimal pedido) {
+        super("Saldo insuficiente: saldo " + saldo + ", pedido " + pedido);
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) throws SaldoInsuficienteException {
+        Conta ana = new Conta("Ana");
+        Conta bruno = new Conta("Bruno");
+        ana.depositar(new BigDecimal("1000.00"));
+        ana.transferir(bruno, new BigDecimal("250.75"));
+        System.out.println(ana.getTitular() + ": R$ " + ana.getSaldo());
+        System.out.println(bruno.getTitular() + ": R$ " + bruno.getSaldo());
+    }
+}
+
+class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    String getTitular() {
+        return titular;
+    }
+
+    BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    void sacar(BigDecimal valor) throws SaldoInsuficienteException {
+        validar(valor);
+        if (valor.compareTo(saldo) &gt; 0) {
+            throw new SaldoInsuficienteException(saldo, valor);
+        }
+        saldo = saldo.subtract(valor);
+    }
+
+    void transferir(Conta destino, BigDecimal valor) throws SaldoInsuficienteException {
+        this.sacar(valor);
+        destino.depositar(valor);
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+
+class SaldoInsuficienteException extends Exception {
+    SaldoInsuficienteException(BigDecimal saldo, BigDecimal pedido) {
+        super("Saldo insuficiente: saldo " + saldo + ", pedido " + pedido);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa6">Etapa 6 · Uma falha de propósito</h2>
+<p>Para ver os testes trabalhando, a Ana vai "melhorar" o código e, sem perceber, quebrá-lo. Ela pensa: "na transferência, é mais simpático o dinheiro chegar primeiro", e inverte as linhas:</p>
+
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Conta.java">    public void transferir(Conta destino, BigDecimal valor) throws SaldoInsuficienteException {
+        destino.depositar(valor);
+        this.sacar(valor);
+    }
+</pre>
+
+<p>O código compila, e o <code>App</code> mostra exatamente a mesma saída de antes (a transferência dele tem saldo). Sem testes, o defeito iria para produção. Com testes:</p>
+
+<pre class="term" data-cwd="~/java/banco">$ mvn test
+…                                          « compilação igual à da etapa 3
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running br.com.ana.banco.ContaTest
+[ERROR] Tests run: 7, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.123 s &lt;&lt;&lt; FAILURE! -- in br.com.ana.banco.ContaTest
+[ERROR] br.com.ana.banco.ContaTest.transferenciaSemSaldoNaoMexeEmNenhumaConta -- Time elapsed: 0.068 s &lt;&lt;&lt; FAILURE!
+org.opentest4j.AssertionFailedError: expected: &lt;0&gt; but was: &lt;100.00&gt;
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:177)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1145)
+	at br.com.ana.banco.ContaTest.transferenciaSemSaldoNaoMexeEmNenhumaConta(ContaTest.java:68)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[INFO]
+[INFO] Results:
+[INFO]
+[ERROR] Failures:
+[ERROR]   ContaTest.transferenciaSemSaldoNaoMexeEmNenhumaConta:68 expected: &lt;0&gt; but was: &lt;100.00&gt;
+[INFO]
+[ERROR] Tests run: 7, Failures: 1, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.974 s
+[INFO] Finished at: 2026-10-16T18:53:51-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.6.0:test (default-test) on project banco: There are test failures.
+[ERROR]
+[ERROR] See /home/ana/java/banco/target/surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -&gt; [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException</pre>
+
+<p>Como ler esse relatório, de cima para baixo:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que ela diz</th></tr>
+<tr><td><code>Tests run: 7, Failures: 1</code></td><td>Sete testes rodaram; um falhou. Os outros seis continuam verdes.</td></tr>
+<tr><td><code>ContaTest.transferenciaSemSaldoNaoMexeEmNenhumaConta</code></td><td><strong>Qual</strong> teste falhou. Um nome que descreve a regra ajuda muito agora: "transferência sem saldo não mexe em nenhuma conta".</td></tr>
+<tr><td><code>expected: &lt;0&gt; but was: &lt;100.00&gt;</code></td><td>O que deu errado: o saldo do Bruno devia ser 0, mas era 100.00.</td></tr>
+<tr><td><code>ContaTest.java:68</code></td><td>Onde: a linha 68 do teste, o <code>assertEquals(BigDecimal.ZERO, bruno.getSaldo())</code>.</td></tr>
+<tr><td><code>BUILD FAILURE</code> e as linhas <code>[ERROR]</code> do fim</td><td>O Maven parou por causa dos testes. As dicas (<code>-e</code>, <code>-X</code>, <code>surefire-reports</code>) servem para casos mais difíceis; aqui a mensagem já disse tudo.</td></tr>
+</table>
+</div>
+
+<p>O diagnóstico: o Bruno recebeu R$ 100,00 <strong>antes</strong> de a Ana descobrir que não tinha saldo. O saque falhou, a exceção saiu do método… e o depósito já tinha acontecido. O banco criou dinheiro do nada. A correção é voltar à ordem certa (sacar primeiro):</p>
+
+<pre class="file" data-file="Conta.java">    public void transferir(Conta destino, BigDecimal valor) throws SaldoInsuficienteException {
+        this.sacar(valor);
+        destino.depositar(valor);
+    }
+</pre>
+
+<pre class="term" data-cwd="~/java/banco">$ mvn test
+…
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+…
+[INFO] BUILD SUCCESS</pre>
+
+<div class="tip">
+<strong>A lição</strong>
+<p>O teste <code>transferenciaSemSaldoNaoMexeEmNenhumaConta</code> foi escrito na etapa 5, quando o código estava certo. Ele parecia inútil… até alguém mexer no código. Testes são uma rede de proteção para o <strong>futuro</strong>: rode <code>mvn test</code> antes de toda entrega. O <code>mvn package</code>, que gera o JAR, roda os testes e se recusa a empacotar com teste vermelho (veja <a href="maven.html">Maven</a>).</p>
+</div>
+
+<div class="tryjava" data-goal="out:OK: transferência sem saldo não mexe em nenhuma conta">
+<p class="try-task"><strong>Missão (etapa 6):</strong> esta é a versão com o defeito, e o "teste caseiro" do <code>main</code> mostra <code>FALHOU: Ana tem 30.00 e Bruno tem 100.00</code>. Conserte o <code>transferir</code> para o teste mostrar <code>OK</code>.</p>
+<pre class="script">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        Conta ana = new Conta("Ana");
+        Conta bruno = new Conta("Bruno");
+        ana.depositar(new BigDecimal("30.00"));
+        try {
+            ana.transferir(bruno, new BigDecimal("100.00"));
+            System.out.println("FALHOU: a transferência deveria ter sido recusada");
+        } catch (SaldoInsuficienteException e) {
+            System.out.println("Recusada: " + e.getMessage());
+        }
+        if (ana.getSaldo().equals(new BigDecimal("30.00")) &amp;&amp; bruno.getSaldo().equals(BigDecimal.ZERO)) {
+            System.out.println("OK: transferência sem saldo não mexe em nenhuma conta");
+        } else {
+            System.out.println("FALHOU: Ana tem " + ana.getSaldo() + " e Bruno tem " + bruno.getSaldo());
+        }
+    }
+}
+
+class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    String getTitular() {
+        return titular;
+    }
+
+    BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    void sacar(BigDecimal valor) throws SaldoInsuficienteException {
+        validar(valor);
+        if (valor.compareTo(saldo) &gt; 0) {
+            throw new SaldoInsuficienteException(saldo, valor);
+        }
+        saldo = saldo.subtract(valor);
+    }
+
+    void transferir(Conta destino, BigDecimal valor) throws SaldoInsuficienteException {
+        destino.depositar(valor);
+        this.sacar(valor);
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+
+class SaldoInsuficienteException extends Exception {
+    SaldoInsuficienteException(BigDecimal saldo, BigDecimal pedido) {
+        super("Saldo insuficiente: saldo " + saldo + ", pedido " + pedido);
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        Conta ana = new Conta("Ana");
+        Conta bruno = new Conta("Bruno");
+        ana.depositar(new BigDecimal("30.00"));
+        try {
+            ana.transferir(bruno, new BigDecimal("100.00"));
+            System.out.println("FALHOU: a transferência deveria ter sido recusada");
+        } catch (SaldoInsuficienteException e) {
+            System.out.println("Recusada: " + e.getMessage());
+        }
+        if (ana.getSaldo().equals(new BigDecimal("30.00")) &amp;&amp; bruno.getSaldo().equals(BigDecimal.ZERO)) {
+            System.out.println("OK: transferência sem saldo não mexe em nenhuma conta");
+        } else {
+            System.out.println("FALHOU: Ana tem " + ana.getSaldo() + " e Bruno tem " + bruno.getSaldo());
+        }
+    }
+}
+
+class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    String getTitular() {
+        return titular;
+    }
+
+    BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    void sacar(BigDecimal valor) throws SaldoInsuficienteException {
+        validar(valor);
+        if (valor.compareTo(saldo) &gt; 0) {
+            throw new SaldoInsuficienteException(saldo, valor);
+        }
+        saldo = saldo.subtract(valor);
+    }
+
+    void transferir(Conta destino, BigDecimal valor) throws SaldoInsuficienteException {
+        this.sacar(valor);
+        destino.depositar(valor);
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+
+class SaldoInsuficienteException extends Exception {
+    SaldoInsuficienteException(BigDecimal saldo, BigDecimal pedido) {
+        super("Saldo insuficiente: saldo " + saldo + ", pedido " + pedido);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O código completo</h2>
+
+<pre class="file" data-file="src/main/java/br/com/ana/banco/Conta.java">package br.com.ana.banco;
+
+import java.math.BigDecimal;
+
+public class Conta {
+    private final String titular;
+    private BigDecimal saldo = BigDecimal.ZERO;
+
+    public Conta(String titular) {
+        this.titular = titular;
+    }
+
+    public String getTitular() {
+        return titular;
+    }
+
+    public BigDecimal getSaldo() {
+        return saldo;
+    }
+
+    public void depositar(BigDecimal valor) {
+        validar(valor);
+        saldo = saldo.add(valor);
+    }
+
+    public void sacar(BigDecimal valor) throws SaldoInsuficienteException {
+        validar(valor);
+        if (valor.compareTo(saldo) &gt; 0) {
+            throw new SaldoInsuficienteException(saldo, valor);
+        }
+        saldo = saldo.subtract(valor);
+    }
+
+    public void transferir(Conta destino, BigDecimal valor) throws SaldoInsuficienteException {
+        this.sacar(valor);
+        destino.depositar(valor);
+    }
+
+    private static void validar(BigDecimal valor) {
+        if (valor == null || valor.signum() &lt;= 0) {
+            throw new IllegalArgumentException("O valor deve ser positivo: " + valor);
+        }
+    }
+}
+</pre>
+<pre class="file" data-file="src/main/java/br/com/ana/banco/App.java">package br.com.ana.banco;
+
+import java.math.BigDecimal;
+
+public class App {
+    public static void main(String[] args) throws SaldoInsuficienteException {
+        Conta ana = new Conta("Ana");
+        Conta bruno = new Conta("Bruno");
+
+        ana.depositar(new BigDecimal("1000.00"));
+        ana.transferir(bruno, new BigDecimal("250.75"));
+        System.out.println(ana.getTitular() + ": R$ " + ana.getSaldo());
+        System.out.println(bruno.getTitular() + ": R$ " + bruno.getSaldo());
+
+        try {
+            bruno.sacar(new BigDecimal("300.00"));
+        } catch (SaldoInsuficienteException e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+}
+</pre>
+<pre class="file" data-file="src/test/java/br/com/ana/banco/ContaTest.java">package br.com.ana.banco;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.math.BigDecimal;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class ContaTest {
+    private Conta ana;
+    private Conta bruno;
+
+    @BeforeEach
+    void preparar() {
+        ana = new Conta("Ana");
+        bruno = new Conta("Bruno");
+    }
+
+    @Test
+    void depositoAumentaOSaldo() {
+        ana.depositar(new BigDecimal("100.50"));
+        assertEquals(new BigDecimal("100.50"), ana.getSaldo());
+    }
+
+    @Test
+    void centavosSomamSemErro() {
+        ana.depositar(new BigDecimal("0.10"));
+        ana.depositar(new BigDecimal("0.20"));
+        assertEquals(new BigDecimal("0.30"), ana.getSaldo());
+    }
+
+    @Test
+    void depositoNegativoEhRecusado() {
+        assertThrows(IllegalArgumentException.class, () -&gt; ana.depositar(new BigDecimal("-5.00")));
+    }
+
+    @Test
+    void saqueDiminuiOSaldo() throws SaldoInsuficienteException {
+        ana.depositar(new BigDecimal("100.00"));
+        ana.sacar(new BigDecimal("30.25"));
+        assertEquals(new BigDecimal("69.75"), ana.getSaldo());
+    }
+
+    @Test
+    void saqueMaiorQueOSaldoLancaExcecao() {
+        ana.depositar(new BigDecimal("50.00"));
+        SaldoInsuficienteException erro = assertThrows(SaldoInsuficienteException.class,
+                () -&gt; ana.sacar(new BigDecimal("80.00")));
+        assertEquals("Saldo insuficiente: saldo 50.00, pedido 80.00", erro.getMessage());
+        assertEquals(new BigDecimal("50.00"), ana.getSaldo());
+    }
+
+    @Test
+    void transferenciaMoveODinheiro() throws SaldoInsuficienteException {
+        ana.depositar(new BigDecimal("1000.00"));
+        ana.transferir(bruno, new BigDecimal("250.75"));
+        assertEquals(new BigDecimal("749.25"), ana.getSaldo());
+        assertEquals(new BigDecimal("250.75"), bruno.getSaldo());
+    }
+
+    @Test
+    void transferenciaSemSaldoNaoMexeEmNenhumaConta() {
+        ana.depositar(new BigDecimal("30.00"));
+        assertThrows(SaldoInsuficienteException.class,
+                () -&gt; ana.transferir(bruno, new BigDecimal("100.00")));
+        assertEquals(new BigDecimal("30.00"), ana.getSaldo());
+        assertEquals(BigDecimal.ZERO, bruno.getSaldo());
+    }
+}
+</pre>
+
+<p>O <code>pom.xml</code> está na etapa 1 e a <code>SaldoInsuficienteException</code> na etapa 4.</p>
+
+<h2>Desafios extras</h2>
+<ol>
+  <li><strong>Extrato.</strong> Guarde cada operação numa <code>List&lt;String&gt;</code> (<code>"Depósito: 100.00"</code>, <code>"Saque: 30.25"</code>) e crie <code>getExtrato()</code>. Teste que depois de um depósito e um saque o extrato tem 2 linhas.</li>
+  <li><strong>Transferir para si mesma.</strong> <code>ana.transferir(ana, …)</code> deveria ser recusado com <code>IllegalArgumentException</code>. Escreva o teste primeiro, veja falhar, depois implemente (isso é o TDD da <a href="junit.html">aula de JUnit</a>).</li>
+  <li><strong>Limite de cheque especial.</strong> Uma <code>ContaEspecial extends Conta</code> que pode ficar negativa até um limite (veja <a href="heranca.html">Herança</a>). O que precisa mudar na <code>Conta</code> para isso ser possível?</li>
+  <li><strong>Duas casas sempre.</strong> Faça o depósito arredondar para 2 casas com <code>valor.setScale(2, RoundingMode.HALF_EVEN)</code> e teste que <code>depositar(new BigDecimal("10"))</code> deixa o saldo em <code>10.00</code>.</li>
+</ol>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. Por que o saldo é <code>BigDecimal</code> e não <code>double</code>?</p>
+<label><input type="radio" name="q1"> Porque <code>double</code> não aceita números negativos.</label>
+<label><input type="radio" name="q1"> Porque <code>BigDecimal</code> é mais rápido.</label>
+<label><input type="radio" name="q1"> Porque <code>double</code> guarda em binário e erra centavos (0.1 + 0.2 dá 0.30000000000000004).</label>
+<label><input type="radio" name="q1"> Porque o JUnit só testa <code>BigDecimal</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">2. O que acontece com <code>saldo.add(valor);</code> sozinho, sem <code>saldo = </code> na frente?</p>
+<label><input type="radio" name="q2"> Nada: <code>BigDecimal</code> é imutável e o resultado é jogado fora.</label>
+<label><input type="radio" name="q2"> O saldo aumenta normalmente.</label>
+<label><input type="radio" name="q2"> Não compila.</label>
+<label><input type="radio" name="q2"> Lança uma exceção.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. O teste diz <code>expected: &lt;100&gt; but was: &lt;100.00&gt;</code>. O que houve?</p>
+<label><input type="radio" name="q3"> O depósito somou errado.</label>
+<label><input type="radio" name="q3"> O JUnit está com defeito.</label>
+<label><input type="radio" name="q3"> Faltou o <code>@BeforeEach</code>.</label>
+<label><input type="radio" name="q3"> Para o <code>equals</code> do <code>BigDecimal</code>, escalas diferentes (100 e 100.00) são valores diferentes.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que <code>transferir</code> chama <code>sacar</code> antes de <code>depositar</code>?</p>
+<label><input type="radio" name="q4"> Por ordem alfabética.</label>
+<label><input type="radio" name="q4"> Porque o saque pode falhar; falhando primeiro, nenhum dinheiro chega ao destino.</label>
+<label><input type="radio" name="q4"> Porque <code>depositar</code> lança <code>SaldoInsuficienteException</code>.</label>
+<label><input type="radio" name="q4"> Tanto faz a ordem.</label>
+</div>
+
+<div class="exercise">
+<p>Complete o comando que compila e roda todos os testes do projeto:</p>
+<div class="ex-code">mvn <input data-answer="test"></div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Projeto Maven: código em <code>src/main/java</code>, testes em <code>src/test/java</code>, JUnit no <code>pom.xml</code> com escopo <code>test</code>.</li>
+  <li>Dinheiro é <code>BigDecimal</code> criado de texto; as contas são métodos (<code>add</code>, <code>subtract</code>, <code>compareTo</code>) e o resultado precisa ser guardado.</li>
+  <li><code>SaldoInsuficienteException</code> é checked: falta de saldo é uma situação esperada, que quem chama deve tratar.</li>
+  <li><code>@Test</code>, <code>@BeforeEach</code>, <code>assertEquals(esperado, obtido)</code> e <code>assertThrows</code> cobrem quase tudo.</li>
+  <li>Um teste vermelho diz qual regra quebrou, o valor esperado, o obtido e a linha. Rode <code>mvn test</code> antes de entregar.</li>
+</ul>
+<p>Próximo projeto: <a href="projeto-tarefas.html">Tarefas com Maven</a>, um programa de linha de comando empacotado num JAR.</p>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
