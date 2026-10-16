@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java while e do-while — repetir enquanto uma condição for verdadeira | Guia Java</title>
+<meta name="description" content="Aula de while e do-while em Java para iniciantes: contador, condição, o do-while que roda pelo menos uma vez, laço infinito e como pará-lo com Ctrl+C, e validar a entrada do usuário, com saídas reais do JDK 25 e missões no editor do guia.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">while e do-while</span></h1>
+
+<p class="intro">Até agora, cada linha do seu programa rodava <strong>uma vez</strong>. Mas muita coisa no dia a dia é repetição: contar de 1 a 10, guardar dinheiro todo mês até bater uma meta, pedir uma senha até a pessoa acertar. Para isso existem os <strong>laços</strong> (ou <em>loops</em>). Nesta aula você conhece os dois mais simples: o <code>while</code> e o <code>do-while</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um laço e como o <code>while</code> decide se repete ou para.</li>
+  <li>Como montar um <strong>contador</strong> (o padrão mais comum de todos).</li>
+  <li>Laços que dependem de uma condição, e não de uma contagem.</li>
+  <li>O <code>do-while</code>, que roda <strong>pelo menos uma vez</strong>, e quando ele é a escolha certa.</li>
+  <li>O que é um <strong>laço infinito</strong>, por que ele acontece e como pará-lo com <kbd>Ctrl</kbd>+<kbd>C</kbd>.</li>
+  <li>Como usar o <code>do-while</code> para pedir um valor até ele ser válido.</li>
+</ul>
+</div>
+
+<p>Todos os exemplos foram rodados no terminal da Ana, a usuária da máquina fictícia <strong>notebook</strong>, com o JDK 25, dentro da pasta <code>~/java</code>. Para rodar, usamos o modo "arquivo-fonte" que você viu em <a href="compilar-executar.html">javac e java</a>: <code>java Main.java</code> compila e executa de uma vez.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Imagine que a Ana está lavando a louça. Ninguém diz a ela "lave o prato 1, lave o prato 2, lave o prato 3…". A instrução é uma só:</p>
+<blockquote><strong>Enquanto</strong> ainda houver louça suja na pia, lave mais uma peça.</blockquote>
+<p>Repare nas duas partes dessa frase:</p>
+<ul>
+  <li>Uma <strong>pergunta</strong> que tem resposta sim ou não: "ainda há louça suja?". Em Java, é uma <a href="booleanos.html">expressão booleana</a>, que vale <code>true</code> ou <code>false</code>.</li>
+  <li>Uma <strong>tarefa</strong> que se repete enquanto a resposta for "sim": "lave mais uma peça".</li>
+</ul>
+<p>E tem um detalhe escondido, mas essencial: <strong>a tarefa muda a resposta da pergunta</strong>. Cada peça lavada deixa a pia mais vazia, até que um dia a resposta vira "não" e a Ana para. Se ela só olhasse para a pia sem lavar nada, ficaria ali para sempre. Guarde isso: é a causa número 1 dos laços infinitos, que você vai ver mais adiante.</p>
+<p><code>while</code>, em inglês, quer dizer exatamente <strong>enquanto</strong>.</p>
+
+<hr>
+
+<h2>O primeiro <code>while</code>: um contador</h2>
+<p>Vamos fazer o computador escrever "Volta 1" até "Volta 5". Sem laço, seriam cinco <code>println</code> iguais. Com laço:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        while (contador &lt;= 5) {
+            System.out.println("Volta " + contador);
+            contador++;
+        }
+        System.out.println("Fim! O contador parou em " + contador);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Volta 1
+Volta 2
+Volta 3
+Volta 4
+Volta 5
+Fim! O contador parou em 6</pre>
+
+<p>Vamos ver linha por linha:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>int contador = 1;</code></td><td>Cria a <a href="variaveis.html">variável</a> que vai contar as voltas e começa em 1. É o <strong>início</strong>.</td></tr>
+<tr><td><code>while (contador &lt;= 5)</code></td><td>A <strong>condição</strong>: "enquanto o contador for menor ou igual a 5". Vem sempre entre parênteses.</td></tr>
+<tr><td><code>{ … }</code></td><td>O <strong>corpo</strong> do laço: as linhas que se repetem.</td></tr>
+<tr><td><code>System.out.println("Volta " + contador);</code></td><td>A tarefa: mostra o número da volta.</td></tr>
+<tr><td><code>contador++;</code></td><td>Soma 1 ao contador (é o mesmo que <code>contador = contador + 1</code>, veja <a href="operadores-atribuicao.html">Operadores de Atribuição</a>). É o <strong>passo</strong>, a linha que "lava mais um prato".</td></tr>
+<tr><td><code>System.out.println("Fim! …");</code></td><td>Está <strong>fora</strong> das chaves: roda uma vez só, depois que o laço termina.</td></tr>
+</table>
+</div>
+
+<h3>Anatomia do <code>while</code></h3>
+<dl class="anatomy">
+  <dt>while</dt><dd>A palavra-chave: "enquanto".</dd>
+  <dt>(contador &lt;= 5)</dt><dd>A condição, entre parênteses. Precisa dar <code>true</code> ou <code>false</code>. É testada <strong>antes</strong> de cada volta.</dd>
+  <dt>{</dt><dd>Abre o corpo do laço.</dd>
+  <dt>…</dt><dd>As instruções que se repetem. Uma delas precisa mudar algo da condição.</dd>
+  <dt>}</dt><dd>Fecha o corpo. Ao chegar aqui, o Java <strong>volta</strong> para a condição e testa de novo.</dd>
+</dl>
+
+<h3>O que acontece, volta por volta</h3>
+<p>Programadores chamam cada repetição de <strong>iteração</strong> (do latim <em>iterare</em>, "repetir"). Acompanhe o valor do contador em cada teste da condição:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Teste</th><th><code>contador</code> vale</th><th><code>contador &lt;= 5</code>?</th><th>O que o Java faz</th></tr>
+<tr><td>1º</td><td>1</td><td><code>true</code></td><td>Mostra "Volta 1", contador vira 2</td></tr>
+<tr><td>2º</td><td>2</td><td><code>true</code></td><td>Mostra "Volta 2", contador vira 3</td></tr>
+<tr><td>3º</td><td>3</td><td><code>true</code></td><td>Mostra "Volta 3", contador vira 4</td></tr>
+<tr><td>4º</td><td>4</td><td><code>true</code></td><td>Mostra "Volta 4", contador vira 5</td></tr>
+<tr><td>5º</td><td>5</td><td><code>true</code></td><td>Mostra "Volta 5", contador vira 6</td></tr>
+<tr><td>6º</td><td>6</td><td><code>false</code></td><td>Pula o corpo e continua depois da <code>}</code></td></tr>
+</table>
+</div>
+
+<p>Repare em dois fatos que confundem muita gente:</p>
+<ul>
+  <li>A condição foi testada <strong>6 vezes</strong>, mas o corpo rodou <strong>5</strong>. O último teste é o que dá <code>false</code> e encerra o laço.</li>
+  <li>Depois do laço, o contador vale <strong>6</strong>, e não 5. Foi justamente o 6 que fez a condição falhar. A saída "O contador parou em 6" confirma.</li>
+</ul>
+
+<div class="tip">
+<strong>As três peças de todo contador</strong>
+<p><strong>Início</strong> (<code>int contador = 1;</code>), <strong>condição</strong> (<code>contador &lt;= 5</code>) e <strong>passo</strong> (<code>contador++</code>). Esqueceu uma, o laço quebra: sem início, nem compila; sem passo, nunca termina. O <a href="for.html">for</a>, da próxima aula, junta essas três peças numa linha só.</p>
+</div>
+
+<h3>Contando para baixo</h3>
+<p>O passo não precisa ser <code>++</code>. Para uma contagem regressiva, comece alto, teste com <code>&gt;=</code> e diminua com <code>--</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador = 10;
+        while (contador &gt;= 1) {
+            System.out.println(contador);
+            contador--;
+        }
+        System.out.println("Feliz Ano Novo!");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+10
+9
+8
+7
+6
+5
+4
+3
+2
+1
+Feliz Ano Novo!</pre>
+
+<div class="tryjava" data-goal="outre:5\s+4\s+3\s+2\s+1\s+Já!,src:\bwhile\s*\(">
+<p class="try-task"><strong>Missão:</strong> a Ana vai largar uma corrida. Mude o programa para contar de <strong>5 até 1</strong> e depois mostrar <code>Já!</code>. Use o <code>while</code>. Dica: são três mudanças (início, condição e passo) e a última mensagem.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        while (contador &lt;= 5) {
+            System.out.println(contador);
+            contador++;
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int contador = 5;
+        while (contador &gt;= 1) {
+            System.out.println(contador);
+            contador--;
+        }
+        System.out.println("Já!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Laços que não são contagem</h2>
+<p>O <code>while</code> brilha quando você <strong>não sabe</strong> de antemão quantas voltas serão. A Ana quer juntar R$ 1000 guardando R$ 150 por mês. Quantos meses? Em vez de fazer a conta de cabeça, deixe o laço descobrir:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double saldo = 0;
+        int meses = 0;
+        while (saldo &lt; 1000) {
+            saldo = saldo + 150;
+            meses++;
+            System.out.println("Mês " + meses + ": R$ " + saldo);
+        }
+        System.out.println("A meta de R$ 1000 foi atingida em " + meses + " meses.");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Mês 1: R$ 150.0
+Mês 2: R$ 300.0
+Mês 3: R$ 450.0
+Mês 4: R$ 600.0
+Mês 5: R$ 750.0
+Mês 6: R$ 900.0
+Mês 7: R$ 1050.0             « 1050 não é menor que 1000: o laço para aqui
+A meta de R$ 1000 foi atingida em 7 meses.</pre>
+
+<p>A condição agora é sobre o <strong>saldo</strong>, e não sobre um contador. A variável <code>meses</code> só conta quantas voltas foram dadas, para mostrar no final. (O <code>.0</code> aparece porque <code>saldo</code> é um <code>double</code>, veja <a href="decimais.html">double e float</a>.)</p>
+
+<p>Outro exemplo: qual é a primeira potência de 2 que passa de 100? Comece em 1 e dobre enquanto for pequeno:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int numero = 1;
+        while (numero &lt; 100) {
+            numero = numero * 2;
+        }
+        System.out.println("Primeira potência de 2 maior ou igual a 100: " + numero);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Primeira potência de 2 maior ou igual a 100: 128</pre>
+
+<p>O número passou por 1, 2, 4, 8, 16, 32, 64 e 128. Quando chegou a 128, a condição <code>128 &lt; 100</code> deu <code>false</code> e o laço parou.</p>
+
+<h3>Um <code>while</code> pode rodar zero vezes</h3>
+<p>Como a condição é testada <strong>antes</strong> da primeira volta, se ela já começar falsa, o corpo nunca roda. A loja da Ana tem um laço que vende uma unidade de cada vez enquanto houver estoque. E se o estoque já for zero?</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int estoque = 0;
+        while (estoque &gt; 0) {
+            System.out.println("Vendendo uma unidade...");
+            estoque--;
+        }
+        System.out.println("Estoque final: " + estoque);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Estoque final: 0             « o corpo do while nem chegou a rodar</pre>
+
+<p>Esse é o comportamento certo: não dá para vender o que não existe. Guarde este exemplo, porque o <code>do-while</code> vai se comportar de outro jeito.</p>
+
+<hr>
+
+<h2>O <code>do-while</code>: primeiro faz, depois pergunta</h2>
+<p>O <code>do-while</code> (<em>do</em> = "faça") é o <code>while</code> de cabeça para baixo: o corpo vem <strong>primeiro</strong> e a condição vem <strong>no fim</strong>. Por isso ele roda <strong>pelo menos uma vez</strong>, mesmo que a condição seja falsa desde o começo.</p>
+<p>Uma comparação do dia a dia: provar a comida. Você <strong>prova primeiro</strong> e só depois decide se precisa de mais sal. Não dá para decidir antes de provar.</p>
+
+<dl class="anatomy">
+  <dt>do</dt><dd>"Faça": marca o início do corpo.</dd>
+  <dt>{ … }</dt><dd>O corpo, que roda uma vez sem nenhum teste.</dd>
+  <dt>while</dt><dd>Depois da primeira volta, a pergunta "repito?".</dd>
+  <dt>(condição)</dt><dd>Se der <code>true</code>, volta para o <code>do</code>; se der <code>false</code>, segue em frente.</dd>
+  <dt>;</dt><dd>O <strong>ponto e vírgula obrigatório</strong> no fim. O <code>while</code> comum não tem; o <code>do-while</code> tem.</dd>
+</dl>
+
+<p>Veja a mesma loja, com estoque zero, agora com <code>do-while</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int estoque = 0;
+        do {
+            System.out.println("Vendendo uma unidade...");
+            estoque--;
+        } while (estoque &gt; 0);
+        System.out.println("Estoque final: " + estoque);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Vendendo uma unidade...      « rodou uma vez antes de testar a condição
+Estoque final: -1            « vendeu o que não tinha!</pre>
+
+<p>A condição <code>estoque &gt; 0</code> era falsa desde o início, mas o corpo rodou uma vez antes de ela ser testada, e o estoque ficou negativo. Aqui o <code>do-while</code> foi a escolha <strong>errada</strong>. Ele é a escolha certa quando a primeira volta <strong>precisa</strong> acontecer, como ao pedir um dado ao usuário: você precisa perguntar uma vez antes de saber se a resposta é válida. É o que vem a seguir.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>while</code></th><th><code>do-while</code></th></tr>
+<tr><td>Quando testa a condição</td><td>Antes de cada volta</td><td>Depois de cada volta</td></tr>
+<tr><td>Mínimo de voltas</td><td><strong>0</strong></td><td><strong>1</strong></td></tr>
+<tr><td>Ponto e vírgula no fim</td><td>Não</td><td>Sim: <code>} while (…);</code></td></tr>
+<tr><td>Com a condição falsa desde o início</td><td>Não roda nada</td><td>Roda uma vez</td></tr>
+<tr><td>Uso típico</td><td>Repetir enquanto algo for verdade (que pode já ser falso)</td><td>Fazer algo e repetir se precisar (menus, pedir dados)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Validar a entrada com <code>do-while</code></h2>
+<p>A Ana está fazendo um programa para lançar as notas da turma. A nota precisa estar entre 0 e 10. Se o professor digitar 15 por engano, o programa deve reclamar e <strong>pedir de novo</strong>, quantas vezes for preciso.</p>
+<p>Para ler o que a pessoa digita, usamos o <code>Scanner</code>, que tem uma aula só para ele: <a href="scanner.html">Ler do Teclado (Scanner)</a>. Por enquanto, basta saber que <code>teclado.nextInt()</code> espera a pessoa digitar um número inteiro e apertar <kbd>Enter</kbd>.</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        int nota;
+        do {
+            System.out.print("Digite uma nota de 0 a 10: ");
+            nota = teclado.nextInt();
+            if (nota &lt; 0 || nota &gt; 10) {
+                System.out.println("Nota inválida! Tente de novo.");
+            }
+        } while (nota &lt; 0 || nota &gt; 10);
+        System.out.println("Nota registrada: " + nota);
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>import java.util.Scanner;</code></td><td>Avisa que vamos usar a classe <code>Scanner</code> (veja <a href="scanner.html">Scanner</a>).</td></tr>
+<tr><td><code>Scanner teclado = new Scanner(System.in);</code></td><td>Cria o "leitor do teclado".</td></tr>
+<tr><td><code>int nota;</code></td><td>Declara a variável <strong>fora</strong> do laço, porque ela será usada na condição e depois do laço.</td></tr>
+<tr><td><code>do { … }</code></td><td>Pergunta a nota. Sempre roda pelo menos uma vez: é o que queremos.</td></tr>
+<tr><td><code>if (nota &lt; 0 || nota &gt; 10)</code></td><td>Se a nota for inválida, avisa (veja <a href="if-else.html">if</a> e o "ou" <code>||</code> em <a href="operadores-logicos.html">Operadores Lógicos</a>).</td></tr>
+<tr><td><code>while (nota &lt; 0 || nota &gt; 10);</code></td><td>Repete <strong>enquanto a nota for inválida</strong>. Uma nota válida faz a condição dar <code>false</code> e o laço termina.</td></tr>
+</table>
+</div>
+
+<p>Rodando no terminal, o professor digitou 15, depois -2 e por fim 8:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Digite uma nota de 0 a 10: 15
+Nota inválida! Tente de novo.
+Digite uma nota de 0 a 10: -2
+Nota inválida! Tente de novo.
+Digite uma nota de 0 a 10: 8
+Nota registrada: 8</pre>
+
+<div class="note">
+<strong>Por que não um <code>while</code> comum?</strong>
+<p>Daria, mas você teria que pedir a nota duas vezes no código: uma antes do laço (para a condição ter o que testar) e outra dentro dele. Com o <code>do-while</code>, o pedido aparece uma vez só. "Pergunte primeiro, verifique depois" é o caso clássico do <code>do-while</code>.</p>
+</div>
+
+<h3>A mesma entrada, sem digitar</h3>
+<p>Você pode mandar as respostas prontas para o programa com o <code>printf</code> do terminal e um <code>|</code> (barra vertical, o "cano" que liga a saída de um comando à entrada do outro). Cada <code>\n</code> é um <kbd>Enter</kbd>:</p>
+
+<pre class="term" data-cwd="~/java">$ printf '15\n-2\n8\n' | java Main.java
+Digite uma nota de 0 a 10: Nota inválida! Tente de novo.
+Digite uma nota de 0 a 10: Nota inválida! Tente de novo.
+Digite uma nota de 0 a 10: Nota registrada: 8</pre>
+
+<p>O programa é o mesmo; a diferença está na tela. Quando você digita, o <strong>terminal</strong> mostra as teclas e o <kbd>Enter</kbd> pula a linha. Quando a entrada vem pelo <code>|</code>, ninguém digita nada, então os números não aparecem e as mensagens ficam emendadas. É assim também no editor do guia quando a caixa já traz a entrada pronta.</p>
+
+<hr>
+
+<h2>Laço infinito: quando a condição nunca fica falsa</h2>
+<p>Um <strong>laço infinito</strong> é um laço cuja condição nunca vira <code>false</code>. O programa fica preso dando voltas para sempre. Quase sempre é um engano, e o mais comum é <strong>esquecer o passo</strong>.</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<p>Ele compila e roda, mas nunca termina. Se testar no seu computador, esteja pronto para apertar <kbd>Ctrl</kbd>+<kbd>C</kbd>.</p>
+</div>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        while (contador &lt;= 5) {
+            System.out.println("Volta " + contador);
+        }
+    }
+}
+</pre>
+
+<p>Falta o <code>contador++</code>. O contador fica em 1 para sempre, <code>1 &lt;= 5</code> é sempre <code>true</code>, e o programa escreve "Volta 1" sem parar. No terminal da Ana, em <strong>dois segundos</strong> ele escreveu mais de meio milhão de linhas, até ela apertar <kbd>Ctrl</kbd>+<kbd>C</kbd>. Este é o fim da sessão:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Volta 1
+Volta 1
+Volta 1                      « … mais de 500 mil linhas iguais …
+^CVolta 1                    « a Ana apertou Ctrl+C; o terminal mostra ^C
+Volta 1                      « algumas linhas que já estavam a caminho
+Volta 1
+Volta 1
+Volta 1
+$ echo $?
+130                          « 130 = programa interrompido pelo Ctrl+C</pre>
+
+<h3>Como parar um programa preso</h3>
+<ol class="passo">
+  <li>Clique na janela do terminal onde o programa está rodando.</li>
+  <li>Aperte <kbd>Ctrl</kbd>+<kbd>C</kbd> (segure <kbd>Ctrl</kbd> e toque em <kbd>C</kbd>). O terminal mostra <code>^C</code> e o programa é encerrado.</li>
+  <li>O prompt <code>ana@notebook:~/java$</code> volta. O código de saída, que você vê com <code>echo $?</code>, é <strong>130</strong>: o jeito do Linux de dizer "interrompido pelo usuário".</li>
+  <li>Conserte o laço (quase sempre falta o passo, ou ele vai na direção errada) e rode de novo.</li>
+</ol>
+
+<p>Nas IDEs (veja <a href="editores-ide.html">Editores e IDEs</a>), o mesmo papel é do botão de <strong>parar</strong>, um quadrado vermelho perto do botão de rodar.</p>
+
+<h3>O laço infinito silencioso</h3>
+<p>Nem todo laço infinito enche a tela. Este aqui quer somar 1 + 2 + 3 + 4 + 5, mas também esqueceu o passo e não escreve nada dentro do laço:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        int soma = 0;
+        while (contador &lt;= 5) {
+            soma = soma + contador;
+        }
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+^C                           « nada aconteceu por 4 segundos; a Ana apertou Ctrl+C
+$ echo $?
+130</pre>
+
+<p>O programa parece "travado": nenhuma mensagem, nenhum erro, o cursor parado. Na verdade ele está trabalhando sem parar, somando 1 na variável <code>soma</code> milhões de vezes por segundo. Quando um programa "não faz nada e não termina", desconfie de um laço infinito.</p>
+
+<div class="tip">
+<strong>Laço infinito de propósito: <code>while (true)</code></strong>
+<p>Às vezes um laço infinito é desejado: um servidor que atende pedidos o dia todo, um menu que só termina quando a pessoa escolhe "Sair". Nesses casos se escreve <code>while (true)</code> e, dentro dele, um <code>break</code> que encerra o laço na hora certa. O <code>break</code> tem a sua própria aula: <a href="break-continue.html">break e continue</a>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Soma: 15,src:\bwhile\s*\(">
+<p class="try-task"><strong>Missão:</strong> este programa deveria mostrar <code>Soma: 15</code> (1 + 2 + 3 + 4 + 5), mas está preso num laço infinito. Encontre a linha que falta e conserte. Leia o código com calma e conserte <strong>antes</strong> de clicar em Rodar.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        int soma = 0;
+        while (contador &lt;= 5) {
+            soma = soma + contador;
+        }
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        int soma = 0;
+        while (contador &lt;= 5) {
+            soma = soma + contador;
+            contador++;
+        }
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de repetir</h2>
+<p>Para a mesma tarefa (mostrar 1, 2 e 3) há várias formas. Elas dão a mesma saída; o que muda é a clareza.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Código</th><th>Quando usar</th></tr>
+<tr><td><code>while</code> com contador</td><td><code>int i = 1; while (i &lt;= 3) { System.out.println(i); i++; }</code></td><td>Funciona, mas para contar o <code>for</code> é mais claro.</td></tr>
+<tr><td><code>do-while</code></td><td><code>int i = 1; do { System.out.println(i); i++; } while (i &lt;= 3);</code></td><td>Quando a primeira volta tem que acontecer sempre.</td></tr>
+<tr><td><code>for</code></td><td><code>for (int i = 1; i &lt;= 3; i++) { System.out.println(i); }</code></td><td>Contagens: você sabe quantas voltas serão. Veja <a href="for.html">for</a>.</td></tr>
+<tr><td><code>while</code> com condição</td><td><code>while (saldo &lt; 1000) { … }</code></td><td>Quando o número de voltas depende do que acontece dentro do laço.</td></tr>
+</table>
+</div>
+
+<p>Regra prática: <strong>sabe quantas vezes?</strong> Use <code>for</code>. <strong>Repete até algo acontecer?</strong> Use <code>while</code>. <strong>Precisa fazer uma vez antes de decidir?</strong> Use <code>do-while</code>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"variable contador might not have been initialized"</strong>
+<div class="warning"><p>Este código tem um erro de propósito.</p></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador;
+        while (contador &lt;= 5) {
+            System.out.println(contador);
+            contador++;
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: variable contador might not have been initialized
+        while (contador &lt;= 5) {
+               ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "a variável contador pode não ter sido inicializada". Você criou a variável, mas não deu um valor inicial a ela. Na primeira volta, o Java não saberia comparar "nada" com 5, então ele se recusa a compilar. O <code>^</code> aponta para a variável problemática.</p>
+<p><strong>Como consertar:</strong> dê o valor inicial na declaração: <code>int contador = 1;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"';' expected" no fim do <code>do-while</code></strong>
+<div class="warning"><p>Este código tem um erro de propósito.</p></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        do {
+            System.out.println(contador);
+            contador++;
+        } while (contador &lt;= 3)
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:7: error: ';' expected
+        } while (contador &lt;= 3)
+                               ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "esperava um ponto e vírgula". O <code>do-while</code> termina com <code>;</code> depois do parêntese, e ele faltou. O <code>^</code> aponta exatamente onde o <code>;</code> deveria estar.</p>
+<p><strong>Como consertar:</strong> <code>} while (contador &lt;= 3);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O programa não termina e não mostra nada: o <code>;</code> depois do <code>while</code></strong>
+<div class="warning"><p>Este código tem um erro de propósito.</p></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        while (contador &lt;= 5); {
+            System.out.println("Volta " + contador);
+            contador++;
+        }
+        System.out.println("Fim!");
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+^C                           « nenhuma "Volta"; a Ana teve que apertar Ctrl+C
+$ echo $?
+130</pre>
+<p><strong>O que aconteceu:</strong> o <code>;</code> logo depois de <code>while (contador &lt;= 5)</code> é um "corpo vazio". Para o Java, o laço é <code>while (contador &lt;= 5) ;</code>, que repete <em>nada</em> para sempre. As chaves que vêm depois viram um bloco comum, que nunca é alcançado. O <code>javac</code> não reclama, porque é Java válido.</p>
+<p><strong>Como consertar:</strong> apague o <code>;</code> entre o <code>)</code> e a <code>{</code>. Só o <code>do-while</code> leva <code>;</code>, e no fim.</p>
+</div>
+
+<div class="cenario">
+<strong>"unreachable statement" com <code>while (false)</code></strong>
+<div class="warning"><p>Este código tem um erro de propósito.</p></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador = 1;
+        while (false) {
+            System.out.println(contador);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: unreachable statement
+        while (false) {
+                      ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "instrução inalcançável". Se a condição é literalmente <code>false</code>, o corpo nunca poderia rodar, e o <code>javac</code> considera isso um engano. Com uma variável (<code>while (estoque &gt; 0)</code>) não há erro, porque o valor só é conhecido quando o programa roda.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma volta a mais ou a menos</strong>
+<p>Você queria 5 voltas e saíram 4 (ou 6). É o erro mais comum com laços e tem até nome: <strong>erro de "um a mais"</strong> (<em>off-by-one</em>). Confira três coisas: o valor inicial (0 ou 1?), o operador (<code>&lt;</code> ou <code>&lt;=</code>?) e o limite. <code>int i = 1; while (i &lt; 5)</code> dá 4 voltas (1 a 4); <code>int i = 1; while (i &lt;= 5)</code> dá 5. Na dúvida, monte a tabela "volta por volta" como fizemos lá em cima.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>O que faz</th><th>Mínimo de voltas</th></tr>
+<tr><td><code>while (condição) { … }</code></td><td>Testa e, se <code>true</code>, roda o corpo; repete</td><td>0</td></tr>
+<tr><td><code>do { … } while (condição);</code></td><td>Roda o corpo e, se a condição der <code>true</code>, repete</td><td>1</td></tr>
+<tr><td><code>while (true) { … break; … }</code></td><td>Laço infinito de propósito, encerrado por <code>break</code></td><td>até o <code>break</code></td></tr>
+<tr><td><code>contador++</code> / <code>contador--</code></td><td>O passo: soma ou subtrai 1</td><td></td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>Interrompe um programa no terminal (código de saída 130)</td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a condição</h3>
+<p>Complete para o laço mostrar os números de 1 a 10:</p>
+<div class="ex-code">int n = 1; while (<input data-answer="n &lt;= 10|n&lt;=10|n &lt; 11|n&lt;11" aria-label="condição">) { System.out.println(n); n++; }</div>
+</div>
+
+<div class="exercise">
+<h3>2. O passo que falta</h3>
+<p>Complete o passo da contagem regressiva de 3 a 1:</p>
+<div class="ex-code">int n = 3; while (n &gt;= 1) { System.out.println(n); <input data-answer="n--;|n = n - 1;|n -= 1;|--n;" aria-label="passo"> }</div>
+</div>
+
+<div class="exercise">
+<h3>3. Fechando o do-while</h3>
+<p>Complete o fim do <code>do-while</code> que repete enquanto <code>senha</code> for diferente de 1234:</p>
+<div class="ex-code">do { … } <input data-answer="while (senha != 1234);|while(senha != 1234);|while (senha!=1234);|while(senha!=1234);" aria-label="fim do do-while"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Quantas vezes "Oi" aparece? <code>int x = 10; while (x &lt; 5) { System.out.println("Oi"); x++; }</code></p>
+<label><input type="radio" name="q4"> 5</label>
+<label><input type="radio" name="q4"> 1</label>
+<label><input type="radio" name="q4"> 0</label>
+<label><input type="radio" name="q4"> Infinitas</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. E agora? <code>int x = 10; do { System.out.println("Oi"); x++; } while (x &lt; 5);</code></p>
+<label><input type="radio" name="q5"> 0</label>
+<label><input type="radio" name="q5"> 1</label>
+<label><input type="radio" name="q5"> 5</label>
+<label><input type="radio" name="q5"> Infinitas</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Depois de <code>int i = 0; while (i &lt; 3) { i++; }</code>, quanto vale <code>i</code>?</p>
+<label><input type="radio" name="q6"> 0</label>
+<label><input type="radio" name="q6"> 1</label>
+<label><input type="radio" name="q6"> 2</label>
+<label><input type="radio" name="q6"> 3</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Seu programa está rodando há um minuto sem mostrar nada nem terminar. O que fazer?</p>
+<label><input type="radio" name="q7"> Apertar <kbd>Ctrl</kbd>+<kbd>C</kbd> no terminal e procurar um laço cuja condição nunca fica falsa.</label>
+<label><input type="radio" name="q7"> Esperar: o Java sempre termina sozinho.</label>
+<label><input type="radio" name="q7"> Reinstalar o JDK.</label>
+<label><input type="radio" name="q7"> Rodar de novo, pois é um erro de compilação.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Idade registrada: 29,src:\bdo\s*\{" data-stdin="0\n200\n29\n">
+<p class="try-task"><strong>Missão final:</strong> faça o programa pedir a idade com <code>Sua idade: </code> e repetir a pergunta enquanto ela for menor que 1 ou maior que 120. No fim, mostre <code>Idade registrada: </code> seguido da idade. Use um <code>do-while</code>. A entrada de teste é 0, depois 200, depois 29.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        int idade;
+        // escreva o do-while aqui
+
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        int idade;
+        do {
+            System.out.print("Sua idade: ");
+            idade = teclado.nextInt();
+        } while (idade &lt; 1 || idade &gt; 120);
+        System.out.println("Idade registrada: " + idade);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>laço</strong> repete um bloco de código. Cada repetição é uma <strong>iteração</strong>.</li>
+  <li><code>while (condição) { … }</code> testa a condição <strong>antes</strong> de cada volta; pode rodar 0 vezes.</li>
+  <li><code>do { … } while (condição);</code> testa <strong>depois</strong>; roda pelo menos 1 vez e termina com <code>;</code>.</li>
+  <li>Um contador tem três peças: <strong>início</strong>, <strong>condição</strong> e <strong>passo</strong>. Depois do laço, o contador vale o primeiro valor que fez a condição falhar.</li>
+  <li>Se nada dentro do laço muda a condição, ele é <strong>infinito</strong>. Pare com <kbd>Ctrl</kbd>+<kbd>C</kbd> (código 130) e procure o passo que falta.</li>
+  <li>Cuidado com o <code>;</code> logo depois de <code>while (…)</code>: vira um laço vazio e infinito.</li>
+  <li>Para pedir um dado até ele ser válido, use <code>do-while</code>: pergunte primeiro, verifique depois.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
