@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Cola de Coleções — List, Set, Map, Deque e qual usar | Guia Java</title>
+<meta name="description" content="Cola das coleções do Java 25: tabela de interfaces e implementações (ArrayList, LinkedList, HashSet, TreeSet, HashMap, TreeMap, ArrayDeque, PriorityQueue) com ordem, duplicados, null e complexidade, e os métodos principais de List, Set, Map e Deque com resultados reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Cola de Coleções</span></h1>
+
+<p class="intro">Uma página para consultar quando você precisar escolher uma coleção ou lembrar o nome de um método. Primeiro a tabela "qual usar", depois os métodos de <code>List</code>, <code>Set</code>, <code>Map</code> e <code>Deque</code>, com exemplos e resultados reais do JShell. Para aprender cada uma com calma, comece pela <a href="colecoes.html">Visão Geral das Coleções</a>.</p>
+
+<div class="note">
+<strong>Nesta página</strong>
+<ul>
+  <li><a href="#tabela">Interfaces × implementações</a>: ordem, duplicados, <code>null</code> e velocidade.</li>
+  <li><a href="#ordem">A mesma lista em cada coleção</a>, para ver as diferenças.</li>
+  <li>Métodos de <a href="#list">List</a>, <a href="#set">Set</a>, <a href="#map">Map</a> e <a href="#deque">Deque</a>.</li>
+  <li><a href="#imutaveis">Coleções imutáveis</a> (<code>List.of</code>, <code>Map.of</code>) e <a href="#erros">os erros mais comuns</a>.</li>
+</ul>
+</div>
+
+<p>Todos os exemplos começam com <code>import java.util.*</code>. Na hora de declarar, use a <strong>interface</strong> à esquerda e a <strong>implementação</strong> à direita: <code>List&lt;String&gt; nomes = new ArrayList&lt;&gt;();</code>. Assim, trocar de implementação depois é mudar uma palavra.</p>
+
+<hr>
+
+<h2 id="tabela">Qual coleção usar</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Interface</th><th>Implementação</th><th>Ordem</th><th>Duplicados</th><th><code>null</code></th><th>Buscar / inserir</th><th>Use quando…</th></tr>
+<tr><td rowspan="2"><code>List</code><br>sequência com posições</td><td><a href="arraylist.html"><code>ArrayList</code></a></td><td>de inserção (por índice)</td><td>sim</td><td>sim</td><td><code>get(i)</code> O(1); <code>add</code> no fim O(1)*; inserir/remover no meio O(n); <code>contains</code> O(n)</td><td>Quase sempre que precisar de uma lista. É a escolha padrão.</td></tr>
+<tr><td><a href="linkedlist.html"><code>LinkedList</code></a></td><td>de inserção</td><td>sim</td><td>sim</td><td><code>get(i)</code> O(n); inserir/remover nas pontas O(1)</td><td>Raramente; para filas e pilhas, prefira <code>ArrayDeque</code>.</td></tr>
+<tr><td rowspan="3"><code>Set</code><br>sem repetidos</td><td><a href="hashset.html"><code>HashSet</code></a></td><td>nenhuma garantida</td><td>não</td><td>um</td><td><code>add</code>/<code>contains</code>/<code>remove</code> O(1) em média</td><td>Saber rápido "já tem?", eliminar repetidos.</td></tr>
+<tr><td><code>LinkedHashSet</code></td><td>de inserção</td><td>não</td><td>um</td><td>O(1) em média</td><td>Sem repetidos, mas lembrando a ordem em que entraram.</td></tr>
+<tr><td><a href="treemap-treeset.html"><code>TreeSet</code></a></td><td>ordenada (natural ou <code>Comparator</code>)</td><td>não</td><td>não</td><td>O(log n)</td><td>Sem repetidos e sempre em ordem; menor, maior, "o próximo depois de x".</td></tr>
+<tr><td rowspan="3"><code>Map</code><br>chave → valor</td><td><a href="hashmap.html"><code>HashMap</code></a></td><td>nenhuma garantida</td><td>chaves não; valores sim</td><td>uma chave, valores sim</td><td><code>get</code>/<code>put</code>/<code>containsKey</code> O(1) em média</td><td>Achar algo pela chave: dicionário, cadastro por código, contagem.</td></tr>
+<tr><td><code>LinkedHashMap</code></td><td>de inserção</td><td>chaves não</td><td>sim</td><td>O(1) em média</td><td>Como o <code>HashMap</code>, mas a listagem sai na ordem de inserção.</td></tr>
+<tr><td><a href="treemap-treeset.html"><code>TreeMap</code></a></td><td>ordenada pela chave</td><td>chaves não</td><td>chave não; valores sim</td><td>O(log n)</td><td>Mapa sempre em ordem de chave; faixas de chaves.</td></tr>
+<tr><td rowspan="2"><code>Deque</code> / <code>Queue</code><br>pontas</td><td><code>ArrayDeque</code></td><td>de inserção</td><td>sim</td><td>não</td><td>pôr/tirar nas pontas O(1)</td><td>Pilha (<code>push</code>/<code>pop</code>) ou fila (<code>offer</code>/<code>poll</code>).</td></tr>
+<tr><td><code>PriorityQueue</code></td><td>sai sempre o menor (ou o de maior prioridade)</td><td>sim</td><td>não</td><td><code>offer</code>/<code>poll</code> O(log n); <code>peek</code> O(1)</td><td>Processar por prioridade: tarefas urgentes primeiro, menor caminho.</td></tr>
+</table>
+</div>
+
+<p>O(1) = tempo constante, não importa o tamanho; O(log n) = cresce muito devagar (1 milhão de itens ≈ 20 passos); O(n) = proporcional ao tamanho (percorre tudo). * <em>Amortizado</em>: de vez em quando o <code>ArrayList</code> precisa crescer e copia tudo, mas na média continua O(1).</p>
+
+<div class="tip">
+<strong>Na dúvida</strong>
+<p>Lista: <code>ArrayList</code>. Sem repetidos: <code>HashSet</code>. Chave → valor: <code>HashMap</code>. Precisa de ordem? Troque por <code>TreeSet</code>/<code>TreeMap</code> (ordenado) ou <code>LinkedHashSet</code>/<code>LinkedHashMap</code> (ordem de inserção). Pilha ou fila: <code>ArrayDeque</code>.</p>
+</div>
+
+<h3 id="ordem">A mesma lista em cada coleção</h3>
+<p>Cinco frutas, com <code>maçã</code> repetida, copiadas para cada tipo de coleção:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; import java.util.*
+
+jshell&gt; var frutas = List.of("uva", "maçã", "banana", "kiwi", "maçã")
+frutas ==&gt; [uva, maçã, banana, kiwi, maçã]
+
+jshell&gt; new ArrayList&lt;&gt;(frutas)
+$3 ==&gt; [uva, maçã, banana, kiwi, maçã]
+
+jshell&gt; new LinkedList&lt;&gt;(frutas)
+$4 ==&gt; [uva, maçã, banana, kiwi, maçã]
+
+jshell&gt; new HashSet&lt;&gt;(frutas)
+$5 ==&gt; [banana, uva, kiwi, maçã]
+
+jshell&gt; new LinkedHashSet&lt;&gt;(frutas)
+$6 ==&gt; [uva, maçã, banana, kiwi]
+
+jshell&gt; new TreeSet&lt;&gt;(frutas)
+$7 ==&gt; [banana, kiwi, maçã, uva]</pre>
+
+<p>As listas guardam tudo, na ordem. Os conjuntos tiram a <code>maçã</code> repetida: o <code>HashSet</code> numa ordem própria (que pode mudar de uma versão do Java para outra), o <code>LinkedHashSet</code> na ordem de chegada e o <code>TreeSet</code> em ordem alfabética.</p>
+
+<div class="tryjshell" data-goal="out:[1\, 3\, 5\, 8]">
+<p class="try-task"><strong>Experimente:</strong> elimine os repetidos e ordene ao mesmo tempo: crie um <code>TreeSet</code> a partir de <code>List.of(5, 3, 8, 3, 1, 5)</code>.</p>
+<pre class="solucao">new java.util.TreeSet&lt;&gt;(java.util.List.of(5, 3, 8, 3, 1, 5))</pre>
+</div>
+
+<hr>
+
+<h2 id="list">Métodos de <code>List</code></h2>
+<p>Valem para <code>ArrayList</code> e <code>LinkedList</code>. Os exemplos rodam em sequência, começando com <code>var l = new ArrayList&lt;&gt;(List.of("Ana", "Bia", "Caio"))</code>; cada linha parte do resultado da anterior.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>boolean add(E e)</code></td><td>Põe no fim.</td><td><code>l.add("Duda")</code></td><td><code>true</code></td></tr>
+<tr><td><code>void add(int i, E e)</code></td><td>Põe na posição <code>i</code>, empurrando os outros.</td><td><code>l.add(1, "Beto")</code></td><td><code>l</code> = <code>[Ana, Beto, Bia, Caio, Duda]</code></td></tr>
+<tr><td><code>E get(int i)</code></td><td>O item da posição.</td><td><code>l.get(0)</code></td><td><code>"Ana"</code></td></tr>
+<tr><td><code>E set(int i, E e)</code></td><td>Troca o item da posição; devolve o antigo.</td><td><code>l.set(0, "Aline")</code></td><td><code>"Ana"</code></td></tr>
+<tr><td><code>int indexOf(Object o)</code></td><td>Posição da primeira ocorrência, ou -1.</td><td><code>l.indexOf("Caio")</code></td><td><code>3</code></td></tr>
+<tr><td><code>boolean contains(Object o)</code></td><td>Tem esse item? (usa <code>equals</code>)</td><td><code>l.contains("Bia")</code></td><td><code>true</code></td></tr>
+<tr><td><code>boolean remove(Object o)</code></td><td>Remove a primeira ocorrência do <strong>item</strong>.</td><td><code>l.remove("Beto")</code></td><td><code>true</code></td></tr>
+<tr><td><code>E remove(int i)</code></td><td>Remove a <strong>posição</strong>; devolve o removido.</td><td><code>l.remove(0)</code></td><td><code>"Aline"</code></td></tr>
+<tr><td><code>int size()</code></td><td>Quantos itens.</td><td><code>l.size()</code></td><td><code>3</code> (<code>[Bia, Caio, Duda]</code>)</td></tr>
+<tr><td><code>boolean isEmpty()</code></td><td>Está vazia?</td><td><code>l.isEmpty()</code></td><td><code>false</code></td></tr>
+<tr><td><code>List&lt;E&gt; subList(int de, int até)</code></td><td>Um pedaço [de, até) (uma "janela" para a lista original).</td><td><code>l.subList(0, 2)</code></td><td><code>[Bia, Caio]</code></td></tr>
+<tr><td><code>void sort(Comparator c)</code></td><td>Ordena a própria lista.</td><td><code>l.sort(Comparator.reverseOrder())</code></td><td><code>l</code> = <code>[Duda, Caio, Bia]</code></td></tr>
+<tr><td><code>boolean removeIf(Predicate p)</code></td><td>Remove todos que cumprem a condição (<a href="lambdas.html">lambda</a>).</td><td><code>l.removeIf(n -&gt; n.startsWith("C"))</code></td><td><code>true</code>; <code>l</code> = <code>[Duda, Bia]</code></td></tr>
+<tr><td><code>boolean addAll(Collection c)</code></td><td>Põe todos os itens de outra coleção no fim.</td><td><code>l.addAll(List.of("Eva", "Fábio"))</code></td><td><code>true</code>; <code>l</code> = <code>[Duda, Bia, Eva, Fábio]</code></td></tr>
+<tr><td><code>void clear()</code></td><td>Esvazia.</td><td><code>l.clear(); l.size()</code></td><td><code>0</code></td></tr>
+<tr><td><code>Collections.sort(lista)</code></td><td>Ordena em ordem natural (forma antiga de <code>l.sort(null)</code>). Veja <a href="collections.html">A Classe Collections</a>.</td><td><code>Collections.sort(l)</code></td><td><code>[Bia, Caio, Duda]</code></td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong><code>remove(1)</code> numa <code>List&lt;Integer&gt;</code></strong>
+<p>Remove a <strong>posição</strong> 1, não o número 1. Para remover o valor, escreva <code>lista.remove(Integer.valueOf(1))</code>. Veja <a href="arraylist.html">ArrayList</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="set">Métodos de <code>Set</code></h2>
+<p>Começando com <code>var s = new HashSet&lt;&gt;(Set.of(1, 2, 3))</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>boolean add(E e)</code></td><td>Põe o item; devolve <code>false</code> se já existia (e não faz nada).</td><td><code>s.add(2)</code><br><code>s.add(4)</code></td><td><code>false</code><br><code>true</code></td></tr>
+<tr><td><code>boolean contains(Object o)</code></td><td>Tem? (rápido: O(1) no <code>HashSet</code>)</td><td><code>s.contains(3)</code></td><td><code>true</code></td></tr>
+<tr><td><code>boolean remove(Object o)</code></td><td>Tira o item.</td><td><code>s.remove(1)</code></td><td><code>true</code></td></tr>
+<tr><td><code>int size()</code></td><td>Quantos itens.</td><td><code>s.size()</code></td><td><code>3</code></td></tr>
+<tr><td><code>addAll(c)</code></td><td><strong>União</strong>: junta os itens de outra coleção.</td><td><code>{1, 2}</code> <code>.addAll(Set.of(2, 3))</code></td><td><code>[1, 2, 3]</code></td></tr>
+<tr><td><code>retainAll(c)</code></td><td><strong>Interseção</strong>: fica só com o que também está na outra.</td><td><code>{1, 2, 3, 4, 5}</code> <code>.retainAll(Set.of(2, 4, 6))</code></td><td><code>[2, 4]</code></td></tr>
+<tr><td><code>removeAll(c)</code></td><td><strong>Diferença</strong>: tira o que está na outra.</td><td><code>{1, 2, 3}</code> <code>.removeAll(Set.of(2))</code></td><td><code>[1, 3]</code></td></tr>
+</table>
+</div>
+
+<p>Só no <code>TreeSet</code> (ordenado), com <code>var t = new TreeSet&lt;&gt;(Set.of(10, 5, 20, 15))</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>E first()</code> / <code>E last()</code></td><td>O menor / o maior.</td><td><code>t.first()</code><br><code>t.last()</code></td><td><code>5</code><br><code>20</code></td></tr>
+<tr><td><code>E ceiling(E e)</code></td><td>O menor que seja ≥ e (<code>floor</code>: o maior ≤ e).</td><td><code>t.ceiling(12)</code></td><td><code>15</code></td></tr>
+<tr><td><code>SortedSet headSet(E até)</code></td><td>Os menores que <code>até</code> (<code>tailSet</code>: os ≥).</td><td><code>t.headSet(15)</code></td><td><code>[5, 10]</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="map">Métodos de <code>Map</code></h2>
+<p>Começando com <code>var m = new HashMap&lt;String, Integer&gt;()</code> (nome → nota):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>V put(K chave, V valor)</code></td><td>Guarda. Se a chave já existia, <strong>substitui</strong> e devolve o valor antigo; senão devolve <code>null</code>.</td><td><code>m.put("Ana", 8)</code><br><code>m.put("Bia", 9)</code><br><code>m.put("Ana", 10)</code></td><td><code>null</code><br><code>null</code><br><code>8</code></td></tr>
+<tr><td><code>V get(Object chave)</code></td><td>O valor da chave, ou <code>null</code> se não existe.</td><td><code>m.get("Ana")</code><br><code>m.get("Zé")</code></td><td><code>10</code><br><code>null</code></td></tr>
+<tr><td><code>V getOrDefault(chave, padrão)</code></td><td>Como <code>get</code>, mas com um valor padrão no lugar de <code>null</code>.</td><td><code>m.getOrDefault("Zé", 0)</code></td><td><code>0</code></td></tr>
+<tr><td><code>boolean containsKey(chave)</code></td><td>Essa chave existe? (rápido)</td><td><code>m.containsKey("Bia")</code></td><td><code>true</code></td></tr>
+<tr><td><code>boolean containsValue(valor)</code></td><td>Algum valor é igual? (percorre tudo: O(n))</td><td><code>m.containsValue(9)</code></td><td><code>true</code></td></tr>
+<tr><td><code>V putIfAbsent(chave, valor)</code></td><td>Só guarda se a chave não existir; devolve o valor atual.</td><td><code>m.putIfAbsent("Bia", 0)</code></td><td><code>9</code> (não mudou)</td></tr>
+<tr><td><code>V merge(chave, valor, função)</code></td><td>Se a chave não existe, guarda o valor; se existe, junta com a função. O jeito curto de <strong>contar</strong>.</td><td><code>m.merge("Caio", 1, Integer::sum)</code><br>(de novo)</td><td><code>1</code><br><code>2</code></td></tr>
+<tr><td><code>V remove(chave)</code></td><td>Tira a chave; devolve o valor que estava.</td><td><code>m.remove("Bia")</code></td><td><code>9</code></td></tr>
+<tr><td><code>Set&lt;K&gt; keySet()</code></td><td>As chaves.</td><td><code>m.keySet()</code></td><td><code>[Ana, Caio]</code></td></tr>
+<tr><td><code>Collection&lt;V&gt; values()</code></td><td>Os valores.</td><td><code>m.values()</code></td><td><code>[10, 2]</code></td></tr>
+<tr><td><code>Set&lt;Map.Entry&lt;K,V&gt;&gt; entrySet()</code></td><td>Os pares chave=valor, para percorrer com <code>for (var e : m.entrySet())</code> e usar <code>e.getKey()</code>/<code>e.getValue()</code>.</td><td><code>new TreeMap&lt;&gt;(m).entrySet()</code></td><td><code>[Ana=10, Caio=2]</code></td></tr>
+<tr><td><code>int size()</code></td><td>Quantos pares.</td><td><code>m.size()</code></td><td><code>2</code></td></tr>
+<tr><td><code>new TreeMap&lt;&gt;(mapa)</code></td><td>Uma cópia ordenada pela chave (para mostrar em ordem).</td><td><code>new TreeMap&lt;&gt;(m)</code></td><td><code>{Ana=10, Caio=2}</code></td></tr>
+</table>
+</div>
+
+<p>Só no <code>TreeMap</code>, com <code>var tm = new TreeMap&lt;&gt;(Map.of("c", 3, "a", 1, "b", 2))</code>: <code>tm.firstKey()</code> → <code>"a"</code>; <code>tm.headMap("c")</code> → <code>{a=1, b=2}</code> (as chaves menores que "c"). Também existem <code>lastKey</code>, <code>tailMap</code>, <code>ceilingKey</code> e <code>floorKey</code>.</p>
+
+<div class="tryjava" data-goal="out:{banana=1\, kiwi=1\, maçã=2\, uva=1},src:merge">
+<p class="try-task"><strong>Missão:</strong> conte quantas vezes cada fruta aparece usando um <code>TreeMap&lt;String, Integer&gt;</code> e <code>merge(fruta, 1, Integer::sum)</code>. O resultado deve ser <code>{banana=1, kiwi=1, maçã=2, uva=1}</code>.</p>
+<pre class="script">import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = List.of("uva", "maçã", "banana", "kiwi", "maçã");
+        Map&lt;String, Integer&gt; contagem = new TreeMap&lt;&gt;();
+        // conte cada fruta aqui
+        System.out.println(contagem);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = List.of("uva", "maçã", "banana", "kiwi", "maçã");
+        Map&lt;String, Integer&gt; contagem = new TreeMap&lt;&gt;();
+        for (String fruta : frutas) {
+            contagem.merge(fruta, 1, Integer::sum);
+        }
+        System.out.println(contagem);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="deque">Métodos de <code>Deque</code> (pilha e fila)</h2>
+<p><code>Deque</code> (<em>double-ended queue</em>, "fila de duas pontas") põe e tira itens nas duas pontas. Com <code>var d = new ArrayDeque&lt;String&gt;()</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Uso</th><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td rowspan="3">Pilha<br>(o último a entrar sai primeiro)</td><td><code>void push(E e)</code></td><td>Empilha no topo (a frente).</td><td><code>d.push("prato 1")</code><br><code>d.push("prato 2")</code></td><td><code>d</code> = <code>[prato 2, prato 1]</code></td></tr>
+<tr><td><code>E peek()</code></td><td>Olha o topo sem tirar (<code>null</code> se vazia).</td><td><code>d.peek()</code></td><td><code>"prato 2"</code></td></tr>
+<tr><td><code>E pop()</code></td><td>Tira do topo. Vazia: <code>NoSuchElementException</code>.</td><td><code>d.pop()</code></td><td><code>"prato 2"</code></td></tr>
+<tr><td rowspan="3">Fila<br>(o primeiro a entrar sai primeiro)</td><td><code>boolean offerLast(E e)</code> / <code>offer</code></td><td>Entra no fim da fila.</td><td><code>d.offerLast("fila 1")</code></td><td><code>true</code></td></tr>
+<tr><td><code>boolean offerFirst(E e)</code></td><td>Entra na frente (fura a fila).</td><td><code>d.offerFirst("frente")</code></td><td><code>d</code> = <code>[frente, prato 1, fila 1]</code></td></tr>
+<tr><td><code>E pollFirst()</code> / <code>poll</code></td><td>Tira da frente. Vazia: <code>null</code>.</td><td><code>d.pollFirst()</code><br><code>new ArrayDeque&lt;String&gt;().poll()</code></td><td><code>"frente"</code><br><code>null</code></td></tr>
+<tr><td>Fim</td><td><code>E pollLast()</code></td><td>Tira do fim.</td><td><code>d.pollLast()</code></td><td><code>"fila 1"</code>; <code>d</code> = <code>[prato 1]</code></td></tr>
+<tr><td>Prioridade</td><td><code>PriorityQueue.poll()</code></td><td>Sai sempre o <strong>menor</strong>, não importa a ordem de entrada.</td><td><code>new PriorityQueue&lt;&gt;(List.of(5, 1, 4, 2))</code>, <code>poll()</code> duas vezes</td><td><code>1</code>, depois <code>2</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Pares de métodos: exceção ou valor especial</strong>
+<p>Cada operação de fila existe em duas versões: uma lança exceção quando não dá (<code>add</code>, <code>remove</code>, <code>element</code>, <code>pop</code>) e outra devolve <code>false</code>/<code>null</code> (<code>offer</code>, <code>poll</code>, <code>peek</code>). Para filas que podem ficar vazias, prefira a segunda e confira o <code>null</code>.</p>
+</div>
+
+<hr>
+
+<h2 id="imutaveis">Coleções imutáveis</h2>
+<p><code>List.of(…)</code>, <code>Set.of(…)</code> e <code>Map.of(…)</code> <span class="versao">Java 9+</span> criam coleções prontas que <strong>não podem ser alteradas</strong>. Ótimas para dados fixos; para uma lista que vai mudar, copie: <code>new ArrayList&lt;&gt;(List.of(…))</code>. <code>stream().toList()</code> <span class="versao">Java 16+</span> também devolve uma lista imutável.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Pode mudar?</th><th>Aceita <code>null</code>?</th></tr>
+<tr><td><code>new ArrayList&lt;&gt;()</code>, <code>new HashMap&lt;&gt;()</code>…</td><td>sim</td><td>sim (exceto <code>Tree…</code> e <code>ArrayDeque</code>)</td></tr>
+<tr><td><code>List.of</code>, <code>Set.of</code>, <code>Map.of</code>, <code>stream().toList()</code></td><td>não</td><td>não</td></tr>
+<tr><td><code>Arrays.asList(array)</code></td><td>pode trocar itens (<code>set</code>), não pode mudar o tamanho</td><td>sim</td></tr>
+<tr><td><code>Collections.unmodifiableList(l)</code></td><td>não (mas é uma "janela" para <code>l</code>: se <code>l</code> mudar, ela muda)</td><td>sim</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+<p>As mensagens reais, no JShell:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Exceção</th><th>Por quê</th></tr>
+<tr><td><code>List.of(1, 2).add(3)</code></td><td><code>UnsupportedOperationException</code></td><td>Coleção imutável.</td></tr>
+<tr><td><code>List.of("a", null)</code></td><td><code>NullPointerException</code></td><td><code>List.of</code> não aceita <code>null</code>.</td></tr>
+<tr><td><code>Map.of("a", 1, "a", 2)</code></td><td><code>IllegalArgumentException: duplicate key: a</code></td><td>Chave repetida em <code>Map.of</code>.</td></tr>
+<tr><td><code>new TreeSet&lt;String&gt;().add(null)</code></td><td><code>NullPointerException: Cannot invoke "java.lang.Comparable.compareTo(Object)" because "k1" is null</code></td><td>O <code>TreeSet</code>/<code>TreeMap</code> precisa comparar, e <code>null</code> não se compara.</td></tr>
+<tr><td><code>new ArrayDeque&lt;String&gt;().add(null)</code></td><td><code>NullPointerException</code></td><td><code>ArrayDeque</code> usa <code>null</code> internamente para "vazio".</td></tr>
+<tr><td><code>new ArrayDeque&lt;String&gt;().pop()</code></td><td><code>NoSuchElementException</code></td><td>Pilha vazia (use <code>poll</code> para receber <code>null</code>).</td></tr>
+<tr><td><code>lista.get(5)</code> com 3 itens</td><td><code>IndexOutOfBoundsException: Index 5 out of bounds for length 3</code></td><td>Posição inexistente.</td></tr>
+<tr><td>Remover dentro de um for-each</td><td><code>ConcurrentModificationException</code></td><td>A lista mudou durante o laço; use <code>removeIf</code> ou um <a href="iterator.html">Iterator</a>.</td></tr>
+</table>
+</div>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; List.of(1, 2).add(3)
+|  Exception java.lang.UnsupportedOperationException
+|        at ImmutableCollections.uoe (ImmutableCollections.java:159)
+|        at ImmutableCollections$AbstractImmutableCollection.add (ImmutableCollections.java:164)
+|        at (#1:1)
+
+jshell&gt; Map.of("a", 1, "a", 2)
+|  Exception java.lang.IllegalArgumentException: duplicate key: a
+|        at ImmutableCollections$MapN.&lt;init&gt; (ImmutableCollections.java:1440)
+|        at Map.of (Map.java:1384)
+|        at (#2:1)</pre>
+
+<p>Mais detalhes sobre cada exceção em <a href="ref-excecoes.html">Exceções Comuns</a>.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. Você precisa guardar os e-mails já cadastrados e perguntar muitas vezes "este já existe?". Qual coleção?</p>
+<label><input type="radio" name="q1"> <code>ArrayList</code></label>
+<label><input type="radio" name="q1"> <code>LinkedList</code></label>
+<label><input type="radio" name="q1"> <code>HashSet</code></label>
+<label><input type="radio" name="q1"> <code>ArrayDeque</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. O que <code>m.put("Ana", 10)</code> devolve se <code>"Ana"</code> já valia 8?</p>
+<label><input type="radio" name="q2"> <code>10</code></label>
+<label><input type="radio" name="q2"> <code>8</code>, o valor antigo</label>
+<label><input type="radio" name="q2"> <code>null</code></label>
+<label><input type="radio" name="q2"> <code>false</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Qual destas coleções aceita <code>null</code>?</p>
+<label><input type="radio" name="q3"> <code>TreeSet</code></label>
+<label><input type="radio" name="q3"> <code>ArrayDeque</code></label>
+<label><input type="radio" name="q3"> <code>List.of(…)</code></label>
+<label><input type="radio" name="q3"> <code>ArrayList</code></label>
+</div>
+
+<div class="exercise">
+<p>Complete para criar um mapa que lista as chaves em ordem alfabética:</p>
+<div class="ex-code">Map&lt;String, Integer&gt; notas = new <input data-answer="TreeMap&lt;&gt;()">;</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>List</code> = sequência com posições e repetidos; <code>Set</code> = sem repetidos; <code>Map</code> = chave → valor; <code>Deque</code> = pilha e fila.</li>
+  <li><code>Hash…</code>: rápido, sem ordem; <code>Linked…</code>: ordem de inserção; <code>Tree…</code>: ordenado, O(log n), sem <code>null</code>.</li>
+  <li>Padrões: <code>ArrayList</code>, <code>HashSet</code>, <code>HashMap</code>, <code>ArrayDeque</code>. Declare pela interface.</li>
+  <li><code>List.of</code>/<code>Set.of</code>/<code>Map.of</code> são imutáveis e recusam <code>null</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
