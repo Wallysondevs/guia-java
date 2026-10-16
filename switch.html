@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java switch — case, break, default e fall-through | Guia Java</title>
+<meta name="description" content="O switch clássico do Java: case, break e default, o fall-through (demonstração real esquecendo o break), vários case juntos, switch com String, char e enum, e os erros reais duplicate case label, constant expression required e NullPointerException.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">switch</span></h1>
+
+<p class="intro">Quando você precisa comparar <strong>uma</strong> variável com uma lista de valores exatos (o dia 1 é domingo, o 2 é segunda…; o comando "novo", "ajuda" ou "sair"), uma escada de <code>else if</code> fica comprida e repetitiva. O <code>switch</code> ("chave", no sentido de "comutador") faz isso de forma organizada: você diz qual variável examinar e lista os casos.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A estrutura do <code>switch</code> clássico: <code>case</code>, <code>break</code> e <code>default</code>.</li>
+  <li>O que é o <strong>fall-through</strong> (o "cair para o próximo caso") e o que acontece de verdade quando você esquece o <code>break</code>.</li>
+  <li>Como juntar vários <code>case</code> que fazem a mesma coisa.</li>
+  <li><code>switch</code> com <code>String</code>, <code>char</code> e <code>enum</code>.</li>
+  <li>Os erros reais: <code>duplicate case label</code>, <code>constant expression required</code>, <code>NullPointerException</code> e o <code>switch</code> com <code>double</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula trata do <code>switch</code> "clássico", que existe desde a primeira versão do Java e que você vai encontrar em todo código antigo. A próxima aula, <a href="switch-expressoes.html">switch com Setas</a>, mostra a forma moderna (Java 14+), mais curta e mais segura. Vale aprender as duas.</p>
+
+<hr>
+
+<h2>A ideia: um painel de botões</h2>
+<p>Pense no painel de um elevador: você aperta o número do andar, e o elevador vai direto para ele, sem parar em cada andar perguntando "é este?". O <code>switch</code> funciona assim: olha o valor da variável e <strong>salta</strong> direto para o <code>case</code> correspondente. Se não houver botão para aquele valor, vai para o <code>default</code> ("padrão").</p>
+
+<hr>
+
+<h2>O <code>switch</code> clássico</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dia = 3;
+        switch (dia) {
+            case 1:
+                System.out.println("Domingo");
+                break;
+            case 2:
+                System.out.println("Segunda");
+                break;
+            case 3:
+                System.out.println("Terça");
+                break;
+            case 4:
+                System.out.println("Quarta");
+                break;
+            case 5:
+                System.out.println("Quinta");
+                break;
+            case 6:
+                System.out.println("Sexta");
+                break;
+            case 7:
+                System.out.println("Sábado");
+                break;
+            default:
+                System.out.println("Dia inválido");
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Terça
+Fim</pre>
+
+<dl class="anatomy">
+  <dt>switch (dia)</dt><dd>A variável que será examinada (o "seletor"), entre parênteses. Pode ser <code>int</code>, <code>char</code>, <code>short</code>, <code>byte</code>, <code>String</code> ou <code>enum</code>.</dd>
+  <dt>{ … }</dt><dd>As chaves envolvem todos os casos.</dd>
+  <dt>case 3:</dt><dd>"Caso o valor seja 3, comece aqui". Depois do <code>case</code> vem um valor <strong>fixo</strong> (um literal ou uma constante) e <strong>dois-pontos</strong>. Os <code>case</code> funcionam como <strong>rótulos</strong>, etiquetas que marcam pontos de entrada.</dd>
+  <dt>break;</dt><dd>"Quebre", "saia": termina o <code>switch</code> e pula para depois do <code>}</code>. Sem ele, acontece algo surpreendente (a próxima seção).</dd>
+  <dt>default:</dt><dd>O "senão": roda quando nenhum <code>case</code> bateu. É opcional; sem ele, se nenhum caso bater, nada acontece. Por costume, fica no fim e não precisa de <code>break</code>.</dd>
+</dl>
+
+<p>Com <code>dia = 3</code>, o Java saltou direto para <code>case 3:</code>, mostrou <code>Terça</code>, encontrou o <code>break</code> e saiu. Com <code>dia = 9</code>, iria para o <code>default</code> e mostraria <code>Dia inválido</code>.</p>
+
+<p>O mesmo programa com <code>else if</code> teria sete comparações <code>dia == 1</code>, <code>dia == 2</code>… O <code>switch</code> deixa claro, já na primeira linha, que tudo gira em torno de <strong>uma</strong> variável.</p>
+
+<hr>
+
+<h2>O fall-through: esqueci o <code>break</code></h2>
+<p>Aqui está a característica mais famosa (e mais perigosa) do <code>switch</code> clássico. Os <code>case</code> são só <strong>pontos de entrada</strong>: o Java entra no <code>case</code> certo e, a partir dali, executa <strong>tudo para baixo</strong>, atravessando os outros <code>case</code>, até encontrar um <code>break</code> ou o fim do <code>switch</code>. Isso se chama <strong>fall-through</strong> ("cair através"). Veja o mesmo programa sem os <code>break</code>:</p>
+
+<p><em>Este código tem um erro de propósito (de lógica: ele compila).</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dia = 3;
+        switch (dia) {
+            case 1:
+                System.out.println("Domingo");
+            case 2:
+                System.out.println("Segunda");
+            case 3:
+                System.out.println("Terça");
+            case 4:
+                System.out.println("Quarta");
+            case 5:
+                System.out.println("Quinta");
+            case 6:
+                System.out.println("Sexta");
+            case 7:
+                System.out.println("Sábado");
+            default:
+                System.out.println("Dia inválido");
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Terça           « entrou no case 3, como deveria…
+Quarta          « …e continuou descendo por todos os outros
+Quinta
+Sexta
+Sábado
+Dia inválido    « até o default!
+Fim</pre>
+
+<p>O <code>javac</code> não reclama de nada: o código é válido. Pense no elevador sem freio: você apertou o 3, ele chegou ao 3… e continuou descendo até o térreo. O <code>break</code> é o freio. Repare que os casos <strong>acima</strong> do 3 (Domingo, Segunda) não rodaram: o Java salta para o ponto de entrada e só desce a partir dali.</p>
+
+<div class="warning">
+<strong>Todo <code>case</code> termina com <code>break</code></strong>
+<p>No <code>switch</code> clássico, a regra é: cada caso termina com <code>break;</code>, a menos que você queira <strong>de propósito</strong> que ele continue no próximo (e, nesse caso, deixe um comentário dizendo isso). Esquecer o <code>break</code> é tão comum que o <code>javac</code> tem um aviso para isso: compile com <code>javac -Xlint:fallthrough</code>. O <a href="switch-expressoes.html">switch com setas</a> acabou com esse problema.</p>
+</div>
+
+<p>Com o programa acima (sem os <code>break</code>), o aviso fica assim:</p>
+
+<pre class="term">$ javac -Xlint:fallthrough Main.java
+Main.java:7: warning: [fallthrough] possible fall-through into case
+            case 2:
+            ^
+Main.java:9: warning: [fallthrough] possible fall-through into case
+            case 3:
+            ^
+Main.java:11: warning: [fallthrough] possible fall-through into case
+            case 4:
+            ^
+Main.java:13: warning: [fallthrough] possible fall-through into case
+            case 5:
+            ^
+Main.java:15: warning: [fallthrough] possible fall-through into case
+            case 6:
+            ^
+Main.java:17: warning: [fallthrough] possible fall-through into case
+            case 7:
+            ^
+Main.java:19: warning: [fallthrough] possible fall-through into case
+            default:
+            ^
+7 warnings</pre>
+
+<p><em>Possible fall-through into case</em> = "possível queda para dentro do case": um aviso para cada <code>case</code> em que se pode "cair" vindo do caso de cima. São avisos (<em>warnings</em>), não erros: o <code>.class</code> é gerado do mesmo jeito.</p>
+
+<div class="tryjava" data-goal="outre:Terça\nFim,src:break">
+<p class="try-task"><strong>Missão:</strong> rode e veja o fall-through mostrar três linhas em vez de uma. Coloque os <code>break</code> que faltam para que a saída seja só <code>Terça</code> e depois <code>Fim</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int dia = 3;
+        switch (dia) {
+            case 1:
+                System.out.println("Domingo");
+            case 2:
+                System.out.println("Segunda");
+            case 3:
+                System.out.println("Terça");
+            case 4:
+                System.out.println("Quarta");
+            default:
+                System.out.println("Outro dia");
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int dia = 3;
+        switch (dia) {
+            case 1:
+                System.out.println("Domingo");
+                break;
+            case 2:
+                System.out.println("Segunda");
+                break;
+            case 3:
+                System.out.println("Terça");
+                break;
+            case 4:
+                System.out.println("Quarta");
+                break;
+            default:
+                System.out.println("Outro dia");
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+</div>
+
+<h3>Fall-through de propósito</h3>
+<p>Às vezes o fall-through é exatamente o que você quer: cada nível ganha os bônus dele <strong>e</strong> os de todos os níveis abaixo. Repare na ordem dos casos, do maior para o menor:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int nivel = 2;
+        System.out.println("Bônus do nível " + nivel + ":");
+        switch (nivel) {
+            case 3:
+                System.out.println("+ escudo");
+            case 2:
+                System.out.println("+ espada");
+            case 1:
+                System.out.println("+ poção");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Bônus do nível 2:
++ espada        « entrou no 2…
++ poção         « …e caiu no 1, de propósito</pre>
+
+<p>Funciona, mas quem lê o código não sabe se a falta do <code>break</code> foi intencional. Se usar esse truque, deixe um comentário como <code>// continua no próximo caso</code>.</p>
+
+<hr>
+
+<h2>Vários <code>case</code> com o mesmo resultado</h2>
+<p>O uso mais comum e legítimo do fall-through é empilhar <code>case</code> <strong>vazios</strong>: todos caem no mesmo bloco. Desde o Java 14, há também uma forma mais curta: vários valores separados por vírgula num <code>case</code> só.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int mes = 4;
+        int dias;
+        switch (mes) {
+            case 2:
+                dias = 28;
+                break;
+            case 4:
+            case 6:
+            case 9:
+            case 11:
+                dias = 30;
+                break;
+            default:
+                dias = 31;
+        }
+        System.out.println("O mês " + mes + " tem " + dias + " dias");
+
+        int dia = 7;
+        switch (dia) {
+            case 1, 7:
+                System.out.println("Fim de semana");
+                break;
+            case 2, 3, 4, 5, 6:
+                System.out.println("Dia útil");
+                break;
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+O mês 4 tem 30 dias
+Fim de semana</pre>
+
+<dl class="anatomy">
+  <dt>case 4: case 6: case 9: case 11:</dt><dd>Quatro pontos de entrada seguidos, sem nada entre eles. Entrando por qualquer um, o Java desce até <code>dias = 30;</code> e para no <code>break</code>.</dd>
+  <dt>case 1, 7:</dt><dd><span class="versao">Java 14+</span> A mesma ideia numa linha: "caso seja 1 ou 7".</dd>
+  <dt>default: dias = 31;</dt><dd>Todos os outros meses. Graças ao <code>default</code>, o <code>javac</code> sabe que <code>dias</code> sempre recebe um valor. (Fevereiro com 28 dias é uma simplificação: anos bissextos são assunto de <a href="datas.html">Datas e Horas</a>.)</dd>
+</dl>
+
+<hr>
+
+<h2><code>switch</code> com <code>String</code></h2>
+<p>Desde o Java 7, o seletor pode ser uma String. Os <code>case</code> são comparados com <code>equals</code> (o conteúdo), então aqui não existe a pegadinha do <code>==</code>. A comparação diferencia maiúsculas de minúsculas:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String comando = "ajuda";
+        switch (comando) {
+            case "novo":
+                System.out.println("Criando um novo arquivo...");
+                break;
+            case "ajuda":
+                System.out.println("Comandos: novo, ajuda, sair");
+                break;
+            case "sair":
+                System.out.println("Até logo!");
+                break;
+            default:
+                System.out.println("Comando desconhecido: " + comando);
+        }
+        String outro = "AJUDA";
+        switch (outro) {
+            case "ajuda":
+                System.out.println("achou");
+                break;
+            default:
+                System.out.println("Comando desconhecido: " + outro);
+        }
+        switch (outro.toLowerCase()) {
+            case "ajuda":
+                System.out.println("achou depois do toLowerCase");
+                break;
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Comandos: novo, ajuda, sair
+Comando desconhecido: AJUDA      « "AJUDA" não é "ajuda"
+achou depois do toLowerCase      « padronizar antes resolve</pre>
+
+<p>Quando o texto vem de uma pessoa, padronize no próprio seletor: <code>switch (comando.strip().toLowerCase())</code> (veja <a href="metodos-string.html">Métodos de String</a>). E cuidado com <code>null</code>: um <code>switch</code> clássico com String <code>null</code> lança <code>NullPointerException</code> (veja "Quando dá errado").</p>
+
+<hr>
+
+<h2><code>switch</code> com <code>char</code></h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        char conceito = 'B';
+        switch (conceito) {
+            case 'A':
+                System.out.println("Excelente");
+                break;
+            case 'B':
+                System.out.println("Bom");
+                break;
+            case 'C':
+                System.out.println("Regular");
+                break;
+            default:
+                System.out.println("Insuficiente");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Bom</pre>
+
+<p>Com <code>char</code>, os valores dos <code>case</code> vão entre aspas <strong>simples</strong> (<code>'A'</code>), como todo <code>char</code> (veja <a href="char-boolean.html">char e boolean</a>).</p>
+
+<hr>
+
+<h2><code>switch</code> com <code>enum</code></h2>
+<p>Um <strong>enum</strong> (de <em>enumeração</em>) é um tipo com uma lista fechada de valores possíveis, como as cores de um semáforo. Ele tem aula própria em <a href="enums.html">Enums</a>; aqui, basta ver que ele combina perfeitamente com o <code>switch</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    enum Semaforo { VERDE, AMARELO, VERMELHO }
+
+    public static void main(String[] args) {
+        Semaforo sinal = Semaforo.AMARELO;
+        switch (sinal) {
+            case VERDE:
+                System.out.println("Pode seguir");
+                break;
+            case AMARELO:
+                System.out.println("Atenção, vai fechar");
+                break;
+            case VERMELHO:
+                System.out.println("Pare!");
+                break;
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Atenção, vai fechar</pre>
+
+<dl class="anatomy">
+  <dt>enum Semaforo { VERDE, AMARELO, VERMELHO }</dt><dd>Cria o tipo <code>Semaforo</code>, que só pode valer uma dessas três coisas.</dd>
+  <dt>Semaforo sinal = Semaforo.AMARELO;</dt><dd>Fora do <code>switch</code>, o valor é escrito com o nome do tipo na frente.</dd>
+  <dt>case AMARELO:</dt><dd>Dentro do <code>case</code>, só o nome (<code>AMARELO</code>), sem <code>Semaforo.</code> na frente: o Java já sabe de que tipo se trata.</dd>
+</dl>
+
+<p>Com enums, o <code>switch</code> moderno ainda verifica se você tratou <strong>todos</strong> os valores; veja <a href="switch-expressoes.html">switch com Setas</a>.</p>
+
+<hr>
+
+<h2><code>switch</code> ou <code>if/else if</code>?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Uma variável comparada com vários valores <strong>exatos</strong></td><td><code>switch</code></td></tr>
+<tr><td><strong>Faixas</strong> de valores (<code>nota &gt;= 7</code>, <code>idade &lt; 18</code>)</td><td><code>if/else if</code> (o <code>case</code> clássico não aceita comparações)</td></tr>
+<tr><td>Condições sobre variáveis diferentes</td><td><code>if/else if</code></td></tr>
+<tr><td>Valores <code>double</code>, <code>long</code> ou <code>boolean</code></td><td><code>if/else if</code></td></tr>
+<tr><td>Escolher um <strong>valor</strong> conforme o caso</td><td><a href="switch-expressoes.html">switch com setas</a> (como expressão)</td></tr>
+<tr><td>Testar o <strong>tipo</strong> de um objeto</td><td><a href="pattern-matching.html">Pattern Matching</a> no switch</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Apareceram várias mensagens em vez de uma</strong>
+<p><strong>O que aconteceu:</strong> fall-through: faltou o <code>break</code> no fim de um ou mais <code>case</code>. O Java entrou no caso certo e continuou descendo.</p>
+<p><strong>Como resolver:</strong> coloque <code>break;</code> no fim de cada caso. Para o <code>javac</code> avisar, compile com <code>-Xlint:fallthrough</code>. Ou passe para o <a href="switch-expressoes.html">switch com setas</a>, que não tem fall-through.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: duplicate case label</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int opcao = 1;
+        switch (opcao) {
+            case 1:
+                System.out.println("Um");
+                break;
+            case 1:
+                System.out.println("Um de novo");
+                break;
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:8: error: duplicate case label
+            case 1:
+            ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "rótulo de case duplicado": dois <code>case</code> com o mesmo valor. O Java não saberia para qual saltar. Costuma acontecer ao copiar e colar um caso e esquecer de trocar o valor.</p>
+<p><strong>Como resolver:</strong> troque o valor ou junte os dois blocos num só.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: constant expression required</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int limite = 10;
+        int valor = 10;
+        switch (valor) {
+            case limite:
+                System.out.println("No limite");
+                break;
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:6: error: constant expression required
+            case limite:
+                 ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "exige-se uma expressão constante". Os valores dos <code>case</code> precisam ser conhecidos na hora de compilar, e uma variável comum pode mudar.</p>
+<p><strong>Como resolver:</strong> use um literal (<code>case 10:</code>) ou uma constante: <code>final int LIMITE = 10;</code> (veja <a href="constantes.html">Constantes</a>). Se o valor realmente varia, use <code>if</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: incompatible types: boolean cannot be converted to int</code> (comparação no <code>case</code>)</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        switch (idade) {
+            case idade &gt;= 18:
+                System.out.println("Adulto");
+                break;
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:5: error: incompatible types: boolean cannot be converted to int
+            case idade &gt;= 18:
+                       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o <code>case</code> compara o seletor (um <code>int</code>) com um <strong>valor</strong>; <code>idade &gt;= 18</code> é um <code>boolean</code>.</p>
+<p><strong>Como resolver:</strong> faixas de valores pedem <code>if/else if</code>. (No Java 21+, o <code>switch</code> com padrões aceita condições com <code>when</code>; veja <a href="pattern-matching.html">Pattern Matching</a>.)</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: primitive patterns are a preview feature</code> (<code>switch</code> com <code>double</code> ou <code>boolean</code>)</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 7.0;
+        switch (nota) {
+            case 7.0:
+                System.out.println("Sete");
+                break;
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: primitive patterns are a preview feature and are disabled by default.
+        switch (nota) {
+               ^
+  (use --enable-preview to enable primitive patterns)
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o <code>switch</code> aceita <code>int</code>, <code>char</code>, <code>short</code>, <code>byte</code>, <code>String</code> e <code>enum</code> (e objetos, com padrões). <code>double</code>, <code>float</code>, <code>long</code> e <code>boolean</code> ficam de fora. A mensagem do JDK 25 conta uma novidade: um recurso em teste (<em>preview feature</em>, "recurso em pré-estreia") permitirá esses tipos no futuro, mas ele vem desligado e não deve ser usado em código normal.</p>
+<p><strong>Como resolver:</strong> use <code>if/else if</code>. Comparar <code>double</code> com <code>==</code> já é arriscado (veja <a href="decimais.html">double e float</a>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException</code> num <code>switch</code> com String</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String comando = null;
+        switch (comando) {
+            case "sair":
+                System.out.println("Até logo!");
+                break;
+            default:
+                System.out.println("Outro comando");
+        }
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.hashCode()" because "&lt;local2&gt;" is null
+	at Main.main(Main.java:4)</pre>
+<p><strong>O que aconteceu:</strong> o <code>switch</code> clássico não aceita <code>null</code>, nem mesmo no <code>default</code>. A mensagem fala de <code>hashCode()</code> porque, por dentro, o <code>switch</code> com String calcula um "código" do texto para saltar mais rápido, e não dá para calcular o código de <code>null</code>. O <code>&lt;local2&gt;</code> é uma variável auxiliar que o <code>javac</code> criou para isso.</p>
+<p><strong>Como resolver:</strong> teste antes: <code>if (comando != null) { switch … }</code>. No Java 21+, o <code>switch</code> pode ter um <code>case null</code> (veja <a href="pattern-matching.html">Pattern Matching</a>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: variable msg is already defined in method main(String[])</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int opcao = 2;
+        switch (opcao) {
+            case 1:
+                String msg = "um";
+                System.out.println(msg);
+                break;
+            case 2:
+                String msg = "dois";
+                System.out.println(msg);
+                break;
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:10: error: variable msg is already defined in method main(String[])
+                String msg = "dois";
+                       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> no <code>switch</code> clássico, todos os <code>case</code> dividem <strong>um único bloco</strong> (as chaves do <code>switch</code>). Para o Java, as duas <code>msg</code> estão no mesmo lugar: "a variável msg já foi definida".</p>
+<p><strong>Como resolver:</strong> declare a variável uma vez, antes do <code>switch</code>, ou coloque cada caso entre chaves próprias: <code>case 1: { String msg = "um"; … break; }</code>. No <code>switch</code> com setas, cada caso já tem o seu bloco.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que faz</th></tr>
+<tr><td><code>switch (x) { … }</code></td><td>Examina o valor de <code>x</code> (<code>int</code>, <code>char</code>, <code>short</code>, <code>byte</code>, <code>String</code>, <code>enum</code>)</td></tr>
+<tr><td><code>case valor:</code></td><td>Ponto de entrada quando <code>x</code> é igual a <code>valor</code> (constante)</td></tr>
+<tr><td><code>case a, b, c:</code></td><td>Vários valores no mesmo caso (Java 14+)</td></tr>
+<tr><td><code>case a: case b:</code></td><td>Casos empilhados (fall-through intencional)</td></tr>
+<tr><td><code>break;</code></td><td>Sai do <code>switch</code></td></tr>
+<tr><td><code>default:</code></td><td>Quando nenhum <code>case</code> bate (opcional)</td></tr>
+<tr><td>Sem <code>break</code></td><td>Continua executando os casos de baixo (fall-through)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Preço: R$ 2,src:switch,src:case">
+<p class="try-task"><strong>Missão final:</strong> na feira da Ana, <code>maçã</code> custa R$ 3; <code>banana</code> e <code>pera</code> custam R$ 2 (use dois <code>case</code> juntos); qualquer outra fruta mostra <code>Fruta em falta</code>. Escreva o <code>switch</code>. Com <code>fruta = "banana"</code>, a saída deve ser <code>Preço: R$ 2</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String fruta = "banana";
+        // escreva o switch
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String fruta = "banana";
+        switch (fruta) {
+            case "maçã":
+                System.out.println("Preço: R$ 3");
+                break;
+            case "banana":
+            case "pera":
+                System.out.println("Preço: R$ 2");
+                break;
+            default:
+                System.out.println("Fruta em falta");
+        }
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. Sair do switch</h3>
+<p>Qual palavra encerra um <code>case</code> e sai do <code>switch</code>?</p>
+<div class="ex-code"><input data-answer="break|break;" aria-label="palavra"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O caso que sobra</h3>
+<p>Qual palavra marca o bloco que roda quando nenhum <code>case</code> bate?</p>
+<div class="ex-code"><input data-answer="default|default:" aria-label="palavra"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>int x = 2;</code>, o que este código mostra?</p>
+<pre class="file">switch (x) {
+    case 1: System.out.println("um");
+    case 2: System.out.println("dois");
+    case 3: System.out.println("três");
+}</pre>
+<label><input type="radio" name="q3"> <code>dois</code></label>
+<label><input type="radio" name="q3"> <code>um</code>, <code>dois</code> e <code>três</code></label>
+<label><input type="radio" name="q3"> <code>dois</code> e <code>três</code></label>
+<label><input type="radio" name="q3"> Nada</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destes <strong>não</strong> pode ser o seletor de um <code>switch</code> clássico?</p>
+<label><input type="radio" name="q4"> <code>String</code></label>
+<label><input type="radio" name="q4"> <code>double</code></label>
+<label><input type="radio" name="q4"> <code>char</code></label>
+<label><input type="radio" name="q4"> <code>int</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para classificar uma nota em faixas (≥ 9, ≥ 7, ≥ 5), o melhor é…</p>
+<label><input type="radio" name="q5"> <code>if/else if</code></label>
+<label><input type="radio" name="q5"> <code>switch</code> com <code>case nota &gt;= 9:</code></label>
+<label><input type="radio" name="q5"> <code>switch</code> com um <code>case</code> para cada nota possível</label>
+<label><input type="radio" name="q5"> Tanto faz</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>switch (x)</code> salta direto para o <code>case</code> com o valor de <code>x</code>; <code>default</code> pega o resto.</li>
+  <li>Os <code>case</code> são pontos de entrada: sem <code>break</code>, a execução continua nos casos de baixo (<strong>fall-through</strong>). Termine cada caso com <code>break;</code>.</li>
+  <li>Casos empilhados (<code>case 4: case 6:</code>) ou com vírgula (<code>case 4, 6:</code>, Java 14+) compartilham o mesmo bloco.</li>
+  <li>Funciona com <code>int</code>, <code>char</code>, <code>short</code>, <code>byte</code>, <code>String</code> (comparada com <code>equals</code>) e <code>enum</code>; não com <code>double</code>, <code>long</code>, <code>boolean</code>.</li>
+  <li>Os valores dos <code>case</code> são constantes; faixas e condições pedem <code>if</code>.</li>
+  <li>String <code>null</code> no seletor dá <code>NullPointerException</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
