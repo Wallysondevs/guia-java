@@ -1,0 +1,1601 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Projeto Agenda de Contatos — record, ArrayList e arquivos | Guia Java</title>
+<meta name="description" content="Projeto passo a passo: uma agenda de contatos em Java com record Contato, ArrayList, menu com switch, busca, remoção e gravação em arquivo com Files. Erros reais (ConcurrentModificationException, IOException, ArrayIndexOutOfBounds) e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Agenda de Contatos</span></h1>
+
+<p class="intro">Uma agenda que cadastra, lista, busca e remove contatos e, o mais importante, <strong>lembra</strong> deles: tudo fica gravado num arquivo de texto e volta na próxima vez que o programa abrir. É o primeiro projeto do guia que guarda dados de verdade, e por isso o primeiro em que você vai cuidar de arquivos que podem estar faltando ou estragados.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Representar um contato com um <a href="records.html">record</a>.</li>
+  <li>Guardar vários contatos numa lista (<a href="arraylist.html">ArrayList</a>).</li>
+  <li>Montar um menu com <a href="switch-expressoes.html">switch com setas</a> e ler linhas inteiras com <code>nextLine</code>.</li>
+  <li>Buscar com <a href="metodos-string.html">métodos de String</a> (<code>toLowerCase</code>, <code>contains</code>) e remover com segurança.</li>
+  <li>Salvar e carregar com <code>Files</code> e <code>Path</code> (<a href="arquivos.html">Ler e Escrever Arquivos</a>), tratando <code>IOException</code> com <a href="try-catch.html">try e catch</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>A agenda pronta. Ela já tinha quatro contatos salvos de outras vezes; a Ana lista, busca, remove um, adiciona outro e sai. Depois, o <code>cat</code> mostra o arquivo que a agenda gravou:</p>
+
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+=== Agenda da Ana === 4 contato(s) carregado(s)
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 1
+1. Bruno Lima | (11) 91234-5678 | bruno@exemplo.com
+2. Carla Dias | (21) 99876-5432 | carla@exemplo.com
+3. Diego Rocha | (31) 98888-1111 | diego@exemplo.com
+4. Elisa Prado | (41) 95555-3333 |
+4 contato(s).
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 3
+Buscar por: car
+- Carla Dias | (21) 99876-5432 | carla@exemplo.com
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 4
+Nome para remover: Diego Rocha
+Removido: Diego Rocha
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 2
+Nome: Fábio Nunes
+Telefone: (51) 94444-7777
+E-mail: fabio@exemplo.com
+Adicionado: Fábio Nunes
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 1
+1. Bruno Lima | (11) 91234-5678 | bruno@exemplo.com
+2. Carla Dias | (21) 99876-5432 | carla@exemplo.com
+3. Elisa Prado | (41) 95555-3333 |
+4. Fábio Nunes | (51) 94444-7777 | fabio@exemplo.com
+4 contato(s).
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 0
+Até logo!
+$ cat contatos.txt
+Bruno Lima;(11) 91234-5678;bruno@exemplo.com
+Carla Dias;(21) 99876-5432;carla@exemplo.com
+Elisa Prado;(41) 95555-3333;
+Fábio Nunes;(51) 94444-7777;fabio@exemplo.com</pre>
+
+<ol class="passo">
+  <li><a href="#etapa1">O contato</a> (<code>record</code>).</li>
+  <li><a href="#etapa2">A lista de contatos</a> (<code>ArrayList</code>, listar).</li>
+  <li><a href="#etapa3">O menu e o cadastro</a> (<code>Scanner.nextLine</code>, <code>switch</code>).</li>
+  <li><a href="#etapa4">Buscar e remover</a> (<code>contains</code>, <code>remove</code>).</li>
+  <li><a href="#etapa5">Salvar no arquivo</a> (<code>Files.write</code>, <code>IOException</code>).</li>
+  <li><a href="#etapa6">Carregar ao abrir</a> (<code>Files.readAllLines</code>, <code>split</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Você vai usar o que viu nos projetos anteriores (menu com laço, métodos) e precisa conhecer <a href="records.html">Records</a> e o básico de <a href="arraylist.html">ArrayList</a>. No seu computador:</p>
+
+<pre class="term">$ mkdir -p java/agenda
+$ cd java/agenda</pre>
+
+<hr>
+
+<h2 id="etapa1">Etapa 1 · O contato</h2>
+<p>Um contato tem nome, telefone e e-mail: três textos que andam sempre juntos. Em vez de três variáveis soltas, criamos um tipo novo, <code>Contato</code>, com um <strong>record</strong> ("registro"): uma classe feita só para <strong>carregar dados</strong>, escrita numa linha.</p>
+
+<pre class="file" data-file="Agenda.java">public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        Contato bruno = new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com");
+        Contato carla = new Contato("Carla Dias", "(21) 99876-5432", "carla@exemplo.com");
+
+        System.out.println(bruno);
+        System.out.println(carla.nome() + " - " + carla.telefone());
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>record Contato(…)</dt><dd>Declara o tipo <code>Contato</code>. Ele fica dentro da classe <code>Agenda</code> (um record "aninhado"), como o enum do <a href="projeto-adivinhacao.html">jogo</a>.</dd>
+  <dt>String nome, String telefone, String email</dt><dd>Os <strong>componentes</strong>: os dados que todo contato carrega.</dd>
+  <dt>{ }</dt><dd>O corpo, vazio por enquanto. Na etapa 5 vamos colocar um método aqui.</dd>
+</dl>
+
+<p>Só com essa linha, o Java cria sozinho tudo isto:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O record ganha</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td>Um construtor com os três componentes</td><td><code>new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com")</code></td><td>Um contato novo</td></tr>
+<tr><td>Um método para ler cada componente</td><td><code>carla.nome()</code></td><td><code>"Carla Dias"</code></td></tr>
+<tr><td>Um <code>toString</code> legível</td><td><code>System.out.println(bruno)</code></td><td><code>Contato[nome=…, telefone=…, email=…]</code></td></tr>
+<tr><td><code>equals</code> e <code>hashCode</code></td><td><code>a.equals(b)</code></td><td><code>true</code> se os três componentes forem iguais</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+Contato[nome=Bruno Lima, telefone=(11) 91234-5678, email=bruno@exemplo.com]
+Carla Dias - (21) 99876-5432</pre>
+
+<p>Repare: para ler o nome, é <code>carla.nome()</code>, <strong>com parênteses</strong>. Não é <code>getNome()</code> como nas classes comuns (<a href="encapsulamento.html">get e set</a>), e não é <code>carla.nome</code> sem parênteses.</p>
+
+<div class="cenario">
+<strong>Quando dá errado: tentar mudar um contato</strong>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Agenda.java">        Contato bruno = new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com");
+        bruno.telefone = "(11) 90000-0000";
+</pre>
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+Agenda.java:8: error: cannot assign a value to final variable telefone
+        bruno.telefone = "(11) 90000-0000";
+             ^
+1 error
+error: compilation failed</pre>
+<p>"Não dá para atribuir um valor à variável final <code>telefone</code>." Os componentes de um record são <code>final</code>: um contato, depois de criado, não muda (ele é <strong>imutável</strong>). Para "trocar o telefone", crie um contato novo com o telefone novo e coloque-o no lugar do antigo. A última linha, <code>error: compilation failed</code>, é do lançador <code>java</code>: no modo arquivo-fonte, ele compila antes de rodar e avisa que a compilação falhou.</p>
+</div>
+
+<div class="tryjava" data-file="Agenda.java" data-goal="out:Carla Dias - (21) 99876-5432,src:new Contato\(\s*&quot;Carla">
+<p class="try-task"><strong>Missão (etapa 1):</strong> crie o contato <code>carla</code> (Carla Dias, (21) 99876-5432, carla@exemplo.com) e mostre <code>Carla Dias - (21) 99876-5432</code> usando <code>carla.nome()</code> e <code>carla.telefone()</code>.</p>
+<pre class="script">public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        Contato bruno = new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com");
+
+        System.out.println(bruno);
+        // crie a Carla e mostre o nome e o telefone dela
+    }
+}
+</pre>
+<pre class="solucao">public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        Contato bruno = new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com");
+        Contato carla = new Contato("Carla Dias", "(21) 99876-5432", "carla@exemplo.com");
+
+        System.out.println(bruno);
+        System.out.println(carla.nome() + " - " + carla.telefone());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa2">Etapa 2 · A lista de contatos</h2>
+<p>Uma agenda tem muitos contatos, e não sabemos quantos. Um array tem tamanho fixo; uma <strong>lista</strong> (<code>ArrayList</code>) cresce sozinha a cada <code>add</code>. Criamos também o método <code>listar</code>, que mostra os contatos numerados.</p>
+
+<pre class="file" data-file="Agenda.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        contatos.add(new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com"));
+        contatos.add(new Contato("Carla Dias", "(21) 99876-5432", "carla@exemplo.com"));
+        contatos.add(new Contato("Diego Rocha", "(31) 98888-1111", "diego@exemplo.com"));
+
+        listar(contatos);
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>List&lt;Contato&gt; contatos</code></td><td>Uma lista que só aceita <code>Contato</code>. O <code>&lt;Contato&gt;</code> é o "tipo dos itens" (<a href="generics.html">generics</a>). Declaramos como <code>List</code> (a interface) e criamos um <code>ArrayList</code> (a implementação).</td></tr>
+<tr><td><code>new ArrayList&lt;&gt;()</code></td><td>Lista vazia. O <code>&lt;&gt;</code> vazio ("diamante") repete o tipo da esquerda.</td></tr>
+<tr><td><code>contatos.add(…)</code></td><td>Põe um contato no fim da lista.</td></tr>
+<tr><td><code>contatos.isEmpty()</code></td><td><code>true</code> se a lista não tem nada.</td></tr>
+<tr><td><code>contatos.size()</code> e <code>contatos.get(i)</code></td><td>Quantos itens há, e o item da posição <code>i</code> (começando em 0). Por isso mostramos <code>i + 1</code>.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+1. Bruno Lima | (11) 91234-5678 | bruno@exemplo.com
+2. Carla Dias | (21) 99876-5432 | carla@exemplo.com
+3. Diego Rocha | (31) 98888-1111 | diego@exemplo.com
+3 contato(s).</pre>
+
+<div class="tryjava" data-file="Agenda.java" data-goal="out:3. Diego Rocha | (31) 98888-1111 | diego@exemplo.com,out:3 contato(s).">
+<p class="try-task"><strong>Missão (etapa 2):</strong> escreva o corpo do método <code>listar</code>: um <code>for</code> que mostra cada contato no formato <code>1. Nome | telefone | email</code> e, no fim, <code>3 contato(s).</code> Se a lista estiver vazia, mostre <code>Nenhum contato.</code></p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        contatos.add(new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com"));
+        contatos.add(new Contato("Carla Dias", "(21) 99876-5432", "carla@exemplo.com"));
+        contatos.add(new Contato("Diego Rocha", "(31) 98888-1111", "diego@exemplo.com"));
+
+        listar(contatos);
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        // mostre cada contato numerado e, no fim, o total
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        contatos.add(new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com"));
+        contatos.add(new Contato("Carla Dias", "(21) 99876-5432", "carla@exemplo.com"));
+        contatos.add(new Contato("Diego Rocha", "(31) 98888-1111", "diego@exemplo.com"));
+
+        listar(contatos);
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa3">Etapa 3 · O menu e o cadastro</h2>
+<p>Agora a lista começa vazia e quem cadastra é a pessoa, por um menu. O formato é o mesmo da calculadora (<code>while (true)</code> + <code>switch</code>), com uma diferença importante: aqui lemos <strong>linhas inteiras</strong> com <code>nextLine()</code>, porque nomes têm espaço.</p>
+
+<pre class="file" data-file="Agenda.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        System.out.println("=== Agenda da Ana ===");
+
+        while (true) {
+            System.out.println();
+            System.out.println("1) Listar  2) Adicionar  0) Sair");
+            System.out.print("Opção: ");
+            String opcao = entrada.nextLine().trim();
+            switch (opcao) {
+                case "1" -&gt; listar(contatos);
+                case "2" -&gt; adicionar(entrada, contatos);
+                case "0" -&gt; {
+                    System.out.println("Até logo!");
+                    return;
+                }
+                default -&gt; System.out.println("Opção inválida: " + opcao);
+            }
+        }
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+
+    static void adicionar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome: ");
+        String nome = entrada.nextLine().trim();
+        if (nome.isEmpty()) {
+            System.out.println("O nome não pode ficar vazio.");
+            return;
+        }
+        System.out.print("Telefone: ");
+        String telefone = entrada.nextLine().trim();
+        System.out.print("E-mail: ");
+        String email = entrada.nextLine().trim();
+        contatos.add(new Contato(nome, telefone, email));
+        System.out.println("Adicionado: " + nome);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>entrada.nextLine()</dt><dd>Lê tudo até o <kbd>Enter</kbd>, com espaços: <code>Bruno Lima</code> inteiro. O <code>next()</code> leria só <code>Bruno</code>.</dd>
+  <dt>.trim()</dt><dd>Corta espaços do começo e do fim (quem nunca digitou um espaço a mais?).</dd>
+  <dt>switch (opcao) { case "1" -&gt; …; }</dt><dd>Aqui o switch é uma <strong>instrução</strong> (não devolve valor): cada seta só chama um método. A opção é lida como texto, então "abc" cai no <code>default</code> sem exceção nenhuma.</dd>
+  <dt>case "0" -&gt; { …; return; }</dt><dd>Duas instruções, então vão entre chaves. O <code>return</code> sai do <code>main</code> e encerra o programa.</dd>
+  <dt>if (nome.isEmpty())</dt><dd>Recusa nome vazio: quem aperta <kbd>Enter</kbd> sem digitar não cria um contato "fantasma".</dd>
+</dl>
+
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+=== Agenda da Ana ===
+
+1) Listar  2) Adicionar  0) Sair
+Opção: 1
+Nenhum contato.
+
+1) Listar  2) Adicionar  0) Sair
+Opção: 2
+Nome: Bruno Lima
+Telefone: (11) 91234-5678
+E-mail: bruno@exemplo.com
+Adicionado: Bruno Lima
+
+1) Listar  2) Adicionar  0) Sair
+Opção: 2
+Nome:                                  « a Ana só apertou Enter
+O nome não pode ficar vazio.
+
+1) Listar  2) Adicionar  0) Sair
+Opção: 7
+Opção inválida: 7
+
+1) Listar  2) Adicionar  0) Sair
+Opção: 1
+1. Bruno Lima | (11) 91234-5678 | bruno@exemplo.com
+1 contato(s).
+
+1) Listar  2) Adicionar  0) Sair
+Opção: 0
+Até logo!</pre>
+
+<div class="warning">
+<strong>Por que não usar <code>nextInt()</code> para a opção?</strong>
+<p>Misturar <code>nextInt()</code> com <code>nextLine()</code> é a armadilha mais famosa do <code>Scanner</code>: o <code>nextInt()</code> lê o número, mas deixa o <kbd>Enter</kbd> na entrada, e o <code>nextLine()</code> seguinte lê essa "linha vazia" na hora, pulando a pergunta do nome. Lendo <strong>tudo</strong> com <code>nextLine()</code>, o problema não existe. Veja a explicação completa em <a href="scanner.html">Ler do Teclado (Scanner)</a>.</p>
+</div>
+
+<div class="tryjava" data-file="Agenda.java" data-stdin="2\nBruno Lima\n(11) 91234-5678\nbruno@exemplo.com\n1\n0\n" data-goal="out:Adicionado: Bruno Lima,out:1. Bruno Lima | (11) 91234-5678 | bruno@exemplo.com">
+<p class="try-task"><strong>Missão (etapa 3):</strong> o menu já mostra a opção 2, mas ela ainda não faz nada. Acrescente o <code>case "2"</code> e escreva o método <code>adicionar</code>: pergunte <code>Nome: </code>, <code>Telefone: </code> e <code>E-mail: </code> com <code>nextLine()</code>, recuse nome vazio, adicione na lista e mostre <code>Adicionado: Bruno Lima</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        System.out.println("=== Agenda da Ana ===");
+
+        while (true) {
+            System.out.println();
+            System.out.println("1) Listar  2) Adicionar  0) Sair");
+            System.out.print("Opção: ");
+            String opcao = entrada.nextLine().trim();
+            switch (opcao) {
+                case "1" -&gt; listar(contatos);
+                case "0" -&gt; {
+                    System.out.println("Até logo!");
+                    return;
+                }
+                default -&gt; System.out.println("Opção inválida: " + opcao);
+            }
+        }
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+
+    static void adicionar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        // pergunte nome, telefone e e-mail com nextLine(),
+        // recuse nome vazio e adicione o contato na lista
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        System.out.println("=== Agenda da Ana ===");
+
+        while (true) {
+            System.out.println();
+            System.out.println("1) Listar  2) Adicionar  0) Sair");
+            System.out.print("Opção: ");
+            String opcao = entrada.nextLine().trim();
+            switch (opcao) {
+                case "1" -&gt; listar(contatos);
+                case "2" -&gt; adicionar(entrada, contatos);
+                case "0" -&gt; {
+                    System.out.println("Até logo!");
+                    return;
+                }
+                default -&gt; System.out.println("Opção inválida: " + opcao);
+            }
+        }
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+
+    static void adicionar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome: ");
+        String nome = entrada.nextLine().trim();
+        if (nome.isEmpty()) {
+            System.out.println("O nome não pode ficar vazio.");
+            return;
+        }
+        System.out.print("Telefone: ");
+        String telefone = entrada.nextLine().trim();
+        System.out.print("E-mail: ");
+        String email = entrada.nextLine().trim();
+        contatos.add(new Contato(nome, telefone, email));
+        System.out.println("Adicionado: " + nome);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa4">Etapa 4 · Buscar e remover</h2>
+<p>Duas opções novas no menu: <code>3) Buscar</code> e <code>4) Remover</code>. A busca encontra contatos por <strong>parte</strong> do nome, sem ligar para maiúsculas; a remoção apaga pelo nome completo.</p>
+
+<pre class="file" data-file="Agenda.java">    static void buscar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Buscar por: ");
+        String termo = entrada.nextLine().trim().toLowerCase();
+        int achados = 0;
+        for (Contato c : contatos) {
+            if (c.nome().toLowerCase().contains(termo)) {
+                System.out.println("- " + c.nome() + " | " + c.telefone() + " | " + c.email());
+                achados++;
+            }
+        }
+        if (achados == 0) {
+            System.out.println("Nenhum contato com \"" + termo + "\".");
+        }
+    }
+
+    static void remover(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome para remover: ");
+        String nome = entrada.nextLine().trim();
+        for (Contato c : contatos) {
+            if (c.nome().equalsIgnoreCase(nome)) {
+                contatos.remove(c);
+                System.out.println("Removido: " + c.nome());
+                return;
+            }
+        }
+        System.out.println("Não encontrei \"" + nome + "\".");
+    }
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>termo.toLowerCase()</code> e <code>c.nome().toLowerCase()</code></td><td>Passa os dois lados para minúsculas, para que "carl" ache "Carla". Comparar só um lado não funcionaria.</td></tr>
+<tr><td><code>.contains(termo)</code></td><td><code>true</code> se o termo aparece em qualquer lugar do nome.</td></tr>
+<tr><td><code>for (Contato c : contatos)</code></td><td>O <a href="for-each.html">for-each</a>: "para cada contato c da lista". Não precisa de índice.</td></tr>
+<tr><td><code>equalsIgnoreCase(nome)</code></td><td>Igualdade exata, ignorando maiúsculas: "bruno lima" remove "Bruno Lima".</td></tr>
+<tr><td><code>contatos.remove(c)</code> seguido de <code>return</code></td><td>Tira o contato da lista e <strong>sai do método na hora</strong>. O <code>return</code> é obrigatório aqui; veja o cenário abaixo.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+=== Agenda da Ana ===
+…                                       « a Ana cadastrou Bruno, Carla e Carlos
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 3
+Buscar por: carl
+- Carla Dias | (21) 99876-5432 | carla@exemplo.com
+- Carlos Mendes | (11) 97777-2222 | carlos@exemplo.com
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 3
+Buscar por: zé
+Nenhum contato com "zé".
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 4
+Nome para remover: bruno lima
+Removido: Bruno Lima
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 4
+Nome para remover: Bruno Lima
+Não encontrei "Bruno Lima".               « já tinha sido removido
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 1
+1. Carla Dias | (21) 99876-5432 | carla@exemplo.com
+2. Carlos Mendes | (11) 97777-2222 | carlos@exemplo.com
+2 contato(s).</pre>
+
+<div class="cenario">
+<strong>Quando dá errado: remover dentro do for-each e continuar</strong>
+<p>A Ana quis remover <strong>todos</strong> os contatos que começam com "Carl" e tirou o <code>return</code>:</p>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Agenda.java">        for (Contato c : contatos) {
+            if (c.nome().startsWith("Carl")) {
+                contatos.remove(c);
+            }
+        }
+</pre>
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+Exception in thread "main" java.util.ConcurrentModificationException
+	at java.base/java.util.ArrayList$Itr.checkForComodification(ArrayList.java:1096)
+	at java.base/java.util.ArrayList$Itr.next(ArrayList.java:1050)
+	at Agenda.main(Agenda.java:15)</pre>
+<p>"Modificação concorrente": a lista mudou enquanto o for-each andava por ela, e o Java parou tudo para não pular ou repetir itens. Com o <code>return</code> logo depois do <code>remove</code>, o laço nunca dá o próximo passo, e por isso a etapa 4 funciona. Para remover vários de uma vez, use <code>contatos.removeIf(c -&gt; c.nome().startsWith("Carl"))</code> (com uma <a href="lambdas.html">lambda</a>) ou um <a href="iterator.html">Iterator</a>.</p>
+</div>
+
+<div class="tryjava" data-file="Agenda.java" data-stdin="2\nCarla Dias\n(21) 99876-5432\ncarla@exemplo.com\n2\nCarlos Mendes\n(11) 97777-2222\ncarlos@exemplo.com\n3\ncarl\n3\nzé\n0\n" data-goal="out:- Carla Dias | (21) 99876-5432 | carla@exemplo.com,out:- Carlos Mendes | (11) 97777-2222 | carlos@exemplo.com,out:Nenhum contato com &quot;zé&quot;.">
+<p class="try-task"><strong>Missão (etapa 4):</strong> complete o método <code>buscar</code>. A entrada da missão cadastra Carla e Carlos e busca <code>carl</code> (deve achar os dois) e <code>zé</code> (deve mostrar <code>Nenhum contato com "zé".</code>).</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        System.out.println("=== Agenda da Ana ===");
+
+        while (true) {
+            System.out.println();
+            System.out.println("1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair");
+            System.out.print("Opção: ");
+            String opcao = entrada.nextLine().trim();
+            switch (opcao) {
+                case "1" -&gt; listar(contatos);
+                case "2" -&gt; adicionar(entrada, contatos);
+                case "3" -&gt; buscar(entrada, contatos);
+                case "4" -&gt; remover(entrada, contatos);
+                case "0" -&gt; {
+                    System.out.println("Até logo!");
+                    return;
+                }
+                default -&gt; System.out.println("Opção inválida: " + opcao);
+            }
+        }
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+
+    static void adicionar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome: ");
+        String nome = entrada.nextLine().trim();
+        if (nome.isEmpty()) {
+            System.out.println("O nome não pode ficar vazio.");
+            return;
+        }
+        System.out.print("Telefone: ");
+        String telefone = entrada.nextLine().trim();
+        System.out.print("E-mail: ");
+        String email = entrada.nextLine().trim();
+        contatos.add(new Contato(nome, telefone, email));
+        System.out.println("Adicionado: " + nome);
+    }
+
+    static void buscar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Buscar por: ");
+        String termo = entrada.nextLine().trim().toLowerCase();
+        // mostre os contatos cujo nome contém o termo (sem diferenciar maiúsculas)
+        // e avise se nenhum foi encontrado
+    }
+
+    static void remover(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome para remover: ");
+        String nome = entrada.nextLine().trim();
+        for (Contato c : contatos) {
+            if (c.nome().equalsIgnoreCase(nome)) {
+                contatos.remove(c);
+                System.out.println("Removido: " + c.nome());
+                return;
+            }
+        }
+        System.out.println("Não encontrei \"" + nome + "\".");
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        System.out.println("=== Agenda da Ana ===");
+
+        while (true) {
+            System.out.println();
+            System.out.println("1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair");
+            System.out.print("Opção: ");
+            String opcao = entrada.nextLine().trim();
+            switch (opcao) {
+                case "1" -&gt; listar(contatos);
+                case "2" -&gt; adicionar(entrada, contatos);
+                case "3" -&gt; buscar(entrada, contatos);
+                case "4" -&gt; remover(entrada, contatos);
+                case "0" -&gt; {
+                    System.out.println("Até logo!");
+                    return;
+                }
+                default -&gt; System.out.println("Opção inválida: " + opcao);
+            }
+        }
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+
+    static void adicionar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome: ");
+        String nome = entrada.nextLine().trim();
+        if (nome.isEmpty()) {
+            System.out.println("O nome não pode ficar vazio.");
+            return;
+        }
+        System.out.print("Telefone: ");
+        String telefone = entrada.nextLine().trim();
+        System.out.print("E-mail: ");
+        String email = entrada.nextLine().trim();
+        contatos.add(new Contato(nome, telefone, email));
+        System.out.println("Adicionado: " + nome);
+    }
+
+    static void buscar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Buscar por: ");
+        String termo = entrada.nextLine().trim().toLowerCase();
+        int achados = 0;
+        for (Contato c : contatos) {
+            if (c.nome().toLowerCase().contains(termo)) {
+                System.out.println("- " + c.nome() + " | " + c.telefone() + " | " + c.email());
+                achados++;
+            }
+        }
+        if (achados == 0) {
+            System.out.println("Nenhum contato com \"" + termo + "\".");
+        }
+    }
+
+    static void remover(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome para remover: ");
+        String nome = entrada.nextLine().trim();
+        for (Contato c : contatos) {
+            if (c.nome().equalsIgnoreCase(nome)) {
+                contatos.remove(c);
+                System.out.println("Removido: " + c.nome());
+                return;
+            }
+        }
+        System.out.println("Não encontrei \"" + nome + "\".");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa5">Etapa 5 · Salvar no arquivo</h2>
+<p>Até aqui, fechar o programa apaga tudo: a lista mora na memória. Para guardar, vamos gravar cada contato como <strong>uma linha</strong> de um arquivo de texto, com os campos separados por <code>;</code>:</p>
+
+<pre class="file" data-file="contatos.txt">Bruno Lima;(11) 91234-5678;bruno@exemplo.com
+Carla Dias;(21) 99876-5432;carla@exemplo.com
+</pre>
+
+<p>Três mudanças no código. Primeiro, o record aprende a se transformar numa linha, e o caminho do arquivo vira uma constante:</p>
+
+<pre class="file" data-file="Agenda.java">    record Contato(String nome, String telefone, String email) {
+        String paraLinha() {
+            return nome + ";" + telefone + ";" + email;
+        }
+    }
+
+    static final Path ARQUIVO = Path.of("contatos.txt");
+</pre>
+
+<p>Segundo, o método que grava:</p>
+
+<pre class="file" data-file="Agenda.java">    static void salvar(List&lt;Contato&gt; contatos) {
+        List&lt;String&gt; linhas = new ArrayList&lt;&gt;();
+        for (Contato c : contatos) {
+            linhas.add(c.paraLinha());
+        }
+        try {
+            Files.write(ARQUIVO, linhas);
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar: " + e);
+        }
+    }
+</pre>
+
+<p>Terceiro, <code>salvar(contatos);</code> é chamado logo depois de cada <code>add</code> (em <code>adicionar</code>) e de cada <code>remove</code> (em <code>remover</code>). Assim o arquivo está sempre em dia, mesmo se o programa for fechado de repente. E no topo do arquivo entram três <code>import</code>: <code>java.io.IOException</code>, <code>java.nio.file.Files</code> e <code>java.nio.file.Path</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>String paraLinha()</code> dentro do record</td><td>Um record pode ter métodos. Dentro dele, <code>nome</code> é o componente do próprio contato.</td></tr>
+<tr><td><code>Path.of("contatos.txt")</code></td><td>Um <strong>caminho</strong> de arquivo. Sem pasta na frente, é relativo à pasta onde você rodou o <code>java</code>.</td></tr>
+<tr><td><code>Files.write(ARQUIVO, linhas)</code></td><td>Grava cada <code>String</code> da lista como uma linha. Cria o arquivo se não existir e <strong>substitui</strong> o conteúdo se existir.</td></tr>
+<tr><td><code>try { … } catch (IOException e) { … }</code></td><td>Gravar pode falhar (disco cheio, pasta sem permissão). Se falhar, mostramos o erro em vez de derrubar o programa.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+=== Agenda da Ana ===
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 2
+Nome: Bruno Lima
+Telefone: (11) 91234-5678
+E-mail: bruno@exemplo.com
+Adicionado: Bruno Lima
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 2
+Nome: Carla Dias
+Telefone: (21) 99876-5432
+E-mail: carla@exemplo.com
+Adicionado: Carla Dias
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 0
+Até logo!
+$ ls
+Agenda.java  contatos.txt                « o arquivo apareceu
+$ cat contatos.txt
+Bruno Lima;(11) 91234-5678;bruno@exemplo.com
+Carla Dias;(21) 99876-5432;carla@exemplo.com</pre>
+
+<div class="cenario">
+<strong>Quando dá errado: esquecer o try/catch</strong>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Agenda.java">        Files.write(ARQUIVO, linhas);
+</pre>
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+Agenda.java:104: error: unreported exception IOException; must be caught or declared to be thrown
+        Files.write(ARQUIVO, linhas);
+                   ^
+1 error
+error: compilation failed</pre>
+<p>"Exceção <code>IOException</code> não informada; precisa ser capturada ou declarada." <code>IOException</code> é uma exceção <strong>checked</strong>: o compilador obriga você a decidir o que fazer com ela, com <code>try/catch</code> ou com <code>throws IOException</code> na assinatura do método. Veja <a href="checked-unchecked.html">Checked × Unchecked</a>.</p>
+</div>
+
+<div class="tryjava" data-file="Agenda.java" data-goal="out:Bruno Lima;(11) 91234-5678;bruno@exemplo.com,out:Carla Dias;(21) 99876-5432;carla@exemplo.com,src:Files\.write">
+<p class="try-task"><strong>Missão (etapa 5):</strong> este programa menor salva dois contatos e depois mostra o arquivo com <code>Files.readString</code>. Rode antes: dá <code>NoSuchFileException</code>, porque <code>salvar</code> ainda não grava nada. Escreva o <code>salvar</code> com <code>paraLinha()</code>, <code>Files.write</code> e <code>try/catch</code>.</p>
+<pre class="script">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+        String paraLinha() {
+            return nome + ";" + telefone + ";" + email;
+        }
+    }
+
+    static final Path ARQUIVO = Path.of("contatos.txt");
+
+    public static void main(String[] args) throws IOException {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        contatos.add(new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com"));
+        contatos.add(new Contato("Carla Dias", "(21) 99876-5432", "carla@exemplo.com"));
+
+        salvar(contatos);
+        System.out.print(Files.readString(ARQUIVO));
+    }
+
+    static void salvar(List&lt;Contato&gt; contatos) {
+        // transforme cada contato numa linha e grave com Files.write
+    }
+}
+</pre>
+<pre class="solucao">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+        String paraLinha() {
+            return nome + ";" + telefone + ";" + email;
+        }
+    }
+
+    static final Path ARQUIVO = Path.of("contatos.txt");
+
+    public static void main(String[] args) throws IOException {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        contatos.add(new Contato("Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com"));
+        contatos.add(new Contato("Carla Dias", "(21) 99876-5432", "carla@exemplo.com"));
+
+        salvar(contatos);
+        System.out.print(Files.readString(ARQUIVO));
+    }
+
+    static void salvar(List&lt;Contato&gt; contatos) {
+        List&lt;String&gt; linhas = new ArrayList&lt;&gt;();
+        for (Contato c : contatos) {
+            linhas.add(c.paraLinha());
+        }
+        try {
+            Files.write(ARQUIVO, linhas);
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar: " + e);
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa6">Etapa 6 · Carregar ao abrir</h2>
+<p>Falta o caminho de volta: ao abrir, ler o arquivo e recriar os contatos. Cada linha é cortada nos <code>;</code> com <code>split</code>, e os pedaços viram um <code>Contato</code>. O <code>main</code> passa a começar com <code>List&lt;Contato&gt; contatos = carregar();</code> e mostra quantos vieram. A primeira versão, ingênua:</p>
+
+<pre class="file" data-file="Agenda.java">    static List&lt;Contato&gt; carregar() {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        if (!Files.exists(ARQUIVO)) {
+            return contatos;
+        }
+        try {
+            for (String linha : Files.readAllLines(ARQUIVO)) {
+                String[] partes = linha.split(";");
+                contatos.add(new Contato(partes[0], partes[1], partes[2]));
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao carregar: " + e);
+        }
+        return contatos;
+    }
+</pre>
+
+<dl class="anatomy">
+  <dt>Files.exists(ARQUIVO)</dt><dd>Na primeira vez, o arquivo ainda não existe. Sem essa conferência, <code>readAllLines</code> lançaria <code>NoSuchFileException</code>.</dd>
+  <dt>Files.readAllLines(ARQUIVO)</dt><dd>Lê o arquivo inteiro e devolve uma <code>List&lt;String&gt;</code>, uma linha por item.</dd>
+  <dt>linha.split(";")</dt><dd>Corta o texto em cada <code>;</code> e devolve um array: <code>["Bruno Lima", "(11) 91234-5678", "bruno@exemplo.com"]</code>.</dd>
+  <dt>partes[0], partes[1], partes[2]</dt><dd>Nome, telefone e e-mail, nas posições 0, 1 e 2.</dd>
+</dl>
+
+<p>Funciona… até a Ana cadastrar alguém <strong>sem e-mail</strong>:</p>
+
+<pre class="term" data-cwd="~/java/agenda">$ java Agenda.java
+=== Agenda da Ana === 3 contato(s) carregado(s)
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 2
+Nome: Elisa Prado
+Telefone: (41) 95555-3333
+E-mail:                                  « a Ana não sabia o e-mail e apertou Enter
+Adicionado: Elisa Prado
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 0
+Até logo!
+$ cat contatos.txt
+Bruno Lima;(11) 91234-5678;bruno@exemplo.com
+Carla Dias;(21) 99876-5432;carla@exemplo.com
+Diego Rocha;(31) 98888-1111;diego@exemplo.com
+Elisa Prado;(41) 95555-3333;
+$ java Agenda.java
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 2 out of bounds for length 2
+	at Agenda.carregar(Agenda.java:119)
+	at Agenda.main(Agenda.java:20)</pre>
+
+<p>A agenda não abre mais! "Índice 2 fora dos limites para tamanho 2": o array <code>partes</code> tem só 2 itens e o código pediu o terceiro. O culpado é um detalhe do <code>split</code>: ele <strong>descarta os pedaços vazios do fim</strong>. <code>"Elisa Prado;(41) 95555-3333;"</code> vira só dois pedaços. A versão corrigida:</p>
+
+<pre class="file" data-file="Agenda.java">            for (String linha : Files.readAllLines(ARQUIVO)) {
+                String[] partes = linha.split(";", -1);
+                if (partes.length == 3) {
+                    contatos.add(new Contato(partes[0], partes[1], partes[2]));
+                } else if (!linha.isBlank()) {
+                    System.out.println("Linha ignorada: " + linha);
+                }
+            }
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Correção</th><th>O que resolve</th></tr>
+<tr><td><code>split(";", -1)</code></td><td>O <code>-1</code> manda o <code>split</code> <strong>manter</strong> os pedaços vazios do fim: a Elisa volta com e-mail <code>""</code>.</td></tr>
+<tr><td><code>if (partes.length == 3)</code></td><td>Só cria o contato se a linha tiver exatamente três campos.</td></tr>
+<tr><td><code>else if (!linha.isBlank())</code></td><td>Linha estragada (e não vazia): avisa e segue em frente, em vez de derrubar a agenda inteira.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/agenda">$ echo "linha estragada" &gt;&gt; contatos.txt      « a Ana estraga o arquivo de propósito
+$ java Agenda.java
+Linha ignorada: linha estragada
+=== Agenda da Ana === 4 contato(s) carregado(s)
+
+1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair
+Opção: 0
+Até logo!</pre>
+
+<div class="tip">
+<strong>Lição de todo programa que lê arquivos</strong>
+<p>Nunca confie que o arquivo está perfeito. Ele pode não existir, estar vazio, ter sido editado à mão ou gravado por uma versão antiga do programa. Confira antes de usar: <code>Files.exists</code>, o tamanho do array, <code>isBlank</code>.</p>
+</div>
+
+<div class="tryjava" data-file="Agenda.java" data-goal="out:Linha ignorada: linha estragada,out:2 contato(s) carregado(s),out:email=]">
+<p class="try-task"><strong>Missão (etapa 6):</strong> este programa grava um arquivo com três linhas (uma sem e-mail e uma estragada) e chama <code>carregar</code>. Rode: dá <code>ArrayIndexOutOfBoundsException</code>. Conserte o <code>carregar</code> com <code>split(";", -1)</code> e a conferência do tamanho, para carregar 2 contatos e mostrar <code>Linha ignorada: linha estragada</code>.</p>
+<pre class="script">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    static final Path ARQUIVO = Path.of("contatos.txt");
+
+    public static void main(String[] args) throws IOException {
+        Files.writeString(ARQUIVO, """
+                Bruno Lima;(11) 91234-5678;bruno@exemplo.com
+                Elisa Prado;(41) 95555-3333;
+                linha estragada
+                """);
+        List&lt;Contato&gt; contatos = carregar();
+        System.out.println(contatos.size() + " contato(s) carregado(s)");
+        System.out.println(contatos);
+    }
+
+    static List&lt;Contato&gt; carregar() {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        try {
+            for (String linha : Files.readAllLines(ARQUIVO)) {
+                String[] partes = linha.split(";");
+                contatos.add(new Contato(partes[0], partes[1], partes[2]));
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao carregar: " + e);
+        }
+        return contatos;
+    }
+}
+</pre>
+<pre class="solucao">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+    }
+
+    static final Path ARQUIVO = Path.of("contatos.txt");
+
+    public static void main(String[] args) throws IOException {
+        Files.writeString(ARQUIVO, """
+                Bruno Lima;(11) 91234-5678;bruno@exemplo.com
+                Elisa Prado;(41) 95555-3333;
+                linha estragada
+                """);
+        List&lt;Contato&gt; contatos = carregar();
+        System.out.println(contatos.size() + " contato(s) carregado(s)");
+        System.out.println(contatos);
+    }
+
+    static List&lt;Contato&gt; carregar() {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        try {
+            for (String linha : Files.readAllLines(ARQUIVO)) {
+                String[] partes = linha.split(";", -1);
+                if (partes.length == 3) {
+                    contatos.add(new Contato(partes[0], partes[1], partes[2]));
+                } else if (!linha.isBlank()) {
+                    System.out.println("Linha ignorada: " + linha);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao carregar: " + e);
+        }
+        return contatos;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O código completo</h2>
+
+<pre class="file" data-file="Agenda.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+        String paraLinha() {
+            return nome + ";" + telefone + ";" + email;
+        }
+    }
+
+    static final Path ARQUIVO = Path.of("contatos.txt");
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List&lt;Contato&gt; contatos = carregar();
+        System.out.println("=== Agenda da Ana === " + contatos.size() + " contato(s) carregado(s)");
+
+        while (true) {
+            System.out.println();
+            System.out.println("1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair");
+            System.out.print("Opção: ");
+            String opcao = entrada.nextLine().trim();
+            switch (opcao) {
+                case "1" -&gt; listar(contatos);
+                case "2" -&gt; adicionar(entrada, contatos);
+                case "3" -&gt; buscar(entrada, contatos);
+                case "4" -&gt; remover(entrada, contatos);
+                case "0" -&gt; {
+                    System.out.println("Até logo!");
+                    return;
+                }
+                default -&gt; System.out.println("Opção inválida: " + opcao);
+            }
+        }
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+
+    static void adicionar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome: ");
+        String nome = entrada.nextLine().trim();
+        if (nome.isEmpty()) {
+            System.out.println("O nome não pode ficar vazio.");
+            return;
+        }
+        System.out.print("Telefone: ");
+        String telefone = entrada.nextLine().trim();
+        System.out.print("E-mail: ");
+        String email = entrada.nextLine().trim();
+        contatos.add(new Contato(nome, telefone, email));
+        salvar(contatos);
+        System.out.println("Adicionado: " + nome);
+    }
+
+    static void buscar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Buscar por: ");
+        String termo = entrada.nextLine().trim().toLowerCase();
+        int achados = 0;
+        for (Contato c : contatos) {
+            if (c.nome().toLowerCase().contains(termo)) {
+                System.out.println("- " + c.nome() + " | " + c.telefone() + " | " + c.email());
+                achados++;
+            }
+        }
+        if (achados == 0) {
+            System.out.println("Nenhum contato com \"" + termo + "\".");
+        }
+    }
+
+    static void remover(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome para remover: ");
+        String nome = entrada.nextLine().trim();
+        for (Contato c : contatos) {
+            if (c.nome().equalsIgnoreCase(nome)) {
+                contatos.remove(c);
+                salvar(contatos);
+                System.out.println("Removido: " + c.nome());
+                return;
+            }
+        }
+        System.out.println("Não encontrei \"" + nome + "\".");
+    }
+
+    static void salvar(List&lt;Contato&gt; contatos) {
+        List&lt;String&gt; linhas = new ArrayList&lt;&gt;();
+        for (Contato c : contatos) {
+            linhas.add(c.paraLinha());
+        }
+        try {
+            Files.write(ARQUIVO, linhas);
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar: " + e);
+        }
+    }
+
+    static List&lt;Contato&gt; carregar() {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        if (!Files.exists(ARQUIVO)) {
+            return contatos;
+        }
+        try {
+            for (String linha : Files.readAllLines(ARQUIVO)) {
+                String[] partes = linha.split(";", -1);
+                if (partes.length == 3) {
+                    contatos.add(new Contato(partes[0], partes[1], partes[2]));
+                } else if (!linha.isBlank()) {
+                    System.out.println("Linha ignorada: " + linha);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao carregar: " + e);
+        }
+        return contatos;
+    }
+}
+</pre>
+
+<div class="note">
+<strong>E se eu quiser o record num arquivo separado?</strong>
+<p>Em programas maiores, cada tipo vai no seu arquivo: <code>Contato.java</code> com <code>public record Contato(…) { … }</code>, e <code>Agenda.java</code> com o resto. Desde o Java 22, <code>java Agenda.java</code> encontra sozinho o <code>Contato.java</code> na mesma pasta. O <a href="projeto-biblioteca.html">próximo projeto</a> é organizado assim.</p>
+</div>
+
+<h2>Desafios extras</h2>
+<ol>
+  <li><strong>Sem nomes repetidos.</strong> Em <code>adicionar</code>, recuse um nome que já existe (ignorando maiúsculas).</li>
+  <li><strong>Lista em ordem alfabética.</strong> Antes de listar, ordene: <code>contatos.sort(Comparator.comparing(Contato::nome))</code> (veja <a href="comparable-comparator.html">Comparable e Comparator</a>).</li>
+  <li><strong>Editar o telefone.</strong> Uma opção 5 que troca o telefone. Como o record é imutável, use <code>contatos.set(i, new Contato(…))</code> na posição <code>i</code>.</li>
+  <li><strong>O <code>;</code> dentro do nome.</strong> O que acontece se alguém cadastrar <code>Ana; a melhor</code>? Recuse nomes com <code>;</code> ou troque o separador.</li>
+  <li><strong>Buscar também pelo telefone.</strong> Faça a busca olhar nome <strong>ou</strong> telefone.</li>
+</ol>
+
+<div class="tryjava" data-file="Agenda.java" data-stdin="2\nBruno Lima\n(11) 91234-5678\nbruno@exemplo.com\n2\nbruno lima\n0\n" data-goal="out:Adicionado: Bruno Lima,out:Já existe um contato chamado Bruno Lima.">
+<p class="try-task"><strong>Desafio 1 no editor:</strong> em <code>adicionar</code>, logo depois de conferir o nome vazio, percorra a lista e, se já houver um contato com o mesmo nome (ignorando maiúsculas), mostre <code>Já existe um contato chamado Bruno Lima.</code> e não adicione.</p>
+<pre class="script">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+        String paraLinha() {
+            return nome + ";" + telefone + ";" + email;
+        }
+    }
+
+    static final Path ARQUIVO = Path.of("contatos.txt");
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List&lt;Contato&gt; contatos = carregar();
+        System.out.println("=== Agenda da Ana === " + contatos.size() + " contato(s) carregado(s)");
+
+        while (true) {
+            System.out.println();
+            System.out.println("1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair");
+            System.out.print("Opção: ");
+            String opcao = entrada.nextLine().trim();
+            switch (opcao) {
+                case "1" -&gt; listar(contatos);
+                case "2" -&gt; adicionar(entrada, contatos);
+                case "3" -&gt; buscar(entrada, contatos);
+                case "4" -&gt; remover(entrada, contatos);
+                case "0" -&gt; {
+                    System.out.println("Até logo!");
+                    return;
+                }
+                default -&gt; System.out.println("Opção inválida: " + opcao);
+            }
+        }
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+
+    static void adicionar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome: ");
+        String nome = entrada.nextLine().trim();
+        if (nome.isEmpty()) {
+            System.out.println("O nome não pode ficar vazio.");
+            return;
+        }
+        System.out.print("Telefone: ");
+        String telefone = entrada.nextLine().trim();
+        System.out.print("E-mail: ");
+        String email = entrada.nextLine().trim();
+        contatos.add(new Contato(nome, telefone, email));
+        salvar(contatos);
+        System.out.println("Adicionado: " + nome);
+    }
+
+    static void buscar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Buscar por: ");
+        String termo = entrada.nextLine().trim().toLowerCase();
+        int achados = 0;
+        for (Contato c : contatos) {
+            if (c.nome().toLowerCase().contains(termo)) {
+                System.out.println("- " + c.nome() + " | " + c.telefone() + " | " + c.email());
+                achados++;
+            }
+        }
+        if (achados == 0) {
+            System.out.println("Nenhum contato com \"" + termo + "\".");
+        }
+    }
+
+    static void remover(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome para remover: ");
+        String nome = entrada.nextLine().trim();
+        for (Contato c : contatos) {
+            if (c.nome().equalsIgnoreCase(nome)) {
+                contatos.remove(c);
+                salvar(contatos);
+                System.out.println("Removido: " + c.nome());
+                return;
+            }
+        }
+        System.out.println("Não encontrei \"" + nome + "\".");
+    }
+
+    static void salvar(List&lt;Contato&gt; contatos) {
+        List&lt;String&gt; linhas = new ArrayList&lt;&gt;();
+        for (Contato c : contatos) {
+            linhas.add(c.paraLinha());
+        }
+        try {
+            Files.write(ARQUIVO, linhas);
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar: " + e);
+        }
+    }
+
+    static List&lt;Contato&gt; carregar() {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        if (!Files.exists(ARQUIVO)) {
+            return contatos;
+        }
+        try {
+            for (String linha : Files.readAllLines(ARQUIVO)) {
+                String[] partes = linha.split(";", -1);
+                if (partes.length == 3) {
+                    contatos.add(new Contato(partes[0], partes[1], partes[2]));
+                } else if (!linha.isBlank()) {
+                    System.out.println("Linha ignorada: " + linha);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao carregar: " + e);
+        }
+        return contatos;
+    }
+}
+</pre>
+<pre class="solucao">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Agenda {
+
+    record Contato(String nome, String telefone, String email) {
+        String paraLinha() {
+            return nome + ";" + telefone + ";" + email;
+        }
+    }
+
+    static final Path ARQUIVO = Path.of("contatos.txt");
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List&lt;Contato&gt; contatos = carregar();
+        System.out.println("=== Agenda da Ana === " + contatos.size() + " contato(s) carregado(s)");
+
+        while (true) {
+            System.out.println();
+            System.out.println("1) Listar  2) Adicionar  3) Buscar  4) Remover  0) Sair");
+            System.out.print("Opção: ");
+            String opcao = entrada.nextLine().trim();
+            switch (opcao) {
+                case "1" -&gt; listar(contatos);
+                case "2" -&gt; adicionar(entrada, contatos);
+                case "3" -&gt; buscar(entrada, contatos);
+                case "4" -&gt; remover(entrada, contatos);
+                case "0" -&gt; {
+                    System.out.println("Até logo!");
+                    return;
+                }
+                default -&gt; System.out.println("Opção inválida: " + opcao);
+            }
+        }
+    }
+
+    static void listar(List&lt;Contato&gt; contatos) {
+        if (contatos.isEmpty()) {
+            System.out.println("Nenhum contato.");
+            return;
+        }
+        for (int i = 0; i &lt; contatos.size(); i++) {
+            Contato c = contatos.get(i);
+            System.out.println((i + 1) + ". " + c.nome() + " | " + c.telefone() + " | " + c.email());
+        }
+        System.out.println(contatos.size() + " contato(s).");
+    }
+
+    static void adicionar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome: ");
+        String nome = entrada.nextLine().trim();
+        if (nome.isEmpty()) {
+            System.out.println("O nome não pode ficar vazio.");
+            return;
+        }
+        for (Contato c : contatos) {
+            if (c.nome().equalsIgnoreCase(nome)) {
+                System.out.println("Já existe um contato chamado " + c.nome() + ".");
+                return;
+            }
+        }
+        System.out.print("Telefone: ");
+        String telefone = entrada.nextLine().trim();
+        System.out.print("E-mail: ");
+        String email = entrada.nextLine().trim();
+        contatos.add(new Contato(nome, telefone, email));
+        salvar(contatos);
+        System.out.println("Adicionado: " + nome);
+    }
+
+    static void buscar(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Buscar por: ");
+        String termo = entrada.nextLine().trim().toLowerCase();
+        int achados = 0;
+        for (Contato c : contatos) {
+            if (c.nome().toLowerCase().contains(termo)) {
+                System.out.println("- " + c.nome() + " | " + c.telefone() + " | " + c.email());
+                achados++;
+            }
+        }
+        if (achados == 0) {
+            System.out.println("Nenhum contato com \"" + termo + "\".");
+        }
+    }
+
+    static void remover(Scanner entrada, List&lt;Contato&gt; contatos) {
+        System.out.print("Nome para remover: ");
+        String nome = entrada.nextLine().trim();
+        for (Contato c : contatos) {
+            if (c.nome().equalsIgnoreCase(nome)) {
+                contatos.remove(c);
+                salvar(contatos);
+                System.out.println("Removido: " + c.nome());
+                return;
+            }
+        }
+        System.out.println("Não encontrei \"" + nome + "\".");
+    }
+
+    static void salvar(List&lt;Contato&gt; contatos) {
+        List&lt;String&gt; linhas = new ArrayList&lt;&gt;();
+        for (Contato c : contatos) {
+            linhas.add(c.paraLinha());
+        }
+        try {
+            Files.write(ARQUIVO, linhas);
+        } catch (IOException e) {
+            System.out.println("Erro ao salvar: " + e);
+        }
+    }
+
+    static List&lt;Contato&gt; carregar() {
+        List&lt;Contato&gt; contatos = new ArrayList&lt;&gt;();
+        if (!Files.exists(ARQUIVO)) {
+            return contatos;
+        }
+        try {
+            for (String linha : Files.readAllLines(ARQUIVO)) {
+                String[] partes = linha.split(";", -1);
+                if (partes.length == 3) {
+                    contatos.add(new Contato(partes[0], partes[1], partes[2]));
+                } else if (!linha.isBlank()) {
+                    System.out.println("Linha ignorada: " + linha);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Erro ao carregar: " + e);
+        }
+        return contatos;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. Como se lê o telefone de um record <code>Contato c</code>?</p>
+<label><input type="radio" name="q1"> <code>c.telefone</code></label>
+<label><input type="radio" name="q1"> <code>c.getTelefone()</code></label>
+<label><input type="radio" name="q1"> <code>c.telefone()</code></label>
+<label><input type="radio" name="q1"> <code>Contato.telefone(c)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. O que <code>"Elisa;(41) 95555-3333;".split(";")</code> devolve?</p>
+<label><input type="radio" name="q2"> Um array com 3 itens, o último vazio.</label>
+<label><input type="radio" name="q2"> Um array com 2 itens: o vazio do fim é descartado.</label>
+<label><input type="radio" name="q2"> Uma exceção.</label>
+<label><input type="radio" name="q2"> Um array com 1 item.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Por que o <code>remover</code> tem um <code>return</code> logo depois de <code>contatos.remove(c)</code>?</p>
+<label><input type="radio" name="q3"> Porque métodos <code>void</code> precisam de <code>return</code>.</label>
+<label><input type="radio" name="q3"> Para devolver o contato removido.</label>
+<label><input type="radio" name="q3"> Para salvar o arquivo.</label>
+<label><input type="radio" name="q3"> Para o for-each não dar mais um passo na lista modificada, o que lançaria <code>ConcurrentModificationException</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Por que a agenda lê tudo com <code>nextLine()</code>?</p>
+<label><input type="radio" name="q4"> Para aceitar nomes com espaço e evitar a armadilha de misturar <code>nextInt()</code> com <code>nextLine()</code>.</label>
+<label><input type="radio" name="q4"> Porque <code>next()</code> não existe.</label>
+<label><input type="radio" name="q4"> Porque <code>nextLine()</code> é mais rápido.</label>
+<label><input type="radio" name="q4"> Para gravar no arquivo.</label>
+</div>
+
+<div class="exercise">
+<p>Complete para ler todas as linhas do arquivo:</p>
+<div class="ex-code">List&lt;String&gt; linhas = Files.<input data-answer="readAllLines">(ARQUIVO);</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>record</code> junta dados relacionados e ganha construtor, <code>nome()</code>, <code>toString</code> e <code>equals</code> de graça; os componentes não mudam.</li>
+  <li><code>ArrayList</code> cresce sozinho; <code>add</code>, <code>get</code>, <code>size</code>, <code>isEmpty</code>, <code>remove</code>.</li>
+  <li>Com <code>nextLine()</code> + <code>trim()</code> em tudo, nomes com espaço funcionam e o menu não "pula" perguntas.</li>
+  <li>Remover dentro de um for-each só é seguro se você sair do laço logo depois.</li>
+  <li><code>Files.write</code> grava uma lista de linhas; <code>Files.readAllLines</code> lê de volta. <code>IOException</code> precisa de <code>try/catch</code> (ou <code>throws</code>).</li>
+  <li><code>split(";", -1)</code> mantém campos vazios; confira o tamanho antes de usar as partes.</li>
+</ul>
+<p>Próximo projeto: <a href="projeto-biblioteca.html">Sistema de Biblioteca</a>, com várias classes conversando entre si.</p>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
