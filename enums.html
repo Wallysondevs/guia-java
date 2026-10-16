@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Enums — enum, values, ordinal, valueOf e switch | Guia Java</title>
+<meta name="description" content="Enums em Java: um tipo com uma lista fixa de valores (as cores do semáforo, os planetas). values(), ordinal(), name(), valueOf e a IllegalArgumentException real, switch com enum e enums com atributos, construtor e métodos. Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Enums</span></h1>
+
+<p class="intro">Um semáforo tem três cores, nem mais nem menos. Uma semana tem sete dias. Uma camiseta vem em P, M ou G. Quando um valor só pode ser um de uma <strong>lista fixa</strong>, guardá-lo como texto (<code>"VERDE"</code>) ou número (<code>0</code>) abre espaço para erros: <code>"verdee"</code>, <code>"Verde"</code>, <code>7</code>. O Java tem um tipo feito para isso, o <strong><code>enum</code></strong>, em que o compilador conhece a lista e recusa qualquer coisa fora dela.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar e usar um <code>enum</code> simples.</li>
+  <li>Os métodos que todo enum tem: <code>values()</code>, <code>ordinal()</code>, <code>name()</code> e <code>valueOf()</code> (e a exceção que ele lança).</li>
+  <li>Como usar enums no <code>switch</code>, e por que o compilador avisa quando falta um caso.</li>
+  <li>Como dar atributos, construtor e métodos a um enum (o semáforo com tempos, os planetas com gravidade).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma lista fechada de opções</h2>
+<p>Pense num formulário de papel com caixinhas para marcar: "Tamanho: ☐ P ☐ M ☐ G". Quem preenche não pode inventar um tamanho "XGG", porque não há caixinha para ele. Compare com um campo em branco "Tamanho: ______", onde cada um escreve de um jeito.</p>
+
+<p>Em Java, uma <code>String</code> é o campo em branco; um <code>enum</code> é a lista de caixinhas. O nome vem de <em>enumeration</em>, "enumeração": uma lista que você enumera, item por item. Cada item é uma <strong>constante</strong> do enum.</p>
+
+<hr>
+
+<h2>Um <code>enum</code> simples: o semáforo</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Semaforo sinal = Semaforo.VERDE;
+        System.out.println("O sinal está " + sinal);
+
+        if (sinal == Semaforo.VERDE) {
+            System.out.println("Pode passar.");
+        }
+
+        for (Semaforo s : Semaforo.values()) {
+            System.out.println(s.ordinal() + " - " + s.name());
+        }
+    }
+}
+
+enum Semaforo {
+    VERDE, AMARELO, VERMELHO
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>enum Semaforo</dt><dd>Declara um tipo novo, <code>Semaforo</code>, como se fosse uma classe, mas com <code>enum</code> no lugar de <code>class</code>.</dd>
+  <dt>VERDE, AMARELO, VERMELHO</dt><dd>As constantes: os <strong>únicos</strong> valores que existem desse tipo. Por convenção, em MAIÚSCULAS, como toda constante.</dd>
+  <dt>Semaforo sinal</dt><dd>Uma variável do tipo <code>Semaforo</code>. Ela só aceita uma das três constantes (ou <code>null</code>).</dd>
+  <dt>Semaforo.VERDE</dt><dd>Uma constante é acessada pelo nome do enum, como um membro <a href="static.html"><code>static</code></a>.</dd>
+  <dt>sinal == Semaforo.VERDE</dt><dd>Constantes de enum se comparam com <code>==</code>: cada uma existe uma única vez na memória.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+O sinal está VERDE                « o println mostra o nome da constante
+Pode passar.
+0 - VERDE                         « ordinal = posição na lista, começando em 0
+1 - AMARELO
+2 - VERMELHO</pre>
+
+<h3>Os métodos que todo enum ganha</h3>
+<p>Você não escreveu nenhum método no <code>Semaforo</code>, mas usou três. Todo enum herda de <code>java.lang.Enum</code> e ganha:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que devolve</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>Tipo.values()</code></td><td>Um array com todas as constantes, na ordem da declaração</td><td><code>Semaforo.values()</code> → um array com <code>VERDE</code>, <code>AMARELO</code> e <code>VERMELHO</code></td></tr>
+<tr><td><code>constante.ordinal()</code></td><td>A posição (0, 1, 2…)</td><td><code>Semaforo.AMARELO.ordinal()</code> → <code>1</code></td></tr>
+<tr><td><code>constante.name()</code></td><td>O nome, como texto</td><td><code>Semaforo.AMARELO.name()</code> → <code>"AMARELO"</code></td></tr>
+<tr><td><code>constante.toString()</code></td><td>Igual ao <code>name()</code>, a menos que você sobrescreva</td><td>usado pelo <code>println</code></td></tr>
+<tr><td><code>Tipo.valueOf("NOME")</code></td><td>A constante com aquele nome</td><td><code>Semaforo.valueOf("VERDE")</code> → <code>VERDE</code></td></tr>
+<tr><td><code>a.compareTo(b)</code></td><td>Compara pela ordem da declaração</td><td><code>VERDE.compareTo(VERMELHO)</code> → negativo</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Não guarde o <code>ordinal()</code></strong>
+<p>A posição depende da ordem em que as constantes foram escritas. Se alguém acrescentar <code>PISCANDO</code> entre <code>VERDE</code> e <code>AMARELO</code>, todos os números mudam. Use o <code>ordinal()</code> para mostrar ou ordenar, nunca para gravar num arquivo ou banco de dados; para isso, use o <code>name()</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:3 - PAUS,src:enum\s+Naipe">
+<p class="try-task"><strong>Missão:</strong> crie o enum <code>Naipe</code>, com as constantes <code>COPAS</code>, <code>ESPADAS</code>, <code>OUROS</code> e <code>PAUS</code>, nessa ordem. No <code>main</code>, percorra <code>Naipe.values()</code> e mostre cada um no formato <code>posição - nome</code>. A última linha deve ser <code>3 - PAUS</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        // percorra Naipe.values() aqui
+    }
+}
+
+// crie aqui o enum Naipe
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        for (Naipe n : Naipe.values()) {
+            System.out.println(n.ordinal() + " - " + n.name());
+        }
+    }
+}
+
+enum Naipe {
+    COPAS, ESPADAS, OUROS, PAUS
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O compilador protege a lista</h2>
+<p>A vantagem do enum sobre um texto aparece quando alguém erra. Um método que espera um <code>Semaforo</code> não aceita uma <code>String</code>, e ninguém consegue criar uma quarta cor:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    static void mostrar(Semaforo s) {
+        System.out.println("Sinal: " + s);
+    }
+
+    public static void main(String[] args) {
+        mostrar("VERDE");
+        Semaforo novo = new Semaforo();
+    }
+}
+
+enum Semaforo {
+    VERDE, AMARELO, VERMELHO
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:7: error: incompatible types: String cannot be converted to Semaforo
+        mostrar("VERDE");
+                ^
+Main.java:8: error: enum classes may not be instantiated
+        Semaforo novo = new Semaforo();
+                        ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+2 errors</pre>
+
+<ul>
+  <li><em>String cannot be converted to Semaforo</em>: o texto <code>"VERDE"</code> não é um <code>Semaforo</code>, mesmo tendo as mesmas letras. Escreva <code>Semaforo.VERDE</code>.</li>
+  <li><em>Enum classes may not be instantiated</em> = "classes enum não podem ser instanciadas": as constantes da lista são os únicos objetos do tipo; <code>new</code> é proibido.</li>
+  <li>A linha <code>Note:</code> é só um aviso de que o <code>javac</code> resumiu a mensagem; pode ignorá-la.</li>
+</ul>
+
+<p>Com uma <code>String</code>, um <code>mostrar("VERDDE")</code> compilaria e o erro apareceria só lá na frente, se aparecesse. Com o enum, o erro aparece na hora.</p>
+
+<hr>
+
+<h2>De texto para enum: <code>valueOf</code></h2>
+<p>Às vezes o valor chega como texto: digitado pelo usuário, lido de um arquivo. O <code>valueOf</code> converte, mas exige o nome <strong>exato</strong>, com maiúsculas e minúsculas:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Semaforo a = Semaforo.valueOf("AMARELO");
+        System.out.println("Convertido: " + a);
+        Semaforo b = Semaforo.valueOf("verde");
+        System.out.println("Convertido: " + b);
+    }
+}
+
+enum Semaforo {
+    VERDE, AMARELO, VERMELHO
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Convertido: AMARELO
+Exception in thread "main" java.lang.IllegalArgumentException: No enum constant Semaforo.verde
+	at java.base/java.lang.Enum.valueOf(Enum.java:293)
+	at Semaforo.valueOf(Main.java:10)
+	at Main.main(Main.java:5)</pre>
+
+<p><em>IllegalArgumentException</em> = "exceção de argumento ilegal"; <em>No enum constant Semaforo.verde</em> = "não há constante <code>verde</code> no enum <code>Semaforo</code>". O rastro mostra o caminho: o <code>main</code> (linha 5) chamou o <code>valueOf</code> do <code>Semaforo</code>, que chamou o de <code>Enum</code>, que lançou a exceção. A segunda conversão nunca terminou.</p>
+
+<p>Duas defesas comuns: padronizar o texto antes (<code>Semaforo.valueOf(texto.trim().toUpperCase())</code>) e tratar a exceção com <a href="try-catch.html">try e catch</a>, para mostrar uma mensagem amigável em vez de derrubar o programa.</p>
+
+<hr>
+
+<h2>Enum no <code>switch</code></h2>
+<p>Enums e <a href="switch.html"><code>switch</code></a> foram feitos um para o outro. Dentro do <code>case</code>, escreve-se só o nome da constante, sem o <code>Semaforo.</code> na frente:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Semaforo sinal = Semaforo.AMARELO;
+        String acao = switch (sinal) {
+            case VERDE -&gt; "Siga";
+            case AMARELO -&gt; "Atenção";
+            case VERMELHO -&gt; "Pare";
+        };
+        System.out.println(acao);
+
+        switch (sinal) {
+            case VERDE:
+                System.out.println("(forma antiga) Siga");
+                break;
+            case AMARELO:
+                System.out.println("(forma antiga) Atenção");
+                break;
+            default:
+                System.out.println("(forma antiga) Pare");
+        }
+    }
+}
+
+enum Semaforo {
+    VERDE, AMARELO, VERMELHO
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Atenção
+(forma antiga) Atenção</pre>
+
+<p>A primeira forma é o <a href="switch-expressoes.html"><code>switch</code> com setas</a> (Java 14+), usado como expressão que devolve um valor. Repare que ela <strong>não tem <code>default</code></strong>: como o compilador conhece todas as constantes, ele sabe que os três <code>case</code> cobrem tudo. E, se faltar uma, ele avisa:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: the switch expression does not cover all possible input values
+        String acao = switch (sinal) {
+                      ^
+1 error</pre>
+
+<p>"A expressão <code>switch</code> não cobre todos os valores possíveis": faltou o <code>VERMELHO</code>. Isso é ótimo quando o enum cresce: se um dia surgir <code>PISCANDO</code>, todo <code>switch</code> de expressão que esqueceu dele para de compilar, e você é obrigado a decidir o que fazer com a cor nova. Por isso, com enums, prefira <strong>não</strong> colocar <code>default</code> no <code>switch</code> com setas.</p>
+
+<hr>
+
+<h2>Enums com atributos, construtor e métodos</h2>
+<p>Um enum é uma classe especial, e pode ter tudo o que uma classe tem. Cada constante pode carregar dados. O semáforo da Ana sabe quanto tempo fica em cada cor e qual é a próxima:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Semaforo sinal = Semaforo.VERDE;
+        for (int i = 0; i &lt; 4; i++) {
+            System.out.println(sinal + " por " + sinal.getSegundos() + " segundos");
+            sinal = sinal.proximo();
+        }
+    }
+}
+
+enum Semaforo {
+    VERDE(30), AMARELO(5), VERMELHO(40);
+
+    private final int segundos;
+
+    Semaforo(int segundos) {
+        this.segundos = segundos;
+    }
+
+    int getSegundos() {
+        return segundos;
+    }
+
+    Semaforo proximo() {
+        return switch (this) {
+            case VERDE -&gt; AMARELO;
+            case AMARELO -&gt; VERMELHO;
+            case VERMELHO -&gt; VERDE;
+        };
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>VERDE(30)</dt><dd>Cada constante passa argumentos para o construtor, como num <code>new</code>. A lista de constantes termina com <code>;</code> quando vem mais coisa depois.</dd>
+  <dt>private final int segundos;</dt><dd>Um atributo. É <a href="final.html"><code>final</code></a> porque as constantes são compartilhadas pelo programa todo: mudá-las seria perigoso.</dd>
+  <dt>Semaforo(int segundos)</dt><dd>O construtor. Ele é sempre <code>private</code> (mesmo sem escrever): só as constantes da lista o usam, uma vez cada, quando o enum é carregado.</dd>
+  <dt>Semaforo proximo()</dt><dd>Um método comum. Dentro dele, <code>this</code> é a constante em que foi chamado.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+VERDE por 30 segundos
+AMARELO por 5 segundos
+VERMELHO por 40 segundos
+VERDE por 30 segundos          « depois do vermelho, volta ao verde</pre>
+
+<h3>Os planetas</h3>
+<p>Um exemplo clássico (está até na documentação da Oracle): cada planeta com massa e raio, e um método que calcula a gravidade na superfície. A Ana pesa 60 kg na Terra; quanto a balança mostraria nos outros planetas?</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double pesoNaTerra = 60;
+        double massaDaAna = pesoNaTerra / Planeta.TERRA.gravidade();
+        for (Planeta p : Planeta.values()) {
+            System.out.printf("%s: %.1f kg%n", p.getNome(), p.gravidade() * massaDaAna);
+        }
+    }
+}
+
+enum Planeta {
+    MERCURIO("Mercúrio", 3.303e+23, 2.4397e6),
+    VENUS("Vênus", 4.869e+24, 6.0518e6),
+    TERRA("Terra", 5.976e+24, 6.37814e6),
+    MARTE("Marte", 6.421e+23, 3.3972e6),
+    JUPITER("Júpiter", 1.9e+27, 7.1492e7);
+
+    private static final double G = 6.67300E-11;
+
+    private final String nome;
+    private final double massa;
+    private final double raio;
+
+    Planeta(String nome, double massa, double raio) {
+        this.nome = nome;
+        this.massa = massa;
+        this.raio = raio;
+    }
+
+    String getNome() {
+        return nome;
+    }
+
+    double gravidade() {
+        return G * massa / (raio * raio);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Mercúrio: 22,7 kg
+Vênus: 54,3 kg
+Terra: 60,0 kg
+Marte: 22,7 kg          « Mercúrio e Marte têm quase a mesma gravidade
+Júpiter: 151,8 kg</pre>
+
+<p>Algumas observações: <code>3.303e+23</code> é a notação científica do Java (3,303 × 10²³; veja <a href="decimais.html">double e float</a>); o <code>printf</code> com <code>%.1f</code> mostra uma casa decimal, com <strong>vírgula</strong> porque a máquina da Ana está em português (veja <a href="formatacao.html">Formatar Texto</a>); e a constante <code>G</code> é um <code>static final</code> comum, dentro do enum. O nome com acento ficou num atributo, porque o nome da constante (<code>MERCURIO</code>) é melhor sem acento.</p>
+
+<div class="tip">
+<strong>Enums na biblioteca</strong>
+<p>Você já viu um enum de verdade: <code>LocalDate.getDayOfWeek()</code> devolve um <code>DayOfWeek</code>, com as constantes <code>MONDAY</code> a <code>SUNDAY</code> (veja <a href="datas.html">Datas e Horas</a>). Há também <code>Month</code>, <code>TimeUnit</code> e outros. E existem coleções otimizadas para enums, como <code>EnumMap</code> e <code>EnumSet</code>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>IllegalArgumentException: No enum constant …</code></strong>
+<pre class="term">$ java Main.java
+Convertido: AMARELO
+Exception in thread "main" java.lang.IllegalArgumentException: No enum constant Semaforo.verde
+	at java.base/java.lang.Enum.valueOf(Enum.java:293)
+	at Semaforo.valueOf(Main.java:10)
+	at Main.main(Main.java:5)</pre>
+<p><strong>O que aconteceu:</strong> o <code>valueOf</code> recebeu um texto que não é o nome exato de nenhuma constante (maiúsculas, espaços e acentos contam).</p>
+<p><strong>Como resolver:</strong> padronize o texto (<code>.trim().toUpperCase()</code>) e trate a exceção com <code>try</code>/<code>catch</code> quando o texto vier de fora do programa.</p>
+</div>
+
+<div class="cenario">
+<strong>"the switch expression does not cover all possible input values"</strong>
+<p><strong>O que aconteceu:</strong> um <code>switch</code> de expressão sobre um enum esqueceu alguma constante.</p>
+<p><strong>Como resolver:</strong> acrescente o <code>case</code> que falta. Evite resolver com <code>default</code>: assim o compilador continua avisando quando o enum ganhar constantes novas.</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible types: String cannot be converted to …"</strong>
+<p><strong>O que aconteceu:</strong> um texto foi usado onde se espera o enum.</p>
+<p><strong>Como resolver:</strong> use a constante (<code>Semaforo.VERDE</code>) ou converta o texto com <code>valueOf</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"enum classes may not be instantiated"</strong>
+<p><strong>O que aconteceu:</strong> um <code>new</code> num enum.</p>
+<p><strong>Como resolver:</strong> as constantes já são os objetos. Se precisa de um valor novo, acrescente-o à lista do enum.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>enum Cor { VERDE, AMARELO }</code></td><td>Declara o tipo e as constantes</td></tr>
+<tr><td><code>Cor c = Cor.VERDE;</code></td><td>Variável do tipo enum</td></tr>
+<tr><td><code>c == Cor.VERDE</code></td><td>Comparação (com <code>==</code>)</td></tr>
+<tr><td><code>Cor.values()</code></td><td>Array com todas as constantes</td></tr>
+<tr><td><code>c.ordinal()</code> / <code>c.name()</code></td><td>Posição (a partir de 0) / nome como texto</td></tr>
+<tr><td><code>Cor.valueOf("VERDE")</code></td><td>Texto → constante; nome inexistente lança <code>IllegalArgumentException</code></td></tr>
+<tr><td><code>case VERDE -&gt; …</code></td><td>No <code>switch</code>, só o nome da constante</td></tr>
+<tr><td><code>VERDE(30), …;</code> + construtor</td><td>Constantes com dados</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Declarar</h3>
+<p>Complete a declaração de um tipo com os tamanhos de camiseta:</p>
+<div class="ex-code"><input data-answer="enum" aria-label="palavra-chave"> Tamanho { P, M, G }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Todas as constantes</h3>
+<p>Complete o laço que percorre todos os tamanhos:</p>
+<div class="ex-code">for (Tamanho t : <input data-answer="Tamanho.values()" aria-label="lista">) { … }</div>
+</div>
+
+<div class="exercise">
+<h3>3. A posição</h3>
+<p>Com <code>enum Tamanho { P, M, G }</code>, quanto vale <code>Tamanho.G.ordinal()</code>?</p>
+<div class="ex-code"><input data-answer="2" aria-label="valor"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>Tamanho.valueOf("m")</code> faz, com <code>enum Tamanho { P, M, G }</code>?</p>
+<label><input type="radio" name="q4"> Devolve <code>M</code></label>
+<label><input type="radio" name="q4"> Devolve <code>null</code></label>
+<label><input type="radio" name="q4"> Lança <code>IllegalArgumentException</code></label>
+<label><input type="radio" name="q4"> Não compila</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Num <code>switch</code> sobre um <code>Semaforo</code>, como se escreve o caso do verde?</p>
+<label><input type="radio" name="q5"> <code>case VERDE -&gt;</code></label>
+<label><input type="radio" name="q5"> <code>case "VERDE" -&gt;</code></label>
+<label><input type="radio" name="q5"> <code>case 0 -&gt;</code></label>
+<label><input type="radio" name="q5"> <code>case new Semaforo() -&gt;</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Por que usar um enum em vez de uma <code>String</code> para os dias da semana?</p>
+<label><input type="radio" name="q6"> Porque ocupa menos memória</label>
+<label><input type="radio" name="q6"> Porque o <code>println</code> não funciona com <code>String</code></label>
+<label><input type="radio" name="q6"> Porque enums podem ser criados com <code>new</code></label>
+<label><input type="radio" name="q6"> Porque o compilador só aceita os valores da lista, e erros de digitação aparecem na hora</label>
+</div>
+
+<div class="tryjava" data-goal="out:GRANDE custa R$ 9.0,src:valueOf">
+<p class="try-task"><strong>Missão final:</strong> a cafeteria da Ana vende café em três tamanhos. Complete o enum <code>Tamanho</code>: o atributo <code>preco</code> e o construtor que o recebe (as constantes já passam os preços). No <code>main</code>, converta o texto <code>pedido</code> em <code>Tamanho</code> com <code>valueOf</code> e mostre <code>GRANDE custa R$ 9.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String pedido = "GRANDE";
+        // converta o pedido com Tamanho.valueOf e mostre o preço
+    }
+}
+
+enum Tamanho {
+    PEQUENO(5.0), MEDIO(7.5), GRANDE(9.0);
+
+    // crie o atributo preco e o construtor
+
+    double getPreco() {
+        return preco;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String pedido = "GRANDE";
+        Tamanho t = Tamanho.valueOf(pedido);
+        System.out.println(t + " custa R$ " + t.getPreco());
+    }
+}
+
+enum Tamanho {
+    PEQUENO(5.0), MEDIO(7.5), GRANDE(9.0);
+
+    private final double preco;
+
+    Tamanho(double preco) {
+        this.preco = preco;
+    }
+
+    double getPreco() {
+        return preco;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>enum</code> é um tipo com uma lista fixa de constantes. O compilador recusa qualquer valor fora dela, e <code>new</code> é proibido.</li>
+  <li>Compare com <code>==</code>. Todo enum tem <code>values()</code>, <code>ordinal()</code>, <code>name()</code> e <code>valueOf()</code>.</li>
+  <li><code>valueOf</code> exige o nome exato; senão, <code>IllegalArgumentException: No enum constant …</code>.</li>
+  <li>No <code>switch</code>, escreva só o nome da constante. O <code>switch</code> com setas usado como expressão avisa quando falta um caso: prefira-o sem <code>default</code>.</li>
+  <li>Enums podem ter atributos (<code>private final</code>), construtor (sempre privado) e métodos: <code>VERDE(30)</code>, <code>TERRA("Terra", …)</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
