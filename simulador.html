@@ -192,20 +192,9 @@ Olá, Ana!</pre>
 
 <p>No editor do guia, quando o programa usa o <code>Scanner</code>, aparece um <strong>campo de entrada</strong>: o que você escrever ali é entregue ao programa, linha por linha, como se tivesse sido digitado no teclado. Algumas caixas já vêm com a entrada preenchida. Experimente:</p>
 
-<div class="tryjava" data-stdin="Ana\n" data-goal="out:Olá, Ana!">
-<p class="try-task"><strong>Missão:</strong> rode com a entrada <code>Ana</code>. Depois escreva o seu nome no campo de entrada e rode de novo.</p>
+<div class="tryjava">
+<p class="try-task"><strong>Brinque:</strong> clique em Rodar. Quando o programa perguntar o nome, escreva o seu no campo que aparece e aperte Enter. Rode de novo com outro nome.</p>
 <pre class="script">import java.util.Scanner;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner teclado = new Scanner(System.in);
-        System.out.print("Qual é o seu nome? ");
-        String nome = teclado.nextLine();
-        System.out.println("Olá, " + nome + "!");
-    }
-}
-</pre>
-<pre class="solucao">import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
