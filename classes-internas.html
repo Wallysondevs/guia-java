@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Classes Internas e Anônimas — inner, static, local e anônima | Guia Java</title>
+<meta name="description" content="Classes dentro de classes em Java: a classe interna (inner), a classe static aninhada, a classe local e a classe anônima (com Comparator e Runnable), como as lambdas substituem as anônimas e os arquivos Externa$Interna.class que o javac gera. Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Classes Internas e Anônimas</span></h1>
+
+<p class="intro">Até aqui, cada classe ficava "solta" no arquivo. Mas o Java permite declarar uma classe <strong>dentro</strong> de outra, e até dentro de um método. Isso serve para classes pequenas que só fazem sentido junto de outra: o motor de um carro, o item de um pedido. A forma mais usada é a <strong>classe anônima</strong>, uma classe sem nome criada na hora, que você vai encontrar em muito código antigo e que hoje, na maioria dos casos, virou <a href="lambdas.html">lambda</a>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os quatro tipos de classe aninhada: <strong>interna</strong>, <strong><code>static</code> aninhada</strong>, <strong>local</strong> e <strong>anônima</strong>.</li>
+  <li>Quando cada uma enxerga os dados da classe de fora.</li>
+  <li>Como criar uma classe anônima com <code>Comparator</code> e <code>Runnable</code>.</li>
+  <li>Como uma lambda substitui uma classe anônima.</li>
+  <li>Que arquivos <code>.class</code> o <code>javac</code> gera para cada uma (<code>Externa$Interna.class</code>).</li>
+</ul>
+</div>
+
+<p>Esta aula usa <a href="interfaces.html">Interfaces</a> e <a href="static.html">static</a>.</p>
+
+<hr>
+
+<h2>A ideia: peças que só existem dentro de algo</h2>
+<p>Um carro tem motor, mas ninguém vai à concessionária comprar "um motor de Fusca" avulso: ele só faz sentido dentro do carro, e conversa o tempo todo com o carro. Já o cardápio de um restaurante tem "itens": um item não pertence a um pedido específico, mas faz sentido agrupar a ideia de "item" junto da ideia de "pedido".</p>
+
+<p>Uma classe declarada dentro de outra se chama <strong>classe aninhada</strong> (<em>nested class</em>). A de fora é a <strong>classe externa</strong>. Há quatro tipos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Onde é declarada</th><th>Enxerga os atributos do objeto de fora?</th><th>Exemplo</th></tr>
+<tr><td><strong>Interna</strong> (<em>inner</em>)</td><td>No corpo da classe, sem <code>static</code></td><td>Sim</td><td><code>Carro.Motor</code></td></tr>
+<tr><td><strong><code>static</code> aninhada</strong></td><td>No corpo da classe, com <code>static</code></td><td>Não</td><td><code>Pedido.Item</code></td></tr>
+<tr><td><strong>Local</strong></td><td>Dentro de um método</td><td>Sim (e as variáveis do método)</td><td><code>class Placar</code> no <code>main</code></td></tr>
+<tr><td><strong>Anônima</strong></td><td>Numa expressão <code>new …() { }</code></td><td>Sim (e as variáveis do método)</td><td><code>new Comparator&lt;String&gt;() { … }</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Classe interna: o motor do carro</h2>
+<p>Uma classe interna é declarada dentro de outra, sem <code>static</code>. Todo objeto dela fica <strong>ligado a um objeto da classe externa</strong> e enxerga os atributos dele, até os <code>private</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Carro fusca = new Carro("Fusca");
+        fusca.ligar();
+
+        Carro.Motor outro = fusca.new Motor();
+        outro.girar();
+    }
+}
+
+class Carro {
+    private String modelo;
+    private Motor motor;
+
+    Carro(String modelo) {
+        this.modelo = modelo;
+        this.motor = new Motor();
+    }
+
+    void ligar() {
+        System.out.println("Ligando o " + modelo + "...");
+        motor.girar();
+    }
+
+    class Motor {
+        void girar() {
+            System.out.println("Motor do " + modelo + ": vrum!");
+        }
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class Motor</dt><dd>Declarada <strong>dentro</strong> das chaves de <code>Carro</code>. É um membro da classe, como um atributo ou método.</dd>
+  <dt>modelo</dt><dd>Dentro de <code>Motor</code>, <code>modelo</code> é o atributo <strong>do carro dono deste motor</strong>, mesmo sendo <code>private</code>.</dd>
+  <dt>new Motor()</dt><dd>Dentro do <code>Carro</code>, cria um motor ligado a <code>this</code> (este carro).</dd>
+  <dt>Carro.Motor</dt><dd>De fora, o nome completo do tipo é <code>Carro.Motor</code>.</dd>
+  <dt>fusca.new Motor()</dt><dd>De fora, um motor precisa de um carro dono; a sintaxe (estranha, e rara) é <code>objetoExterno.new Interna()</code>.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Ligando o Fusca...
+Motor do Fusca: vrum!          « o motor leu o modelo do carro dele
+Motor do Fusca: vrum!          « o outro motor também pertence ao fusca</pre>
+
+<p>Use uma classe interna quando a peça precisa dos dados do "dono" e não tem sentido sozinha. Na prática, ela costuma ser <code>private</code>, usada só pela classe externa.</p>
+
+<hr>
+
+<h2>2. Classe <code>static</code> aninhada: o item do pedido</h2>
+<p>Com <code>static</code>, a classe aninhada <strong>não</strong> fica ligada a um objeto da externa. Ela é só uma classe comum, "guardada" dentro da outra para organizar o código. O nome completo dela usa a externa como prefixo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Pedido.Item cafe = new Pedido.Item("Café", 2, 18.90);
+        Pedido.Item pao = new Pedido.Item("Pão", 6, 0.75);
+        System.out.println(cafe.total());
+        System.out.println(pao.total());
+    }
+}
+
+class Pedido {
+    String cliente;
+
+    static class Item {
+        String produto;
+        int quantidade;
+        double preco;
+
+        Item(String produto, int quantidade, double preco) {
+            this.produto = produto;
+            this.quantidade = quantidade;
+            this.preco = preco;
+        }
+
+        double total() {
+            return quantidade * preco;
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+37.8
+4.5</pre>
+
+<p>Repare: <code>new Pedido.Item(…)</code>, sem precisar de nenhum pedido. Como não há "pedido dono", a classe <code>static</code> não enxerga os atributos de objeto da externa. Tentando usar o <code>cliente</code> dentro de <code>Item</code>:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:25: error: non-static variable cliente cannot be referenced from a static context
+            System.out.println("Cliente: " + cliente);
+                                             ^
+1 error</pre>
+
+<p>É o mesmo erro da aula <a href="static.html">static</a>: dentro de algo <code>static</code>, não existe "este pedido". Na dúvida entre interna e <code>static</code>, a recomendação dos livros é: <strong>prefira <code>static</code></strong>, a menos que a classe precise mesmo do objeto de fora. Ela é mais simples e não guarda uma referência escondida ao objeto externo. Um exemplo da biblioteca: <code>Map.Entry</code> (veja <a href="hashmap.html">HashMap</a>).</p>
+
+<hr>
+
+<h2>3. Classe local: dentro de um método</h2>
+<p>Uma classe pode ser declarada dentro de um método, como uma variável. Ela só existe ali:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        class Placar {
+            int pontos;
+
+            void marcar(int p) {
+                pontos = pontos + p;
+                System.out.println("Placar: " + pontos);
+            }
+        }
+
+        Placar jogo = new Placar();
+        jogo.marcar(3);
+        jogo.marcar(2);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Placar: 3
+Placar: 5</pre>
+
+<p>Classes locais são raras. Elas aparecem quando um método precisa de uma pequena estrutura só para ele. Hoje, para "um grupo de dados só aqui", um <a href="records.html">record</a> local costuma ser mais prático.</p>
+
+<hr>
+
+<h2>4. Classe anônima: criada na hora, sem nome</h2>
+<p>Às vezes você precisa de um objeto que implemente uma interface uma única vez, num lugar só. Criar uma classe com nome, num lugar separado, só para isso, dá trabalho. A <strong>classe anônima</strong> junta tudo numa expressão: declara a classe <strong>e</strong> cria o objeto, ali mesmo.</p>
+
+<p>O exemplo clássico é ordenar uma lista com um critério próprio. O <code>Collections.sort</code> aceita um <code>Comparator</code>, uma interface com o método <code>compare(a, b)</code> (devolve negativo se <code>a</code> vem antes, positivo se vem depois; veja <a href="comparable-comparator.html">Comparable e Comparator</a>). A Ana quer as frutas da menor para a maior palavra:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("melancia", "uva", "banana", "kiwi"));
+
+        Comparator&lt;String&gt; porTamanho = new Comparator&lt;String&gt;() {
+            @Override
+            public int compare(String a, String b) {
+                return a.length() - b.length();
+            }
+        };
+
+        Collections.sort(frutas, porTamanho);
+        System.out.println(frutas);
+
+        Runnable tarefa = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Tarefa rodando!");
+            }
+        };
+        tarefa.run();
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>new Comparator&lt;String&gt;()</dt><dd>Parece criar um objeto de uma interface, o que é proibido… mas logo depois vêm as chaves.</dd>
+  <dt>{ … }</dt><dd>O corpo de uma classe <strong>sem nome</strong> que implementa <code>Comparator&lt;String&gt;</code>. O <code>new</code> cria um objeto dela na mesma hora.</dd>
+  <dt>public int compare(String a, String b)</dt><dd>A implementação do único método da interface: compara pelo tamanho.</dd>
+  <dt>};</dt><dd>Fecha o corpo da classe <strong>e</strong> o comando de atribuição. Esse <code>;</code> depois da chave é fácil de esquecer.</dd>
+  <dt>new Runnable() { … }</dt><dd>A mesma ideia com <code>Runnable</code>, a interface de "uma tarefa para rodar", com o método <code>run()</code> (é a base das <a href="threads.html">Threads</a>).</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+[uva, kiwi, banana, melancia]       « 3, 4, 6 e 8 letras
+Tarefa rodando!</pre>
+
+<p>Uma classe anônima pode implementar uma interface ou estender uma classe (inclusive <a href="abstratas.html">abstrata</a>: <code>new Forma("x") { double area() { return 1; } }</code>). Ela não pode ter construtor (não tem nome para isso) e serve para um objeto só.</p>
+
+<div class="tryjava" data-goal="out:[melancia\, banana\, kiwi\, uva],src:new\s+Comparator">
+<p class="try-task"><strong>Missão:</strong> mude a classe anônima para ordenar da <strong>maior</strong> para a <strong>menor</strong> palavra. Dica: troque a ordem da subtração no <code>compare</code>. A saída deve ser <code>[melancia, banana, kiwi, uva]</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("melancia", "uva", "banana", "kiwi"));
+
+        Comparator&lt;String&gt; porTamanho = new Comparator&lt;String&gt;() {
+            @Override
+            public int compare(String a, String b) {
+                return a.length() - b.length();
+            }
+        };
+
+        Collections.sort(frutas, porTamanho);
+        System.out.println(frutas);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("melancia", "uva", "banana", "kiwi"));
+
+        Comparator&lt;String&gt; porTamanho = new Comparator&lt;String&gt;() {
+            @Override
+            public int compare(String a, String b) {
+                return b.length() - a.length();
+            }
+        };
+
+        Collections.sort(frutas, porTamanho);
+        System.out.println(frutas);
+    }
+}
+</pre>
+</div>
+
+<h3>Variáveis de fora: só as "efetivamente finais"</h3>
+<p>Classes locais e anônimas podem usar as variáveis do método onde estão, com uma condição: a variável não pode mudar depois de receber o valor. Ela precisa ser <code>final</code> ou <strong>efetivamente final</strong> (veja <a href="final.html">final</a>):</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String saudacao = "Olá";
+        saudacao = "Oi";
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println(saudacao);
+            }
+        };
+        r.run();
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:8: error: local variables referenced from an inner class must be final or effectively final
+                System.out.println(saudacao);
+                                   ^
+1 error</pre>
+
+<p>"Variáveis locais usadas por uma classe interna precisam ser <code>final</code> ou efetivamente finais." O objeto anônimo pode viver mais que o método (pode ser guardado e rodado depois); por isso ele guarda uma <strong>cópia</strong> do valor, e o Java exige que esse valor nunca mude, para a cópia não ficar diferente do original. Apagando a linha <code>saudacao = "Oi";</code>, compila e mostra <code>Olá</code>. A mesma regra vale para as lambdas.</p>
+
+<hr>
+
+<h2>Lambdas: o substituto moderno</h2>
+<p><span class="versao">Java 8+</span> Repare quanto código a classe anônima precisou para dizer uma coisa só: "compare pelo tamanho". <code>Comparator</code> e <code>Runnable</code> têm <strong>um único</strong> método abstrato; interfaces assim se chamam <strong>interfaces funcionais</strong>. Para elas, o Java 8 criou uma forma curta, a <strong>lambda</strong>: só os parâmetros, uma seta <code>-&gt;</code> e o corpo.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("melancia", "uva", "banana", "kiwi"));
+        Collections.sort(frutas, (a, b) -&gt; a.length() - b.length());
+        System.out.println(frutas);
+
+        Runnable tarefa = () -&gt; System.out.println("Tarefa rodando!");
+        tarefa.run();
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+[uva, kiwi, banana, melancia]
+Tarefa rodando!</pre>
+
+<p>A mesma saída, com uma linha no lugar de seis. Compare as duas formas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Classe anônima</th><th>Lambda</th></tr>
+<tr><td><code>new Comparator&lt;String&gt;() {<br>&nbsp;&nbsp;public int compare(String a, String b) {<br>&nbsp;&nbsp;&nbsp;&nbsp;return a.length() - b.length();<br>&nbsp;&nbsp;}<br>}</code></td><td><code>(a, b) -&gt; a.length() - b.length()</code></td></tr>
+<tr><td><code>new Runnable() {<br>&nbsp;&nbsp;public void run() {<br>&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Oi");<br>&nbsp;&nbsp;}<br>}</code></td><td><code>() -&gt; System.out.println("Oi")</code></td></tr>
+</table>
+</div>
+
+<p>Como a interface só tem um método, o compilador deduz o resto: qual método, os tipos dos parâmetros, o <code>return</code>. Tudo sobre lambdas está em <a href="lambdas.html">Lambdas</a> e <a href="interfaces-funcionais.html">Interfaces Funcionais</a>.</p>
+
+<p><strong>Ainda há lugar para a classe anônima?</strong> Sim, quando a lambda não serve: a interface tem <strong>mais de um</strong> método abstrato, você precisa estender uma classe (não uma interface), ou o objeto precisa guardar estado próprio (atributos). E você vai lê-las em todo código anterior a 2014.</p>
+
+<hr>
+
+<h2>Os arquivos <code>.class</code> gerados</h2>
+<p>A JVM não conhece "classes dentro de classes": para ela, toda classe é um arquivo <code>.class</code> separado. O <code>javac</code> resolve isso dando nomes com <code>$</code> (cifrão). A Ana compilou um arquivo com um exemplo de cada tipo (o <code>Carro</code> com <code>Motor</code>, o <code>Pedido</code> com <code>Item</code>, uma classe local <code>Placar</code> no <code>main</code>, duas classes anônimas de <code>Runnable</code> e uma lambda) e listou a pasta de saída:</p>
+
+<pre class="term">$ javac -d out Main.java
+$ ls out
+Carro$Motor.class
+Carro.class
+Main$1.class
+Main$1Placar.class
+Main$2.class
+Main.class
+Pedido$Item.class
+Pedido.class
+$ java -cp out Main
+primeira anônima
+segunda anônima
+uma lambda</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Arquivo</th><th>De onde veio</th><th>Regra do nome</th></tr>
+<tr><td><code>Carro$Motor.class</code></td><td>A classe interna <code>Motor</code></td><td><code>Externa$Interna</code></td></tr>
+<tr><td><code>Pedido$Item.class</code></td><td>A <code>static</code> aninhada <code>Item</code></td><td><code>Externa$Aninhada</code> (igual)</td></tr>
+<tr><td><code>Main$1Placar.class</code></td><td>A classe local <code>Placar</code></td><td><code>Externa$</code> + número + nome</td></tr>
+<tr><td><code>Main$1.class</code>, <code>Main$2.class</code></td><td>As duas classes anônimas, na ordem em que aparecem</td><td><code>Externa$</code> + número (não há nome)</td></tr>
+<tr><td>(nenhum)</td><td>A lambda</td><td>Não gera arquivo: vira um método escondido dentro de <code>Main.class</code></td></tr>
+</table>
+</div>
+
+<p>(A opção <code>-d out</code> grava os <code>.class</code> na pasta <code>out</code>; veja <a href="pacotes.html">Pacotes</a>.) Esses nomes aparecem também em mensagens de erro e rastros de exceção (numa linha como <code>at Main$1.run(…)</code>): quando vir um <code>$</code> com número, pense "classe anônima". E, no terminal, cuidado: o <code>$</code> é especial para o Bash, então para usar esses nomes num comando escreva-os entre aspas simples (<code>'Main$1.class'</code>).</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"local variables referenced from an inner class must be final or effectively final"</strong>
+<p><strong>O que aconteceu:</strong> uma classe anônima (ou local) usou uma variável do método que muda de valor em algum lugar.</p>
+<p><strong>Como resolver:</strong> não mude a variável; se precisar de outro valor, crie outra variável (<code>String mensagem = saudacao + "!";</code>) e use essa.</p>
+</div>
+
+<div class="cenario">
+<strong>"non-static variable … cannot be referenced from a static context" numa classe aninhada</strong>
+<p><strong>O que aconteceu:</strong> uma classe <code>static</code> aninhada tentou usar um atributo de objeto da classe externa.</p>
+<p><strong>Como resolver:</strong> passe o dado como parâmetro (ou no construtor) da classe aninhada. Tirar o <code>static</code> também resolve, mas aí cada objeto dela precisa de um objeto externo dono.</p>
+</div>
+
+<div class="cenario">
+<strong>"';' expected" depois da classe anônima</strong>
+<p><strong>O que aconteceu:</strong> faltou o <code>;</code> depois da chave que fecha a classe anônima (<code>};</code>). Lembre-se: a classe anônima é parte de uma expressão (<code>Runnable r = …;</code>), e todo comando termina em <code>;</code>.</p>
+<p><strong>Como resolver:</strong> feche com <code>};</code>. Ou, se a interface for funcional, troque por uma lambda.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Tipo</th><th>Como criar um objeto</th></tr>
+<tr><td><code>class Externa { class Interna { } }</code></td><td>Interna</td><td>Dentro: <code>new Interna()</code>; fora: <code>externa.new Interna()</code></td></tr>
+<tr><td><code>class Externa { static class Aninhada { } }</code></td><td><code>static</code> aninhada</td><td><code>new Externa.Aninhada()</code></td></tr>
+<tr><td><code>void m() { class Local { } }</code></td><td>Local</td><td><code>new Local()</code>, só dentro do método</td></tr>
+<tr><td><code>new Interface() { … }</code></td><td>Anônima</td><td>Criada junto com a declaração</td></tr>
+<tr><td><code>(a, b) -&gt; …</code></td><td>Lambda (não é classe)</td><td>Só para interfaces funcionais</td></tr>
+<tr><td><code>Externa$Interna.class</code>, <code>Externa$1.class</code></td><td colspan="2">Arquivos gerados pelo <code>javac</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Criar a aninhada</h3>
+<p><code>Item</code> é uma classe <code>static</code> dentro de <code>Pedido</code>, com construtor sem parâmetros. Complete:</p>
+<div class="ex-code">Pedido.Item i = <input data-answer="new Pedido.Item()" aria-label="criação">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O nome do arquivo</h3>
+<p>Que arquivo o <code>javac</code> gera para a classe <code>Roda</code> declarada dentro de <code>Bicicleta</code>?</p>
+<div class="ex-code"><input data-answer="Bicicleta$Roda.class" aria-label="arquivo"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Lambda no lugar da anônima</h3>
+<p>Complete a lambda equivalente a um <code>Runnable</code> anônimo que mostra <code>"Oi"</code>:</p>
+<div class="ex-code">Runnable r = <input data-answer="() -&gt; System.out.println(&quot;Oi&quot;)|()-&gt;System.out.println(&quot;Oi&quot;)" aria-label="lambda">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual tipo de classe aninhada <strong>não</strong> enxerga os atributos de objeto da classe externa?</p>
+<label><input type="radio" name="q4"> A interna</label>
+<label><input type="radio" name="q4"> A <code>static</code> aninhada</label>
+<label><input type="radio" name="q4"> A anônima declarada num método de instância</label>
+<label><input type="radio" name="q4"> A local declarada num método de instância</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Quando a classe anônima <strong>não</strong> pode ser trocada por uma lambda?</p>
+<label><input type="radio" name="q5"> Quando implementa <code>Runnable</code></label>
+<label><input type="radio" name="q5"> Quando implementa <code>Comparator</code></label>
+<label><input type="radio" name="q5"> Quando usa uma variável efetivamente final</label>
+<label><input type="radio" name="q5"> Quando a interface tem mais de um método abstrato</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Um arquivo <code>Main.java</code> tem duas classes anônimas e uma lambda. Quantos arquivos <code>Main$…class</code> o <code>javac</code> gera?</p>
+<label><input type="radio" name="q6"> 2 (<code>Main$1</code> e <code>Main$2</code>)</label>
+<label><input type="radio" name="q6"> 3</label>
+<label><input type="radio" name="q6"> 1</label>
+<label><input type="radio" name="q6"> Nenhum</label>
+</div>
+
+<div class="tryjava" data-goal="out:[uva\, kiwi\, banana\, melancia],out:Tarefa rodando!,src:-&gt;,src:^(?![\s\S]*new\s+(Comparator|Runnable))">
+<p class="try-task"><strong>Missão final:</strong> modernize o código: troque as duas classes anônimas por lambdas, sem mudar a saída (<code>[uva, kiwi, banana, melancia]</code> e <code>Tarefa rodando!</code>). Depois, o <code>import java.util.Comparator;</code> pode até sair.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("melancia", "uva", "banana", "kiwi"));
+
+        Collections.sort(frutas, new Comparator&lt;String&gt;() {
+            @Override
+            public int compare(String a, String b) {
+                return a.length() - b.length();
+            }
+        });
+        System.out.println(frutas);
+
+        Runnable tarefa = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Tarefa rodando!");
+            }
+        };
+        tarefa.run();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("melancia", "uva", "banana", "kiwi"));
+
+        Collections.sort(frutas, (a, b) -&gt; a.length() - b.length());
+        System.out.println(frutas);
+
+        Runnable tarefa = () -&gt; System.out.println("Tarefa rodando!");
+        tarefa.run();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Interna</strong>: dentro da classe, sem <code>static</code>; cada objeto pertence a um objeto externo e enxerga os dados dele.</li>
+  <li><strong><code>static</code> aninhada</strong>: só organização; não enxerga os atributos de objeto da externa. Prefira esta quando der.</li>
+  <li><strong>Local</strong>: declarada dentro de um método; só existe ali.</li>
+  <li><strong>Anônima</strong>: <code>new Interface() { … }</code> declara e cria um objeto de uma classe sem nome. Usa variáveis do método só se forem efetivamente finais.</li>
+  <li>Para interfaces com um só método (<code>Comparator</code>, <code>Runnable</code>), a <a href="lambdas.html">lambda</a> substitui a classe anônima.</li>
+  <li>O <code>javac</code> gera <code>Externa$Interna.class</code>, <code>Externa$1.class</code> (anônimas) e <code>Externa$1Local.class</code>; lambdas não geram arquivo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
