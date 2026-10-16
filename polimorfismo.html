@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Polimorfismo — despacho dinâmico, casting e instanceof | Guia Java</title>
+<meta name="description" content="Polimorfismo em Java: uma variável do tipo Animal guardando um Cachorro, qual método roda (despacho dinâmico), uma lista de Animal com Cachorro e Gato, casting de objetos, a ClassCastException real e o instanceof (com pattern matching). Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Polimorfismo</span></h1>
+
+<p class="intro">Polimorfismo é a ideia que dá sentido à herança e à sobrescrita. Ela permite tratar um cachorro, um gato e uma vaca simplesmente como "animais": guardar todos numa mesma lista, passar qualquer um para o mesmo método e, mesmo assim, cada um se comportar do seu jeito. O nome assusta, mas a ideia é do dia a dia. Nesta aula você vai ver como ela funciona, qual método o Java escolhe e como "voltar" de <code>Animal</code> para <code>Cachorro</code> sem quebrar o programa.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como uma variável do tipo da superclasse pode guardar um objeto da subclasse.</li>
+  <li>Qual método roda quando há sobrescrita: o <strong>despacho dinâmico</strong>.</li>
+  <li>Como fazer uma lista de <code>Animal</code> com <code>Cachorro</code>, <code>Gato</code> e <code>Vaca</code>, e métodos que aceitam qualquer animal.</li>
+  <li>O que o tipo da variável deixa (e não deixa) chamar.</li>
+  <li>Como converter de volta (<em>casting</em>), a <code>ClassCastException</code> e o <code>instanceof</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula usa <a href="heranca.html">Herança</a> e <a href="sobrescrita.html">Sobrescrita</a>. Os exemplos usam a família de animais dessas aulas.</p>
+
+<hr>
+
+<h2>A ideia: "chame o veterinário para o animal"</h2>
+<p>A Ana tem uma clínica veterinária. Na agenda está escrito "atender um <strong>animal</strong> às 10h". A recepcionista não precisa saber se é cachorro ou gato para marcar a consulta: qualquer animal serve. Mas, na hora da consulta, se a veterinária pede "faça um som", o cachorro late e o gato mia. A agenda trata todos como "animal"; cada um continua sendo o que é.</p>
+
+<p><strong>Polimorfismo</strong> vem do grego: <em>poli</em> = muitas, <em>morphé</em> = formas. "Muitas formas": uma mesma chamada (<code>emitirSom()</code>) assume a forma do objeto que a recebe. Em Java, ele aparece em duas peças:</p>
+<ol>
+  <li>Uma variável (ou lista, ou parâmetro) do tipo <code>Animal</code> pode guardar <strong>qualquer</strong> subclasse de <code>Animal</code>.</li>
+  <li>Quando você chama um método sobrescrito por essa variável, roda a versão do <strong>objeto</strong>, e não a do tipo da variável.</li>
+</ol>
+
+<hr>
+
+<h2>Uma variável <code>Animal</code> guardando um <code>Cachorro</code></h2>
+<p>Até agora, você sempre escreveu <code>Cachorro rex = new Cachorro();</code>, com o mesmo tipo dos dois lados. Mas, como todo cachorro <strong>é um</strong> animal, isto também vale:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Animal a = new Cachorro();
+        a.emitirSom();
+        a = new Gato();
+        a.emitirSom();
+    }
+}
+
+class Animal {
+    void emitirSom() {
+        System.out.println("(algum som de animal)");
+    }
+}
+
+class Cachorro extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Au au!");
+    }
+
+    void buscarBolinha() {
+        System.out.println("Buscando a bolinha!");
+    }
+}
+
+class Gato extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Miau!");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Animal</dt><dd>O <strong>tipo da variável</strong> (também chamado de tipo da referência): o que o compilador sabe sobre ela. "Aqui dentro há algum animal."</dd>
+  <dt>a</dt><dd>O nome da variável.</dd>
+  <dt>new Cachorro()</dt><dd>O <strong>objeto</strong> de verdade, criado na memória. Ele é, e sempre será, um <code>Cachorro</code>.</dd>
+  <dt>a = new Gato();</dt><dd>A mesma variável passa a apontar para um gato. Permitido, porque gato também é animal.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Au au!          « a variável é Animal, mas o objeto é Cachorro
+Miau!           « a mesma linha de código, agora com um Gato</pre>
+
+<p>A linha <code>a.emitirSom();</code> aparece duas vezes, igual, e fez coisas diferentes. Guardar uma subclasse numa variável da superclasse se chama <strong><em>upcasting</em></strong> ("converter para cima"), e é automático: não precisa escrever nada.</p>
+
+<hr>
+
+<h2>Qual método roda? O despacho dinâmico</h2>
+<p>Há dois tipos envolvidos em <code>Animal a = new Cachorro();</code>, e cada um tem um papel:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Tipo da variável (<code>Animal</code>)</th><th>Tipo do objeto (<code>Cachorro</code>)</th></tr>
+<tr><td>Quem olha</td><td>O <strong>compilador</strong>, antes de rodar</td><td>A <strong>JVM</strong>, enquanto roda</td></tr>
+<tr><td>Decide</td><td><strong>Quais</strong> métodos você pode chamar</td><td><strong>Qual versão</strong> do método roda</td></tr>
+<tr><td>Em <code>a.emitirSom()</code></td><td>"<code>Animal</code> tem <code>emitirSom()</code>? Tem. Pode chamar."</td><td>"O objeto é um <code>Cachorro</code>, que sobrescreveu. Roda a do <code>Cachorro</code>."</td></tr>
+</table>
+</div>
+
+<p>Essa escolha da versão na hora de rodar, olhando o objeto, se chama <strong>despacho dinâmico</strong> (<em>dynamic dispatch</em>) ou ligação tardia (<em>late binding</em>). "Dinâmico" porque acontece durante a execução: o compilador não tem como saber, por exemplo, que animal o usuário vai escolher num menu.</p>
+
+<h3>O que o tipo da variável não deixa fazer</h3>
+<p>O outro lado da tabela: o compilador só deixa chamar o que o tipo da variável conhece. O objeto em <code>a</code> é um cachorro, mas a variável diz só "animal", e nem todo animal busca bolinha:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">        Animal a = new Cachorro();
+        a.emitirSom();
+        a.buscarBolinha();
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: cannot find symbol
+        a.buscarBolinha();
+         ^
+  symbol:   method buscarBolinha()
+  location: variable a of type Animal
+1 error</pre>
+
+<p>"Não achei o método <code>buscarBolinha()</code> na variável <code>a</code>, do tipo <code>Animal</code>." O objeto tem o método, mas o compilador decide pelo tipo da variável. Mais abaixo você vai ver como recuperar o acesso, com <em>casting</em> e <code>instanceof</code>.</p>
+
+<hr>
+
+<h2>Onde o polimorfismo brilha: listas e parâmetros</h2>
+<p>Uma variável solta não mostra a vantagem. Ela aparece quando você tem <strong>vários</strong> animais diferentes e quer tratá-los do mesmo jeito. A fazenda da Ana:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Animal&gt; fazenda = List.of(new Cachorro(), new Gato(), new Vaca(), new Gato());
+        for (Animal bicho : fazenda) {
+            bicho.emitirSom();
+        }
+        System.out.println("---");
+        acordar(new Vaca());
+        acordar(new Cachorro());
+    }
+
+    static void acordar(Animal bicho) {
+        System.out.print("Bom dia! ");
+        bicho.emitirSom();
+    }
+}
+
+class Animal {
+    void emitirSom() {
+        System.out.println("(algum som de animal)");
+    }
+}
+
+class Cachorro extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Au au!");
+    }
+}
+
+class Gato extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Miau!");
+    }
+}
+
+class Vaca extends Animal {
+    @Override
+    void emitirSom() {
+        System.out.println("Muu!");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>List&lt;Animal&gt;</dt><dd>Uma lista de animais. Cabe qualquer subclasse de <code>Animal</code> (listas são o assunto de <a href="arraylist.html">ArrayList</a>; um array <code>Animal[]</code> funcionaria igual).</dd>
+  <dt>for (Animal bicho : fazenda)</dt><dd>Percorre a lista (veja <a href="for-each.html">for-each</a>). A cada volta, <code>bicho</code> é um animal diferente.</dd>
+  <dt>static void acordar(Animal bicho)</dt><dd>Um método que aceita <strong>qualquer</strong> animal como parâmetro.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Au au!
+Miau!
+Muu!
+Miau!
+---
+Bom dia! Muu!
+Bom dia! Au au!</pre>
+
+<p>Repare no que <strong>não</strong> existe nesse código: nenhum <code>if</code> perguntando "é cachorro? é gato?". O laço e o método <code>acordar</code> foram escritos uma vez, para <code>Animal</code>. Se amanhã a Ana criar a classe <code>Galinha</code> com o seu <code>emitirSom()</code>, o laço e o <code>acordar</code> funcionam com ela <strong>sem mudar uma linha</strong>. Esse é o grande ganho: o código que usa os animais não precisa conhecer todos os tipos de animal.</p>
+
+<div class="tryjava" data-goal="out:Área total: 28.0,src:extends\s+Forma">
+<p class="try-task"><strong>Missão:</strong> o programa soma as áreas de uma lista de formas, sem saber que forma é cada uma. Crie a classe <code>Triangulo</code>, que herda de <code>Forma</code>, recebe <code>base</code> e <code>altura</code> no construtor e sobrescreve <code>area()</code> com <code>base * altura / 2</code>. Acrescente <code>new Triangulo(6, 2)</code> na lista. O laço não precisa mudar! A saída deve ser <code>Área total: 28.0</code>.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Forma&gt; formas = List.of(new Retangulo(2, 3), new Retangulo(4, 4));
+        double total = 0;
+        for (Forma f : formas) {
+            total = total + f.area();
+        }
+        System.out.println("Área total: " + total);
+    }
+}
+
+class Forma {
+    double area() {
+        return 0;
+    }
+}
+
+class Retangulo extends Forma {
+    double largura, altura;
+
+    Retangulo(double largura, double altura) {
+        this.largura = largura;
+        this.altura = altura;
+    }
+
+    @Override
+    double area() {
+        return largura * altura;
+    }
+}
+
+// crie aqui a classe Triangulo
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Forma&gt; formas = List.of(new Retangulo(2, 3), new Retangulo(4, 4), new Triangulo(6, 2));
+        double total = 0;
+        for (Forma f : formas) {
+            total = total + f.area();
+        }
+        System.out.println("Área total: " + total);
+    }
+}
+
+class Forma {
+    double area() {
+        return 0;
+    }
+}
+
+class Retangulo extends Forma {
+    double largura, altura;
+
+    Retangulo(double largura, double altura) {
+        this.largura = largura;
+        this.altura = altura;
+    }
+
+    @Override
+    double area() {
+        return largura * altura;
+    }
+}
+
+class Triangulo extends Forma {
+    double base, altura;
+
+    Triangulo(double base, double altura) {
+        this.base = base;
+        this.altura = altura;
+    }
+
+    @Override
+    double area() {
+        return base * altura / 2;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Voltando para o tipo da subclasse: <em>casting</em></h2>
+<p>Às vezes você tem um <code>Animal</code> nas mãos e <strong>sabe</strong> que ele é um cachorro. Para usar o que só o cachorro tem, é preciso converter a referência para <code>Cachorro</code>. Isso é o <strong><em>casting</em></strong> de objetos (ou <em>downcasting</em>, "converter para baixo"). Sem ele, o compilador recusa:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: Animal cannot be converted to Cachorro
+        Cachorro c = a;
+                     ^
+1 error</pre>
+
+<p>"Tipos incompatíveis: <code>Animal</code> não pode ser convertido em <code>Cachorro</code>." O compilador não sabe o que há dentro de <code>a</code>: poderia ser um gato. Com o <em>cast</em>, você assume a responsabilidade, escrevendo o tipo entre parênteses, como no <a href="conversao-tipos.html">casting de números</a>:</p>
+
+<pre class="file" data-file="Main.java">        Animal a = new Cachorro();
+        Cachorro c = (Cachorro) a;
+        c.buscarBolinha();
+        Animal outro = new Gato();
+        Cachorro falso = (Cachorro) outro;
+        falso.buscarBolinha();
+</pre>
+
+<dl class="anatomy">
+  <dt>(Cachorro)</dt><dd>O <em>cast</em>: "trate esta referência como <code>Cachorro</code>". O objeto não muda; muda só o tipo pelo qual você o enxerga.</dd>
+  <dt>a</dt><dd>A referência a converter.</dd>
+  <dt>Cachorro c</dt><dd>Agora, com uma variável do tipo <code>Cachorro</code>, <code>buscarBolinha()</code> está liberado.</dd>
+</dl>
+
+<p>O primeiro <em>cast</em> é verdadeiro: o objeto é mesmo um cachorro. O segundo é uma mentira: <code>outro</code> guarda um gato. O compilador aceita os dois (ele não sabe o que há dentro), mas a JVM confere na hora de rodar:</p>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Buscando a bolinha!
+Exception in thread "main" java.lang.ClassCastException: class Gato cannot be cast to class Cachorro (Gato and Cachorro are in unnamed module of loader 'app')
+	at Main.main(Main.java:7)</pre>
+
+<p><em>ClassCastException</em> = "exceção de conversão de classe": "a classe <code>Gato</code> não pode ser convertida para <code>Cachorro</code>". O resto da mensagem, entre parênteses, diz de onde as classes foram carregadas (<em>unnamed module of loader 'app'</em>: sem módulo, carregadas pela aplicação); você pode ignorá-lo. A última linha aponta a linha 7, a do <em>cast</em> falso. O programa parou ali: o <code>falso.buscarBolinha()</code> nunca rodou.</p>
+
+<div class="note">
+<strong>A mensagem muda um pouco com <code>java Main.java</code></strong>
+<p>No modo arquivo-fonte, as classes são carregadas por outro carregador, e o fim da mensagem fica <code>(Gato and Cachorro are in unnamed module of loader com.sun.tools.javac.launcher.MemoryClassLoader @6166e06f)</code>. O começo, que é o que importa, é igual.</p>
+</div>
+
+<p>E se as classes nem são parentes, o compilador já recusa o <em>cast</em>, porque ele nunca poderia dar certo:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: Animal cannot be converted to String
+        String texto = (String) a;
+                                ^
+1 error</pre>
+
+<hr>
+
+<h2><code>instanceof</code>: pergunte antes de converter</h2>
+<p>Para não arriscar uma <code>ClassCastException</code>, pergunte primeiro. O operador <code>instanceof</code> ("é instância de") responde <code>true</code> ou <code>false</code>: "este objeto é um X (ou uma subclasse de X)?".</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Animal&gt; fazenda = List.of(new Cachorro(), new Gato(), new Cachorro());
+        for (Animal bicho : fazenda) {
+            bicho.emitirSom();
+            if (bicho instanceof Cachorro) {
+                Cachorro c = (Cachorro) bicho;
+                c.buscarBolinha();
+            }
+        }
+        System.out.println("---");
+        Animal rex = new Cachorro();
+        System.out.println(rex instanceof Cachorro);
+        System.out.println(rex instanceof Animal);
+        System.out.println(rex instanceof Object);
+        System.out.println(rex instanceof Gato);
+        Animal ninguem = null;
+        System.out.println(ninguem instanceof Animal);
+    }
+}
+</pre>
+
+<p>(As classes são as de antes; o <code>buscarBolinha()</code> agora mostra <code>(buscando a bolinha)</code>.)</p>
+
+<pre class="term">$ java Main.java
+Au au!
+  (buscando a bolinha)       « só os cachorros passaram no if
+Miau!
+Au au!
+  (buscando a bolinha)
+---
+true                         « rex é um Cachorro
+true                         « …e também um Animal
+true                         « …e também um Object
+false                        « mas não é um Gato
+false                        « null nunca é instância de nada</pre>
+
+<p>Repare nos três <code>true</code>: o <code>instanceof</code> segue a escada da herança. Um cachorro <strong>é um</strong> animal e <strong>é um</strong> <code>Object</code>. E o último: com <code>null</code> (variável que não aponta para objeto nenhum), o resultado é <code>false</code>, sem erro; por isso o <code>instanceof</code> também protege contra <code>null</code>.</p>
+
+<h3>O jeito moderno: <code>instanceof</code> com padrão</h3>
+<p><span class="versao">Java 16+</span> Perguntar e depois converter (<code>if (bicho instanceof Cachorro)</code> + <code>(Cachorro) bicho</code>) repete o nome da classe. Desde o Java 16, dá para fazer as duas coisas de uma vez, dando um nome à variável já convertida:</p>
+
+<pre class="file" data-file="Main.java">        for (Animal bicho : fazenda) {
+            bicho.emitirSom();
+            if (bicho instanceof Cachorro c) {
+                c.buscarBolinha();
+            }
+        }
+</pre>
+
+<dl class="anatomy">
+  <dt>bicho instanceof Cachorro</dt><dd>A pergunta de sempre.</dd>
+  <dt>c</dt><dd>Se a resposta for <code>true</code>, cria a variável <code>c</code>, do tipo <code>Cachorro</code>, já convertida. Ela só existe dentro do <code>if</code>.</dd>
+</dl>
+
+<p>A saída é a mesma da versão anterior (as três primeiras partes). Essa forma se chama <strong>pattern matching</strong> ("casamento de padrões") e ganhou uma aula própria: <a href="pattern-matching.html">Pattern Matching</a>, que mostra também o <code>switch</code> com tipos.</p>
+
+<div class="warning">
+<strong>Muito <code>instanceof</code> é sinal de alerta</strong>
+<p>Se o seu código tem uma escada de <code>if (x instanceof Cachorro) … else if (x instanceof Gato) … else if …</code> para decidir o que cada animal faz, provavelmente aquilo deveria ser um método sobrescrito em cada classe. Deixe o despacho dinâmico escolher. O <code>instanceof</code> é para os casos em que você precisa de algo que só um tipo tem.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>ClassCastException</code></strong>
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Buscando a bolinha!
+Exception in thread "main" java.lang.ClassCastException: class Gato cannot be cast to class Cachorro (Gato and Cachorro are in unnamed module of loader 'app')
+	at Main.main(Main.java:7)</pre>
+<p><strong>O que aconteceu:</strong> um <em>cast</em> afirmou que o objeto era de um tipo que ele não é. O compilador aceitou, a JVM recusou ao rodar.</p>
+<p><strong>Como resolver:</strong> confira com <code>instanceof</code> antes de converter (de preferência a forma <code>if (x instanceof Cachorro c)</code>). Ou repense: talvez o método devesse estar na superclasse e ser sobrescrito.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … location: variable a of type Animal"</strong>
+<p><strong>O que aconteceu:</strong> o método existe no objeto, mas não no tipo da variável. O compilador só olha o tipo da variável.</p>
+<p><strong>Como resolver:</strong> se todo animal deveria ter o método, declare-o em <code>Animal</code>. Se só o cachorro tem, use <code>instanceof</code> com padrão para obter uma variável <code>Cachorro</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible types: Animal cannot be converted to Cachorro"</strong>
+<p><strong>O que aconteceu:</strong> uma atribuição de "para baixo" (<code>Cachorro c = a;</code>) sem <em>cast</em>. Para cima é automático; para baixo, não.</p>
+<p><strong>Como resolver:</strong> <code>if (a instanceof Cachorro c) { … }</code>, ou o <em>cast</em> explícito <code>(Cachorro) a</code> se você tiver certeza.</p>
+</div>
+
+<div class="cenario">
+<strong>Roda a versão "errada" do método</strong>
+<p><strong>O que aconteceu:</strong> quase sempre a subclasse não sobrescreveu de verdade (nome ou parâmetros diferentes), e roda a versão herdada.</p>
+<p><strong>Como resolver:</strong> coloque <code>@Override</code> no método da subclasse (veja <a href="sobrescrita.html">Sobrescrita</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Animal a = new Cachorro();</code></td><td><em>Upcasting</em>: automático, sempre seguro</td></tr>
+<tr><td><code>a.emitirSom()</code></td><td>Roda a versão do <strong>objeto</strong> (despacho dinâmico)</td></tr>
+<tr><td><code>List&lt;Animal&gt;</code>, <code>void f(Animal a)</code></td><td>Aceitam qualquer subclasse de <code>Animal</code></td></tr>
+<tr><td><code>(Cachorro) a</code></td><td><em>Downcasting</em>: o compilador confia; a JVM confere (<code>ClassCastException</code>)</td></tr>
+<tr><td><code>a instanceof Cachorro</code></td><td><code>true</code> se o objeto é <code>Cachorro</code> ou subclasse; <code>false</code> para <code>null</code></td></tr>
+<tr><td><code>if (a instanceof Cachorro c)</code> <span class="versao">Java 16+</span></td><td>Pergunta e já cria a variável convertida <code>c</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Lista de qualquer animal</h3>
+<p>Complete o tipo da variável para ela aceitar um <code>Gato</code> e, depois, um <code>Cachorro</code>:</p>
+<div class="ex-code"><input data-answer="Animal" aria-label="tipo"> bicho = new Gato();</div>
+</div>
+
+<div class="exercise">
+<h3>2. Perguntar antes</h3>
+<p>Complete a condição que confere se <code>bicho</code> é um <code>Gato</code>:</p>
+<div class="ex-code">if (<input data-answer="bicho instanceof Gato" aria-label="condição">) { … }</div>
+</div>
+
+<div class="exercise">
+<h3>3. O cast</h3>
+<p>Complete para converter <code>bicho</code> (do tipo <code>Animal</code>) para <code>Gato</code>:</p>
+<div class="ex-code">Gato g = <input data-answer="(Gato) bicho|(Gato)bicho" aria-label="cast">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>Animal a = new Gato();</code> e <code>Gato</code> sobrescreve <code>emitirSom()</code>. O que <code>a.emitirSom()</code> mostra?</p>
+<label><input type="radio" name="q4"> A versão de <code>Animal</code>, porque a variável é <code>Animal</code></label>
+<label><input type="radio" name="q4"> A versão de <code>Gato</code>, porque o objeto é um <code>Gato</code></label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> As duas versões</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>Animal a = new Gato(); Cachorro c = (Cachorro) a;</code> O que acontece?</p>
+<label><input type="radio" name="q5"> Erro de compilação</label>
+<label><input type="radio" name="q5"> O gato vira cachorro</label>
+<label><input type="radio" name="q5"> <code>c</code> fica <code>null</code></label>
+<label><input type="radio" name="q5"> Compila, mas ao rodar lança <code>ClassCastException</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. <code>Cachorro rex = new Cachorro();</code> Qual destas expressões vale <code>false</code>?</p>
+<label><input type="radio" name="q6"> <code>rex instanceof Cachorro</code></label>
+<label><input type="radio" name="q6"> <code>rex instanceof Animal</code></label>
+<label><input type="radio" name="q6"> <code>((Animal) rex) instanceof Gato</code></label>
+<label><input type="radio" name="q6"> <code>rex instanceof Object</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Rex buscou a bolinha,out:Thor buscou a bolinha,exit:0,src:instanceof">
+<p class="try-task"><strong>Missão final:</strong> a Ana quer que todos os cachorros da lista busquem a bolinha. O programa converte <strong>todo</strong> animal para <code>Cachorro</code> e quebra com <code>ClassCastException</code> ao chegar na Mimi. Rode e veja. Conserte com <code>instanceof</code>, para só os cachorros buscarem. A saída deve ter <code>Rex buscou a bolinha</code> e <code>Thor buscou a bolinha</code>, sem exceção.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Animal&gt; animais = List.of(new Cachorro("Rex"), new Gato("Mimi"), new Cachorro("Thor"));
+        for (Animal bicho : animais) {
+            Cachorro c = (Cachorro) bicho;
+            c.buscarBolinha();
+        }
+    }
+}
+
+class Animal {
+    String nome;
+
+    Animal(String nome) {
+        this.nome = nome;
+    }
+}
+
+class Cachorro extends Animal {
+    Cachorro(String nome) {
+        super(nome);
+    }
+
+    void buscarBolinha() {
+        System.out.println(nome + " buscou a bolinha");
+    }
+}
+
+class Gato extends Animal {
+    Gato(String nome) {
+        super(nome);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Animal&gt; animais = List.of(new Cachorro("Rex"), new Gato("Mimi"), new Cachorro("Thor"));
+        for (Animal bicho : animais) {
+            if (bicho instanceof Cachorro c) {
+                c.buscarBolinha();
+            }
+        }
+    }
+}
+
+class Animal {
+    String nome;
+
+    Animal(String nome) {
+        this.nome = nome;
+    }
+}
+
+class Cachorro extends Animal {
+    Cachorro(String nome) {
+        super(nome);
+    }
+
+    void buscarBolinha() {
+        System.out.println(nome + " buscou a bolinha");
+    }
+}
+
+class Gato extends Animal {
+    Gato(String nome) {
+        super(nome);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma variável, lista ou parâmetro do tipo da superclasse aceita qualquer subclasse: <code>Animal a = new Cachorro();</code> (<em>upcasting</em>, automático).</li>
+  <li>O tipo da <strong>variável</strong> decide o que pode ser chamado (compilador); o tipo do <strong>objeto</strong> decide qual versão roda (JVM). Isso é o despacho dinâmico.</li>
+  <li>Polimorfismo permite escrever código para <code>Animal</code> que funciona com animais que ainda nem existem.</li>
+  <li>Para usar o que só a subclasse tem, converta: <code>(Cachorro) a</code>. Se o objeto não for daquele tipo: <code>ClassCastException</code> ao rodar.</li>
+  <li>Pergunte antes com <code>instanceof</code>; no Java 16+, <code>if (a instanceof Cachorro c)</code> pergunta e converte de uma vez.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
