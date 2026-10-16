@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java javac e java — compilar e executar no terminal | Guia Java</title>
+<meta name="description" content="Compilar com javac e executar com java: de Main.java para Main.class, o modo arquivo-fonte java Main.java, a pasta de saída com -d e -cp, e os erros reais: java Main.class, maiúsculas, arquivo com nome errado, classe principal não encontrada, UnsupportedClassVersionError e os códigos de saída.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">javac e java</span></h1>
+
+<p class="intro">Um programa Java chega à tela em duas etapas: o <code>javac</code> <strong>compila</strong> o arquivo <code>.java</code> e gera um <code>.class</code>; o <code>java</code> <strong>executa</strong> esse <code>.class</code>. Nesta aula você faz o caminho completo no terminal, conhece o atalho <code>java Main.java</code> e aprende a reconhecer os erros mais comuns de quem compila e roda pela primeira vez.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Compilar com <code>javac Main.java</code> e ver o <code>Main.class</code> aparecer.</li>
+  <li>Executar com <code>java Main</code> (e por que é sem <code>.class</code>).</li>
+  <li>Por que mudar o <code>.java</code> sem compilar de novo não muda nada.</li>
+  <li>O modo arquivo-fonte, <code>java Main.java</code> <span class="versao">Java 11+</span>, que compila e roda de uma vez.</li>
+  <li>Os erros reais: <code>java Main.class</code>, <code>java main</code>, arquivo com nome errado, classe não encontrada e <code>UnsupportedClassVersionError</code>.</li>
+  <li>O que os códigos de saída dizem.</li>
+</ul>
+</div>
+
+<p>Você precisa do JDK instalado (<a href="instalar-linux.html">Linux</a>, <a href="instalar-windows-mac.html">Windows e macOS</a>). As sessões são do terminal da Ana, com o JDK 25; no Windows, os comandos <code>javac</code> e <code>java</code> são os mesmos. Se ainda não tem o JDK, acompanhe pelas caixas Experimente.</p>
+
+<hr>
+
+<h2>A ideia: traduzir uma vez, ler muitas</h2>
+<p>Pense num livro escrito em português que vai ser lido por uma máquina que só entende uma língua especial. Você contrata um <strong>tradutor</strong> (o <code>javac</code>), que traduz o livro inteiro de uma vez e entrega a versão traduzida (o <code>.class</code>). Depois, um <strong>leitor</strong> (o <code>java</code>, que liga a JVM) lê a versão traduzida quantas vezes quiser, sem precisar do tradutor.</p>
+
+<pre class="syntax">  Main.java  ──── javac Main.java ────►  Main.class  ──── java Main ────►  Olá, mundo!
+ (código-fonte,     (compila: confere      (bytecode)      (executa: a JVM     (a saída)
+  você escreve)      e traduz)                              lê o bytecode)</pre>
+
+<p>Se o livro original mudar, a tradução antiga continua igual até alguém traduzir de novo. Guarde essa ideia: ela explica uma das surpresas desta aula.</p>
+
+<hr>
+
+<h2>Passo 1: o arquivo</h2>
+<p>A Ana cria uma pasta para o programa e escreve o arquivo <code>Main.java</code> com o editor dela (veja <a href="editores-ide.html">Editores e IDEs</a>). Para conferir o conteúdo pelo terminal, o <code>cat</code> mostra o arquivo:</p>
+
+<pre class="term">$ mkdir -p ~/java/ola
+$ cd ~/java/ola
+$ cat Main.java
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+    }
+}</pre>
+
+<p>O programa é o da aula <a href="primeiro-programa.html">Olá, Mundo</a>. Lembre: a classe se chama <code>Main</code>, então o arquivo se chama <code>Main.java</code>.</p>
+
+<h2>Passo 2: compilar com <code>javac</code></h2>
+
+<dl class="anatomy">
+  <dt>javac</dt><dd>O compilador do Java (<em>Java compiler</em>). Lê o código, confere se segue as regras da linguagem e gera o bytecode.</dd>
+  <dt>Main.java</dt><dd>O arquivo a compilar, <strong>com</strong> a extensão <code>.java</code>. Maiúsculas e minúsculas contam.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ echo $?
+0                                 « código de saída 0: compilou sem erro</pre>
+
+<p>O <code>javac</code> não escreveu nada. No terminal, <strong>silêncio quer dizer sucesso</strong>: se houvesse um erro, ele mostraria a mensagem. O <code>echo $?</code> mostra o código de saída do último comando; <code>0</code> confirma que deu certo. O que mudou foi a pasta:</p>
+
+<pre class="term">$ ls -l
+total 8
+-rw-rw-r-- 1 ana ana 414 out 16 18:44 Main.class     « novo: o bytecode, 414 bytes
+-rw-rw-r-- 1 ana ana 117 out 16 18:44 Main.java      « o seu código, 117 bytes</pre>
+
+<p>Apareceu o <code>Main.class</code>, com o nome da <strong>classe</strong> (não do arquivo) e a extensão <code>.class</code>. É ele que a JVM vai executar. Se tiver curiosidade sobre o que tem dentro, a aula <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a> abre um <code>.class</code> com o <code>javap</code>.</p>
+
+<h2>Passo 3: executar com <code>java</code></h2>
+
+<dl class="anatomy">
+  <dt>java</dt><dd>O lançador: liga a JVM e pede a ela para executar uma classe.</dd>
+  <dt>Main</dt><dd>O nome da <strong>classe</strong>, <strong>sem</strong> <code>.class</code> e sem <code>.java</code>. A JVM procura o arquivo <code>Main.class</code> sozinha, na pasta atual, e começa pelo método <code>main</code>.</dd>
+</dl>
+
+<pre class="term">$ java Main
+Olá, mundo!
+$ echo $?
+0                                 « o programa terminou normalmente</pre>
+
+<p>Pronto: compilou uma vez, rodou. Você pode rodar <code>java Main</code> de novo quantas vezes quiser, sem compilar outra vez.</p>
+
+<div class="tryjava" data-goal="out:Compilei,out:e rodei!">
+<p class="try-task"><strong>Missão:</strong> o botão Rodar faz o <code>javac</code> e o <code>java</code> de uma vez. Faça o programa mostrar duas linhas: <code>Compilei</code> e, embaixo, <code>e rodei!</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Compilei");
+        System.out.println("e rodei!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>A surpresa: mudei o código e nada mudou</h2>
+<p>A Ana troca <code>mundo</code> por <code>Ana</code> no arquivo (aqui, com o comando <code>sed</code>, que edita texto pelo terminal; no dia a dia, ela usaria o editor) e roda de novo:</p>
+
+<pre class="term">$ sed -i 's/Olá, mundo!/Olá, Ana!/' Main.java
+$ cat Main.java
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana!");            « o código-fonte mudou
+    }
+}
+$ java Main
+Olá, mundo!                                         « mas a saída é a antiga!</pre>
+
+<p>O <code>java</code> executa o <code>Main.class</code>, e o <code>Main.class</code> ainda é a "tradução" antiga. O <code>.java</code> mudou; o <code>.class</code>, não. É preciso compilar de novo:</p>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Olá, Ana!</pre>
+
+<div class="tip">
+<strong>Regra: mudou o <code>.java</code>, rode o <code>javac</code></strong>
+<p>Um jeito de nunca esquecer é juntar os dois comandos com <code>&amp;&amp;</code> ("e, se deu certo, então"): <code>javac Main.java &amp;&amp; java Main</code>. Se a compilação falhar, o <code>java</code> nem roda, e você não vê uma saída velha por engano. Ou use o modo arquivo-fonte, logo abaixo.</p>
+</div>
+
+<hr>
+
+<h2>O atalho: <code>java Main.java</code> <span class="versao">Java 11+</span></h2>
+<p>Desde o Java 11, o <code>java</code> aceita direto um arquivo <code>.java</code>. Ele compila o código <strong>na memória</strong> e já executa, sem criar <code>.class</code> nenhum. É o <strong>modo arquivo-fonte</strong> (<em>source-file mode</em>):</p>
+
+<pre class="term">$ rm Main.class                « apaga o .class, para mostrar que não precisa dele
+$ java Main.java
+Olá, Ana!
+$ ls
+Main.java                      « nenhum .class foi criado</pre>
+
+<p>Como não sobra <code>.class</code>, o <code>java Main</code> (sem <code>.java</code>) agora não tem o que executar:</p>
+
+<pre class="term">$ java Main
+Erro: Não foi possível localizar nem carregar a classe principal Main
+Causada por: java.lang.ClassNotFoundException: Main</pre>
+
+<p>Se o código tiver erro, o modo arquivo-fonte mostra a mensagem do compilador, mais uma linha <code>error: compilation failed</code> ("a compilação falhou"):</p>
+
+<pre class="term">$ java Erro.java
+Erro.java:2: error: ';' expected
+    IO.println("Oi")
+                    ^
+1 error
+error: compilation failed</pre>
+
+<h3>Qual usar?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>javac Main.java</code> + <code>java Main</code></th><th><code>java Main.java</code></th></tr>
+<tr><td>Comandos</td><td>Dois</td><td>Um</td></tr>
+<tr><td>Cria <code>.class</code></td><td>Sim</td><td>Não (compila na memória)</td></tr>
+<tr><td>Compila de novo a cada execução</td><td>Não: roda o <code>.class</code> pronto, mais rápido</td><td>Sim: sempre usa o código atual</td></tr>
+<tr><td>Versões do Java</td><td>Todas</td><td>11 ou mais nova</td></tr>
+<tr><td>Bom para</td><td>Entender o processo; distribuir o programa compilado; projetos com muitas classes</td><td>Programas de um arquivo, testes rápidos, exemplos deste guia</td></tr>
+</table>
+</div>
+
+<p>Nas aulas, você vai ver os dois. Quando a saída é o que importa, o guia usa <code>java Main.java</code>; quando o processo importa, usa <code>javac</code> e <code>java</code> separados. Desde o Java 22, o modo arquivo-fonte também encontra as outras classes do programa em arquivos <code>.java</code> da mesma pasta.</p>
+
+<hr>
+
+<h2>Outra forma: separar o código do bytecode</h2>
+<p>Em projetos maiores, misturar <code>.java</code> e <code>.class</code> na mesma pasta vira bagunça. A opção <code>-d</code> (de <em>directory</em>, pasta) do <code>javac</code> manda os <code>.class</code> para outro lugar, e a opção <code>-cp</code> (de <em>classpath</em>, "caminho das classes") do <code>java</code> diz onde procurá-los:</p>
+
+<pre class="term">$ javac -d classes Main.java          « os .class vão para a pasta classes (criada sozinha)
+$ ls -R
+.:
+classes  Main.java
+
+./classes:
+Main.class
+$ java -cp classes Main               « procure as classes na pasta classes
+Olá, Ana!</pre>
+
+<p>O <strong>classpath</strong> é a lista de lugares onde a JVM procura classes. Quando você não diz nada, ele é a pasta atual (<code>.</code>). Por isso o <code>java Main</code> só funciona na pasta onde está o <code>Main.class</code>. Ferramentas como o <a href="maven.html">Maven</a> e o <a href="gradle.html">Gradle</a> fazem essa organização por você.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+<p>Os erros desta seção são os do caminho entre o arquivo e a execução. Os erros <strong>no código</strong> (ponto e vírgula, nomes) estão em <a href="erros-compilacao.html">Lendo Erros do javac</a>.</p>
+
+<div class="cenario">
+<strong><code>java Main.class</code>: "Não foi possível localizar nem carregar a classe principal Main.class"</strong>
+<pre class="term">$ java Main.class
+Erro: Não foi possível localizar nem carregar a classe principal Main.class
+Causada por: java.lang.ClassNotFoundException: Main.class
+$ echo $?
+1</pre>
+<p><strong>O que aconteceu:</strong> o <code>java</code> recebe o nome de uma <strong>classe</strong>, não de um arquivo. Ele procurou uma classe chamada <code>Main.class</code> (que seria a classe <code>class</code> num pacote <code>Main</code>!) e não achou. Em inglês, a mensagem é <code>Error: Could not find or load main class Main.class</code>, seguida de <code>Caused by: java.lang.ClassNotFoundException: Main.class</code>.</p>
+<p><strong>Como resolver:</strong> <code>java Main</code>, sem extensão.</p>
+</div>
+
+<div class="cenario">
+<strong><code>java main</code> (minúscula): a mesma mensagem</strong>
+<pre class="term">$ java main
+Erro: Não foi possível localizar nem carregar a classe principal main
+Causada por: java.lang.ClassNotFoundException: main</pre>
+<p><strong>O que aconteceu:</strong> o Java diferencia maiúsculas de minúsculas: <code>main</code> e <code>Main</code> são nomes diferentes, e o Linux também diferencia <code>main.class</code> de <code>Main.class</code>. No Windows e no macOS, que não diferenciam nomes de arquivo, o arquivo é encontrado, mas a JVM percebe que a classe dentro dele tem outro nome e dá outro erro (<strong>ilustrativo</strong>): <code>Caused by: java.lang.NoClassDefFoundError: Main (wrong name: main)</code>, "nome errado".</p>
+<p><strong>Como resolver:</strong> escreva o nome exatamente como na linha <code>public class Main</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Não foi possível localizar nem carregar a classe principal Main" (sem erro de digitação)</strong>
+<pre class="term">$ cd ~
+$ java Main
+Erro: Não foi possível localizar nem carregar a classe principal Main
+Causada por: java.lang.ClassNotFoundException: Main</pre>
+<p><strong>O que aconteceu:</strong> o nome está certo, mas o <code>Main.class</code> não está na pasta atual. Ou você está em outra pasta (aqui, a Ana voltou para <code>~</code>), ou esqueceu de compilar, ou compilou com <code>-d</code> para outra pasta. Em inglês: <code>Error: Could not find or load main class Main</code>.</p>
+<p><strong>Como resolver:</strong> <code>ls</code> para ver se o <code>Main.class</code> está ali; <code>cd</code> para a pasta certa ou diga onde ele está com <code>-cp</code> (<code>java -cp ~/java/ola/classes Main</code>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: file not found: main.java</code></strong>
+<pre class="term">$ javac main.java
+error: file not found: main.java
+Usage: javac &lt;options&gt; &lt;source files&gt;
+use --help for a list of possible options</pre>
+<p><strong>O que aconteceu:</strong> não existe arquivo com esse nome exato na pasta (aqui, a maiúscula; pode ser também o <code>.txt</code> escondido, veja <a href="editores-ide.html#errado">Editores e IDEs</a>). A segunda e a terceira linhas são só a "ajuda" do <code>javac</code>: "uso: javac &lt;opções&gt; &lt;arquivos-fonte&gt;". <strong>Como resolver:</strong> <code>ls</code> e copie o nome exato (ou use <kbd>Tab</kbd> para completar).</p>
+</div>
+
+<div class="cenario">
+<strong><code>javac Main</code> (sem <code>.java</code>)</strong>
+<pre class="term">$ javac Main
+error: Class names, 'Main', are only accepted if annotation processing is explicitly requested
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o contrário do erro do <code>java Main.class</code>: o <code>javac</code> recebe <strong>arquivos</strong> e quer a extensão. A mensagem fala de um recurso avançado ("processamento de anotações") que não tem nada a ver com o seu caso. <strong>Como resolver:</strong> <code>javac Main.java</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Arquivo com nome diferente da classe</strong>
+<pre class="term">$ javac Ola.java
+Ola.java:1: error: class Main is public, should be declared in a file named Main.java
+public class Main {
+       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o arquivo <code>Ola.java</code> tem a classe pública <code>Main</code>. <strong>Como resolver:</strong> renomeie o arquivo para <code>Main.java</code> ou a classe para <code>Ola</code> (veja <a href="primeiro-programa.html#nome-arquivo">Olá, Mundo</a>). Curiosidade: o modo arquivo-fonte não liga para essa regra, e <code>java Ola.java</code> roda normalmente.</p>
+</div>
+
+<div class="cenario">
+<strong><code>UnsupportedClassVersionError</code>: compilado numa versão mais nova</strong>
+<p>A Ana compilou com o JDK 25 e levou o <code>Main.class</code> para um computador que tem o Java 21. Na máquina dela há um Java 21 instalado pelo sistema, então dá para ver o que acontece:</p>
+<pre class="term">$ javac Main.java
+$ /usr/lib/jvm/java-21-openjdk-amd64/bin/java Main
+Erro: ocorreu LinkageError ao carregar a classe principal Main
+	java.lang.UnsupportedClassVersionError: Main has been compiled by a more recent version of the Java Runtime (class file version 69.0), this version of the Java Runtime only recognizes class file versions up to 65.0
+$ echo $?
+1</pre>
+<p><strong>O que aconteceu:</strong> todo <code>.class</code> guarda a versão do formato do bytecode: <strong>69</strong> é Java 25, <strong>65</strong> é Java 21 (a regra é a versão do Java mais 44). A mensagem diz: "Main foi compilada por uma versão mais recente do Java (formato 69.0); esta versão só reconhece até o 65.0". Uma JVM antiga não sabe ler bytecode novo, assim como um programa antigo pode não abrir um documento salvo numa versão nova. (O contrário funciona: um <code>.class</code> antigo roda numa JVM nova.) Num Java 8, a mesma situação mostra <code>Exception in thread "main" java.lang.UnsupportedClassVersionError: … up to 52.0</code>, seguido de várias linhas <code>at java.lang.ClassLoader…</code>.</p>
+<p><strong>Como resolver:</strong> rode com um Java igual ou mais novo que o do <code>javac</code> (confira <code>java -version</code> e <code>javac -version</code>; veja <a href="versoes.html">Versões e LTS</a>), ou compile para a versão mais antiga com <code>--release</code>:</p>
+<pre class="term">$ javac --release 21 Main.java &amp;&amp; /usr/lib/jvm/java-21-openjdk-amd64/bin/java Main
+Olá, mundo!</pre>
+<p>Com <code>--release 21</code>, o <code>javac</code> gera bytecode versão 65 e só aceita recursos que já existiam no Java 21.</p>
+</div>
+
+<hr>
+
+<h2>Os códigos de saída</h2>
+<p>Todo programa devolve um número ao terminar, o <strong>código de saída</strong>, que o terminal guarda em <code>$?</code> (no Windows: <code>%ERRORLEVEL%</code> no Prompt de Comando, <code>$LASTEXITCODE</code> no PowerShell). Scripts e ferramentas usam esse número para saber se algo deu certo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Código</th></tr>
+<tr><td><code>javac</code> compilou sem erros</td><td><code>0</code></td></tr>
+<tr><td><code>javac</code> achou erros no código</td><td><code>1</code></td></tr>
+<tr><td><code>java</code>: o programa chegou ao fim do <code>main</code></td><td><code>0</code></td></tr>
+<tr><td><code>java</code>: o programa terminou com uma exceção</td><td><code>1</code></td></tr>
+<tr><td><code>java</code>: classe não encontrada, <code>main</code> não encontrado, versão incompatível</td><td><code>1</code></td></tr>
+<tr><td><code>java</code>: o programa chamou <code>System.exit(N)</code></td><td><code>N</code></td></tr>
+<tr><td>O terminal não achou o comando (<code>javac: comando não encontrado</code>)</td><td><code>127</code></td></tr>
+</table>
+</div>
+
+<p>Um programa pode escolher o próprio código com <code>System.exit</code>, que encerra o programa na hora:</p>
+
+<pre class="file" data-file="Sai.java">public class Sai {
+    public static void main(String[] args) {
+        System.out.println("antes");
+        System.exit(3);
+    }
+}
+</pre>
+
+<pre class="term">$ java Sai.java; echo $?
+antes
+3                                  « o número passado ao System.exit</pre>
+
+<p>E um programa que termina com exceção devolve <code>1</code>:</p>
+
+<pre class="term">$ java Div.java; echo $?
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Div.main(Div.java:3)
+1</pre>
+
+<div class="tryjava" data-goal="exit:3,out:Estoque vazio">
+<p class="try-task"><strong>Missão:</strong> faça o programa mostrar <code>Estoque vazio</code> e terminar com o código de saída <strong>3</strong>. O editor mostra o código no fim da saída.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Verificando o estoque...");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Verificando o estoque...");
+        System.out.println("Estoque vazio");
+        System.exit(3);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>javac Main.java</code></td><td>Compila; gera <code>Main.class</code>.</td></tr>
+<tr><td><code>javac *.java</code></td><td>Compila todos os <code>.java</code> da pasta.</td></tr>
+<tr><td><code>javac -d classes Main.java</code></td><td>Compila e põe os <code>.class</code> na pasta <code>classes</code>.</td></tr>
+<tr><td><code>javac --release 21 Main.java</code></td><td>Compila para rodar no Java 21.</td></tr>
+<tr><td><code>java Main</code></td><td>Executa a classe <code>Main</code> (procura <code>Main.class</code> na pasta atual).</td></tr>
+<tr><td><code>java -cp classes Main</code></td><td>Executa procurando as classes na pasta <code>classes</code>.</td></tr>
+<tr><td><code>java Main.java</code></td><td>Compila na memória e executa <span class="versao">Java 11+</span>.</td></tr>
+<tr><td><code>java Main.java Ana 29</code></td><td>Executa passando argumentos (veja <a href="args.html">Argumentos</a>).</td></tr>
+<tr><td><code>javac Main.java &amp;&amp; java Main</code></td><td>Compila e, só se deu certo, executa.</td></tr>
+<tr><td><code>echo $?</code></td><td>Mostra o código de saída do último comando.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Compilar</h3>
+<p>Complete o comando que compila o arquivo <code>Loja.java</code>:</p>
+<div class="ex-code"><input data-answer="javac Loja.java" aria-label="comando"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Executar</h3>
+<p>Depois de compilar, complete o comando que executa a classe <code>Loja</code>:</p>
+<div class="ex-code"><input data-answer="java Loja" aria-label="comando"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Você mudou o texto do <code>println</code> no <code>Main.java</code> e rodou <code>java Main</code>, mas a saída é a antiga. Por quê?</p>
+<label><input type="radio" name="q3"> O editor não salvou acentos.</label>
+<label><input type="radio" name="q3"> O <code>java</code> só lê a primeira linha.</label>
+<label><input type="radio" name="q3"> Faltou compilar de novo: o <code>Main.class</code> ainda é o antigo.</label>
+<label><input type="radio" name="q3"> O Java guarda a saída em memória para sempre.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. A mensagem diz <code>class file version 69.0</code> e <code>only recognizes class file versions up to 61.0</code>. O que está acontecendo?</p>
+<label><input type="radio" name="q4"> Um <code>.class</code> do Java 25 está sendo rodado num Java 17.</label>
+<label><input type="radio" name="q4"> Um <code>.class</code> do Java 17 está sendo rodado num Java 25.</label>
+<label><input type="radio" name="q4"> O arquivo <code>.java</code> tem 69 linhas.</label>
+<label><input type="radio" name="q4"> Faltou o ponto e vírgula na linha 61.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual comando roda um programa de um arquivo só sem criar <code>.class</code>?</p>
+<label><input type="radio" name="q5"> <code>java Main.class</code></label>
+<label><input type="radio" name="q5"> <code>java Main.java</code></label>
+<label><input type="radio" name="q5"> <code>javac Main</code></label>
+<label><input type="radio" name="q5"> <code>javac -run Main.java</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Um programa terminou com <code>Exception in thread "main"</code>. Qual é o código de saída?</p>
+<label><input type="radio" name="q6"> 0</label>
+<label><input type="radio" name="q6"> 127</label>
+<label><input type="radio" name="q6"> o número da linha do erro</label>
+<label><input type="radio" name="q6"> 1</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>javac Main.java</code> compila (com <code>.java</code>) e gera <code>Main.class</code>; silêncio = sucesso.</li>
+  <li><code>java Main</code> executa a classe (sem extensão); procura o <code>.class</code> na pasta atual ou no <code>-cp</code>.</li>
+  <li>Mudou o <code>.java</code>? Compile de novo. Ou use <code>javac Main.java &amp;&amp; java Main</code>.</li>
+  <li><code>java Main.java</code> <span class="versao">Java 11+</span> compila na memória e roda, sem <code>.class</code>.</li>
+  <li>"Não foi possível localizar nem carregar a classe principal" = nome errado (<code>.class</code>, maiúscula) ou pasta errada.</li>
+  <li><code>UnsupportedClassVersionError</code> = <code>.class</code> de um Java mais novo que o <code>java</code> que roda; use um Java mais novo ou <code>--release</code>.</li>
+  <li>Códigos de saída: <code>0</code> sucesso; <code>1</code> erro de compilação ou exceção; <code>System.exit(N)</code> devolve <code>N</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

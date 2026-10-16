@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Olá, Mundo — o primeiro programa linha por linha | Guia Java</title>
+<meta name="description" content="O primeiro programa Java explicado palavra por palavra: public class Main, public static void main(String[] args), System.out.println, chaves e ponto e vírgula, nome do arquivo igual ao da classe, e o main simplificado do Java 25 com IO.println, com as duas formas comparadas.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Olá, Mundo</span></h1>
+
+<p class="intro">Todo curso de programação começa com um programa que escreve "Olá, mundo!" na tela. Em Java, esse programa tem cinco linhas, e quatro delas são uma "moldura" cheia de palavras estranhas: <code>public</code>, <code>class</code>, <code>static</code>, <code>void</code>. Nesta aula você vai entender cada uma, sem pular nenhuma, e conhecer também a forma curta que o Java 25 permite.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que faz cada palavra de <code>public class Main</code> e de <code>public static void main(String[] args)</code>.</li>
+  <li>Como o <code>System.out.println</code> escreve na tela.</li>
+  <li>Para que servem as chaves <code>{ }</code> e o ponto e vírgula <code>;</code>.</li>
+  <li>Por que o arquivo precisa ter o mesmo nome da classe.</li>
+  <li>O <code>main</code> simplificado do Java 25 (<code>void main()</code> e <code>IO.println</code>), e quando usar cada forma.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula foram compilados e executados com o JDK 25 na máquina da Ana, na pasta <code>~/java</code>. Como compilar e executar, passo a passo, é a próxima aula: <a href="compilar-executar.html">javac e java</a>. Aqui, use as caixas Experimente.</p>
+
+<hr>
+
+<h2>O programa</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Olá, mundo!</pre>
+
+<p>Uma linha de saída, de uma linha de código "útil". Antes de destrinchar, rode você mesmo:</p>
+
+<div class="tryjava" data-goal="out:Olá, Ana!">
+<p class="try-task"><strong>Missão:</strong> faça o programa dizer <code>Olá, Ana!</code> (ou use o seu nome, mas para a missão concluir, escreva <code>Ana</code>). Mude só o que está entre as aspas.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>A ideia: um prédio, uma porta de entrada</h2>
+<p>Pense num prédio comercial. O prédio tem um nome na fachada ("Edifício Main"). Lá dentro há várias salas, mas todo visitante entra pela mesma porta, a <strong>portaria</strong>, e só depois vai para onde precisa.</p>
+
+<ul>
+  <li>A <strong>classe</strong> é o prédio: tudo o que você escreve em Java fica dentro de uma classe, e ela tem um nome (<code>Main</code>).</li>
+  <li>O método <strong><code>main</code></strong> é a portaria: quando você roda o programa, o Java procura um método chamado <code>main</code> e começa por ele. Sem portaria, ninguém entra.</li>
+  <li>As <strong>instruções</strong> dentro do <code>main</code> (como o <code>println</code>) são o que acontece depois que se entra: executadas uma a uma, de cima para baixo.</li>
+</ul>
+
+<p>Agora as cinco linhas, uma de cada vez.</p>
+
+<hr>
+
+<h2>Linha 1: <code>public class Main {</code></h2>
+<p>Esta linha <strong>declara uma classe</strong>: cria o "prédio" e dá um nome a ele.</p>
+
+<dl class="anatomy">
+  <dt>public</dt><dd>"Público": a classe pode ser usada por qualquer parte do programa. É um <strong>modificador de acesso</strong> (você vai conhecer os outros em <a href="modificadores.html">Modificadores de Acesso</a>). Uma classe <code>public</code> tem uma regra extra: o arquivo precisa ter o nome dela (seção <a href="#nome-arquivo">O nome do arquivo</a>).</dd>
+  <dt>class</dt><dd>"Classe": avisa que vem a declaração de uma classe. É uma <strong>palavra reservada</strong> do Java: tem significado fixo e não pode ser usada como nome.</dd>
+  <dt>Main</dt><dd>O <strong>nome</strong> da classe, escolhido por você. <code>Main</code> quer dizer "principal" e é uma convenção comum para a classe que inicia o programa. Poderia ser <code>Ola</code>, <code>Loja</code>, <code>MeuPrograma</code>. Por costume, nomes de classe começam com letra maiúscula.</dd>
+  <dt>{</dt><dd>Abre o <strong>corpo</strong> da classe: tudo até a chave <code>}</code> correspondente (a da linha 5) pertence à classe <code>Main</code>.</dd>
+</dl>
+
+<h2>Linha 2: <code>public static void main(String[] args) {</code></h2>
+<p>A linha mais assustadora. Ela declara um <strong>método</strong>: um bloco de instruções com nome, que pode ser executado (você vai criar os seus em <a href="metodos.html">Métodos</a>). Este se chama <code>main</code> e é a porta de entrada do programa. Palavra por palavra:</p>
+
+<dl class="anatomy">
+  <dt>public</dt><dd>"Público": o método pode ser chamado de fora da classe. Precisa ser, porque quem chama o <code>main</code> é a JVM, de fora.</dd>
+  <dt>static</dt><dd>"Estático", no sentido de "pertence à classe". Um método <code>static</code> pode ser chamado sem criar nenhum objeto antes. É por isso que a JVM consegue chamar o <code>main</code> logo de cara. (O que é "criar um objeto" é assunto de <a href="classes-objetos.html">Classes e Objetos</a>; os detalhes de <code>static</code> estão em <a href="static.html">static</a>.)</dd>
+  <dt>void</dt><dd>"Vazio": o método não devolve nenhum resultado. Ele faz coisas (escreve na tela), mas não responde com um valor. Métodos que devolvem valores aparecem em <a href="retorno.html">Valores de Retorno</a>.</dd>
+  <dt>main</dt><dd>"Principal": o nome do método. <strong>Este nome não é escolha sua</strong>: a JVM procura exatamente <code>main</code>, com letra minúscula.</dd>
+  <dt>(String[] args)</dt><dd>Os <strong>parâmetros</strong>: o que o método recebe. <code>String[]</code> é "uma lista de textos" e <code>args</code> (de <em>arguments</em>, argumentos) é o nome dessa lista. Ela traz o que você escrever depois do nome do programa no terminal; por enquanto, fica vazia. Veja <a href="args.html">Argumentos da Linha de Comando</a>.</dd>
+  <dt>{</dt><dd>Abre o corpo do método: as instruções que rodam quando o programa começa.</dd>
+</dl>
+
+<div class="tip">
+<strong>Não precisa decorar agora</strong>
+<p>Até o Nível 2, você vai escrever essa linha igualzinha em todo programa, como quem copia o cabeçalho de uma prova. O significado de cada palavra vai ficando claro aula a aula. Em <a href="#simples">O main simplificado do Java 25</a> você vê uma forma curta que dispensa quase tudo isso.</p>
+</div>
+
+<h2>Linha 3: <code>System.out.println("Olá, mundo!");</code></h2>
+<p>A única linha que <strong>faz</strong> algo visível: escreve um texto na tela. É uma <strong>instrução</strong> (em inglês, <em>statement</em>): uma ordem completa.</p>
+
+<dl class="anatomy">
+  <dt>System</dt><dd>Uma classe que vem pronta com o Java e representa o sistema onde o programa roda.</dd>
+  <dt>.out</dt><dd>A <strong>saída padrão</strong> do sistema (normalmente, o terminal). O ponto quer dizer "o <code>out</code> que pertence a <code>System</code>".</dd>
+  <dt>.println</dt><dd>O método que escreve e depois pula para a próxima linha (<em>print line</em>, "imprimir linha").</dd>
+  <dt>( … )</dt><dd>Os parênteses levam ao método o que ele deve escrever.</dd>
+  <dt>"Olá, mundo!"</dt><dd>Um texto (em Java, uma <code>String</code>). As aspas duplas marcam o começo e o fim; elas não aparecem na tela.</dd>
+  <dt>;</dt><dd>Fim da instrução.</dd>
+</dl>
+
+<p>O <code>println</code> tem um irmão, o <code>print</code>, que não pula linha; e escreve números e contas também. Tudo isso está em <a href="saida.html">Saída: print e println</a>.</p>
+
+<h2>Linhas 4 e 5: <code>}</code> e <code>}</code></h2>
+<p>A chave da linha 4 fecha o método <code>main</code> (a que foi aberta na linha 2). A da linha 5 fecha a classe <code>Main</code> (aberta na linha 1). Quando o <code>main</code> chega à sua chave final, o programa termina.</p>
+
+<h3>Resumo das cinco linhas</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>Código</th><th>O que faz</th></tr>
+<tr><td>1</td><td><code>public class Main {</code></td><td>Cria a classe <code>Main</code> e abre o corpo dela.</td></tr>
+<tr><td>2</td><td><code>public static void main(String[] args) {</code></td><td>Cria o método <code>main</code>, a porta de entrada, e abre o corpo dele.</td></tr>
+<tr><td>3</td><td><code>System.out.println("Olá, mundo!");</code></td><td>Escreve <code>Olá, mundo!</code> e pula linha.</td></tr>
+<tr><td>4</td><td><code>}</code></td><td>Fecha o <code>main</code>: o programa termina aqui.</td></tr>
+<tr><td>5</td><td><code>}</code></td><td>Fecha a classe.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Chaves e ponto e vírgula</h2>
+<p>Dois símbolos dão forma a todo programa Java.</p>
+
+<h3>As chaves <code>{ }</code> são caixas</h3>
+<p>Cada <code>{</code> abre uma caixa e cada <code>}</code> fecha a caixa aberta mais recentemente. O <code>main</code> fica dentro da classe; o <code>println</code> fica dentro do <code>main</code>:</p>
+
+<pre class="syntax">┌ public class Main {                                   ← caixa da classe
+│   ┌ public static void main(String[] args) {          ← caixa do método, dentro da classe
+│   │     System.out.println("Olá, mundo!");            ← instrução, dentro do método
+│   └ }
+└ }</pre>
+
+<p>Toda chave aberta precisa ser fechada. Os espaços no começo das linhas (o <strong>recuo</strong>, ou indentação) não são obrigatórios para o Java, mas mostram para quem lê quem está dentro de quem. A convenção é de 4 espaços por nível. Veja <a href="sintaxe.html">Sintaxe e Estrutura</a>.</p>
+
+<h3>O ponto e vírgula <code>;</code> termina uma instrução</h3>
+<p>O <code>;</code> é o ponto final das frases do Java. Toda instrução termina com ele. As linhas que <strong>abrem</strong> uma caixa (<code>public class Main {</code>) e as chaves que fecham não levam ponto e vírgula, porque não são instruções: são a moldura.</p>
+
+<p>Um programa com várias instruções executa uma depois da outra, de cima para baixo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+        System.out.println("Meu nome é Ana.");
+        System.out.println("Estou aprendendo Java.");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Olá, mundo!
+Meu nome é Ana.
+Estou aprendendo Java.</pre>
+
+<p>Esquecer o <code>;</code> é o erro mais comum de quem começa. O <code>javac</code> avisa: <code>error: ';' expected</code> ("esperava um <code>;</code>"), apontando o fim da linha. Esse e outros erros estão em <a href="erros-compilacao.html">Lendo Erros do javac</a>.</p>
+
+<hr>
+
+<h2 id="nome-arquivo">O nome do arquivo = o nome da classe</h2>
+<p>A regra: uma classe <code>public</code> chamada <code>Main</code> precisa estar num arquivo chamado <strong>exatamente</strong> <code>Main.java</code>. Mesmas letras, mesmas maiúsculas. Se a classe se chama <code>Loja</code>, o arquivo é <code>Loja.java</code>.</p>
+
+<p>Veja o que acontece quando a Ana copia o programa para um arquivo chamado <code>Ola.java</code>, sem mudar o nome da classe:</p>
+
+<pre class="term">$ javac Ola.java
+Ola.java:1: error: class Main is public, should be declared in a file named Main.java
+public class Main {
+       ^
+1 error</pre>
+
+<p>A mensagem é direta: "a classe <code>Main</code> é pública e deveria estar declarada num arquivo chamado <code>Main.java</code>". Duas formas de consertar: renomear o arquivo para <code>Main.java</code>, ou mudar a classe para <code>public class Ola</code>.</p>
+
+<p>Por que essa regra? Para o Java achar as classes rapidamente: quando um programa usa a classe <code>Loja</code>, o compilador sabe que deve procurá-la no arquivo <code>Loja.java</code>. E o <code>javac</code> gera o <code>.class</code> com o nome da <strong>classe</strong>, não do arquivo: a classe <code>Main</code> vira <code>Main.class</code>.</p>
+
+<div class="tryjava" data-file="Loja.java" data-goal="compila,out:Bem-vinda à Loja da Ana">
+<p class="try-task"><strong>Missão:</strong> este arquivo se chama <code>Loja.java</code>, mas a classe se chama <code>Main</code>. Rode para ver o erro e conserte mudando o <strong>nome da classe</strong>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Bem-vinda à Loja da Ana");
+    }
+}
+</pre>
+<pre class="solucao">public class Loja {
+    public static void main(String[] args) {
+        System.out.println("Bem-vinda à Loja da Ana");
+    }
+}
+</pre>
+</div>
+
+<div class="note">
+<strong>E se a classe não for <code>public</code>?</strong>
+<p>Uma classe sem <code>public</code> (só <code>class Ola</code>) pode ficar num arquivo de qualquer nome; o <code>.class</code> sai com o nome da classe (<code>Ola.class</code>). Funciona, mas confunde. O costume, que o guia segue, é sempre <code>public class</code> com o arquivo de mesmo nome.</p>
+</div>
+
+<hr>
+
+<h2 id="variacoes">O que pode e o que não pode mudar no <code>main</code></h2>
+<p>A JVM procura o <code>main</code> pelo nome e pela forma. Algumas variações são aceitas; outras fazem a JVM não achar a porta de entrada. Todas estas foram testadas no JDK 25:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Variação</th><th>Funciona?</th><th>Por quê</th></tr>
+<tr><td><code>public static void main(String[] argumentos)</code></td><td>Sim</td><td>O nome do parâmetro é livre; <code>args</code> é só o costume.</td></tr>
+<tr><td><code>static public void main(String... args)</code></td><td>Sim</td><td>A ordem de <code>public</code> e <code>static</code> não importa, e <code>String...</code> equivale a <code>String[]</code> aqui.</td></tr>
+<tr><td><code>public static void main()</code></td><td>Sim <span class="versao">Java 25+</span></td><td>O Java 25 aceita o <code>main</code> sem parâmetros. Em versões antigas, a JVM não acha o <code>main</code>.</td></tr>
+<tr><td><code>void main()</code> (sem <code>public</code> e <code>static</code>)</td><td>Sim <span class="versao">Java 25+</span></td><td>A forma simplificada, logo abaixo.</td></tr>
+<tr><td><code>public static void Main(String[] args)</code></td><td><strong>Não</strong></td><td>Compila, mas a JVM procura <code>main</code> minúsculo e não acha.</td></tr>
+<tr><td><code>public static int main(String[] args)</code></td><td><strong>Não</strong></td><td>O <code>main</code> tem de ser <code>void</code>.</td></tr>
+</table>
+</div>
+
+<p>Quando a JVM não acha um <code>main</code> válido, o programa compila mas não roda. A mensagem em português tem um erro de tradução do próprio JDK 25 (a frase sai embaralhada, citando o JavaFX, uma biblioteca de janelas que nem está em jogo):</p>
+
+<pre class="term">$ javac Main.java                « compila sem erro
+$ java Main
+Erro: o método main não é Main na classe javafx.application.Application; defina o método main como:
+   public static void main(String[] args)</pre>
+
+<p>Num sistema em inglês, a mesma mensagem é legível: <code>Error: Main method not found in class Main, please define the main method as: public static void main(String[] args)</code>, "método main não encontrado na classe Main; defina o método main como…". Em qualquer língua, o recado é: confira se o método se chama <code>main</code> (minúsculo) e se está escrito como na linha 2.</p>
+
+<hr>
+
+<h2 id="simples">O <code>main</code> simplificado do Java 25 <span class="versao">Java 25+</span></h2>
+<p>Para quem está começando, a moldura da classe e o <code>public static void main(String[] args)</code> são muita coisa de uma vez. O Java 25 trouxe uma forma curta, pensada para programas pequenos e para o ensino (o recurso se chama <em>compact source files and instance main methods</em>, "arquivos-fonte compactos e métodos main de instância"):</p>
+
+<pre class="file" data-file="Main.java">void main() {
+    IO.println("Olá, mundo!");
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Olá, mundo!
+$ javac Main.java &amp;&amp; ls &amp;&amp; java Main
+Main.class  Main.java        « o javac criou a classe Main sozinho, a partir do nome do arquivo
+Olá, mundo!</pre>
+
+<dl class="anatomy">
+  <dt>void main()</dt><dd>O método de entrada, sem <code>public</code>, sem <code>static</code> e sem parâmetros. Não há <code>class</code> em volta: o arquivo inteiro vira uma classe "implícita", que ganha o nome do arquivo.</dd>
+  <dt>IO.println</dt><dd><code>IO</code> é uma classe nova do Java 25 (de <em>input/output</em>, "entrada e saída") com métodos simples: <code>IO.println</code> (escreve e pula linha), <code>IO.print</code> (escreve sem pular) e <code>IO.readln</code> (lê uma linha do teclado). Faz o mesmo que <code>System.out.println</code>.</dd>
+</dl>
+
+<p>Na forma curta, o <code>System.out.println</code> continua funcionando, e o <code>IO.readln</code> lê o teclado sem precisar do <code>Scanner</code>. Um exemplo com as duas formas de escrever e uma pergunta (a entrada <code>Ana</code> veio de fora, por isso não aparece na tela):</p>
+
+<pre class="file" data-file="Ola.java">void main() {
+    IO.println("Oi");
+    System.out.println("também funciona");
+    String nome = IO.readln("Seu nome: ");
+    IO.println("Prazer, " + nome);
+}
+</pre>
+
+<pre class="term">$ echo Ana | java Ola.java
+Oi
+também funciona
+Seu nome: Prazer, Ana</pre>
+
+<div class="tryjava" data-goal="out:Olá do Java 25!,src:IO\.println">
+<p class="try-task"><strong>Missão:</strong> esta é a forma simplificada. Faça o programa escrever <code>Olá do Java 25!</code> usando <code>IO.println</code>.</p>
+<pre class="script">void main() {
+    IO.println("Olá, mundo!");
+}
+</pre>
+<pre class="solucao">void main() {
+    IO.println("Olá do Java 25!");
+}
+</pre>
+</div>
+
+<h3>Num Java mais antigo, a forma curta não compila</h3>
+<p>Compilando a forma curta como se fosse o Java 21:</p>
+
+<pre class="term">$ javac --release 21 Main.java
+Main.java:1: error: implicitly declared classes are not supported in -source 21
+void main() {
+^
+  (use -source 25 or higher to enable implicitly declared classes)
+1 error</pre>
+
+<p>"Classes declaradas implicitamente não são suportadas no Java 21; use 25 ou maior." Num computador com Java 17 ou 21 (muito comum em escolas e empresas), a forma curta simplesmente não funciona.</p>
+
+<h3>Qual forma usar? E por que o guia usa a clássica</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Forma clássica</th><th>Forma simplificada <span class="versao">Java 25+</span></th></tr>
+<tr><td>Código</td><td><code>public class Main {</code><br><code>    public static void main(String[] args) {</code><br><code>        System.out.println("Oi");</code><br><code>    }</code><br><code>}</code></td><td><code>void main() {</code><br><code>    IO.println("Oi");</code><br><code>}</code></td></tr>
+<tr><td>Versões do Java</td><td>Todas</td><td>Só 25 ou mais nova</td></tr>
+<tr><td>Onde você vai encontrar</td><td>Em praticamente todo código, livro, curso, vaga e projeto existente</td><td>Em exemplos novos e scripts pequenos</td></tr>
+<tr><td>Vários arquivos e classes</td><td>Sim: é como todo programa grande é organizado</td><td>Feita para um arquivo só</td></tr>
+<tr><td>Bom para</td><td>Tudo</td><td>Testes rápidos, primeiros passos, pequenos utilitários</td></tr>
+</table>
+</div>
+
+<p>O guia usa a <strong>forma clássica</strong> por padrão, por três motivos:</p>
+<ol>
+  <li><strong>É o que você vai ler no mundo real.</strong> Quase todo o código Java existente, inclusive o das empresas que usam Java 8, 11, 17 e 21, tem a classe e o <code>public static void main(String[] args)</code>.</li>
+  <li><strong>Funciona em qualquer Java.</strong> Se a sua escola ou empresa tiver um Java 17, os exemplos do guia rodam igual.</li>
+  <li><strong>As classes são o coração do Java.</strong> A partir do Nível 2, todo programa tem várias classes, e a forma curta não serve para isso. Escrever <code>public class Main</code> desde o primeiro dia deixa essa moldura familiar.</li>
+</ol>
+<p>A forma simplificada aparece quando for útil, sempre com o selo <span class="versao">Java 25+</span>. Para um teste rápido de uma linha, há ainda uma terceira opção, sem arquivo nenhum: o <a href="jshell.html">JShell</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>class Main is public, should be declared in a file named Main.java</code></strong>
+<p><strong>O que aconteceu:</strong> o nome do arquivo não bate com o da classe pública (também acontece com diferença de maiúscula: <code>main.java</code> para <code>public class Main</code>). <strong>Como resolver:</strong> renomeie o arquivo ou a classe para ficarem iguais.</p>
+</div>
+
+<div class="cenario">
+<strong><code>reached end of file while parsing</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: reached end of file while parsing
+    }
+     ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o arquivo acabou com uma caixa ainda aberta: faltou a última <code>}</code>, a da classe. "Chegou ao fim do arquivo enquanto analisava". <strong>Como resolver:</strong> conte as chaves: cada <code>{</code> precisa de uma <code>}</code>. O recuo ajuda a ver qual falta.</p>
+</div>
+
+<div class="cenario">
+<strong><code>missing method body, or declare abstract</code></strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args); {
+        System.out.println("Olá, mundo!");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:2: error: missing method body, or declare abstract
+    public static void main(String[] args); {
+                       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> um <code>;</code> a mais no fim da linha do <code>main</code>, antes da <code>{</code>. Para o Java, o <code>;</code> encerrou a declaração do método ali mesmo, sem corpo ("falta o corpo do método"). <strong>Como resolver:</strong> linhas que abrem chaves não levam <code>;</code>. Apague-o.</p>
+</div>
+
+<div class="cenario">
+<strong>Compila, mas <code>java Main</code> diz que não achou o método main</strong>
+<p><strong>O que aconteceu:</strong> o método está com outro nome (<code>Main</code>, <code>mian</code>) ou outra forma (<code>int</code> no lugar de <code>void</code>). Veja a tabela <a href="#variacoes">O que pode e o que não pode mudar</a>. <strong>Como resolver:</strong> copie a linha 2 exatamente: <code>public static void main(String[] args) {</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Olá\, mundo!,out:Meu nome é Ana.,out:Estou aprendendo Java.">
+<p class="try-task"><strong>Missão:</strong> este programa tem <strong>três</strong> erros de propósito (um em cada linha com <code>println</code>). Rode, conserte o primeiro erro que o editor apontar e rode de novo, até o programa mostrar as três frases.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!")
+        system.out.println("Meu nome é Ana.");
+        System.out.println(Estou aprendendo Java.);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+        System.out.println("Meu nome é Ana.");
+        System.out.println("Estou aprendendo Java.");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A porta de entrada</h3>
+<p>Complete a linha que declara o método principal:</p>
+<div class="ex-code">public static void <input data-answer="main" aria-label="nome do método">(String[] args) {</div>
+</div>
+
+<div class="exercise">
+<h3>2. O nome do arquivo</h3>
+<p>A classe é <code>public class Calculadora</code>. Como deve se chamar o arquivo?</p>
+<div class="ex-code"><input data-answer="Calculadora.java" aria-label="nome do arquivo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que quer dizer <code>void</code> em <code>public static void main</code>?</p>
+<label><input type="radio" name="q3"> Que o método é público.</label>
+<label><input type="radio" name="q3"> Que o método pertence à classe.</label>
+<label><input type="radio" name="q3"> Que o método não devolve nenhum valor.</label>
+<label><input type="radio" name="q3"> Que o método está vazio.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual linha precisa de <code>;</code> no fim?</p>
+<label><input type="radio" name="q4"> <code>public class Main {</code></label>
+<label><input type="radio" name="q4"> <code>System.out.println("Oi")</code></label>
+<label><input type="radio" name="q4"> <code>public static void main(String[] args) {</code></label>
+<label><input type="radio" name="q4"> <code>}</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que este guia usa <code>public class Main</code> com <code>public static void main(String[] args)</code>, e não a forma curta <code>void main()</code>?</p>
+<label><input type="radio" name="q5"> Porque a forma curta é mais lenta.</label>
+<label><input type="radio" name="q5"> Porque a forma curta está errada.</label>
+<label><input type="radio" name="q5"> Porque a forma curta só funciona no Windows.</label>
+<label><input type="radio" name="q5"> Porque a clássica funciona em todas as versões e é a que aparece em quase todo código Java.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que a JVM procura quando você roda <code>java Main</code>?</p>
+<label><input type="radio" name="q6"> Um método chamado <code>main</code>, na classe <code>Main</code>.</label>
+<label><input type="radio" name="q6"> A primeira linha do arquivo, seja ela qual for.</label>
+<label><input type="radio" name="q6"> Um método chamado <code>Main</code>.</label>
+<label><input type="radio" name="q6"> O <code>println</code>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>public class Main {</code> cria a classe; o arquivo precisa se chamar <code>Main.java</code>.</li>
+  <li><code>public static void main(String[] args) {</code> é a porta de entrada: público, da classe (<code>static</code>), não devolve nada (<code>void</code>), recebe os argumentos.</li>
+  <li><code>System.out.println("…");</code> escreve o texto e pula linha.</li>
+  <li><code>{ }</code> são caixas, uma dentro da outra; <code>;</code> termina cada instrução (não as linhas que abrem chaves).</li>
+  <li>As instruções do <code>main</code> rodam de cima para baixo; o programa termina na <code>}</code> do <code>main</code>.</li>
+  <li><span class="versao">Java 25+</span> <code>void main() { IO.println("…"); }</code> é a forma curta. O guia usa a clássica por padrão, porque funciona em qualquer Java e é a que você vai encontrar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
