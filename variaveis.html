@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Variáveis — declarar, atribuir e usar | Guia Java</title>
+<meta name="description" content="O que é uma variável em Java (uma caixa com etiqueta e tipo), como declarar, atribuir, mudar o valor, escolher nomes válidos e imprimir, com os erros reais do javac: might not have been initialized, already defined e cannot find symbol.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Variáveis</span></h1>
+
+<p class="intro">Um programa precisa <strong>guardar coisas</strong> enquanto trabalha: o nome de uma cliente, a nota de uma prova, quantas maçãs sobraram na loja. Em Java, cada coisa guardada fica numa <strong>variável</strong>. Nesta aula você vai criar suas primeiras variáveis, mudar o valor delas, dar bons nomes e imprimi-las na tela.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma variável: uma caixa com <strong>etiqueta</strong> (o nome) e <strong>tipo</strong> (o que cabe nela).</li>
+  <li>Como <strong>declarar</strong>, <strong>atribuir</strong> e fazer as duas coisas na mesma linha.</li>
+  <li>Como mudar o valor de uma variável e criar várias de uma vez.</li>
+  <li>Quais nomes o Java aceita e quais nomes os programadores Java esperam ver.</li>
+  <li>Os erros mais comuns: usar antes de dar valor, criar duas vezes, errar o nome.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula foram compilados e executados com o <strong>JDK 25</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), na pasta <code>~/java</code>. Se você ainda não sabe compilar, veja antes <a href="compilar-executar.html">javac e java</a>.</p>
+
+<hr>
+
+<h2>A ideia: uma caixa com etiqueta</h2>
+<p>Pense numa mudança de casa. Você guarda as coisas em caixas e escreve uma <strong>etiqueta</strong> em cada uma: "LIVROS", "PANELAS". Depois, quando quer as panelas, não precisa abrir todas as caixas: procura pela etiqueta.</p>
+
+<p>Uma variável é isso: um espaço na memória do computador com uma etiqueta. Mas o Java acrescenta uma regra que muitas linguagens não têm: <strong>cada caixa tem um formato</strong>. Uma caixa feita para números inteiros não aceita texto; uma caixa feita para texto não aceita um número solto. Esse formato se chama <strong>tipo</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte da caixa</th><th>Nome técnico</th><th>Exemplo</th></tr>
+<tr><td>O formato (o que cabe dentro)</td><td><strong>tipo</strong></td><td><code>int</code> (número inteiro), <code>String</code> (texto)</td></tr>
+<tr><td>A etiqueta</td><td><strong>nome</strong> (ou identificador)</td><td><code>idade</code>, <code>nome</code></td></tr>
+<tr><td>O que está guardado agora</td><td><strong>valor</strong></td><td><code>29</code>, <code>"Ana"</code></td></tr>
+</table>
+</div>
+
+<p>O tipo nunca muda: uma caixa de inteiros é de inteiros para sempre. O <strong>valor</strong> pode mudar quantas vezes você quiser (por isso o nome "variável": o que está dentro <em>varia</em>).</p>
+
+<p>Nesta aula vamos usar só três tipos, para não misturar assuntos. Os outros vêm nas próximas aulas.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Guarda</th><th>Exemplos de valor</th><th>Aula</th></tr>
+<tr><td><code>int</code></td><td>Números inteiros (sem vírgula)</td><td><code>29</code>, <code>-5</code>, <code>0</code></td><td><a href="inteiros.html">int, long, short, byte</a></td></tr>
+<tr><td><code>double</code></td><td>Números com parte decimal (com <strong>ponto</strong>, não vírgula)</td><td><code>1.65</code>, <code>9.90</code></td><td><a href="decimais.html">double e float</a></td></tr>
+<tr><td><code>String</code></td><td>Texto, sempre entre aspas duplas</td><td><code>"Ana"</code>, <code>"maçã"</code></td><td><a href="strings.html">Strings</a></td></tr>
+</table>
+</div>
+
+<p><code>int</code> vem de <em>integer</em> ("inteiro"). <code>String</code> quer dizer "cordão, sequência": um texto é uma sequência de letras. Repare que <code>String</code> começa com letra maiúscula e <code>int</code> não; a explicação está em <a href="tipos-primitivos.html">Tipos Primitivos</a>.</p>
+
+<hr>
+
+<h2>1. Declarar: criar a caixa</h2>
+<p><strong>Declarar</strong> uma variável é avisar ao Java: "quero uma caixa deste tipo, com esta etiqueta". Escreve-se o tipo, um espaço, o nome e um ponto e vírgula:</p>
+
+<pre class="file" data-file="trecho">int idade;</pre>
+
+<dl class="anatomy">
+  <dt>int</dt><dd>O <strong>tipo</strong>: esta caixa guarda um número inteiro.</dd>
+  <dt>idade</dt><dd>O <strong>nome</strong> da variável, que você escolhe.</dd>
+  <dt>;</dt><dd>Termina a instrução, como o ponto final de uma frase (veja <a href="sintaxe.html">Sintaxe e Estrutura</a>).</dd>
+</dl>
+
+<p>Depois dessa linha a caixa existe, mas ainda está <strong>vazia</strong>: nenhum valor foi colocado nela. Daqui a pouco você vai ver que o Java não deixa usar uma caixa vazia.</p>
+
+<h2>2. Atribuir: colocar um valor</h2>
+<p><strong>Atribuir</strong> é colocar um valor na caixa. Usa-se o sinal <code>=</code>:</p>
+
+<pre class="file" data-file="trecho">idade = 29;</pre>
+
+<dl class="anatomy">
+  <dt>idade</dt><dd>A caixa que vai receber o valor (sem o tipo: ela já foi declarada).</dd>
+  <dt>=</dt><dd>O operador de <strong>atribuição</strong>: "guarde o que está à direita na caixa da esquerda".</dd>
+  <dt>29</dt><dd>O valor guardado.</dd>
+  <dt>;</dt><dd>Fim da instrução.</dd>
+</dl>
+
+<div class="warning">
+<strong>Em Java, <code>=</code> não é "igual"</strong>
+<p>Na matemática, <code>idade = 29</code> afirma que os dois lados são iguais. Em Java, é uma <strong>ordem</strong>: "pegue o 29 e guarde em <code>idade</code>". Leia sempre como "idade <strong>recebe</strong> 29". Para perguntar se dois valores são iguais, o Java usa <code>==</code> (dois sinais), assunto de <a href="operadores-comparacao.html">Operadores de Comparação</a>.</p>
+</div>
+
+<h2>3. Declarar e atribuir na mesma linha</h2>
+<p>É o jeito mais comum: criar a caixa e já colocar o valor. O nome técnico é <strong>inicializar</strong> a variável (dar o valor inicial).</p>
+
+<pre class="file" data-file="trecho">String nome = "Ana";</pre>
+
+<dl class="anatomy">
+  <dt>String</dt><dd>O tipo: texto.</dd>
+  <dt>nome</dt><dd>O nome da variável.</dd>
+  <dt>=</dt><dd>Recebe.</dd>
+  <dt>"Ana"</dt><dd>O valor. Texto em Java vai sempre entre <strong>aspas duplas</strong>; as aspas não fazem parte do valor.</dd>
+  <dt>;</dt><dd>Fim da instrução.</dd>
+</dl>
+
+<p>Agora as três coisas juntas num programa completo. As variáveis ficam <strong>dentro</strong> do <code>main</code>, entre as chaves, porque é ali que o programa começa (veja <a href="primeiro-programa.html">Olá, Mundo</a>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade;
+        idade = 29;
+        String nome = "Ana";
+        System.out.println(nome);
+        System.out.println(idade);
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>int idade;</code></td><td>Declara uma caixa de inteiros chamada <code>idade</code>. Ainda vazia.</td></tr>
+<tr><td><code>idade = 29;</code></td><td>Guarda <code>29</code> na caixa <code>idade</code>.</td></tr>
+<tr><td><code>String nome = "Ana";</code></td><td>Declara e inicializa: cria a caixa de texto <code>nome</code> já com <code>"Ana"</code>.</td></tr>
+<tr><td><code>System.out.println(nome);</code></td><td>Mostra na tela o <strong>valor</strong> de <code>nome</code>.</td></tr>
+<tr><td><code>System.out.println(idade);</code></td><td>Mostra o valor de <code>idade</code>.</td></tr>
+</table>
+</div>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Ana
+29</pre>
+
+<p>O <code>println</code> não mostrou a palavra "nome": mostrou o que está <strong>dentro</strong> da caixa <code>nome</code>. Quando você escreve o nome de uma variável sem aspas, o Java vai buscar o valor dela. Com aspas, seria só o texto: <code>System.out.println("nome");</code> mostra <code>nome</code>.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> troque <code>"Ana"</code> pelo seu nome e <code>29</code> pela sua idade. Depois apague a linha <code>idade = 29;</code> e rode de novo para ver o que o Java diz.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int idade;
+        idade = 29;
+        String nome = "Ana";
+        System.out.println(nome);
+        System.out.println(idade);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Mudar o valor</h2>
+<p>Uma variável guarda <strong>um valor por vez</strong>. Quando você atribui de novo, o valor antigo é jogado fora e o novo ocupa o lugar. Repare que, para mudar, <strong>não se repete o tipo</strong>: a caixa já existe.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int pontos = 10;
+        System.out.println(pontos);
+        pontos = 25;
+        System.out.println(pontos);
+        pontos = pontos + 5;
+        System.out.println(pontos);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+10
+25
+30</pre>
+
+<p>A última atribuição, <code>pontos = pontos + 5;</code>, assusta quem vem da matemática ("pontos igual a pontos mais cinco?"). Lembre que <code>=</code> é "recebe" e que o Java faz <strong>primeiro</strong> o lado direito:</p>
+
+<ol class="passo">
+  <li>Calcula <code>pontos + 5</code> usando o valor atual: <code>25 + 5</code> dá <code>30</code>.</li>
+  <li>Guarda o <code>30</code> na caixa <code>pontos</code>, no lugar do <code>25</code>.</li>
+</ol>
+
+<p>Esse "pegar o valor atual e somar" é tão comum que existe um atalho, <code>pontos += 5;</code>, explicado em <a href="operadores-atribuicao.html">Operadores de Atribuição</a>.</p>
+
+<h3>Copiar o valor de uma variável para outra</h3>
+<p>Do lado direito do <code>=</code> pode vir outra variável. O Java copia o <strong>valor</strong>; as duas caixas continuam independentes:</p>
+
+<pre class="file" data-file="trecho">int notaAna = 8;
+int notaBruno = notaAna;   // notaBruno recebe uma cópia do 8
+notaAna = 10;              // muda só a da Ana
+// agora: notaAna vale 10 e notaBruno continua 8</pre>
+
+<p>As linhas que começam com <code>//</code> são <a href="comentarios.html">comentários</a>: o Java as ignora; servem para explicar o código a quem lê.</p>
+
+<hr>
+
+<h2>5. Várias variáveis na mesma linha</h2>
+<p>Quando várias variáveis têm o <strong>mesmo tipo</strong>, dá para declará-las numa linha só, separadas por vírgula:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int macas = 3, peras = 5, uvas = 12;
+        System.out.println(macas);
+        System.out.println(peras);
+        System.out.println(uvas);
+        int x, y, z;
+        x = y = z = 0;
+        System.out.println(x);
+        System.out.println(y);
+        System.out.println(z);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+3
+5
+12
+0
+0
+0</pre>
+
+<dl class="anatomy">
+  <dt>int</dt><dd>O tipo vale para <strong>todas</strong> as variáveis da linha.</dd>
+  <dt>macas = 3,</dt><dd>Primeira variável, já com valor. A vírgula separa da próxima.</dd>
+  <dt>peras = 5,</dt><dd>Segunda.</dd>
+  <dt>uvas = 12;</dt><dd>Terceira; o <code>;</code> encerra a linha.</dd>
+</dl>
+
+<p>A linha <code>x = y = z = 0;</code> é uma atribuição em cadeia: o Java resolve da direita para a esquerda (<code>z</code> recebe 0, depois <code>y</code> recebe o valor de <code>z</code>, depois <code>x</code>). Funciona, mas use com moderação.</p>
+
+<h3>Qual forma usar?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Declarar e atribuir junto</td><td><code>int idade = 29;</code></td><td><strong>Quase sempre.</strong> Você já sabe o valor inicial.</td></tr>
+<tr><td>Declarar e atribuir depois</td><td><code>int idade;</code> … <code>idade = 29;</code></td><td>O valor só será conhecido mais adiante (depois de um <a href="if-else.html">if</a>, por exemplo).</td></tr>
+<tr><td>Várias numa linha</td><td><code>int a = 1, b = 2;</code></td><td>Poucas variáveis do mesmo tipo, muito relacionadas (<code>x, y</code>). Em geral, uma por linha é mais fácil de ler.</td></tr>
+<tr><td>Atribuição em cadeia</td><td><code>x = y = 0;</code></td><td>Raramente: zerar várias de uma vez.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. Nomes de variáveis</h2>
+<p>O nome é a etiqueta da caixa. O Java tem <strong>regras</strong> (se você quebrar, não compila) e a comunidade tem <strong>convenções</strong> (se você quebrar, compila, mas o código fica com cara de amador).</p>
+
+<h3>Regras (obrigatórias)</h3>
+<ul>
+  <li>Pode ter letras, dígitos, <code>_</code> (sublinhado) e <code>$</code>.</li>
+  <li><strong>Não</strong> pode começar com dígito: <code>nota2</code> vale, <code>2nota</code> não.</li>
+  <li><strong>Não</strong> pode ter espaço nem hífen: <code>nota final</code> e <code>nota-final</code> não valem.</li>
+  <li><strong>Não</strong> pode ser uma palavra reservada do Java: <code>class</code>, <code>int</code>, <code>public</code>, <code>new</code>… (lista em <a href="ref-palavras-chave.html">Palavras-chave</a>).</li>
+  <li>Maiúsculas e minúsculas são <strong>diferentes</strong>: <code>nota</code>, <code>Nota</code> e <code>NOTA</code> são três variáveis distintas.</li>
+</ul>
+
+<p>Este programa compila: todos os nomes seguem as regras (inclusive o acento de <code>médiaDaTurma</code>, porque o Java aceita letras de qualquer idioma).</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int nota = 7;
+        int Nota = 9;
+        int notaFinal = 8;
+        int _nota = 5;
+        int $nota = 6;
+        int nota2 = 10;
+        int médiaDaTurma = 7;
+        System.out.println(nota + " " + Nota + " " + notaFinal + " " + _nota + " " + $nota + " " + nota2 + " " + médiaDaTurma);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+7 9 8 5 6 10 7</pre>
+
+<p>Compilar, compila. Mas só <code>nota</code>, <code>notaFinal</code> e <code>nota2</code> seguem as convenções abaixo; os outros nomes confundem quem lê.</p>
+
+<h3>Convenções (o que todo programador Java espera)</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Convenção</th><th>Bom</th><th>Evite</th></tr>
+<tr><td><strong>camelCase</strong>: começa minúscula; cada palavra nova começa maiúscula (as "corcovas do camelo")</td><td><code>notaFinal</code>, <code>precoComDesconto</code></td><td><code>NotaFinal</code>, <code>nota_final</code>, <code>notafinal</code></td></tr>
+<tr><td>Nome que diz o que guarda</td><td><code>idade</code>, <code>totalDeMacas</code></td><td><code>x</code>, <code>n1</code>, <code>coisa</code></td></tr>
+<tr><td>Sem <code>$</code> e sem <code>_</code> no começo</td><td><code>nota</code></td><td><code>$nota</code>, <code>_nota</code></td></tr>
+<tr><td>Sem acentos e sem <code>ç</code> (por segurança, em equipes e arquivos com codificação diferente)</td><td><code>media</code>, <code>preco</code></td><td><code>média</code>, <code>preço</code></td></tr>
+</table>
+</div>
+
+<p>Nomes curtos como <code>i</code>, <code>x</code> e <code>y</code> são aceitos quando o sentido é óbvio: o contador de um <a href="for.html">for</a> ou coordenadas de um ponto. Constantes têm outra convenção (<code>TAXA_DE_JUROS</code>), vista em <a href="constantes.html">Constantes</a>.</p>
+
+<div class="tryjava" data-goal="compila,out:Laranja">
+<p class="try-task"><strong>Missão:</strong> este código tem um nome inválido e não compila. Clique em Rodar, leia o erro e corrija o nome seguindo a convenção <strong>camelCase</strong>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String fruta-preferida = "Laranja";
+        System.out.println(fruta-preferida);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String frutaPreferida = "Laranja";
+        System.out.println(frutaPreferida);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>7. Imprimir variáveis</h2>
+<p>Você já usou <code>System.out.println(variavel)</code>. Quase sempre, porém, queremos o valor <strong>no meio de um texto</strong>. Para isso, o <code>+</code> entre um texto e uma variável <strong>cola</strong> os dois (isso se chama <strong>concatenação</strong>, com aula própria em <a href="concatenacao.html">Concatenação</a>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        int idade = 29;
+        double altura = 1.65;
+        System.out.println(nome);
+        System.out.println("Idade: " + idade);
+        System.out.println(nome + " tem " + idade + " anos e " + altura + " m de altura.");
+        System.out.print("Sem pular linha... ");
+        System.out.println(idade);
+        System.out.println("nome");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Ana
+Idade: 29
+Ana tem 29 anos e 1.65 m de altura.
+Sem pular linha... 29
+nome</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>Saída</th><th>Por quê</th></tr>
+<tr><td><code>println("Idade: " + idade)</code></td><td><code>Idade: 29</code></td><td>O texto <code>"Idade: "</code> (com o espaço no fim) foi colado ao valor 29.</td></tr>
+<tr><td><code>println(nome + " tem " + idade + …)</code></td><td><code>Ana tem 29 anos e 1.65 m de altura.</code></td><td>Vários pedaços colados. Os espaços vêm de dentro das aspas: <code>" tem "</code>.</td></tr>
+<tr><td><code>print("Sem pular linha... ")</code></td><td>(nada pula)</td><td><code>print</code> não pula linha; o <code>println</code> seguinte continua na mesma linha. Veja <a href="saida.html">Saída: print e println</a>.</td></tr>
+<tr><td><code>println("nome")</code></td><td><code>nome</code></td><td>Com aspas é <strong>texto</strong>, não variável.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Esqueceu o espaço?</strong>
+<p><code>"Idade:" + idade</code> mostra <code>Idade:29</code>, tudo grudado. O <code>+</code> cola exatamente o que está nas aspas; os espaços são responsabilidade sua.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+<p>Os erros abaixo são os mais comuns com variáveis. Em todos, o <code>javac</code> recusa o programa e <strong>nada é executado</strong>. A mensagem vem em inglês e segue o mesmo formato: <code>arquivo:linha: error: descrição</code>, a linha com problema e um <code>^</code> apontando o lugar (veja <a href="erros-compilacao.html">Lendo Erros do javac</a>).</p>
+
+<div class="cenario">
+<strong>"variable saldo might not have been initialized"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int saldo;
+        System.out.println(saldo);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: variable saldo might not have been initialized
+        System.out.println(saldo);
+                           ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "a variável saldo pode não ter sido inicializada". A caixa foi criada (linha 3), mas nada foi guardado nela antes de você tentar ler o valor (linha 4). Algumas linguagens usam um valor qualquer; o Java prefere <strong>recusar</strong>, porque usar um valor que você nunca definiu é sempre um erro de lógica.</p>
+<p><strong>Como consertar:</strong> dê um valor antes de usar: <code>int saldo = 0;</code>, ou atribua <code>saldo = 150;</code> antes do <code>println</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"variable idade is already defined in method main(String[])"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int idade = 29;
+        int idade = 30;
+        System.out.println(idade);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: variable idade is already defined in method main(String[])
+        int idade = 30;
+            ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "a variável idade já está definida no método main". Escrever o tipo na frente (<code>int idade</code>) é <strong>criar uma caixa nova</strong>, e já existe uma caixa com essa etiqueta no mesmo lugar.</p>
+<p><strong>Como consertar:</strong> se a ideia era mudar o valor, tire o tipo: <code>idade = 30;</code>. Se era outra informação, use outro nome: <code>int idadeDoBruno = 30;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol" (nome digitado diferente)</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int idade = 29;
+        System.out.println(Idade);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(Idade);
+                           ^
+  symbol:   variable Idade
+  location: class Main
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "não encontrei o símbolo". <code>symbol: variable Idade</code> diz o que ele procurou; <code>location: class Main</code>, onde. A variável se chama <code>idade</code> (minúscula); <code>Idade</code> é outro nome, que não existe.</p>
+<p><strong>Como consertar:</strong> escreva o nome exatamente como na declaração, com as mesmas maiúsculas e minúsculas. O mesmo erro aparece se você usar uma variável <strong>antes</strong> da linha que a declara.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome começando com dígito: "not a statement" e "';' expected"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int 2nota = 7;
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: not a statement
+        int 2nota = 7;
+        ^
+Main.java:3: error: ';' expected
+        int 2nota = 7;
+           ^
+2 errors</pre>
+<p><strong>O que quer dizer:</strong> ao ver um dígito, o Java acha que começou um <strong>número</strong>, não um nome, e se perde. Por isso as mensagens não falam em "nome inválido". Com hífen (<code>int nota-final = 7;</code>) a confusão é parecida: <code>error: ';' expected</code> apontando para o <code>-</code>, que ele leu como um sinal de menos. Com uma palavra reservada (<code>int class = 7;</code>) aparecem três erros, entre eles <code>&lt;identifier&gt; expected</code> ("esperava um nome").</p>
+<p><strong>Como consertar:</strong> quando o erro aponta para o nome de uma variável que você acabou de criar, confira as regras de nome: <code>nota2</code>, <code>notaFinal</code>, <code>classe</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible types: String cannot be converted to int"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int idade = "vinte e nove";
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: String cannot be converted to int
+        int idade = "vinte e nove";
+                    ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "tipos incompatíveis: String não pode ser convertido em int". A caixa é de inteiros e você tentou guardar um texto. É o tipo protegendo você. O mesmo acontece com <code>int idade = "29";</code>: com aspas, <code>"29"</code> é texto, não número.</p>
+<p><strong>Como consertar:</strong> guarde um valor do tipo certo (<code>int idade = 29;</code>) ou mude o tipo da variável. Para transformar o texto <code>"29"</code> no número 29, veja <a href="conversao-tipos.html">Conversão de Tipos</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o ponto e vírgula: "';' expected"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: ';' expected
+        int idade = 29
+                      ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o <code>^</code> aponta para o fim da linha 3, onde faltou o <code>;</code>. Toda declaração e toda atribuição terminam com ponto e vírgula.</p>
+</div>
+
+<div class="tryjava" data-goal="erro-javac:might not have been initialized">
+<p class="try-task"><strong>Missão (provoque o erro):</strong> mude o programa para que o <code>javac</code> reclame <code>might not have been initialized</code>. Dica: deixe a variável <code>estoque</code> declarada, mas sem valor.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int estoque = 40;
+        System.out.println("Estoque: " + estoque);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int estoque;
+        System.out.println("Estoque: " + estoque);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Nome</th><th>Exemplo</th></tr>
+<tr><td><code>tipo nome;</code></td><td>Declaração</td><td><code>int idade;</code></td></tr>
+<tr><td><code>nome = valor;</code></td><td>Atribuição</td><td><code>idade = 29;</code></td></tr>
+<tr><td><code>tipo nome = valor;</code></td><td>Declaração com inicialização</td><td><code>String nome = "Ana";</code></td></tr>
+<tr><td><code>nome = nome + n;</code></td><td>Usar o valor atual para calcular o novo</td><td><code>pontos = pontos + 5;</code></td></tr>
+<tr><td><code>tipo a = 1, b = 2;</code></td><td>Várias do mesmo tipo</td><td><code>int macas = 3, peras = 5;</code></td></tr>
+<tr><td><code>a = b = valor;</code></td><td>Atribuição em cadeia</td><td><code>x = y = 0;</code></td></tr>
+<tr><td><code>"texto" + variavel</code></td><td>Concatenação (imprimir junto)</td><td><code>"Idade: " + idade</code></td></tr>
+<tr><td><code>var nome = valor;</code></td><td>Tipo descoberto pelo Java</td><td>Veja <a href="var.html">var</a></td></tr>
+<tr><td><code>final tipo NOME = valor;</code></td><td>Variável que não muda</td><td>Veja <a href="constantes.html">Constantes</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Declarar e inicializar</h3>
+<p>Complete para criar uma variável inteira <code>quantidade</code> com o valor 12:</p>
+<div class="ex-code"><input data-answer="int" aria-label="tipo"> quantidade = 12;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Texto</h3>
+<p>Complete para guardar o texto <code>Manga</code> na variável <code>fruta</code>:</p>
+<div class="ex-code">String fruta = <input data-answer="&quot;Manga&quot;" aria-label="valor">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Mudar o valor</h3>
+<p>A variável <code>int saldo = 100;</code> já existe. Complete a linha que muda o valor para 80 (sem criar outra variável):</p>
+<div class="ex-code"><input data-answer="saldo = 80;|saldo=80;" aria-label="atribuição"></div>
+</div>
+
+<div class="exercise">
+<h3>4. Imprimir com texto</h3>
+<p>Com <code>int idade = 29;</code>, complete para a tela mostrar <code>Tenho 29 anos</code>:</p>
+<div class="ex-code">System.out.println("Tenho " <input data-answer="+" aria-label="operador"> idade + " anos");</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destes nomes de variável <strong>não</strong> compila?</p>
+<label><input type="radio" name="q5"> <code>nota2</code></label>
+<label><input type="radio" name="q5"> <code>notaFinal</code></label>
+<label><input type="radio" name="q5"> <code>2nota</code></label>
+<label><input type="radio" name="q5"> <code>_nota</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Depois de <code>int a = 5; a = a + 3; a = 2;</code>, quanto vale <code>a</code>?</p>
+<label><input type="radio" name="q6"> 8</label>
+<label><input type="radio" name="q6"> 2</label>
+<label><input type="radio" name="q6"> 10</label>
+<label><input type="radio" name="q6"> O código não compila.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. O <code>javac</code> mostrou <code>variable total is already defined in method main(String[])</code>. O que você fez?</p>
+<label><input type="radio" name="q7"> Usou <code>total</code> sem dar valor.</label>
+<label><input type="radio" name="q7"> Escreveu <code>Total</code> em vez de <code>total</code>.</label>
+<label><input type="radio" name="q7"> Esqueceu o ponto e vírgula.</label>
+<label><input type="radio" name="q7"> Escreveu o tipo duas vezes, como em <code>int total = 1;</code> e depois <code>int total = 2;</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">8. Com <code>String nome = "Ana";</code>, o que <code>System.out.println("nome");</code> mostra?</p>
+<label><input type="radio" name="q8"> <code>nome</code></label>
+<label><input type="radio" name="q8"> <code>Ana</code></label>
+<label><input type="radio" name="q8"> <code>"Ana"</code></label>
+<label><input type="radio" name="q8"> Um erro de compilação.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Ana comprou 12 mangas por 30.0 reais,src:\bint\s+quantidade\b,src:\bdouble\s+total\b">
+<p class="try-task"><strong>Missão final:</strong> crie as variáveis <code>String nome</code> com <code>"Ana"</code>, <code>int quantidade</code> com <code>12</code> e <code>double total</code> com <code>30.0</code>, e use-as num único <code>println</code> para mostrar exatamente: <code>Ana comprou 12 mangas por 30.0 reais</code></p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        // crie as três variáveis aqui
+
+        // e mostre a frase aqui
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        int quantidade = 12;
+        double total = 30.0;
+        System.out.println(nome + " comprou " + quantidade + " mangas por " + total + " reais");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Variável = caixa com <strong>tipo</strong> (o que cabe), <strong>nome</strong> (a etiqueta) e <strong>valor</strong> (o que está dentro agora).</li>
+  <li>Declarar: <code>int idade;</code>. Atribuir: <code>idade = 29;</code>. Os dois juntos: <code>int idade = 29;</code>.</li>
+  <li><code>=</code> quer dizer "recebe". O lado direito é calculado primeiro: <code>pontos = pontos + 5;</code>.</li>
+  <li>Para mudar o valor, não repita o tipo; repetir cria outra variável e dá <code>already defined</code>.</li>
+  <li>Usar antes de dar valor dá <code>might not have been initialized</code>; errar o nome dá <code>cannot find symbol</code>.</li>
+  <li>Nomes: letras, dígitos, <code>_</code> e <code>$</code>, sem começar com dígito, sem espaço, sem palavra reservada. Convenção: <code>camelCase</code> descritivo.</li>
+  <li>Para mostrar uma variável no meio de um texto: <code>"Idade: " + idade</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
