@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java finally e try-with-resources — fechar recursos | Guia Java</title>
+<meta name="description" content="O bloco finally do Java, que roda sempre (até com return), o try-with-resources para fechar Scanner e arquivos automaticamente, a interface AutoCloseable e as exceções suprimidas, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">finally e try-with-resources</span></h1>
+
+<p class="intro">Às vezes existe uma tarefa que precisa acontecer <strong>de qualquer jeito</strong>, tenha dado certo ou errado: fechar o arquivo, desligar a conexão, apagar a luz ao sair. Para isso o Java tem o bloco <code>finally</code> e uma forma moderna e mais segura, o <strong>try-with-resources</strong>, que fecha as coisas sozinho.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o bloco <code>finally</code> e em que situações ele roda (spoiler: quase todas, até depois de um <code>return</code>).</li>
+  <li>O que é um <strong>recurso</strong> e por que ele precisa ser fechado.</li>
+  <li>Usar o try-with-resources com um <code>Scanner</code> lendo um arquivo.</li>
+  <li>Criar uma classe própria que funciona no try-with-resources, com <code>AutoCloseable</code>.</li>
+  <li>A ordem em que tudo acontece e o que são as <strong>exceções suprimidas</strong>.</li>
+</ul>
+</div>
+
+<p>Esta aula continua <a href="try-catch.html">try e catch</a>; se ainda não leu, comece por lá.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>A Ana é a última a sair da loja. O combinado é: <strong>ao sair, apagar as luzes</strong>. Não importa se o dia foi ótimo, se faltou troco, se ela teve que sair correndo: a luz tem que ser apagada. Ela não vai escrever "apagar a luz" no fim de cada possível dia; ela cola um bilhete na porta: "ao sair, <strong>finalmente</strong>, apague a luz".</p>
+<p>O <code>finally</code> ("finalmente") é esse bilhete. É um bloco que vem depois do <code>try</code> (e dos <code>catch</code>, se houver) e roda <strong>sempre</strong> que o programa sai do <code>try</code>: terminando normalmente, por causa de uma exceção ou por um <code>return</code>.</p>
+
+<hr>
+
+<h2>O bloco <code>finally</code></h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void converter(String texto) {
+        try {
+            int n = Integer.parseInt(texto);
+            System.out.println("Convertido: " + n);
+        } catch (NumberFormatException e) {
+            System.out.println("Inválido: " + texto);
+        } finally {
+            System.out.println("finally rodou");
+        }
+    }
+    public static void main(String[] args) {
+        converter("42");
+        System.out.println("---");
+        converter("abc");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>try { … }</dt><dd>O código que pode dar problema, como na aula anterior.</dd>
+  <dt>catch (NumberFormatException e) { … }</dt><dd>O tratamento, se o problema acontecer.</dd>
+  <dt>finally { … }</dt><dd>O que roda <strong>no fim, em qualquer caso</strong>. Vem sempre por último, depois de todos os <code>catch</code>.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Convertido: 42
+finally rodou
+---
+Inválido: abc
+finally rodou</pre>
+
+<p>Com <code>"42"</code>, o caminho foi <code>try</code> → <code>finally</code>. Com <code>"abc"</code>, foi <code>try</code> (interrompido) → <code>catch</code> → <code>finally</code>. Nos dois, o <code>finally</code> rodou.</p>
+
+<h3>Mesmo sem <code>catch</code>, e mesmo se o programa quebrar</h3>
+<p>O <code>catch</code> é opcional quando há <code>finally</code>: <code>try { … } finally { … }</code> é válido. E se a exceção não for tratada, o <code>finally</code> roda <strong>antes</strong> de o programa encerrar:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int provas = 0;
+        try {
+            System.out.println("Calculando...");
+            System.out.println(30 / provas);
+        } finally {
+            System.out.println("finally rodou");
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Calculando...
+finally rodou
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.main(Main.java:6)
+$ echo $?
+1</pre>
+
+<p>Repare na ordem: o <code>finally rodou</code> aparece <strong>antes</strong> do stack trace. A exceção foi lançada, o Java executou o <code>finally</code> no caminho e só então a exceção continuou "caindo" até encerrar o programa. O <code>Fim</code>, que está fora do bloco, não rodou.</p>
+
+<h3>Até com <code>return</code></h3>
+<p>Este é o teste mais impressionante. O <a href="retorno.html">return</a> encerra o método na hora… mas, se ele estiver dentro de um <code>try</code>, o <code>finally</code> roda antes de o método realmente terminar:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static String buscar(String[] frutas, String procurada) {
+        try {
+            for (String f : frutas) {
+                if (f.equals(procurada)) {
+                    return "achei " + f;
+                }
+            }
+            return "não achei " + procurada;
+        } finally {
+            System.out.println("(busca encerrada)");
+        }
+    }
+    public static void main(String[] args) {
+        String[] frutas = {"maçã", "uva", "pera"};
+        System.out.println(buscar(frutas, "uva"));
+        System.out.println(buscar(frutas, "kiwi"));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+(busca encerrada)
+achei uva
+(busca encerrada)
+não achei kiwi</pre>
+
+<p>Acompanhe a primeira chamada: o laço acha <code>"uva"</code> e executa <code>return "achei uva"</code>. O valor de retorno fica "guardado", o <code>finally</code> roda (mostrando <code>(busca encerrada)</code>) e só então o método devolve <code>"achei uva"</code> para o <code>main</code>, que o mostra. Por isso a linha do <code>finally</code> aparece <strong>antes</strong> do resultado.</p>
+
+<div class="warning">
+<strong>A exceção: <code>System.exit</code></strong>
+<p><code>System.exit(0)</code> não "sai do try": ele desliga a JVM inteira na hora. Aí o <code>finally</code> não roda:</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        try {
+            System.out.println("Saindo com System.exit");
+            System.exit(0);
+        } finally {
+            System.out.println("finally rodou");
+        }
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Saindo com System.exit</pre>
+<p>O mesmo vale se o computador desligar ou o processo for morto. "Sempre" quer dizer: sempre que o programa sair do <code>try</code> por um caminho normal do Java.</p>
+</div>
+
+<div class="tryjava" data-goal="src:finally,outre:Pedido inválido: x\s*\n\s*Próximo cliente!">
+<p class="try-task"><strong>Missão:</strong> a padaria deve dizer <code>Próximo cliente!</code> depois de <strong>todo</strong> pedido, válido ou não. Hoje, com o pedido <code>"x"</code>, a frase não aparece. Mova o <code>println("Próximo cliente!")</code> para um bloco <code>finally</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] pedidos = {"3", "x"};
+        for (String p : pedidos) {
+            try {
+                int qtd = Integer.parseInt(p);
+                System.out.println("Pedido de " + qtd + " pães");
+                System.out.println("Próximo cliente!");
+            } catch (NumberFormatException e) {
+                System.out.println("Pedido inválido: " + p);
+            }
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] pedidos = {"3", "x"};
+        for (String p : pedidos) {
+            try {
+                int qtd = Integer.parseInt(p);
+                System.out.println("Pedido de " + qtd + " pães");
+            } catch (NumberFormatException e) {
+                System.out.println("Pedido inválido: " + p);
+            } finally {
+                System.out.println("Próximo cliente!");
+            }
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Recursos: coisas que precisam ser fechadas</h2>
+<p>Um <strong>recurso</strong> é algo que o programa pega emprestado do sistema e precisa devolver: um arquivo aberto, uma conexão com um banco de dados, uma conexão de rede. O sistema operacional tem um limite de arquivos abertos ao mesmo tempo; um programa que abre e nunca fecha acaba esgotando esse limite, e dados que estavam "a caminho" de um arquivo podem não ser gravados. Por isso, todo recurso aberto deve ser <strong>fechado</strong> com o método <code>close()</code> ("fechar").</p>
+
+<p>Um exemplo de recurso é o <a href="scanner.html">Scanner</a> lendo um <strong>arquivo</strong> em vez do teclado. A Ana quer ler a planilha <code>Documentos/alunos.csv</code>. Antes do Java 7, o jeito certo de garantir o <code>close()</code> era este:</p>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner leitor = null;
+        try {
+            leitor = new Scanner(Path.of("Documentos/alunos.csv"));
+            System.out.println("Primeira linha: " + leitor.nextLine());
+        } catch (IOException e) {
+            System.out.println("Não consegui ler o arquivo: " + e);
+        } finally {
+            if (leitor != null) {
+                leitor.close();
+            }
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Primeira linha: nome,idade,cidade,nota</pre>
+
+<p>Funciona, mas repare quanta cerimônia: declarar a variável fora com <code>null</code>, abrir dentro do <code>try</code>, e no <code>finally</code> conferir se abriu mesmo (se o arquivo não existisse, <code>leitor</code> continuaria <code>null</code>, e <code>leitor.close()</code> daria <code>NullPointerException</code>). É fácil esquecer um pedaço. Sobre o <code>IOException</code> e o <code>Path.of</code>, não se preocupe agora: eles têm aulas próprias, <a href="checked-unchecked.html">Checked × Unchecked</a> e <a href="arquivos.html">Ler e Escrever Arquivos</a>.</p>
+
+<hr>
+
+<h2>try-with-resources <span class="versao">Java 7+</span></h2>
+<p>O <strong>try-with-resources</strong> ("try com recursos") faz tudo isso sozinho. Você abre o recurso <strong>entre parênteses</strong>, logo depois do <code>try</code>, e o Java garante o <code>close()</code> no fim:</p>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        try (Scanner leitor = new Scanner(Path.of("Documentos/alunos.csv"))) {
+            while (leitor.hasNextLine()) {
+                String linha = leitor.nextLine();
+                System.out.println("Linha: " + linha);
+            }
+        } catch (IOException e) {
+            System.out.println("Não consegui ler o arquivo: " + e);
+        }
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>try (</dt><dd>Os parênteses logo depois do <code>try</code> são a marca do try-with-resources.</dd>
+  <dt>Scanner leitor = new Scanner(Path.of("Documentos/alunos.csv"))</dt><dd>A declaração do recurso: uma variável, criada aqui mesmo. Ela só existe dentro do bloco.</dd>
+  <dt>) {</dt><dd>Fecha os parênteses e abre o bloco, como num <code>try</code> comum.</dd>
+  <dt>while (leitor.hasNextLine())</dt><dd>"Enquanto houver uma próxima linha", lê e mostra.</dd>
+  <dt>}</dt><dd>Ao sair do bloco, por qualquer caminho, o Java chama <code>leitor.close()</code> sozinho. Não há <code>finally</code> nem <code>null</code>.</dd>
+  <dt>catch (IOException e)</dt><dd>Opcional: trata o problema de abrir ou ler o arquivo.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Linha: nome,idade,cidade,nota
+Linha: Ana,29,Recife,9.5
+Linha: Bruno,34,Curitiba,7.0
+Linha: Carla,22,Salvador,8.5
+Linha: Diego,41,Manaus,6.0
+Linha: Elisa,27,Porto Alegre,10.0</pre>
+
+<p>O programa roda na pasta pessoal da Ana (<code>/home/ana</code>), por isso o caminho <code>Documentos/alunos.csv</code> funciona. Trocando o nome do arquivo por um que não existe (<code>alunos2.csv</code>), o construtor do <code>Scanner</code> lança a exceção, o <code>catch</code> a trata e não há nada para fechar:</p>
+
+<pre class="term">$ java Main.java
+Não consegui ler o arquivo: java.nio.file.NoSuchFileException: Documentos/alunos2.csv</pre>
+
+<div class="tip">
+<strong>E o <code>Scanner</code> do teclado?</strong>
+<p>O <code>new Scanner(System.in)</code> também tem <code>close()</code>, mas fechá-lo fecha o próprio teclado (<code>System.in</code>) para o resto do programa. Em programas pequenos, que leem o teclado até o fim, o costume é <strong>não</strong> fechar. Já um <code>Scanner</code> de <strong>arquivo</strong> deve sempre ser fechado, e o try-with-resources é a forma certa.</p>
+</div>
+
+<h3>Vários recursos e a ordem de fechamento</h3>
+<p>Dá para abrir vários recursos no mesmo <code>try</code>, separados por <code>;</code>. Eles são fechados na <strong>ordem inversa</strong> da abertura (o último aberto é o primeiro fechado), como empilhar e desempilhar caixas. Para ver isso acontecendo, precisamos de recursos que avisem quando abrem e fecham: vamos criar o nosso.</p>
+
+<hr>
+
+<h2>Seu próprio recurso: <code>AutoCloseable</code></h2>
+<p>O try-with-resources aceita qualquer objeto cuja classe <strong>implemente</strong> a interface <code>AutoCloseable</code> ("que pode ser fechado automaticamente"). Uma <a href="interfaces.html">interface</a> é um contrato; o contrato do <code>AutoCloseable</code> tem uma única cláusula: ter um método <code>public void close()</code>. O <code>Scanner</code>, os leitores e escritores de arquivo e as conexões de banco de dados cumprem esse contrato.</p>
+
+<p>A Ana vai representar o caixa da loja como um recurso: ele é aberto no começo do dia e precisa ser fechado no fim, aconteça o que acontecer.</p>
+
+<pre class="file" data-file="Main.java">class Caixa implements AutoCloseable {
+    private String nome;
+
+    Caixa(String nome) {
+        this.nome = nome;
+        System.out.println("Abrindo o " + nome);
+    }
+
+    void registrar(String valor) {
+        int v = Integer.parseInt(valor);
+        System.out.println(nome + ": venda de R$ " + v);
+    }
+
+    @Override
+    public void close() {
+        System.out.println("Fechando o " + nome);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        try (Caixa c = new Caixa("caixa 1")) {
+            c.registrar("10");
+            c.registrar("dez");
+            c.registrar("5");
+        } catch (NumberFormatException e) {
+            System.out.println("Erro: " + e.getMessage());
+        } finally {
+            System.out.println("Fim do expediente");
+        }
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class Caixa implements AutoCloseable</dt><dd>"A classe <code>Caixa</code> cumpre o contrato <code>AutoCloseable</code>". Sem isso, o <code>javac</code> não deixa usá-la no <code>try ( )</code>.</dd>
+  <dt>@Override public void close()</dt><dd>O método do contrato. <code>@Override</code> avisa que ele vem de fora (veja <a href="sobrescrita.html">Sobrescrita</a>); <code>public</code> é obrigatório.</dd>
+  <dt>try (Caixa c = new Caixa("caixa 1"))</dt><dd>Abre o caixa como recurso: o <code>close()</code> será chamado no fim do bloco.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Abrindo o caixa 1
+caixa 1: venda de R$ 10
+Fechando o caixa 1
+Erro: For input string: "dez"
+Fim do expediente</pre>
+
+<p>Leia a ordem com atenção, porque ela é a regra do try-with-resources:</p>
+<ol>
+  <li>O recurso é criado (<code>Abrindo o caixa 1</code>).</li>
+  <li>O bloco roda até a exceção: a venda de 10 dá certo, a de <code>"dez"</code> lança <code>NumberFormatException</code>. A venda de 5 nunca acontece.</li>
+  <li>O recurso é <strong>fechado</strong> (<code>Fechando o caixa 1</code>), <strong>antes</strong> do <code>catch</code>.</li>
+  <li>O <code>catch</code> roda (<code>Erro: …</code>).</li>
+  <li>O <code>finally</code> roda por último (<code>Fim do expediente</code>).</li>
+</ol>
+
+<p>Agora, dois recursos no mesmo <code>try</code>:</p>
+
+<pre class="file" data-file="Main.java (trecho)">        try (Caixa a = new Caixa("caixa 1");
+             Caixa b = new Caixa("caixa 2")) {
+            System.out.println("Atendendo clientes");
+        }
+</pre>
+
+<pre class="term">$ java Main.java
+Abrindo o caixa 1
+Abrindo o caixa 2
+Atendendo clientes
+Fechando o caixa 2
+Fechando o caixa 1</pre>
+
+<p>Abriu 1, 2; fechou 2, 1. Isso importa quando um recurso depende do outro (um leitor construído em cima de um arquivo, por exemplo): o que depende é fechado primeiro.</p>
+
+<div class="tip">
+<strong>Recurso criado antes do <code>try</code></strong> <span class="versao">Java 9+</span>
+<p>Se a variável já existe e não muda de valor depois de criada (é <code>final</code> ou "efetivamente final"), você pode só citá-la: <code>Caixa c = new Caixa("caixa 1"); try (c) { … }</code>. No Java 7 e 8, a declaração precisava ficar dentro dos parênteses.</p>
+</div>
+
+<hr>
+
+<h2>Exceções suprimidas</h2>
+<p>E se o <code>close()</code> também lançar uma exceção, quando o bloco já tinha lançado outra? Duas exceções ao mesmo tempo, e o Java só pode lançar uma. A regra do try-with-resources: a exceção do <strong>bloco</strong> é a principal (foi o problema original); a do <code>close()</code> é anexada a ela como <strong>suprimida</strong> (<em>suppressed</em>), para não se perder. Aqui, o <code>close()</code> usa <code>throw</code> para lançar uma exceção de propósito (você vai aprender o <code>throw</code> em <a href="throw-throws.html">throw e throws</a>):</p>
+
+<pre class="file" data-file="Main.java">class Conexao implements AutoCloseable {
+    @Override
+    public void close() {
+        System.out.println("Fechando a conexão...");
+        throw new IllegalStateException("falha ao fechar a conexão");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        int provas = 0;
+        try (Conexao c = new Conexao()) {
+            System.out.println("Média: " + 30 / provas);
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Fechando a conexão...
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.main(Main.java:13)
+	Suppressed: java.lang.IllegalStateException: falha ao fechar a conexão
+		at Conexao.close(Main.java:5)
+		at Main.main(Main.java:12)</pre>
+
+<p>O stack trace mostra a principal (<code>ArithmeticException</code>, na linha 13) e, recuada, uma seção <code>Suppressed:</code> com a do <code>close()</code> e o rastro dela. Dentro de um <code>catch</code>, as suprimidas ficam disponíveis no método <code>getSuppressed()</code>, que devolve um array:</p>
+
+<pre class="file" data-file="Main.java (trecho)">        } catch (ArithmeticException e) {
+            System.out.println("Principal: " + e.getMessage());
+            for (Throwable s : e.getSuppressed()) {
+                System.out.println("Suprimida: " + s.getMessage());
+            }
+        }
+</pre>
+
+<pre class="term">$ java Main.java
+Fechando a conexão...
+Principal: / by zero
+Suprimida: falha ao fechar a conexão</pre>
+
+<p>No dia a dia você raramente vai mexer nisso; o importante é saber ler a linha <code>Suppressed:</code> quando ela aparecer num stack trace. Com o <code>finally</code> manual do jeito antigo, a exceção do <code>close()</code> <strong>substituiria</strong> a original, e você perderia a pista do problema real. É mais um motivo para preferir o try-with-resources.</p>
+
+<hr>
+
+<h2>Formas diferentes, qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>Fechar um arquivo, <code>Scanner</code> de arquivo, conexão</td><td><strong>try-with-resources</strong> (sempre que o objeto for <code>AutoCloseable</code>)</td></tr>
+<tr><td>Fazer uma limpeza que não é "fechar um recurso" (mostrar uma mensagem, desligar um aviso, registrar o fim)</td><td><code>finally</code></td></tr>
+<tr><td>Tratar a exceção e também fechar</td><td><code>try ( … ) { … } catch ( … ) { … }</code></td></tr>
+<tr><td>Fechar, mas deixar a exceção subir</td><td><code>try ( … ) { … }</code> sem <code>catch</code></td></tr>
+<tr><td>Manter código antigo (Java 6)</td><td><code>try</code>/<code>finally</code> com <code>if (x != null) x.close()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"try-with-resources not applicable to variable type"</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        try (String nome = "Ana") {
+            System.out.println(nome);
+        }
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:3: error: incompatible types: try-with-resources not applicable to variable type
+        try (String nome = "Ana") {
+                    ^
+    (String cannot be converted to AutoCloseable)
+1 error
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> "try-with-resources não se aplica a esse tipo de variável": <code>String</code> não é um recurso, não tem <code>close()</code>. A última linha explica: <code>String</code> não pode ser convertida em <code>AutoCloseable</code>.</p>
+<p><strong>Como resolver:</strong> só coloque nos parênteses objetos que precisam ser fechados. Se a classe for sua, acrescente <code>implements AutoCloseable</code> e o método <code>public void close()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um <code>return</code> dentro do <code>finally</code> "some" com o resultado</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    static int numero() {
+        try {
+            return 1;
+        } finally {
+            return 2;
+        }
+    }
+    public static void main(String[] args) {
+        System.out.println(numero());
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+2
+$ javac -Xlint Main.java
+Main.java:7: warning: [finally] finally clause cannot complete normally
+        }
+        ^
+1 warning</pre>
+<p><strong>O que aconteceu:</strong> o <code>return 1</code> guardou o valor, o <code>finally</code> rodou e o <code>return 2</code> dele substituiu o primeiro. Um <code>return</code> (ou <code>throw</code>) no <code>finally</code> também faz uma exceção do <code>try</code> desaparecer sem deixar rastro. O <code>javac</code> só avisa se você pedir os avisos extras com <code>-Xlint</code>: "a cláusula finally não pode terminar normalmente".</p>
+<p><strong>Como resolver:</strong> nunca use <code>return</code> dentro de <code>finally</code>. O <code>finally</code> serve para limpar, não para decidir o resultado.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>finally</code> não rodou</strong>
+<p><strong>O que aconteceu:</strong> provavelmente há um <code>System.exit(…)</code> no <code>try</code> ou no <code>catch</code>, que encerra a JVM na hora. Ou o processo foi interrompido de fora (<kbd>Ctrl</kbd>+<kbd>C</kbd>).</p>
+<p><strong>Como resolver:</strong> evite <code>System.exit</code> no meio do programa; prefira deixar o <code>main</code> terminar normalmente.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintaxe</th><th>O que faz</th></tr>
+<tr><td><code>try { … } finally { … }</code></td><td>O <code>finally</code> roda sempre que o <code>try</code> termina (normal, exceção ou <code>return</code>)</td></tr>
+<tr><td><code>try { … } catch (X e) { … } finally { … }</code></td><td>Ordem: <code>try</code> → <code>catch</code> (se houve X) → <code>finally</code></td></tr>
+<tr><td><code>try (Tipo r = new Tipo()) { … }</code></td><td>Try-with-resources: chama <code>r.close()</code> ao sair do bloco</td></tr>
+<tr><td><code>try (A a = …; B b = …) { … }</code></td><td>Vários recursos; fechados na ordem inversa (b, depois a)</td></tr>
+<tr><td><code>try (r) { … }</code></td><td>Recurso já declarado, efetivamente final (Java 9+)</td></tr>
+<tr><td><code>class X implements AutoCloseable</code></td><td>Faz a classe X funcionar no try-with-resources; exige <code>public void close()</code></td></tr>
+<tr><td><code>e.getSuppressed()</code></td><td>Array com as exceções suprimidas (as do <code>close()</code>)</td></tr>
+<tr><td><code>Suppressed:</code> no stack trace</td><td>Exceção do <code>close()</code> anexada à principal</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A palavra do bilhete</h3>
+<p>Complete o bloco que roda sempre:</p>
+<div class="ex-code">try { … } catch (Exception e) { … } <input data-answer="finally" aria-label="palavra-chave"> { System.out.println("Tchau"); }</div>
+</div>
+
+<div class="exercise">
+<h3>2. O contrato</h3>
+<p>Complete para a classe <code>Arquivo</code> poder ser usada no try-with-resources:</p>
+<div class="ex-code">class Arquivo implements <input data-answer="AutoCloseable|Closeable" aria-label="interface"> { … }</div>
+</div>
+
+<div class="exercise">
+<h3>3. O método do contrato</h3>
+<p>Qual método o try-with-resources chama no fim do bloco? (só o nome, com parênteses)</p>
+<div class="ex-code"><input data-answer="close()" aria-label="método"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Num try-with-resources com <code>catch</code> e <code>finally</code>, o bloco lança uma exceção. Qual a ordem?</p>
+<label><input type="radio" name="q4"> <code>catch</code>, <code>close()</code>, <code>finally</code></label>
+<label><input type="radio" name="q4"> <code>close()</code>, <code>catch</code>, <code>finally</code></label>
+<label><input type="radio" name="q4"> <code>catch</code>, <code>finally</code>, <code>close()</code></label>
+<label><input type="radio" name="q4"> <code>finally</code>, <code>catch</code>, <code>close()</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que este método devolve, e o que aparece na tela?</p>
+<pre class="file" data-file="Main.java (trecho)">static int dobro(int x) {
+    try {
+        return x * 2;
+    } finally {
+        System.out.println("calculado");
+    }
+}
+// no main: System.out.println(dobro(4));
+</pre>
+<label><input type="radio" name="q5"> Mostra só <code>8</code>; o <code>finally</code> não roda depois de <code>return</code>.</label>
+<label><input type="radio" name="q5"> Mostra <code>8</code> e depois <code>calculado</code>.</label>
+<label><input type="radio" name="q5"> Mostra <code>calculado</code> e depois <code>8</code>.</label>
+<label><input type="radio" name="q5"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Recursos <code>a</code>, <code>b</code> e <code>c</code> foram abertos nessa ordem no mesmo <code>try ( )</code>. Em que ordem são fechados?</p>
+<label><input type="radio" name="q6"> c, b, a</label>
+<label><input type="radio" name="q6"> a, b, c</label>
+<label><input type="radio" name="q6"> Só o último é fechado.</label>
+<label><input type="radio" name="q6"> Em qualquer ordem.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Fechando a torneira,excecao:ArithmeticException,src:implements\s+AutoCloseable,src:try\s*\(">
+<p class="try-task"><strong>Missão final:</strong> o programa abre a torneira, quebra no meio e a torneira fica aberta (o <code>fechar()</code> nunca roda). Transforme a <code>Torneira</code> num recurso: faça-a implementar <code>AutoCloseable</code>, troque <code>fechar()</code> por <code>public void close()</code> e use try-with-resources no <code>main</code>. A exceção vai continuar acontecendo (não precisa de <code>catch</code>), mas <code>Fechando a torneira</code> deve aparecer antes dela.</p>
+<pre class="script">class Torneira {
+    void abrir() {
+        System.out.println("Abrindo a torneira");
+    }
+
+    void encher(int litros) {
+        System.out.println("Enchendo " + (10 / litros) + " baldes");
+    }
+
+    void fechar() {
+        System.out.println("Fechando a torneira");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Torneira t = new Torneira();
+        t.abrir();
+        t.encher(0);
+        t.fechar();
+    }
+}
+</pre>
+<pre class="solucao">class Torneira implements AutoCloseable {
+    void abrir() {
+        System.out.println("Abrindo a torneira");
+    }
+
+    void encher(int litros) {
+        System.out.println("Enchendo " + (10 / litros) + " baldes");
+    }
+
+    @Override
+    public void close() {
+        System.out.println("Fechando a torneira");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        try (Torneira t = new Torneira()) {
+            t.abrir();
+            t.encher(0);
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>finally</code> roda sempre que o programa sai do <code>try</code>: sem problema, com exceção (tratada ou não) e até depois de <code>return</code>. Só <code>System.exit</code> (ou matar o processo) o impede.</li>
+  <li>Nunca coloque <code>return</code> no <code>finally</code>: ele substitui o resultado e esconde exceções.</li>
+  <li>Recursos (arquivos, conexões, <code>Scanner</code> de arquivo) precisam de <code>close()</code>.</li>
+  <li>Try-with-resources: <code>try (Tipo r = …) { … }</code> chama <code>close()</code> sozinho, antes do <code>catch</code> e do <code>finally</code>. Vários recursos fecham na ordem inversa.</li>
+  <li>Qualquer classe que implemente <code>AutoCloseable</code> (com <code>public void close()</code>) funciona no try-with-resources.</li>
+  <li>Se o <code>close()</code> também falhar, essa exceção vira <strong>suprimida</strong> (<code>Suppressed:</code>, <code>getSuppressed()</code>) e a original é preservada.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
