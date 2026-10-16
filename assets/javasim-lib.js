@@ -109,9 +109,9 @@
     } });
 
     // ---------- List ----------
-    var IMM = ["java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:142)"];
-    function immFail(meth) { throwJ("java.lang.UnsupportedOperationException", null, IMM.concat(["java.base/java.util.ImmutableCollections$AbstractImmutableCollection." + meth + "(ImmutableCollections.java:" + ({ add: 147, remove: 150, clear: 148, addAll: 148, removeIf: 151 }[meth] || 147) + ")"])); }
-    function idxFail(i, n) { throwJ("java.lang.IndexOutOfBoundsException", "Index " + i + " out of bounds for length " + n, ["java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)", "java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)", "java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)", "java.base/java.util.Objects.checkIndex(Objects.java:385)", "java.base/java.util.ArrayList.get(ArrayList.java:434)"]); }
+    var IMM = ["java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)"];
+    function immFail(meth) { throwJ("java.lang.UnsupportedOperationException", null, IMM.concat(["java.base/java.util.ImmutableCollections$AbstractImmutableCollection." + meth + "(ImmutableCollections.java:" + ({ add: 164, remove: 167, clear: 165, addAll: 165, removeIf: 168, set: 164 }[meth] || 164) + ")"])); }
+    function idxFail(i, n) { throwJ("java.lang.IndexOutOfBoundsException", "Index " + i + " out of bounds for length " + n, ["java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)", "java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)", "java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)", "java.base/java.util.Objects.checkIndex(Objects.java:365)", "java.base/java.util.ArrayList.get(ArrayList.java:428)"]); }
     function mut(self, op) {
       if (self.imm) immFail(op);
       if (self.fixed && (op === "add" || op === "remove" || op === "clear" || op === "addAll" || op === "removeIf")) throwJ("java.lang.UnsupportedOperationException", null, ["java.base/java.util.AbstractList." + op + "(AbstractList.java:" + (op === "add" ? 155 : 169) + ")"]);
@@ -165,6 +165,16 @@
       "void replaceAll(java.util.function.UnaryOperator<E>)": function (f) { var a = toArr(this); for (var i = 0; i < a.length; i++) jcall(this, "set", [i, apply(f, a[i])]); },
       "List<E> reversed()": function () { return mkList(toArr(this).reverse(), "java.util.ArrayList"); },
       "static <E> List<E> of()": function () { return mkList([], "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E,E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E,E,E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E,E,E,E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E,E,E,E,E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E,E,E,E,E,E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
       "static <E> List<E> of(E...)": function (a) { a.a.forEach(function (x) { if (x === null) npe(); }); return mkList(Array.from(a.a), "java.util.ImmutableList", { imm: true }); },
       "static <E> List<E> copyOf(Collection<? extends E>)": function (c) { return mkList(toArr(c), "java.util.ImmutableList", { imm: true }); }
     } });
@@ -430,7 +440,7 @@
       "boolean add(E)": function () { throwJ("java.lang.UnsupportedOperationException", null); },
       "void clear()": function () { jcall(this.m, "clear", []); },
       "String toString()": function () { return collStr(this, viewArr(this)); },
-      "boolean removeIf(java.util.function.Predicate<? super E>)": function (p) { var self = this, ch = false; viewArr(this).forEach(function (x) { if (test(p, x)) { jcall(self.m, "remove", [self.kind === "entries" ? x.e.key : x]); ch = true; } }); return ch; },
+      "boolean removeIf(java.util.function.Predicate<? super E>)": function (p) { var self = this, ch = false; mapEntries(this.m).forEach(function (en) { var x = self.kind === "keys" ? en.key : self.kind === "values" ? en.value : entryObj(en, self.m); if (test(p, x)) { jcall(self.m, "remove", [en.key]); ch = true; } }); return ch; },
       "boolean equals(Object)": function (o) { var a = viewArr(this), b = toArr(o); return a.length === b.length && a.every(function (x) { return b.some(function (y) { return keyEq(x, y); }); }); },
       "int hashCode()": function () { var h = 0; viewArr(this).forEach(function (x) { h = (h + (x === null ? 0 : jhash(x))) | 0; }); return h; }
     };
@@ -617,6 +627,16 @@
     // ---------- Sets ----------
     defLib("java.util.Set", { kind: "interface", tp: "E", impl: ["Collection<E>"], m: {
       "static <E> Set<E> of()": function () { return immSet([]); },
+      "static <E> Set<E> of(E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E,E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E,E,E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E,E,E,E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E,E,E,E,E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E,E,E,E,E,E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E,E,E,E,E,E,E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E,E,E,E,E,E,E,E)": function () { return immSet(Array.from(arguments)); },
+      "static <E> Set<E> of(E,E,E,E,E,E,E,E,E,E)": function () { return immSet(Array.from(arguments)); },
       "static <E> Set<E> of(E...)": function (a) { return immSet(Array.from(a.a)); },
       "static <E> Set<E> copyOf(Collection<? extends E>)": function (c) { var seen = mkHashSet([]); var r = []; toArr(c).forEach(function (x) { if (!hmFind(seen.m, x)) { hmPut(seen.m, x, true); r.push(x); } }); return immSet(r); }
     } });
@@ -1030,8 +1050,7 @@
     function mkCol(sup, acc, fin) { return { $c: L("java.util.stream.CollectorImpl"), col: { sup: sup, acc: acc, fin: fin } }; }
     defLib("java.util.stream.CollectorImpl", { tp: "T,A,R", impl: ["Collector<T,A,R>"], bin: "java.util.stream.Collectors$CollectorImpl", m: {} });
     function runCol(c, arr) { var a = c.col.sup(); arr.forEach(function (x) { c.col.acc(a, x); }); return c.col.fin ? c.col.fin(a) : a; }
-    function mkHashMap() { var m = { $c: L("java.util.HashMap") }; jcall(m, "<init>", []); return m; }
-    function newMap(supplier) { if (supplier) return call(supplier, "get", []); var m = { $c: L("java.util.HashMap") }; L("java.util.HashMap").ctors[0].impl.call(m); return m; }
+    function newMap(supplier) { if (supplier) return call(supplier, "get", []); return I.newLib("java.util.HashMap"); }
     function groupCol(keyF, mapSup, down) {
       down = down || null;
       return mkCol(function () { return { m: newMap(mapSup), groups: [] }; }, function (st, x) {
@@ -1091,8 +1110,7 @@
     } });
     function partCol(p, d) {
       return mkCol(function () { return { f: d ? d.col.sup() : [], t: d ? d.col.sup() : [] }; }, function (a, x) { var k = test(p, x) ? "t" : "f"; if (d) d.col.acc(a[k], x); else a[k].push(x); }, function (a) {
-        var m = { $c: L("java.util.LinkedHashMap") };
-        L("java.util.LinkedHashMap").ctors[0].impl.call(m);
+        var m = I.newLib("java.util.LinkedHashMap");
         var fv = d ? (d.col.fin ? d.col.fin(a.f) : a.f) : mkList(a.f), tv = d ? (d.col.fin ? d.col.fin(a.t) : a.t) : mkList(a.t);
         jcall(m, "put", [boxVal("boolean", false), fv]); jcall(m, "put", [boxVal("boolean", true), tv]);
         m.$c = L("java.util.PartitionMap");
@@ -1226,6 +1244,1105 @@
       "StringJoiner setEmptyValue(CharSequence)": function (x) { this.empty = toStr(x); return this; },
       "int length()": function () { return S(jcall(this, "toString", [])).length; },
       "String toString()": function () { if (!this.parts.length && this.empty !== null) return jstr(this.empty); return jstr(this.p + this.parts.join(this.d) + this.s); }
+    } });
+  });
+})(typeof window !== "undefined" ? window : globalThis);
+(function (global) {
+  "use strict";
+  var JavaSim = global.JavaSim || (typeof require === "function" ? require("./javasim.js") : null);
+  JavaSim.addLib(function (J) {
+    var I = J._i;
+    var defLib = I.defLib, L = I.L, jstr = I.jstr, S = I.S, toStr = I.toStr, jequals = I.jequals, jhash = I.jhash, jcompare = I.jcompare;
+    var jcall = I.jcall, throwJ = I.throwJ, npe = I.npe, JBox = I.JBox, JArr = I.JArr, newArray = I.newArray, boxVal = I.boxVal, classOf = I.classOf, T = I.T, OBJ = I.OBJ;
+    var toArr = J.toArr, mkList = J.mkList, mkFn = J.mkFn;
+    function RT() { return I.rt(); }
+    function call(fn, name, args) { if (fn === null) npe(); return jcall(fn, name, args); }
+
+    // ---------- enums da biblioteca ----------
+    function libEnum(full, names, extra, opts) {
+      var m = {};
+      names.forEach(function (n) { m["static final " + full.split(".").pop() + " " + n] = function () { return enumConst(full, n); }; });
+      var simple = full.split(".").pop();
+      m["static " + simple + "[] values()"] = function () { var arr = newArray(L(full).rawType(), names.length); names.forEach(function (n, i) { arr.a[i] = enumConst(full, n); }); return arr; };
+      m["static " + simple + " valueOf(String)"] = function (s) { var n = S(s); if (names.indexOf(n) < 0) throwJ("java.lang.IllegalArgumentException", "No enum constant " + full + "." + n); return enumConst(full, n); };
+      if (extra) Object.keys(extra).forEach(function (k) { m[k] = extra[k]; });
+      var sym = defLib(full, { kind: "enum", flags: "public final", noCtor: true, m: m, impl: (opts && opts.impl) || [] });
+      sym.enumNames = names;
+      return sym;
+    }
+    function enumConst(full, n) {
+      var rt = RT();
+      rt.libEnums = rt.libEnums || {};
+      var tab = rt.libEnums[full] || (rt.libEnums[full] = {});
+      if (!tab[n]) tab[n] = { $c: L(full), $name: n, $ord: L(full).enumNames.indexOf(n) };
+      return tab[n];
+    }
+    J.enumConst = enumConst;
+
+    // ---------- BigInteger / BigDecimal ----------
+    function bi(v) { return { $c: L("java.math.BigInteger"), big: v }; }
+    function bd(u, sc) { return { $c: L("java.math.BigDecimal"), big: u, scale: sc }; }
+    function pow10(n) { return 10n ** BigInt(n); }
+    function bdParse(s) {
+      s = S(s).trim();
+      var m = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(s);
+      if (!m || (!m[2] && !m[3])) throwJ("java.lang.NumberFormatException", "Character " + (s.match(/[^0-9.+\-eE]/) || ["array is missing \"exponent\" mark 'e' or 'E'."])[0] + " is neither a decimal digit number, decimal point, nor \"e\" notation exponential mark.");
+      var digits = (m[2] || "") + (m[3] || "");
+      var sc = (m[3] || "").length - (m[4] ? parseInt(m[4], 10) : 0);
+      var u = BigInt(digits || "0");
+      if (m[1] === "-") u = -u;
+      return bd(u, sc);
+    }
+    function bdOfDouble(d) {
+      // valor binário exato
+      if (!isFinite(d)) throwJ("java.lang.NumberFormatException", "Infinite or NaN");
+      if (d === 0) return bd(0n, 0);
+      var buf = new DataView(new ArrayBuffer(8)); buf.setFloat64(0, d);
+      var hi = buf.getUint32(0), lo = buf.getUint32(4);
+      var exp = (hi >>> 20) & 0x7ff, mant = (BigInt(hi & 0xfffff) << 32n) | BigInt(lo);
+      if (exp) mant |= 1n << 52n; else exp = 1;
+      var e2 = exp - 1075;
+      var neg = d < 0;
+      var u, sc;
+      if (e2 >= 0) { u = mant << BigInt(e2); sc = 0; }
+      else { u = mant * (5n ** BigInt(-e2)); sc = -e2; }
+      // remove zeros à direita desnecessários
+      while (sc > 0 && u % 10n === 0n) { u /= 10n; sc--; }
+      return bd(neg ? -u : u, sc);
+    }
+    function align(a, b) { if (a.scale === b.scale) return [a.big, b.big, a.scale]; if (a.scale > b.scale) return [a.big, b.big * pow10(a.scale - b.scale), a.scale]; return [a.big * pow10(b.scale - a.scale), b.big, b.scale]; }
+    var RM = ["UP", "DOWN", "CEILING", "FLOOR", "HALF_UP", "HALF_DOWN", "HALF_EVEN", "UNNECESSARY"];
+    function roundDiv(n, d, mode) {
+      // n/d arredondado (BigInt), mode = nome
+      if (d < 0n) { n = -n; d = -d; }
+      var q = n / d, r = n % d;
+      if (r === 0n) return q;
+      var neg = n < 0n;
+      var twice = (r < 0n ? -r : r) * 2n;
+      var awayFromZero;
+      switch (mode) {
+        case "UP": awayFromZero = true; break;
+        case "DOWN": awayFromZero = false; break;
+        case "CEILING": awayFromZero = !neg; break;
+        case "FLOOR": awayFromZero = neg; break;
+        case "HALF_UP": awayFromZero = twice >= d; break;
+        case "HALF_DOWN": awayFromZero = twice > d; break;
+        case "HALF_EVEN": awayFromZero = twice > d || (twice === d && (q % 2n !== 0n)); break;
+        default: throwJ("java.lang.ArithmeticException", "Rounding necessary");
+      }
+      return awayFromZero ? (neg ? q - 1n : q + 1n) : q;
+    }
+    function setScale(x, sc, mode) {
+      if (sc === x.scale) return x;
+      if (sc > x.scale) return bd(x.big * pow10(sc - x.scale), sc);
+      return bd(roundDiv(x.big, pow10(x.scale - sc), mode), sc);
+    }
+    function modeName(m) { return m === undefined || m === null ? "HALF_UP" : (m.$name || RM[m]); }
+    function bdToString(x, plain) {
+      var neg = x.big < 0n, digits = (neg ? -x.big : x.big).toString(), sc = x.scale;
+      if (plain) {
+        if (sc <= 0) return (neg ? "-" : "") + digits + repeat0(-sc);
+        while (digits.length <= sc) digits = "0" + digits;
+        return (neg ? "-" : "") + digits.slice(0, digits.length - sc) + "." + digits.slice(digits.length - sc);
+      }
+      var adjusted = -sc + (digits.length - 1);
+      if (sc >= 0 && adjusted >= -6) return bdToString(x, true);
+      var r = digits.length > 1 ? digits[0] + "." + digits.slice(1) : digits;
+      return (neg ? "-" : "") + r + "E" + (adjusted >= 0 ? "+" : "") + adjusted;
+    }
+    function repeat0(n) { var r = ""; for (var i = 0; i < n; i++) r += "0"; return r; }
+    function bdCompare(a, b) { var al = align(a, b); return al[0] < al[1] ? -1 : al[0] > al[1] ? 1 : 0; }
+    function precision(u) { var s = (u < 0n ? -u : u).toString(); return u === 0n ? 1 : s.length; }
+    function bdRoundMC(x, mc) {
+      if (!mc || !mc.prec) return x;
+      var p = precision(x.big);
+      if (p <= mc.prec) return x;
+      var drop = p - mc.prec;
+      var r = bd(roundDiv(x.big, pow10(drop), mc.mode), x.scale - drop);
+      if (precision(r.big) > mc.prec) r = bd(roundDiv(r.big, 10n, mc.mode), r.scale - 1);
+      return r;
+    }
+    function bdDivide(a, b, sc, mode, mc) {
+      if (b.big === 0n) throwJ("java.lang.ArithmeticException", a.big === 0n ? "Division undefined" : "Division by zero");
+      if (sc !== undefined) {
+        // a/b com escala sc: (a.big * 10^(sc - a.scale + b.scale)) / b.big
+        var e = sc - a.scale + b.scale;
+        var n = e >= 0 ? a.big * pow10(e) : a.big, d = e >= 0 ? b.big : b.big * pow10(-e);
+        return bd(roundDiv(n, d, mode), sc);
+      }
+      if (mc) {
+        var extra = mc.prec + 3;
+        var q = bdDivide(a, b, Math.max(a.scale, 0) + extra + precision(b.big), "DOWN");
+        var exact = bdDivide(a, b, q.scale + 5, "DOWN");
+        var r0 = bdRoundMC(bdDivide(a, b, q.scale + 2, mode === undefined ? mc.mode : mode), mc);
+        // reduz zeros até a escala preferida
+        var pref = a.scale - b.scale;
+        while (r0.scale > pref && r0.big % 10n === 0n) r0 = bd(r0.big / 10n, r0.scale - 1);
+        void exact;
+        return r0;
+      }
+      // divisão exata
+      var N = a.big * pow10(Math.max(0, b.scale)), D = b.big * pow10(Math.max(0, -b.scale));
+      var sc0 = a.scale;
+      // valor = N / (D * 10^sc0)
+      var g = gcd(N < 0n ? -N : N, D < 0n ? -D : D);
+      var nn = N / g, dd = D / g;
+      if (dd < 0n) { nn = -nn; dd = -dd; }
+      var t = dd, k = 0;
+      while (t % 2n === 0n) t /= 2n;
+      while (t % 5n === 0n) t /= 5n;
+      if (t !== 1n) throwJ("java.lang.ArithmeticException", "Non-terminating decimal expansion; no exact representable decimal result.", ["java.base/java.math.BigDecimal.divide(BigDecimal.java:1810)"]);
+      var u = nn, s2 = sc0;
+      while (u % dd !== 0n) { u *= 10n; s2++; }
+      u = u / dd;
+      var pref = a.scale - b.scale;
+      while (s2 > pref && u % 10n === 0n && u !== 0n) { u /= 10n; s2--; }
+      if (u === 0n) s2 = Math.max(pref, 0);
+      while (s2 < pref) { u *= 10n; s2++; }
+      return bd(u, s2);
+    }
+    function gcd(a, b) { while (b) { var t = a % b; a = b; b = t; } return a || 1n; }
+    J.bdParse = bdParse; J.bdOfDouble = bdOfDouble;
+    libEnum("java.math.RoundingMode", RM, {});
+    defLib("java.math.MathContext", { flags: "public final", m: {
+      "<init>(int)": function (p) { this.prec = p; this.mode = "HALF_UP"; },
+      "<init>(int,RoundingMode)": function (p, m) { this.prec = p; this.mode = modeName(m); },
+      "static final MathContext DECIMAL128": function () { return { $c: L("java.math.MathContext"), prec: 34, mode: "HALF_EVEN" }; },
+      "static final MathContext DECIMAL64": function () { return { $c: L("java.math.MathContext"), prec: 16, mode: "HALF_EVEN" }; },
+      "static final MathContext DECIMAL32": function () { return { $c: L("java.math.MathContext"), prec: 7, mode: "HALF_EVEN" }; },
+      "static final MathContext UNLIMITED": function () { return { $c: L("java.math.MathContext"), prec: 0, mode: "HALF_UP" }; },
+      "String toString()": function () { return jstr("precision=" + this.prec + " roundingMode=" + this.mode); }
+    } });
+    defLib("java.math.BigDecimal", { ext: "Number", impl: ["Comparable<BigDecimal>"], m: {
+      "<init>(String)": function (s) { if (s === null) npe(); var r = bdParse(s); this.big = r.big; this.scale = r.scale; },
+      "<init>(double)": function (d) { var r = bdOfDouble(d); this.big = r.big; this.scale = r.scale; },
+      "<init>(int)": function (v) { this.big = BigInt(v); this.scale = 0; },
+      "<init>(long)": function (v) { this.big = v; this.scale = 0; },
+      "<init>(BigInteger)": function (v) { this.big = v.big; this.scale = 0; },
+      "static final BigDecimal ZERO": function () { return bd(0n, 0); }, "static final BigDecimal ONE": function () { return bd(1n, 0); },
+      "static final BigDecimal TWO": function () { return bd(2n, 0); }, "static final BigDecimal TEN": function () { return bd(10n, 0); },
+      "static BigDecimal valueOf(double)": function (d) { return bdParse(I.doubleToString(d)); },
+      "static BigDecimal valueOf(long)": function (v) { return bd(v, 0); },
+      "static BigDecimal valueOf(long,int)": function (v, s) { return bd(v, s); },
+      "BigDecimal add(BigDecimal)": function (o) { var a = align(this, o); return bd(a[0] + a[1], a[2]); },
+      "BigDecimal add(BigDecimal,MathContext)": function (o, mc) { var a = align(this, o); return bdRoundMC(bd(a[0] + a[1], a[2]), mc); },
+      "BigDecimal subtract(BigDecimal)": function (o) { var a = align(this, o); return bd(a[0] - a[1], a[2]); },
+      "BigDecimal multiply(BigDecimal)": function (o) { return bd(this.big * o.big, this.scale + o.scale); },
+      "BigDecimal multiply(BigDecimal,MathContext)": function (o, mc) { return bdRoundMC(bd(this.big * o.big, this.scale + o.scale), mc); },
+      "BigDecimal divide(BigDecimal)": function (o) { return bdDivide(this, o); },
+      "BigDecimal divide(BigDecimal,int,RoundingMode)": function (o, sc, m) { return bdDivide(this, o, sc, modeName(m)); },
+      "BigDecimal divide(BigDecimal,RoundingMode)": function (o, m) { return bdDivide(this, o, this.scale, modeName(m)); },
+      "BigDecimal divide(BigDecimal,MathContext)": function (o, mc) { return bdDivide(this, o, undefined, undefined, mc); },
+      "BigDecimal remainder(BigDecimal)": function (o) { var a = align(this, o); if (a[1] === 0n) throwJ("java.lang.ArithmeticException", "Division by zero"); return bd(a[0] % a[1], a[2]); },
+      "BigDecimal divideToIntegralValue(BigDecimal)": function (o) { var a = align(this, o); return bd(a[0] / a[1], 0); },
+      "BigDecimal pow(int)": function (n) { return bd(this.big ** BigInt(n), this.scale * n); },
+      "BigDecimal negate()": function () { return bd(-this.big, this.scale); },
+      "BigDecimal abs()": function () { return bd(this.big < 0n ? -this.big : this.big, this.scale); },
+      "BigDecimal setScale(int,RoundingMode)": function (sc, m) { return setScale(this, sc, modeName(m)); },
+      "BigDecimal setScale(int)": function (sc) { return setScale(this, sc, "UNNECESSARY"); },
+      "BigDecimal round(MathContext)": function (mc) { return bdRoundMC(this, mc); },
+      "BigDecimal stripTrailingZeros()": function () { var u = this.big, s = this.scale; if (u === 0n) return bd(0n, 0); while (u % 10n === 0n) { u /= 10n; s--; } return bd(u, s); },
+      "BigDecimal max(BigDecimal)": function (o) { return bdCompare(this, o) >= 0 ? this : o; },
+      "BigDecimal min(BigDecimal)": function (o) { return bdCompare(this, o) <= 0 ? this : o; },
+      "BigDecimal movePointLeft(int)": function (n) { return bd(this.big, this.scale + n); },
+      "BigDecimal movePointRight(int)": function (n) { return bd(this.big, this.scale - n); },
+      "int signum()": function () { return this.big > 0n ? 1 : this.big < 0n ? -1 : 0; },
+      "int scale()": function () { return this.scale; },
+      "int precision()": function () { return precision(this.big); },
+      "BigInteger unscaledValue()": function () { return bi(this.big); },
+      "BigInteger toBigInteger()": function () { return bi(this.scale <= 0 ? this.big * pow10(-this.scale) : this.big / pow10(this.scale)); },
+      "int compareTo(BigDecimal)": function (o) { return bdCompare(this, o); },
+      "boolean equals(Object)": function (o) { return o !== null && o.$c === this.$c && o.big === this.big && o.scale === this.scale; },
+      "int hashCode()": function () { return (Math.imul(31, Number(BigInt.asIntN(32, this.big))) + this.scale) | 0; },
+      "String toString()": function () { return jstr(bdToString(this, false)); },
+      "String toPlainString()": function () { return jstr(bdToString(this, true)); },
+      "double doubleValue()": function () { return parseFloat(bdToString(this, false)); },
+      "float floatValue()": function () { return Math.fround(parseFloat(bdToString(this, false))); },
+      "int intValue()": function () { return Number(BigInt.asIntN(32, this.scale <= 0 ? this.big * pow10(-this.scale) : this.big / pow10(this.scale))); },
+      "long longValue()": function () { return BigInt.asIntN(64, this.scale <= 0 ? this.big * pow10(-this.scale) : this.big / pow10(this.scale)); },
+      "int intValueExact()": function () { return Number(this.big / pow10(Math.max(0, this.scale))); }
+    } });
+    defLib("java.math.BigInteger", { ext: "Number", impl: ["Comparable<BigInteger>"], m: {
+      "<init>(String)": function (s) { var t = S(s).trim(); if (!/^[+-]?\d+$/.test(t)) throwJ("java.lang.NumberFormatException", "For input string: \"" + t + "\""); this.big = BigInt(t); },
+      "<init>(String,int)": function (s, r) { this.big = BigInt(r === 16 ? "0x" + S(s) : r === 2 ? "0b" + S(s) : S(s)); },
+      "static final BigInteger ZERO": function () { return bi(0n); }, "static final BigInteger ONE": function () { return bi(1n); },
+      "static final BigInteger TWO": function () { return bi(2n); }, "static final BigInteger TEN": function () { return bi(10n); },
+      "static BigInteger valueOf(long)": function (v) { return bi(v); },
+      "BigInteger add(BigInteger)": function (o) { return bi(this.big + o.big); },
+      "BigInteger subtract(BigInteger)": function (o) { return bi(this.big - o.big); },
+      "BigInteger multiply(BigInteger)": function (o) { return bi(this.big * o.big); },
+      "BigInteger divide(BigInteger)": function (o) { if (o.big === 0n) throwJ("java.lang.ArithmeticException", "BigInteger divide by zero"); return bi(this.big / o.big); },
+      "BigInteger mod(BigInteger)": function (o) { var r = this.big % o.big; return bi(r < 0n ? r + o.big : r); },
+      "BigInteger remainder(BigInteger)": function (o) { return bi(this.big % o.big); },
+      "BigInteger pow(int)": function (n) { return bi(this.big ** BigInt(n)); },
+      "BigInteger negate()": function () { return bi(-this.big); },
+      "BigInteger abs()": function () { return bi(this.big < 0n ? -this.big : this.big); },
+      "BigInteger gcd(BigInteger)": function (o) { return bi(gcd(this.big < 0n ? -this.big : this.big, o.big < 0n ? -o.big : o.big)); },
+      "BigInteger max(BigInteger)": function (o) { return this.big >= o.big ? this : o; },
+      "BigInteger min(BigInteger)": function (o) { return this.big <= o.big ? this : o; },
+      "BigInteger sqrt()": function () { var n = this.big, x = n, y = (x + 1n) / 2n; while (y < x) { x = y; y = (x + n / x) / 2n; } return bi(x); },
+      "boolean isProbablePrime(int)": function () { var n = this.big; if (n < 2n) return false; for (var d = 2n; d * d <= n; d++) if (n % d === 0n) return false; return true; },
+      "int signum()": function () { return this.big > 0n ? 1 : this.big < 0n ? -1 : 0; },
+      "int bitLength()": function () { return (this.big < 0n ? -this.big : this.big).toString(2).length; },
+      "int compareTo(BigInteger)": function (o) { return this.big < o.big ? -1 : this.big > o.big ? 1 : 0; },
+      "boolean equals(Object)": function (o) { return o !== null && o.$c === this.$c && o.big === this.big; },
+      "int hashCode()": function () { return Number(BigInt.asIntN(32, this.big)); },
+      "String toString()": function () { return jstr(this.big.toString()); },
+      "String toString(int)": function (r) { return jstr(this.big.toString(r)); },
+      "int intValue()": function () { return Number(BigInt.asIntN(32, this.big)); },
+      "long longValue()": function () { return BigInt.asIntN(64, this.big); },
+      "double doubleValue()": function () { return Number(this.big); },
+      "float floatValue()": function () { return Math.fround(Number(this.big)); }
+    } });
+
+    // ---------- java.time ----------
+    var DIAS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+    var MESES = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+    var DIAS_PT = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"];
+    var DIAS_PT_C = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."];
+    var MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    var MESES_PT_C = ["jan.", "fev.", "mar.", "abr.", "mai.", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."];
+    var DIAS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    var MESES_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    function isLeap(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+    function monthLen(y, m) { return [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]; }
+    function epochDay(y, m, d) { return Math.round(Date.UTC(y, m - 1, d) / 86400000) + (y < 100 && y >= 0 ? 0 : 0); }
+    function fromEpochDay(n) { var dt = new Date(n * 86400000); return [dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()]; }
+    function fixYear(y, m, d) { var dt = new Date(0); dt.setUTCFullYear(y, m - 1, d); return Math.round(dt.getTime() / 86400000); }
+    function ld(y, m, d) { return { $c: L("java.time.LocalDate"), y: y, m: m, d: d }; }
+    function ldEpoch(x) { return fixYear(x.y, x.m, x.d); }
+    function ldFromEpoch(n) { var dt = new Date(n * 86400000); return ld(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()); }
+    function checkDate(y, m, d) {
+      if (m < 1 || m > 12) throwJ("java.time.DateTimeException", "Invalid value for MonthOfYear (valid values 1 - 12): " + m);
+      if (d < 1 || d > 31) throwJ("java.time.DateTimeException", "Invalid value for DayOfMonth (valid values 1 - 28/31): " + d);
+      if (d > monthLen(y, m)) throwJ("java.time.DateTimeException", d === 29 ? "Invalid date 'February 29' as '" + y + "' is not a leap year" : "Invalid date '" + MESES[m - 1] + " " + d + "'");
+    }
+    function pad(n, w) { var s = String(Math.abs(n)); while (s.length < w) s = "0" + s; return (n < 0 ? "-" : "") + s; }
+    function ldStr(x) { return (x.y > 9999 ? "+" : "") + pad(x.y, 4) + "-" + pad(x.m, 2) + "-" + pad(x.d, 2); }
+    function plusMonths(x, n) { var tot = x.y * 12 + (x.m - 1) + n; var y = Math.floor(tot / 12), m = tot - y * 12 + 1; return ld(y, m, Math.min(x.d, monthLen(y, m))); }
+    function dow(x) { return ((ldEpoch(x) % 7) + 7 + 3) % 7; } // 1970-01-01 foi quinta (índice 3)
+    function ldCmp(a, b) { return a.y !== b.y ? a.y - b.y : a.m !== b.m ? a.m - b.m : a.d - b.d; }
+    function periodBetween(a, b) {
+      var tm = (b.y * 12 + b.m) - (a.y * 12 + a.m), days = b.d - a.d;
+      if (tm > 0 && days < 0) { tm--; var c = plusMonths(a, tm); days = ldEpoch(b) - ldEpoch(c); }
+      else if (tm < 0 && days > 0) { tm++; days -= monthLen(b.y, b.m); }
+      return period(Math.trunc(tm / 12), tm % 12, days);
+    }
+    function period(y, m, d) { return { $c: L("java.time.Period"), y: y, m: m, d: d }; }
+    function lt(h, mi, s, n) { return { $c: L("java.time.LocalTime"), h: h, mi: mi, s: s || 0, n: n || 0 }; }
+    function ltStr(t) { var r = pad(t.h, 2) + ":" + pad(t.mi, 2); if (t.s || t.n) { r += ":" + pad(t.s, 2); if (t.n) { var ns = pad(t.n, 9); r += "." + (t.n % 1000000 === 0 ? ns.slice(0, 3) : t.n % 1000 === 0 ? ns.slice(0, 6) : ns); } } return r; }
+    function ltSec(t) { return t.h * 3600 + t.mi * 60 + t.s; }
+    function ltFromSec(s, n) { s = ((s % 86400) + 86400) % 86400; return lt(Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60, n || 0); }
+    function ldt(d, t) { return { $c: L("java.time.LocalDateTime"), d: d, t: t }; }
+    function ldtPlusSec(x, sec) {
+      var tot = ltSec(x.t) + sec, days = Math.floor(tot / 86400);
+      return ldt(days ? ldFromEpoch(ldEpoch(x.d) + days) : x.d, ltFromSec(tot - days * 86400, x.t.n));
+    }
+    function nowParts() { var ms = RT().clockMs(); var loc = ms - 3 * 3600000; var dt = new Date(loc); return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate(), h: dt.getUTCHours(), mi: dt.getUTCMinutes(), s: dt.getUTCSeconds(), n: 0 }; }
+    function dur(sec, nano) { return { $c: L("java.time.Duration"), s: sec, n: nano || 0 }; }
+    function durStr(x) {
+      var s = x.s; if (s === 0 && !x.n) return "PT0S";
+      var h = Math.trunc(s / 3600), m = Math.trunc((s % 3600) / 60), sec = s % 60, r = "PT";
+      if (h) r += h + "H"; if (m) r += m + "M";
+      if (sec || x.n) r += sec + (x.n ? "." + pad(x.n, 9).replace(/0+$/, "") : "") + "S";
+      return r;
+    }
+    var DOW_M = {
+      "int getValue()": function () { return this.$ord + 1; },
+      "DayOfWeek plus(long)": function (n) { return enumConst("java.time.DayOfWeek", DIAS[(((this.$ord + Number(n)) % 7) + 7) % 7]); },
+      "DayOfWeek minus(long)": function (n) { return enumConst("java.time.DayOfWeek", DIAS[(((this.$ord - Number(n)) % 7) + 7) % 7]); },
+      "String getDisplayName(java.time.format.TextStyle,java.util.Locale)": function (st, loc) { var pt = !loc || loc.lang === "pt"; var full = st.$name === "FULL"; return jstr(pt ? (full ? DIAS_PT[this.$ord] : DIAS_PT_C[this.$ord]) : (full ? DIAS_EN[this.$ord] : DIAS_EN[this.$ord].slice(0, 3))); },
+      "static DayOfWeek of(int)": function (n) { if (n < 1 || n > 7) throwJ("java.time.DateTimeException", "Invalid value for DayOfWeek: " + n); return enumConst("java.time.DayOfWeek", DIAS[n - 1]); }
+    };
+    libEnum("java.time.DayOfWeek", DIAS, DOW_M, { impl: ["java.time.temporal.TemporalAccessor"] });
+    libEnum("java.time.Month", MESES, {
+      "int getValue()": function () { return this.$ord + 1; },
+      "int length(boolean)": function (lp) { return monthLen(lp ? 2024 : 2023, this.$ord + 1); },
+      "int maxLength()": function () { return monthLen(2024, this.$ord + 1); },
+      "Month plus(long)": function (n) { return enumConst("java.time.Month", MESES[(((this.$ord + Number(n)) % 12) + 12) % 12]); },
+      "String getDisplayName(java.time.format.TextStyle,java.util.Locale)": function (st, loc) { var pt = !loc || loc.lang === "pt"; var full = st.$name === "FULL"; return jstr(pt ? (full ? MESES_PT[this.$ord] : MESES_PT_C[this.$ord]) : (full ? MESES_EN[this.$ord] : MESES_EN[this.$ord].slice(0, 3))); },
+      "static Month of(int)": function (n) { if (n < 1 || n > 12) throwJ("java.time.DateTimeException", "Invalid value for MonthOfYear: " + n); return enumConst("java.time.Month", MESES[n - 1]); }
+    });
+    defLib("java.time.format.TextStyle", { kind: "interface", m: {} });
+    delete I.LIB["java.time.format.TextStyle"];
+    libEnum("java.time.format.TextStyle", ["FULL", "FULL_STANDALONE", "SHORT", "SHORT_STANDALONE", "NARROW", "NARROW_STANDALONE"], {});
+    defLib("java.time.temporal.TemporalAccessor", { kind: "interface", m: {} });
+    defLib("java.time.temporal.Temporal", { kind: "interface", impl: ["TemporalAccessor"], m: {} });
+    defLib("java.time.temporal.TemporalAmount", { kind: "interface", m: {} });
+    defLib("java.time.chrono.ChronoLocalDate", { kind: "interface", impl: ["java.time.temporal.Temporal"], m: {} });
+    var CU = ["NANOS", "MICROS", "MILLIS", "SECONDS", "MINUTES", "HOURS", "HALF_DAYS", "DAYS", "WEEKS", "MONTHS", "YEARS", "DECADES", "CENTURIES", "MILLENNIA", "ERAS", "FOREVER"];
+    function between(unit, a, b) {
+      var u = unit.$name;
+      if (a.$c.full === "java.time.LocalDate") {
+        if (u === "DAYS") return BigInt(ldEpoch(b) - ldEpoch(a));
+        if (u === "WEEKS") return BigInt(Math.trunc((ldEpoch(b) - ldEpoch(a)) / 7));
+        var p = periodBetween(a, b), months = p.y * 12 + p.m;
+        if (u === "MONTHS") return BigInt(months);
+        if (u === "YEARS") return BigInt(Math.trunc(months / 12));
+        if (u === "DECADES") return BigInt(Math.trunc(months / 120));
+      }
+      var sa = secsOf(a), sb = secsOf(b);
+      var diff = sb - sa;
+      var div = { NANOS: 1e-9, MILLIS: 1e-3, SECONDS: 1, MINUTES: 60, HOURS: 3600, DAYS: 86400, WEEKS: 604800 }[u] || 1;
+      return BigInt(Math.trunc(diff / div));
+    }
+    function secsOf(x) {
+      if (x.$c.full === "java.time.LocalTime") return ltSec(x) + x.n / 1e9;
+      if (x.$c.full === "java.time.LocalDateTime") return ldEpoch(x.d) * 86400 + ltSec(x.t);
+      if (x.$c.full === "java.time.LocalDate") return ldEpoch(x) * 86400;
+      if (x.$c.full === "java.time.Instant") return x.ms / 1000;
+      return 0;
+    }
+    libEnum("java.time.temporal.ChronoUnit", CU, { "long between(java.time.temporal.Temporal,java.time.temporal.Temporal)": function (a, b) { return between(this, a, b); } });
+    function plusUnit(x, n, unit) {
+      n = Number(n);
+      switch (unit.$name) {
+        case "DAYS": return jcall(x, "plusDays", [BigInt(n)]);
+        case "WEEKS": return jcall(x, "plusWeeks", [BigInt(n)]);
+        case "MONTHS": return jcall(x, "plusMonths", [BigInt(n)]);
+        case "YEARS": return jcall(x, "plusYears", [BigInt(n)]);
+        case "HOURS": return jcall(x, "plusHours", [BigInt(n)]);
+        case "MINUTES": return jcall(x, "plusMinutes", [BigInt(n)]);
+        case "SECONDS": return jcall(x, "plusSeconds", [BigInt(n)]);
+      }
+      throwJ("java.time.temporal.UnsupportedTemporalTypeException", "Unsupported unit: " + unit.$name);
+    }
+    I.defExc("java.time.temporal.UnsupportedTemporalTypeException", "java.time.DateTimeException");
+    function parseIsoDate(s) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+      if (!m) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed at index 0");
+      var y = +m[1], mo = +m[2], d = +m[3];
+      if (mo < 1 || mo > 12) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed: Invalid value for MonthOfYear (valid values 1 - 12): " + mo);
+      if (d < 1 || d > 31) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed: Invalid value for DayOfMonth (valid values 1 - 28/31): " + d);
+      if (d > monthLen(y, mo)) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed: " + (d === 29 ? "Invalid date 'February 29' as '" + y + "' is not a leap year" : "Invalid date '" + MESES[mo - 1] + " " + d + "'"));
+      return ld(y, mo, d);
+    }
+    var LD = {
+      "static LocalDate of(int,int,int)": function (y, m, d) { checkDate(y, m, d); return ld(y, m, d); },
+      "static LocalDate of(int,Month,int)": function (y, m, d) { checkDate(y, m.$ord + 1, d); return ld(y, m.$ord + 1, d); },
+      "static LocalDate now()": function () { var p = nowParts(); return ld(p.y, p.m, p.d); },
+      "static LocalDate parse(CharSequence)": function (s) { return parseIsoDate(toStr(s)); },
+      "static LocalDate parse(CharSequence,java.time.format.DateTimeFormatter)": function (s, f) { var r = fmtParse(f, toStr(s)); if (r.y === undefined || r.m === undefined || r.d === undefined) throwJ("java.time.format.DateTimeParseException", "Text '" + toStr(s) + "' could not be parsed: Unable to obtain LocalDate from TemporalAccessor"); return ld(r.y, r.m, Math.min(r.d, monthLen(r.y, r.m))); },
+      "static LocalDate ofEpochDay(long)": function (n) { return ldFromEpoch(Number(n)); },
+      "static LocalDate ofYearDay(int,int)": function (y, n) { return ldFromEpoch(fixYear(y, 1, 1) + n - 1); },
+      "int getYear()": function () { return this.y; }, "int getMonthValue()": function () { return this.m; }, "int getDayOfMonth()": function () { return this.d; },
+      "Month getMonth()": function () { return enumConst("java.time.Month", MESES[this.m - 1]); },
+      "DayOfWeek getDayOfWeek()": function () { return enumConst("java.time.DayOfWeek", DIAS[dow(this)]); },
+      "int getDayOfYear()": function () { return ldEpoch(this) - fixYear(this.y, 1, 1) + 1; },
+      "int lengthOfMonth()": function () { return monthLen(this.y, this.m); }, "int lengthOfYear()": function () { return isLeap(this.y) ? 366 : 365; },
+      "boolean isLeapYear()": function () { return isLeap(this.y); },
+      "LocalDate plusDays(long)": function (n) { return ldFromEpoch(ldEpoch(this) + Number(n)); },
+      "LocalDate minusDays(long)": function (n) { return ldFromEpoch(ldEpoch(this) - Number(n)); },
+      "LocalDate plusWeeks(long)": function (n) { return ldFromEpoch(ldEpoch(this) + 7 * Number(n)); },
+      "LocalDate minusWeeks(long)": function (n) { return ldFromEpoch(ldEpoch(this) - 7 * Number(n)); },
+      "LocalDate plusMonths(long)": function (n) { return plusMonths(this, Number(n)); },
+      "LocalDate minusMonths(long)": function (n) { return plusMonths(this, -Number(n)); },
+      "LocalDate plusYears(long)": function (n) { return plusMonths(this, 12 * Number(n)); },
+      "LocalDate minusYears(long)": function (n) { return plusMonths(this, -12 * Number(n)); },
+      "LocalDate plus(long,java.time.temporal.ChronoUnit)": function (n, u) { return plusUnit(this, n, u); },
+      "LocalDate minus(long,java.time.temporal.ChronoUnit)": function (n, u) { return plusUnit(this, -Number(n), u); },
+      "LocalDate plus(Period)": function (p) { return ldFromEpoch(ldEpoch(plusMonths(this, p.y * 12 + p.m)) + p.d); },
+      "LocalDate minus(Period)": function (p) { return ldFromEpoch(ldEpoch(plusMonths(this, -(p.y * 12 + p.m))) - p.d); },
+      "LocalDate withDayOfMonth(int)": function (d) { checkDate(this.y, this.m, d); return ld(this.y, this.m, d); },
+      "LocalDate withMonth(int)": function (m) { return ld(this.y, m, Math.min(this.d, monthLen(this.y, m))); },
+      "LocalDate withYear(int)": function (y) { return ld(y, this.m, Math.min(this.d, monthLen(y, this.m))); },
+      "LocalDateTime atTime(int,int)": function (h, m) { return ldt(this, lt(h, m)); },
+      "LocalDateTime atTime(LocalTime)": function (t) { return ldt(this, t); },
+      "LocalDateTime atStartOfDay()": function () { return ldt(this, lt(0, 0)); },
+      "boolean isBefore(java.time.chrono.ChronoLocalDate)": function (o) { return ldCmp(this, o) < 0; },
+      "boolean isAfter(java.time.chrono.ChronoLocalDate)": function (o) { return ldCmp(this, o) > 0; },
+      "boolean isEqual(java.time.chrono.ChronoLocalDate)": function (o) { return ldCmp(this, o) === 0; },
+      "int compareTo(java.time.chrono.ChronoLocalDate)": function (o) { var c = this.y - o.y; if (c) return c; c = this.m - o.m; if (c) return c; return this.d - o.d; },
+      "long until(java.time.temporal.Temporal,java.time.temporal.ChronoUnit)": function (o, u) { return between(u, this, o); },
+      "Period until(java.time.chrono.ChronoLocalDate)": function (o) { return periodBetween(this, o); },
+      "long toEpochDay()": function () { return BigInt(ldEpoch(this)); },
+      "java.util.stream.Stream<LocalDate> datesUntil(LocalDate)": function (e) { var a = [], n = ldEpoch(this), m = ldEpoch(e); for (; n < m; n++) a.push(ldFromEpoch(n)); return J.mkStream(a); },
+      "String format(java.time.format.DateTimeFormatter)": function (f) { return jstr(fmtFormat(f, this)); },
+      "String toString()": function () { return jstr(ldStr(this)); },
+      "boolean equals(Object)": function (o) { return o !== null && o.$c === this.$c && ldCmp(this, o) === 0; },
+      "int hashCode()": function () { return (this.y & 0xFFFFF800) ^ ((this.y << 11) + (this.m << 6) + this.d); },
+      "static final LocalDate MIN": function () { return ld(-999999999, 1, 1); }, "static final LocalDate MAX": function () { return ld(999999999, 12, 31); }
+    };
+    defLib("java.time.LocalDate", { flags: "public final", noCtor: true, impl: ["java.time.chrono.ChronoLocalDate", "Comparable<java.time.chrono.ChronoLocalDate>"], m: LD });
+    defLib("java.time.LocalTime", { flags: "public final", noCtor: true, impl: ["java.time.temporal.Temporal", "Comparable<LocalTime>"], m: {
+      "static LocalTime of(int,int)": function (h, m) { checkTime(h, m, 0); return lt(h, m); },
+      "static LocalTime of(int,int,int)": function (h, m, s) { checkTime(h, m, s); return lt(h, m, s); },
+      "static LocalTime now()": function () { var p = nowParts(); return lt(p.h, p.mi, p.s, 0); },
+      "static LocalTime parse(CharSequence)": function (s) { var m = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(toStr(s)); if (!m) throwJ("java.time.format.DateTimeParseException", "Text '" + toStr(s) + "' could not be parsed at index 0"); return lt(+m[1], +m[2], +(m[3] || 0)); },
+      "static LocalTime parse(CharSequence,java.time.format.DateTimeFormatter)": function (s, f) { var r = fmtParse(f, toStr(s)); return lt(r.h || 0, r.mi || 0, r.s || 0); },
+      "static final LocalTime MIDNIGHT": function () { return lt(0, 0); }, "static final LocalTime NOON": function () { return lt(12, 0); },
+      "int getHour()": function () { return this.h; }, "int getMinute()": function () { return this.mi; }, "int getSecond()": function () { return this.s; },
+      "LocalTime plusHours(long)": function (n) { return ltFromSec(ltSec(this) + 3600 * Number(n), this.n); },
+      "LocalTime plusMinutes(long)": function (n) { return ltFromSec(ltSec(this) + 60 * Number(n), this.n); },
+      "LocalTime plusSeconds(long)": function (n) { return ltFromSec(ltSec(this) + Number(n), this.n); },
+      "LocalTime minusHours(long)": function (n) { return ltFromSec(ltSec(this) - 3600 * Number(n), this.n); },
+      "LocalTime minusMinutes(long)": function (n) { return ltFromSec(ltSec(this) - 60 * Number(n), this.n); },
+      "LocalTime plus(Duration)": function (d) { return ltFromSec(ltSec(this) + d.s, this.n); },
+      "LocalTime withHour(int)": function (h) { return lt(h, this.mi, this.s, this.n); },
+      "LocalTime withMinute(int)": function (m) { return lt(this.h, m, this.s, this.n); },
+      "boolean isBefore(LocalTime)": function (o) { return ltSec(this) < ltSec(o); },
+      "boolean isAfter(LocalTime)": function (o) { return ltSec(this) > ltSec(o); },
+      "int compareTo(LocalTime)": function (o) { return ltSec(this) - ltSec(o); },
+      "String format(java.time.format.DateTimeFormatter)": function (f) { return jstr(fmtFormat(f, this)); },
+      "String toString()": function () { return jstr(ltStr(this)); },
+      "boolean equals(Object)": function (o) { return o !== null && o.$c === this.$c && ltSec(o) === ltSec(this) && o.n === this.n; },
+      "int hashCode()": function () { return ltSec(this); }
+    } });
+    function checkTime(h, m, s) {
+      if (h < 0 || h > 23) throwJ("java.time.DateTimeException", "Invalid value for HourOfDay (valid values 0 - 23): " + h);
+      if (m < 0 || m > 59) throwJ("java.time.DateTimeException", "Invalid value for MinuteOfHour (valid values 0 - 59): " + m);
+      if (s < 0 || s > 59) throwJ("java.time.DateTimeException", "Invalid value for SecondOfMinute (valid values 0 - 59): " + s);
+    }
+    defLib("java.time.LocalDateTime", { flags: "public final", noCtor: true, impl: ["java.time.temporal.Temporal", "Comparable<LocalDateTime>"], m: {
+      "static LocalDateTime of(int,int,int,int,int)": function (y, m, d, h, mi) { checkDate(y, m, d); checkTime(h, mi, 0); return ldt(ld(y, m, d), lt(h, mi)); },
+      "static LocalDateTime of(int,int,int,int,int,int)": function (y, m, d, h, mi, s) { checkDate(y, m, d); checkTime(h, mi, s); return ldt(ld(y, m, d), lt(h, mi, s)); },
+      "static LocalDateTime of(LocalDate,LocalTime)": function (d, t) { return ldt(d, t); },
+      "static LocalDateTime now()": function () { var p = nowParts(); return ldt(ld(p.y, p.m, p.d), lt(p.h, p.mi, p.s, 0)); },
+      "static LocalDateTime parse(CharSequence)": function (s) { var m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(toStr(s)); if (!m) throwJ("java.time.format.DateTimeParseException", "Text '" + toStr(s) + "' could not be parsed at index 0"); return ldt(parseIsoDate(m[1]), lt(+m[2], +m[3], +(m[4] || 0))); },
+      "static LocalDateTime parse(CharSequence,java.time.format.DateTimeFormatter)": function (s, f) { var r = fmtParse(f, toStr(s)); return ldt(ld(r.y, r.m, r.d), lt(r.h || 0, r.mi || 0, r.s || 0)); },
+      "LocalDate toLocalDate()": function () { return this.d; }, "LocalTime toLocalTime()": function () { return this.t; },
+      "int getYear()": function () { return this.d.y; }, "int getMonthValue()": function () { return this.d.m; }, "int getDayOfMonth()": function () { return this.d.d; },
+      "int getHour()": function () { return this.t.h; }, "int getMinute()": function () { return this.t.mi; }, "int getSecond()": function () { return this.t.s; },
+      "Month getMonth()": function () { return enumConst("java.time.Month", MESES[this.d.m - 1]); },
+      "DayOfWeek getDayOfWeek()": function () { return enumConst("java.time.DayOfWeek", DIAS[dow(this.d)]); },
+      "LocalDateTime plusDays(long)": function (n) { return ldt(ldFromEpoch(ldEpoch(this.d) + Number(n)), this.t); },
+      "LocalDateTime minusDays(long)": function (n) { return ldt(ldFromEpoch(ldEpoch(this.d) - Number(n)), this.t); },
+      "LocalDateTime plusMonths(long)": function (n) { return ldt(plusMonths(this.d, Number(n)), this.t); },
+      "LocalDateTime plusYears(long)": function (n) { return ldt(plusMonths(this.d, 12 * Number(n)), this.t); },
+      "LocalDateTime plusWeeks(long)": function (n) { return ldt(ldFromEpoch(ldEpoch(this.d) + 7 * Number(n)), this.t); },
+      "LocalDateTime plusHours(long)": function (n) { return ldtPlusSec(this, 3600 * Number(n)); },
+      "LocalDateTime plusMinutes(long)": function (n) { return ldtPlusSec(this, 60 * Number(n)); },
+      "LocalDateTime plusSeconds(long)": function (n) { return ldtPlusSec(this, Number(n)); },
+      "LocalDateTime minusHours(long)": function (n) { return ldtPlusSec(this, -3600 * Number(n)); },
+      "LocalDateTime minusMinutes(long)": function (n) { return ldtPlusSec(this, -60 * Number(n)); },
+      "LocalDateTime plus(Duration)": function (d) { return ldtPlusSec(this, d.s); },
+      "boolean isBefore(LocalDateTime)": function (o) { return secsOf(this) < secsOf(o); },
+      "boolean isAfter(LocalDateTime)": function (o) { return secsOf(this) > secsOf(o); },
+      "int compareTo(LocalDateTime)": function (o) { var a = secsOf(this), b = secsOf(o); return a < b ? -1 : a > b ? 1 : 0; },
+      "String format(java.time.format.DateTimeFormatter)": function (f) { return jstr(fmtFormat(f, this)); },
+      "String toString()": function () { return jstr(ldStr(this.d) + "T" + ltStr(this.t)); },
+      "boolean equals(Object)": function (o) { return o !== null && o.$c === this.$c && secsOf(o) === secsOf(this); },
+      "int hashCode()": function () { return secsOf(this) | 0; }
+    } });
+    defLib("java.time.Instant", { flags: "public final", noCtor: true, impl: ["java.time.temporal.Temporal", "Comparable<Instant>"], m: {
+      "static Instant now()": function () { return { $c: L("java.time.Instant"), ms: RT().clockMs() }; },
+      "static Instant ofEpochMilli(long)": function (n) { return { $c: L("java.time.Instant"), ms: Number(n) }; },
+      "long toEpochMilli()": function () { return BigInt(Math.floor(this.ms)); },
+      "long getEpochSecond()": function () { return BigInt(Math.floor(this.ms / 1000)); },
+      "Instant plusSeconds(long)": function (n) { return { $c: L("java.time.Instant"), ms: this.ms + 1000 * Number(n) }; },
+      "int compareTo(Instant)": function (o) { return this.ms < o.ms ? -1 : this.ms > o.ms ? 1 : 0; },
+      "String toString()": function () { return jstr(new Date(Math.floor(this.ms)).toISOString().replace(/\.000Z$/, "Z")); }
+    } });
+    defLib("java.time.Duration", { flags: "public final", noCtor: true, impl: ["java.time.temporal.TemporalAmount", "Comparable<Duration>"], m: {
+      "static Duration ofDays(long)": function (n) { return dur(86400 * Number(n)); },
+      "static Duration ofHours(long)": function (n) { return dur(3600 * Number(n)); },
+      "static Duration ofMinutes(long)": function (n) { return dur(60 * Number(n)); },
+      "static Duration ofSeconds(long)": function (n) { return dur(Number(n)); },
+      "static Duration ofMillis(long)": function (n) { var m = Number(n); return dur(Math.floor(m / 1000), (m % 1000) * 1e6); },
+      "static Duration between(java.time.temporal.Temporal,java.time.temporal.Temporal)": function (a, b) { var d = secsOf(b) - secsOf(a); var s = Math.floor(d); return dur(s, Math.round((d - s) * 1e9)); },
+      "static final Duration ZERO": function () { return dur(0); },
+      "long toDays()": function () { return BigInt(Math.trunc(this.s / 86400)); },
+      "long toHours()": function () { return BigInt(Math.trunc(this.s / 3600)); },
+      "long toMinutes()": function () { return BigInt(Math.trunc(this.s / 60)); },
+      "long toSeconds()": function () { return BigInt(this.s); },
+      "long getSeconds()": function () { return BigInt(this.s); },
+      "long toMillis()": function () { return BigInt(this.s * 1000 + Math.floor(this.n / 1e6)); },
+      "int toMinutesPart()": function () { return Math.trunc(this.s / 60) % 60; },
+      "int toHoursPart()": function () { return Math.trunc(this.s / 3600) % 24; },
+      "int toSecondsPart()": function () { return this.s % 60; },
+      "Duration plus(Duration)": function (o) { return dur(this.s + o.s, this.n + o.n); },
+      "Duration plusMinutes(long)": function (n) { return dur(this.s + 60 * Number(n), this.n); },
+      "Duration minus(Duration)": function (o) { return dur(this.s - o.s, this.n - o.n); },
+      "Duration multipliedBy(long)": function (n) { return dur(this.s * Number(n), this.n * Number(n)); },
+      "boolean isNegative()": function () { return this.s < 0; },
+      "boolean isZero()": function () { return this.s === 0 && !this.n; },
+      "int compareTo(Duration)": function (o) { return this.s !== o.s ? (this.s < o.s ? -1 : 1) : this.n - o.n; },
+      "String toString()": function () { return jstr(durStr(this)); },
+      "boolean equals(Object)": function (o) { return o !== null && o.$c === this.$c && o.s === this.s && o.n === this.n; }
+    } });
+    defLib("java.time.Period", { flags: "public final", noCtor: true, impl: ["java.time.temporal.TemporalAmount"], m: {
+      "static Period of(int,int,int)": function (y, m, d) { return period(y, m, d); },
+      "static Period ofDays(int)": function (d) { return period(0, 0, d); },
+      "static Period ofMonths(int)": function (m) { return period(0, m, 0); },
+      "static Period ofYears(int)": function (y) { return period(y, 0, 0); },
+      "static Period ofWeeks(int)": function (w) { return period(0, 0, 7 * w); },
+      "static Period between(LocalDate,LocalDate)": function (a, b) { return periodBetween(a, b); },
+      "int getYears()": function () { return this.y; }, "int getMonths()": function () { return this.m; }, "int getDays()": function () { return this.d; },
+      "long toTotalMonths()": function () { return BigInt(this.y * 12 + this.m); },
+      "Period plusDays(long)": function (n) { return period(this.y, this.m, this.d + Number(n)); },
+      "boolean isNegative()": function () { return this.y < 0 || this.m < 0 || this.d < 0; },
+      "String toString()": function () { if (!this.y && !this.m && !this.d) return jstr("P0D"); return jstr("P" + (this.y ? this.y + "Y" : "") + (this.m ? this.m + "M" : "") + (this.d ? this.d + "D" : "")); },
+      "boolean equals(Object)": function (o) { return o !== null && o.$c === this.$c && o.y === this.y && o.m === this.m && o.d === this.d; }
+    } });
+    defLib("java.time.ZoneId", { flags: "public abstract", noCtor: true, m: {
+      "static ZoneId of(String)": function (s) { return { $c: L("java.time.ZoneId"), id: S(s) }; },
+      "static ZoneId systemDefault()": function () { return { $c: L("java.time.ZoneId"), id: "America/Sao_Paulo" }; },
+      "String getId()": function () { return jstr(this.id); },
+      "String toString()": function () { return jstr(this.id); }
+    } });
+    // ---------- DateTimeFormatter ----------
+    function tokenize(p) {
+      var toks = [], i = 0;
+      while (i < p.length) {
+        var c = p[i];
+        if (c === "'") {
+          var j = p.indexOf("'", i + 1); if (j < 0) j = p.length;
+          toks.push({ lit: j === i + 1 ? "'" : p.slice(i + 1, j) }); i = j + 1; continue;
+        }
+        if (/[A-Za-z]/.test(c)) { var k = i; while (k < p.length && p[k] === c) k++; toks.push({ f: c, n: k - i }); i = k; continue; }
+        toks.push({ lit: c }); i++;
+      }
+      return toks;
+    }
+    function mkFmt(pattern, loc, iso) { return { $c: L("java.time.format.DateTimeFormatter"), pat: pattern, toks: pattern ? tokenize(pattern) : null, loc: loc || null, iso: iso || null }; }
+    function fmtFormat(f, x) {
+      var d = x.$c.full === "java.time.LocalDate" ? x : x.$c.full === "java.time.LocalDateTime" ? x.d : null;
+      var t = x.$c.full === "java.time.LocalTime" ? x : x.$c.full === "java.time.LocalDateTime" ? x.t : null;
+      if (f.iso) {
+        if (f.iso === "date") return ldStr(d); if (f.iso === "time") return ltStr(t); if (f.iso === "datetime") return ldStr(d) + "T" + ltStr(t);
+      }
+      var pt = !f.loc || f.loc.lang === "pt";
+      return f.toks.map(function (tk) {
+        if (tk.lit !== undefined) return tk.lit;
+        var n = tk.n;
+        function need(v, what) { if (!v) throwJ("java.time.temporal.UnsupportedTemporalTypeException", "Unsupported field: " + what); return v; }
+        switch (tk.f) {
+          case "d": return pad(need(d, "DayOfMonth").d, n);
+          case "M": case "L": need(d, "MonthOfYear"); if (n >= 4) return pt ? MESES_PT[d.m - 1] : MESES_EN[d.m - 1]; if (n === 3) return pt ? MESES_PT_C[d.m - 1] : MESES_EN[d.m - 1].slice(0, 3); return pad(d.m, n);
+          case "y": case "u": need(d, "YearOfEra"); return n === 2 ? pad(d.y % 100, 2) : pad(d.y, n);
+          case "E": need(d, "DayOfWeek"); return n >= 4 ? (pt ? DIAS_PT[dow(d)] : DIAS_EN[dow(d)]) : (pt ? DIAS_PT_C[dow(d)] : DIAS_EN[dow(d)].slice(0, 3));
+          case "D": need(d, "DayOfYear"); return pad(ldEpoch(d) - fixYear(d.y, 1, 1) + 1, n);
+          case "H": return pad(need(t, "HourOfDay").h, n);
+          case "h": need(t, "ClockHourOfAmPm"); return pad(t.h % 12 === 0 ? 12 : t.h % 12, n);
+          case "m": return pad(need(t, "MinuteOfHour").mi, n);
+          case "s": return pad(need(t, "SecondOfMinute").s, n);
+          case "S": return pad(Math.floor(need(t, "NanoOfSecond").n / Math.pow(10, 9 - n)), n);
+          case "a": need(t, "AmPmOfDay"); return pt ? (t.h < 12 ? "AM" : "PM") : (t.h < 12 ? "AM" : "PM");
+        }
+        throwJ("java.lang.IllegalArgumentException", "Unknown pattern letter: " + tk.f);
+      }).join("");
+    }
+    function fmtParse(f, s) {
+      if (f.iso === "date") { var dd = parseIsoDate(s); return { y: dd.y, m: dd.m, d: dd.d }; }
+      var r = {}, i = 0;
+      var pt = !f.loc || f.loc.lang === "pt";
+      function fail() { throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed at index " + i); }
+      (f.toks || []).forEach(function (tk) {
+        if (tk.lit !== undefined) { if (s.substr(i, tk.lit.length) !== tk.lit) fail(); i += tk.lit.length; return; }
+        if ((tk.f === "M" && tk.n >= 3) || tk.f === "E") {
+          var lists = tk.f === "M" ? (tk.n >= 4 ? (pt ? MESES_PT : MESES_EN) : (pt ? MESES_PT_C : MESES_EN.map(function (x) { return x.slice(0, 3); }))) : (tk.n >= 4 ? (pt ? DIAS_PT : DIAS_EN) : (pt ? DIAS_PT_C : DIAS_EN.map(function (x) { return x.slice(0, 3); })));
+          for (var q = 0; q < lists.length; q++) if (s.substr(i, lists[q].length).toLowerCase() === lists[q].toLowerCase()) { if (tk.f === "M") r.m = q + 1; i += lists[q].length; return; }
+          fail();
+        }
+        var m = new RegExp("^\\d{" + tk.n + "," + (tk.n === 1 ? 2 : (tk.f === "y" || tk.f === "u") && tk.n !== 2 ? 9 : tk.n) + "}").exec(s.slice(i));
+        if (!m) fail();
+        var v = parseInt(m[0], 10);
+        i += m[0].length;
+        switch (tk.f) { case "d": r.d = v; break; case "M": r.m = v; break; case "y": case "u": r.y = tk.n === 2 ? 2000 + v : v; break; case "H": r.h = v; break; case "m": r.mi = v; break; case "s": r.s = v; break; }
+      });
+      if (i < s.length) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed, unparsed text found at index " + i);
+      if (r.m !== undefined && (r.m < 1 || r.m > 12)) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed: Invalid value for MonthOfYear (valid values 1 - 12): " + r.m);
+      if (r.d !== undefined && (r.d < 1 || r.d > 31)) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed: Invalid value for DayOfMonth (valid values 1 - 28/31): " + r.d);
+      return r;
+    }
+    defLib("java.time.format.DateTimeFormatter", { flags: "public final", noCtor: true, m: {
+      "static DateTimeFormatter ofPattern(String)": function (p) { return mkFmt(S(p)); },
+      "static DateTimeFormatter ofPattern(String,java.util.Locale)": function (p, l) { return mkFmt(S(p), l); },
+      "static final DateTimeFormatter ISO_LOCAL_DATE": function () { return mkFmt(null, null, "date"); },
+      "static final DateTimeFormatter ISO_DATE": function () { return mkFmt(null, null, "date"); },
+      "static final DateTimeFormatter ISO_LOCAL_TIME": function () { return mkFmt(null, null, "time"); },
+      "static final DateTimeFormatter ISO_LOCAL_DATE_TIME": function () { return mkFmt(null, null, "datetime"); },
+      "DateTimeFormatter withLocale(java.util.Locale)": function (l) { return mkFmt(this.pat, l, this.iso); },
+      "String format(java.time.temporal.TemporalAccessor)": function (x) { return jstr(fmtFormat(this, x)); },
+      "String toString()": function () { return jstr(this.pat || "ParseCaseSensitive(false)"); }
+    } });
+    I.LIB["java.time.LocalDate"].lib.spec.impl.push("java.time.temporal.TemporalAccessor");
+
+    // ---------- NumberFormat / DecimalFormat ----------
+    function fmtNumber(v, minFrac, maxFrac, grouping, loc, mode) {
+      var neg = v < 0 || (v === 0 && 1 / v < 0 && false);
+      var x = J.bdOfDouble(Math.abs(v));
+      var r = (function () { var b = x; if (b.scale > maxFrac) { var div = 10n ** BigInt(b.scale - maxFrac); var q = b.big / div, rem = b.big % div; var tw = rem * 2n; if (mode === "HALF_UP" ? tw >= div : (tw > div || (tw === div && q % 2n === 1n))) q++; return { big: q, scale: maxFrac }; } return b; })();
+      var digits = r.big.toString(), sc = r.scale;
+      while (digits.length <= sc) digits = "0" + digits;
+      var ip = digits.slice(0, digits.length - sc), fp = digits.slice(digits.length - sc);
+      while (fp.length > minFrac && fp[fp.length - 1] === "0") fp = fp.slice(0, -1);
+      while (fp.length < minFrac) fp += "0";
+      if (grouping) ip = I.groupDigits(ip, loc.grp);
+      var res = ip + (fp ? loc.dec + fp : "");
+      if (neg && /[1-9]/.test(res)) res = "-" + res;
+      return res;
+    }
+    function locOf(l) { return l && l.loc ? l.loc : I.LOC_PT; }
+    defLib("java.text.Format", { flags: "public abstract", m: { "String format(Object)": function (o) { return jcall(this, "format", [o]); } } });
+    defLib("java.text.NumberFormat", { flags: "public abstract", ext: "java.text.Format", m: {
+      "static NumberFormat getCurrencyInstance()": function () { return { $c: L("java.text.DecimalFormat"), kind: "cur", l: J.mkLocale("pt", "BR"), min: 2, max: 2, grp: true }; },
+      "static NumberFormat getCurrencyInstance(java.util.Locale)": function (l) { return { $c: L("java.text.DecimalFormat"), kind: "cur", l: l, min: 2, max: 2, grp: true }; },
+      "static NumberFormat getInstance()": function () { return { $c: L("java.text.DecimalFormat"), kind: "num", l: J.mkLocale("pt", "BR"), min: 0, max: 3, grp: true }; },
+      "static NumberFormat getInstance(java.util.Locale)": function (l) { return { $c: L("java.text.DecimalFormat"), kind: "num", l: l, min: 0, max: 3, grp: true }; },
+      "static NumberFormat getNumberInstance()": function () { return { $c: L("java.text.DecimalFormat"), kind: "num", l: J.mkLocale("pt", "BR"), min: 0, max: 3, grp: true }; },
+      "static NumberFormat getNumberInstance(java.util.Locale)": function (l) { return { $c: L("java.text.DecimalFormat"), kind: "num", l: l, min: 0, max: 3, grp: true }; },
+      "static NumberFormat getPercentInstance()": function () { return { $c: L("java.text.DecimalFormat"), kind: "pct", l: J.mkLocale("pt", "BR"), min: 0, max: 0, grp: true }; },
+      "static NumberFormat getPercentInstance(java.util.Locale)": function (l) { return { $c: L("java.text.DecimalFormat"), kind: "pct", l: l, min: 0, max: 0, grp: true }; },
+      "static NumberFormat getIntegerInstance()": function () { return { $c: L("java.text.DecimalFormat"), kind: "num", l: J.mkLocale("pt", "BR"), min: 0, max: 0, grp: true }; },
+      "String format(double)": function (v) { return jstr(nfFormat(this, v)); },
+      "String format(long)": function (v) { return jstr(nfFormat(this, Number(v))); },
+      "void setMinimumFractionDigits(int)": function (n) { this.min = n; if (this.max < n) this.max = n; },
+      "void setMaximumFractionDigits(int)": function (n) { this.max = n; if (this.min > n) this.min = n; },
+      "void setGroupingUsed(boolean)": function (b) { this.grp = b; },
+      "Number parse(String) throws java.text.ParseException": function (s) { var t = S(s).replace(/R\$\s?| |%/g, "").split(locOf(this.l).grp).join("").replace(locOf(this.l).dec, "."); var v = parseFloat(t); if (isNaN(v)) throwJ("java.text.ParseException", "Unparseable number: \"" + S(s) + "\""); return Number.isInteger(v) ? boxVal("long", BigInt(v)) : boxVal("double", v); }
+    } });
+    I.defExc("java.text.ParseException", "Exception", { m: { "<init>(String,int)": function (s) { this.message = s; this.cause = null; this.suppressed = []; } } });
+    function nfFormat(f, v) {
+      var loc = locOf(f.l);
+      if (f.pat) return dfFormat(f, v, loc);
+      var us = f.l && f.l.lang === "en";
+      if (f.kind === "cur") { var n = fmtNumber(Math.abs(v), f.min, f.max, f.grp, loc, "HALF_EVEN"); var sym = us ? "$" : "R$ "; return (v < 0 ? "-" : "") + sym + n; }
+      if (f.kind === "pct") return fmtNumber(v * 100, f.min, f.max, f.grp, loc, "HALF_EVEN") + "%";
+      return fmtNumber(v, f.min, f.max, f.grp, loc, "HALF_EVEN");
+    }
+    function dfFormat(f, v, loc) {
+      var p = f.pat.split(";")[0];
+      var m = /^([^#0,.]*)([#0,]*)(?:\.([0#]*))?(.*)$/.exec(p);
+      var pre = m[1].replace(/'/g, ""), intp = m[2], fr = m[3] || "", suf = m[4].replace(/'/g, "");
+      var pct = /%/.test(suf);
+      if (pct) v *= 100;
+      var minFrac = (fr.match(/0/g) || []).length, maxFrac = fr.length;
+      var minInt = (intp.match(/0/g) || []).length;
+      var grp = intp.indexOf(",") >= 0;
+      var s = fmtNumber(Math.abs(v), minFrac, maxFrac, false, loc, f.mode || "HALF_EVEN");
+      var parts = s.split(loc.dec), ip = parts[0];
+      if (ip === "0" && minInt === 0 && parts[1]) ip = "";
+      while (ip.length < minInt) ip = "0" + ip;
+      if (grp) ip = I.groupDigits(ip, loc.grp);
+      var res = ip + (parts[1] ? loc.dec + parts[1] : "");
+      return (v < 0 && /[1-9]/.test(res) ? "-" : "") + pre + res + suf;
+    }
+    defLib("java.text.DecimalFormat", { ext: "java.text.NumberFormat", m: {
+      "<init>(String)": function (p) { this.pat = S(p); this.l = J.mkLocale("pt", "BR"); },
+      "<init>(String,java.text.DecimalFormatSymbols)": function (p, sy) { this.pat = S(p); this.l = sy.l; },
+      "void setRoundingMode(java.math.RoundingMode)": function (m) { this.mode = m.$name; },
+      "void applyPattern(String)": function (p) { this.pat = S(p); }
+    } });
+    defLib("java.text.DecimalFormatSymbols", { m: { "<init>(java.util.Locale)": function (l) { this.l = l; } } });
+    defLib("java.text.SimpleDateFormat", { ext: "java.text.Format", m: { "<init>(String)": function (p) { this.pat = S(p); } } });
+
+    // ---------- regex ----------
+    function mkMatcher(p, s) { return { $c: L("java.util.regex.Matcher"), p: p, s: s, re: I.javaRegex(p.src, "g" + p.fl), m: null, pos: 0, appendPos: 0 }; }
+    function noMatch(frames) { throwJ("java.lang.IllegalStateException", "No match found", frames || ["java.base/java.util.regex.Matcher.checkMatch(Matcher.java:1850)", "java.base/java.util.regex.Matcher.group(Matcher.java:685)", "java.base/java.util.regex.Matcher.group(Matcher.java:643)"]); }
+    defLib("java.util.regex.Pattern", { flags: "public final", noCtor: true, m: {
+      "static final int CASE_INSENSITIVE": { c: 2 }, "static final int MULTILINE": { c: 8 }, "static final int DOTALL": { c: 32 }, "static final int UNICODE_CASE": { c: 64 }, "static final int COMMENTS": { c: 4 },
+      "static Pattern compile(String)": function (r) { var p = { $c: L("java.util.regex.Pattern"), src: S(r), fl: "" }; I.javaRegex(p.src); return p; },
+      "static Pattern compile(String,int)": function (r, f) { var fl = (f & 2 ? "i" : "") + (f & 8 ? "m" : "") + (f & 32 ? "s" : ""); var p = { $c: L("java.util.regex.Pattern"), src: S(r), fl: fl, flags: f }; I.javaRegex(p.src, fl); return p; },
+      "static boolean matches(String,CharSequence)": function (r, s) { return I.javaRegex("^(?:" + S(r) + ")$").test(toStr(s)); },
+      "static String quote(String)": function (s) { return jstr(S(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")); },
+      "Matcher matcher(CharSequence)": function (s) { return mkMatcher(this, toStr(s)); },
+      "String pattern()": function () { return jstr(this.src); },
+      "String toString()": function () { return jstr(this.src); },
+      "int flags()": function () { return this.flags || 0; },
+      "String[] split(CharSequence)": function (s) { return I.strArray(I.jsplit(toStr(s), this.src, 0)); },
+      "java.util.function.Predicate<String> asPredicate()": function () { var re = I.javaRegex(this.src, this.fl); return mkFn("Predicate", function (x) { return re.test(S(x)); }); },
+      "java.util.function.Predicate<String> asMatchPredicate()": function () { var re = I.javaRegex("^(?:" + this.src + ")$", this.fl); return mkFn("Predicate", function (x) { return re.test(S(x)); }); },
+      "java.util.stream.Stream<String> splitAsStream(CharSequence)": function (s) { return J.mkStream(I.jsplit(toStr(s), this.src, 0).map(jstr)); }
+    } });
+    defLib("java.util.regex.MatchResult", { kind: "interface", m: { "String group()": null, "String group(int)": null, "int start()": null, "int end()": null, "int groupCount()": null } });
+    defLib("java.util.regex.Matcher", { flags: "public final", noCtor: true, impl: ["MatchResult"], m: {
+      "boolean matches()": function () { var re = I.javaRegex("^(?:" + this.p.src + ")$", this.p.fl); var m = re.exec(this.s); this.m = m; return !!m; },
+      "boolean lookingAt()": function () { var re = I.javaRegex("^(?:" + this.p.src + ")", this.p.fl); var m = re.exec(this.s); this.m = m; return !!m; },
+      "boolean find()": function () { this.re.lastIndex = this.pos; var m = this.re.exec(this.s); this.m = m; if (m) { this.pos = m.index + (m[0].length || 1); } else this.pos = this.s.length + 1; return !!m; },
+      "boolean find(int)": function (i) { this.pos = i; return jcall(this, "find", []); },
+      "String group()": function () { if (!this.m) noMatch(); return jstr(this.m[0]); },
+      "String group(int)": function (n) { if (!this.m) noMatch(["java.base/java.util.regex.Matcher.checkMatch(Matcher.java:1850)", "java.base/java.util.regex.Matcher.group(Matcher.java:685)"]); if (n > this.m.length - 1) throwJ("java.lang.IndexOutOfBoundsException", "No group " + n); var g = this.m[n]; return g === undefined ? null : jstr(g); },
+      "String group(String)": function (n) { if (!this.m) noMatch(); var g = this.m.groups && this.m.groups[S(n)]; if (g === undefined && !(this.m.groups && S(n) in this.m.groups)) throwJ("java.lang.IllegalArgumentException", "No group with name <" + S(n) + ">"); return g === undefined ? null : jstr(g); },
+      "int groupCount()": function () { return new RegExp(this.re.source + "|").exec("").length - 1; },
+      "int start()": function () { if (!this.m) noMatch(); return this.m.index; },
+      "int end()": function () { if (!this.m) noMatch(); return this.m.index + this.m[0].length; },
+      "String replaceAll(String)": function (r) { return jstr(this.s.replace(I.javaRegex(this.p.src, "g" + this.p.fl), S(r).replace(/\$(\d)/g, "$$$1"))); },
+      "String replaceFirst(String)": function (r) { return jstr(this.s.replace(I.javaRegex(this.p.src, this.p.fl), S(r))); },
+      "java.util.stream.Stream<MatchResult> results()": function () { var out = [], re = I.javaRegex(this.p.src, "g" + this.p.fl), m; while ((m = re.exec(this.s))) { out.push({ $c: L("java.util.regex.Matcher"), m: m, s: this.s, p: this.p, re: re }); if (!m[0].length) re.lastIndex++; } return J.mkStream(out); },
+      "Matcher reset()": function () { this.pos = 0; this.m = null; return this; },
+      "boolean hitEnd()": function () { return this.pos >= this.s.length; }
+    } });
+
+    // ---------- arquivos (sistema de arquivos fictício: a pasta da Ana) ----------
+    var HOME = "/home/ana";
+    function fs() {
+      var rt = RT();
+      if (!rt.fsMap) {
+        rt.fsMap = {};
+        ["/", "/home", HOME, HOME + "/Documentos", HOME + "/Downloads", HOME + "/Imagens", HOME + "/Música", HOME + "/Vídeos", HOME + "/Área de trabalho", "/tmp"].forEach(function (d) { rt.fsMap[d] = { t: "d" }; });
+        rt.fsMap[HOME + "/frutas.txt"] = { t: "f", d: "banana\nmaçã\nlaranja\nbanana\nuva\nmaçã\nbanana\n" };
+        rt.fsMap[HOME + "/Documentos/alunos.csv"] = { t: "f", d: "nome,idade,cidade,nota\nAna,29,Recife,9.5\nBruno,34,Curitiba,7.0\nCarla,22,Salvador,8.5\nDiego,41,Manaus,6.0\n" };
+        rt.fsMap[HOME + "/Documentos/notas.txt"] = { t: "f", d: "Comprar café\nLigar para o João\nEstudar Bash\nFazer backup das fotos\n" };
+        if (rt.fsInit) rt.fsInit(rt.fsMap);
+      }
+      return rt.fsMap;
+    }
+    function norm(p) {
+      var abs = p[0] === "/" ? p : HOME + "/" + p;
+      var parts = [], out = abs.split("/");
+      out.forEach(function (x) { if (!x || x === ".") return; if (x === "..") parts.pop(); else parts.push(x); });
+      return "/" + parts.join("/");
+    }
+    function parent(p) { var i = p.lastIndexOf("/"); return i <= 0 ? "/" : p.slice(0, i); }
+    function pathStr(x) { return isPath(x) ? x.p : S(x); }
+    function isPath(x) { return x && x.$c && (x.$c.full === "java.nio.file.PathImpl" || x.$c.full === "java.io.File"); }
+    function mkPath(s) { return { $c: L("java.nio.file.PathImpl"), p: s }; }
+    var NSF_READ = ["java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92)", "java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:106)", "java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111)", "java.base/sun.nio.fs.UnixFileSystemProvider.newFileChannel(UnixFileSystemProvider.java:213)", "java.base/sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:244)", "java.base/java.nio.file.Files.newByteChannel(Files.java:357)", "java.base/java.nio.file.Files.newByteChannel(Files.java:399)"];
+    function readFile(p, frames) {
+      var a = norm(pathStr(p)), n = fs()[a];
+      if (!n) throwJ("java.nio.file.NoSuchFileException", jstr(pathStr(p)), frames);
+      if (n.t === "d") throwJ("java.io.IOException", "Is a directory");
+      return n.d;
+    }
+    J.readFileText = function (p) { var a = norm(pathStr(p)), n = fs()[a]; if (!n) throwJ("java.io.FileNotFoundException", pathStr(p) + " (Arquivo ou diretório inexistente)"); return n.d; };
+    function writeFile(p, text, append) {
+      var a = norm(pathStr(p)), f = fs();
+      if (!f[parent(a)] || f[parent(a)].t !== "d") throwJ("java.nio.file.NoSuchFileException", jstr(pathStr(p)));
+      if (f[a] && f[a].t === "d") throwJ("java.nio.file.FileSystemException", pathStr(p) + ": É um diretório");
+      if (append && f[a]) f[a].d += text; else f[a] = { t: "f", d: text };
+    }
+    function hasOpt(opts, name) { return opts && opts.a && opts.a.some(function (o) { return o && o.$name === name; }); }
+    function utf8len(s) { return unescape(encodeURIComponent(s)).length; }
+    function linesOf(t) { var ls = t.split(/\r?\n/); if (ls[ls.length - 1] === "") ls.pop(); return ls; }
+    defLib("java.nio.file.Path", { kind: "interface", impl: ["Comparable<Path>", "Iterable<Path>"], m: {
+      "static Path of(String,String...)": function (a, rest) { return mkPath([S(a)].concat(Array.from(rest.a).map(S)).join("/").replace(/\/+/g, "/")); },
+      "Path getFileName()": null, "Path getParent()": null, "Path resolve(String)": null, "Path toAbsolutePath()": null, "boolean isAbsolute()": null, "java.io.File toFile()": null, "Path normalize()": null,
+      "Path resolve(Path)": null, "Path getRoot()": null, "int getNameCount()": null, "Path resolveSibling(String)": null, "boolean startsWith(String)": null, "boolean endsWith(String)": null
+    } });
+    defLib("java.nio.file.PathImpl", { impl: ["Path"], bin: "sun.nio.fs.UnixPath", m: {
+      "Path getFileName()": function () { var p = this.p.replace(/\/+$/, ""); return p === "" ? null : mkPath(p.slice(p.lastIndexOf("/") + 1)); },
+      "Path getParent()": function () { var i = this.p.replace(/\/+$/, "").lastIndexOf("/"); return i < 0 ? null : mkPath(i === 0 ? "/" : this.p.slice(0, i)); },
+      "Path getRoot()": function () { return this.p[0] === "/" ? mkPath("/") : null; },
+      "Path resolve(String)": function (s) { var o = S(s); return mkPath(o[0] === "/" ? o : (this.p ? this.p.replace(/\/$/, "") + "/" : "") + o); },
+      "Path resolve(Path)": function (o) { return mkPath(o.p[0] === "/" ? o.p : (this.p ? this.p.replace(/\/$/, "") + "/" : "") + o.p); },
+      "Path resolveSibling(String)": function (s) { var par = jcall(this, "getParent", []); return par ? jcall(par, "resolve", [s]) : mkPath(S(s)); },
+      "Path toAbsolutePath()": function () { return mkPath(norm(this.p) === "/" ? "/" : (this.p[0] === "/" ? this.p : HOME + "/" + this.p)); },
+      "Path normalize()": function () { return mkPath(this.p[0] === "/" ? norm(this.p) : norm(this.p).replace(HOME + "/", "")); },
+      "boolean isAbsolute()": function () { return this.p[0] === "/"; },
+      "int getNameCount()": function () { return this.p.split("/").filter(Boolean).length; },
+      "boolean startsWith(String)": function (s) { return this.p.indexOf(S(s)) === 0; },
+      "boolean endsWith(String)": function (s) { return this.p.slice(-S(s).length) === S(s); },
+      "java.io.File toFile()": function () { return { $c: L("java.io.File"), p: this.p }; },
+      "Iterator<Path> iterator()": function () { return jcall(mkList(this.p.split("/").filter(Boolean).map(mkPath)), "iterator", []); },
+      "int compareTo(Path)": function (o) { return I.compareStrings(this.p, o.p); },
+      "String toString()": function () { return jstr(this.p); },
+      "boolean equals(Object)": function (o) { return o !== null && o.$c === this.$c && o.p === this.p; },
+      "int hashCode()": function () { return I.stringHash(this.p); }
+    } });
+    defLib("java.nio.file.Paths", { flags: "public final", noCtor: true, m: { "static Path get(String,String...)": function (a, rest) { return mkPath([S(a)].concat(Array.from(rest.a).map(S)).join("/")); } } });
+    libEnum("java.nio.file.StandardOpenOption", ["READ", "WRITE", "APPEND", "TRUNCATE_EXISTING", "CREATE", "CREATE_NEW", "DELETE_ON_CLOSE", "SPARSE", "SYNC", "DSYNC"], {}, { impl: ["java.nio.file.OpenOption"] });
+    defLib("java.nio.file.OpenOption", { kind: "interface", m: {} });
+    libEnum("java.nio.file.StandardCopyOption", ["REPLACE_EXISTING", "COPY_ATTRIBUTES", "ATOMIC_MOVE"], {}, { impl: ["java.nio.file.CopyOption"] });
+    defLib("java.nio.file.CopyOption", { kind: "interface", m: {} });
+    defLib("java.nio.charset.Charset", { flags: "public abstract", noCtor: true, m: { "static Charset forName(String)": function (n) { return { $c: L("java.nio.charset.Charset"), n: S(n) }; }, "String toString()": function () { return jstr(this.n); } } });
+    defLib("java.nio.charset.StandardCharsets", { flags: "public final", noCtor: true, m: { "static final java.nio.charset.Charset UTF_8": function () { return { $c: L("java.nio.charset.Charset"), n: "UTF-8" }; }, "static final java.nio.charset.Charset ISO_8859_1": function () { return { $c: L("java.nio.charset.Charset"), n: "ISO-8859-1" }; } } });
+    var RS_FR = NSF_READ.concat(["java.base/java.nio.file.Files.readAllBytes(Files.java:2973)", "java.base/java.nio.file.Files.readString(Files.java:3043)", "java.base/java.nio.file.Files.readString(Files.java:3006)"]);
+    var RL_FR = NSF_READ.concat(["java.base/java.nio.file.spi.FileSystemProvider.newInputStream(FileSystemProvider.java:380)", "java.base/java.nio.file.Files.newInputStream(Files.java:159)", "java.base/java.nio.file.Files.newBufferedReader(Files.java:2881)", "java.base/java.nio.file.Files.readAllLines(Files.java:3371)", "java.base/java.nio.file.Files.readAllLines(Files.java:3412)"]);
+    defLib("java.nio.file.Files", { flags: "public final", noCtor: true, m: {
+      "static String readString(Path) throws IOException": function (p) { return jstr(readFile(p, RS_FR)); },
+      "static String readString(Path,java.nio.charset.Charset) throws IOException": function (p) { return jstr(readFile(p, RS_FR)); },
+      "static List<String> readAllLines(Path) throws IOException": function (p) { return mkList(linesOf(readFile(p, RL_FR)).map(jstr)); },
+      "static List<String> readAllLines(Path,java.nio.charset.Charset) throws IOException": function (p) { return mkList(linesOf(readFile(p, RL_FR)).map(jstr)); },
+      "static java.util.stream.Stream<String> lines(Path) throws IOException": function (p) { return J.mkStream(linesOf(readFile(p)).map(jstr)); },
+      "static Path writeString(Path,CharSequence,OpenOption...) throws IOException": function (p, s, o) { writeFile(p, toStr(s), hasOpt(o, "APPEND")); return p; },
+      "static Path write(Path,Iterable<? extends CharSequence>,OpenOption...) throws IOException": function (p, ls, o) { writeFile(p, toArr(ls).map(toStr).map(function (x) { return x + "\n"; }).join(""), hasOpt(o, "APPEND")); return p; },
+      "static Path write(Path,byte[],OpenOption...) throws IOException": function (p, b, o) { writeFile(p, decodeURIComponent(escape(String.fromCharCode.apply(null, Array.from(b.a).map(function (x) { return x & 255; })))), hasOpt(o, "APPEND")); return p; },
+      "static byte[] readAllBytes(Path) throws IOException": function (p) { var t = unescape(encodeURIComponent(readFile(p))), a = newArray(T["byte"], t.length); for (var i = 0; i < t.length; i++) a.a[i] = (t.charCodeAt(i) << 24) >> 24; return a; },
+      "static boolean exists(Path,java.nio.file.LinkOption...)": function (p) { return !!fs()[norm(pathStr(p))]; },
+      "static boolean notExists(Path,java.nio.file.LinkOption...)": function (p) { return !fs()[norm(pathStr(p))]; },
+      "static boolean isDirectory(Path,java.nio.file.LinkOption...)": function (p) { var n = fs()[norm(pathStr(p))]; return !!n && n.t === "d"; },
+      "static boolean isRegularFile(Path,java.nio.file.LinkOption...)": function (p) { var n = fs()[norm(pathStr(p))]; return !!n && n.t === "f"; },
+      "static boolean isReadable(Path)": function (p) { return !!fs()[norm(pathStr(p))]; },
+      "static long size(Path) throws IOException": function (p) { return BigInt(utf8len(readFile(p))); },
+      "static Path createFile(Path,java.nio.file.attribute.FileAttribute<?>...) throws IOException": function (p) { var a = norm(pathStr(p)); if (fs()[a]) throwJ("java.nio.file.FileAlreadyExistsException", jstr(pathStr(p))); writeFile(p, ""); return p; },
+      "static Path createDirectory(Path,java.nio.file.attribute.FileAttribute<?>...) throws IOException": function (p) { var a = norm(pathStr(p)), f = fs(); if (f[a]) throwJ("java.nio.file.FileAlreadyExistsException", jstr(pathStr(p))); if (!f[parent(a)]) throwJ("java.nio.file.NoSuchFileException", jstr(pathStr(p))); f[a] = { t: "d" }; return p; },
+      "static Path createDirectories(Path,java.nio.file.attribute.FileAttribute<?>...) throws IOException": function (p) { var a = norm(pathStr(p)), f = fs(), parts = a.split("/").filter(Boolean), cur = ""; parts.forEach(function (x) { cur += "/" + x; if (!f[cur]) f[cur] = { t: "d" }; }); return p; },
+      "static void delete(Path) throws IOException": function (p) { var a = norm(pathStr(p)), f = fs(); if (!f[a]) throwJ("java.nio.file.NoSuchFileException", jstr(pathStr(p))); if (f[a].t === "d" && Object.keys(f).some(function (k) { return k.indexOf(a + "/") === 0; })) throwJ("java.nio.file.DirectoryNotEmptyException", jstr(pathStr(p))); delete f[a]; },
+      "static boolean deleteIfExists(Path) throws IOException": function (p) { var a = norm(pathStr(p)), f = fs(); if (!f[a]) return false; delete f[a]; return true; },
+      "static Path copy(Path,Path,java.nio.file.CopyOption...) throws IOException": function (a, b, o) { var t = readFile(a); if (fs()[norm(pathStr(b))] && !hasOpt(o, "REPLACE_EXISTING")) throwJ("java.nio.file.FileAlreadyExistsException", jstr(pathStr(b))); writeFile(b, t); return b; },
+      "static Path move(Path,Path,java.nio.file.CopyOption...) throws IOException": function (a, b, o) { var t = readFile(a); if (fs()[norm(pathStr(b))] && !hasOpt(o, "REPLACE_EXISTING")) throwJ("java.nio.file.FileAlreadyExistsException", jstr(pathStr(b))); writeFile(b, t); delete fs()[norm(pathStr(a))]; return b; },
+      "static java.util.stream.Stream<Path> list(Path) throws IOException": function (p) { var a = norm(pathStr(p)), f = fs(), base = pathStr(p).replace(/\/$/, ""); if (!f[a]) throwJ("java.nio.file.NoSuchFileException", jstr(pathStr(p))); var r = Object.keys(f).filter(function (k) { return parent(k) === a && k !== a; }).sort().map(function (k) { return mkPath((base === "." ? "." : base) + "/" + k.slice(a.length + 1).replace(/^\//, "")); }); return J.mkStream(r); },
+      "static java.io.BufferedReader newBufferedReader(Path) throws IOException": function (p) { return mkReader(readFile(p)); },
+      "static java.io.BufferedWriter newBufferedWriter(Path,OpenOption...) throws IOException": function (p, o) { var w = mkWriter(p, hasOpt(o, "APPEND")); w.$c = L("java.io.BufferedWriter"); return w; }
+    } });
+    defLib("java.nio.file.LinkOption", { kind: "interface", m: {} });
+    defLib("java.nio.file.attribute.FileAttribute", { kind: "interface", tp: "T", m: {} });
+    // java.io
+    function mkReader(text) { return { $c: L("java.io.BufferedReader"), inp: new I.Input(text, true) }; }
+    function mkWriter(p, append) { var w = { $c: L("java.io.Writer"), path: p, buf: "", append: append, closed: false }; if (!append) writeFile(p, ""); return w; }
+    function flushW(w) { if (w.buf) { writeFile(w.path, w.buf, true); w.buf = ""; } }
+    defLib("java.lang.Readable", { kind: "interface", m: {} });
+    defLib("java.io.Reader", { flags: "public abstract", impl: ["java.io.Closeable", "java.lang.Readable"], m: {
+      "int read() throws IOException": function () { var inp = this.inp; if (inp.pos >= inp.buf.length) { if (inp.need() === false) return -1; } return inp.buf.charCodeAt(inp.pos++); },
+      "void close() throws IOException": function () {}
+    } });
+    defLib("java.io.InputStreamReader", { ext: "java.io.Reader", m: {
+      "<init>(InputStream)": function () { this.inp = RT().stdin; },
+      "<init>(InputStream,java.nio.charset.Charset)": function () { this.inp = RT().stdin; }
+    } });
+    defLib("java.io.FileReader", { ext: "java.io.Reader", m: {
+      "<init>(String) throws java.io.FileNotFoundException": function (p) { var a = norm(S(p)), n = fs()[a]; if (!n || n.t !== "f") throwJ("java.io.FileNotFoundException", S(p) + (n ? " (É um diretório)" : " (Arquivo ou diretório inexistente)"), ["java.base/java.io.FileInputStream.open0(Native Method)", "java.base/java.io.FileInputStream.open(FileInputStream.java:213)", "java.base/java.io.FileInputStream.<init>(FileInputStream.java:152)", "java.base/java.io.FileInputStream.<init>(FileInputStream.java:106)", "java.base/java.io.FileReader.<init>(FileReader.java:60)"]); this.inp = new I.Input(n.d, true); },
+      "<init>(java.io.File) throws java.io.FileNotFoundException": function (f) { this.inp = new I.Input(J.readFileText(f), true); }
+    } });
+    defLib("java.io.BufferedReader", { ext: "java.io.Reader", m: {
+      "<init>(java.io.Reader)": function (r) { this.inp = r.inp; },
+      "String readLine() throws IOException": function () { var l = this.inp.readLine(); return l === null ? null : jstr(l); },
+      "java.util.stream.Stream<String> lines()": function () { var r = [], l; while ((l = this.inp.readLine()) !== null) r.push(jstr(l)); return J.mkStream(r); },
+      "boolean ready() throws IOException": function () { return this.inp.pos < this.inp.buf.length; }
+    } });
+    defLib("java.io.Writer", { flags: "public abstract", impl: ["java.io.Closeable", "java.lang.Appendable"], m: {
+      "void write(String) throws IOException": function (s) { if (this.out) RT().write("out", S(s)); else this.buf += S(s); },
+      "void write(int) throws IOException": function (c) { this.buf += String.fromCharCode(c); },
+      "Writer append(CharSequence) throws IOException": function (s) { this.buf += toStr(s); return this; },
+      "void flush() throws IOException": function () { if (this.path) flushW(this); },
+      "void close() throws IOException": function () { if (this.path) flushW(this); this.closed = true; }
+    } });
+    defLib("java.lang.Appendable", { kind: "interface", m: {} });
+    defLib("java.io.FileWriter", { ext: "java.io.Writer", m: {
+      "<init>(String) throws IOException": function (p) { var w = mkWriter(S(p), false); for (var k in w) if (k !== "$c") this[k] = w[k]; },
+      "<init>(String,boolean) throws IOException": function (p, ap) { var w = mkWriter(S(p), ap); for (var k in w) if (k !== "$c") this[k] = w[k]; },
+      "<init>(java.io.File) throws IOException": function (f) { var w = mkWriter(f.p, false); for (var k in w) if (k !== "$c") this[k] = w[k]; }
+    } });
+    defLib("java.io.BufferedWriter", { ext: "java.io.Writer", m: {
+      "<init>(java.io.Writer)": function (w) { for (var k in w) if (k !== "$c") this[k] = w[k]; this.inner = w; },
+      "void newLine() throws IOException": function () { this.buf += "\n"; }
+    } });
+    var PW = {
+      "<init>(String) throws java.io.FileNotFoundException": function (p) { var w = mkWriter(S(p), false); for (var k in w) if (k !== "$c") this[k] = w[k]; },
+      "<init>(java.io.Writer)": function (w) { for (var k in w) if (k !== "$c") this[k] = w[k]; },
+      "<init>(java.io.OutputStream)": function () { this.out = true; this.buf = ""; },
+      "<init>(java.io.OutputStream,boolean)": function () { this.out = true; this.buf = ""; },
+      "PrintWriter printf(String,Object...)": function (f, a) { var t = I.jformat(f, a.a); if (this.out) RT().write("out", t); else this.buf += t; return this; },
+      "void println()": function () { if (this.out) RT().write("out", "\n"); else this.buf += "\n"; },
+      "void flush()": function () { if (this.path) flushW(this); },
+      "void close()": function () { if (this.path) flushW(this); }
+    };
+    ["String", "Object", "int", "double", "char", "long", "boolean"].forEach(function (t) {
+      var f = t === "char" ? function (v) { return String.fromCharCode(v); } : t === "double" ? I.doubleToString : t === "long" ? function (v) { return v.toString(); } : t === "Object" || t === "String" ? toStr : String;
+      PW["void print(" + t + ")"] = function (v) { if (this.out) RT().write("out", f(v)); else this.buf += f(v); };
+      PW["void println(" + t + ")"] = function (v) { if (this.out) RT().write("out", f(v) + "\n"); else this.buf += f(v) + "\n"; };
+    });
+    defLib("java.io.PrintWriter", { ext: "java.io.Writer", m: PW });
+    defLib("java.io.File", { impl: ["Comparable<java.io.File>"], m: {
+      "<init>(String)": function (p) { this.p = S(p); },
+      "<init>(String,String)": function (a, b) { this.p = S(a) + "/" + S(b); },
+      "<init>(java.io.File,String)": function (a, b) { this.p = a.p + "/" + S(b); },
+      "boolean exists()": function () { return !!fs()[norm(this.p)]; },
+      "boolean isFile()": function () { var n = fs()[norm(this.p)]; return !!n && n.t === "f"; },
+      "boolean isDirectory()": function () { var n = fs()[norm(this.p)]; return !!n && n.t === "d"; },
+      "String getName()": function () { return jstr(this.p.slice(this.p.lastIndexOf("/") + 1)); },
+      "String getPath()": function () { return jstr(this.p); },
+      "String getAbsolutePath()": function () { return jstr(norm(this.p)); },
+      "String getParent()": function () { var i = this.p.lastIndexOf("/"); return i < 0 ? null : jstr(this.p.slice(0, i)); },
+      "long length()": function () { var n = fs()[norm(this.p)]; return BigInt(n && n.t === "f" ? utf8len(n.d) : 0); },
+      "boolean delete()": function () { var a = norm(this.p); if (!fs()[a]) return false; delete fs()[a]; return true; },
+      "boolean createNewFile() throws IOException": function () { var a = norm(this.p); if (fs()[a]) return false; writeFile(this.p, ""); return true; },
+      "boolean mkdir()": function () { var a = norm(this.p), f = fs(); if (f[a] || !f[parent(a)]) return false; f[a] = { t: "d" }; return true; },
+      "boolean mkdirs()": function () { var a = norm(this.p), f = fs(), cur = ""; if (f[a]) return false; a.split("/").filter(Boolean).forEach(function (x) { cur += "/" + x; if (!f[cur]) f[cur] = { t: "d" }; }); return true; },
+      "String[] list()": function () { var a = norm(this.p), f = fs(); return I.strArray(Object.keys(f).filter(function (k) { return parent(k) === a && k !== a; }).sort().map(function (k) { return k.slice(a.length + 1); })); },
+      "java.nio.file.Path toPath()": function () { return mkPath(this.p); },
+      "int compareTo(java.io.File)": function (o) { return I.compareStrings(this.p, o.p); },
+      "String toString()": function () { return jstr(this.p); }
+    } });
+
+    // ---------- concorrência (determinística, numa thread só) ----------
+    function mkFuture(run) {
+      var f = { $c: L("java.util.concurrent.FutureImpl"), done: true };
+      try { f.val = run(); } catch (e) { if (I.isInternal(e)) throw e; var ex = I.toJava(e); if (!ex) throw e; f.exc = ex; }
+      return f;
+    }
+    function runInThread(name, fn) {
+      var rt = RT(), prev = rt.curThread;
+      rt.curThread = { $c: L("java.lang.Thread"), name: name, virt: name === "" };
+      try { return fn(); } finally { rt.curThread = prev; }
+    }
+    defLib("java.util.concurrent.Future", { kind: "interface", tp: "V", m: {
+      "V get() throws InterruptedException,java.util.concurrent.ExecutionException": null,
+      "V get(long,java.util.concurrent.TimeUnit) throws InterruptedException,java.util.concurrent.ExecutionException,java.util.concurrent.TimeoutException": null,
+      "boolean isDone()": null, "boolean cancel(boolean)": null, "boolean isCancelled()": null, "V resultNow()": null
+    } });
+    function futGet(f) {
+      if (f.exc) { var w = I.mkThrowable("java.util.concurrent.ExecutionException", jstr(toStr(f.exc))); w.cause = f.exc; throw new I.JavaThrow(w); }
+      return f.val === undefined ? null : f.val;
+    }
+    defLib("java.util.concurrent.FutureImpl", { tp: "V", impl: ["Future<V>"], bin: "java.util.concurrent.FutureTask", m: {
+      "V get()": function () { return futGet(this); },
+      "V get(long,java.util.concurrent.TimeUnit)": function () { return futGet(this); },
+      "V resultNow()": function () { return futGet(this); },
+      "boolean isDone()": function () { return true; }, "boolean cancel(boolean)": function () { return false; }, "boolean isCancelled()": function () { return false; },
+      "String toString()": function () { return jstr("java.util.concurrent.FutureTask@" + I.identityHash(this).toString(16) + "[Completed normally]"); }
+    } });
+    defLib("java.util.concurrent.Executor", { kind: "interface", m: { "void execute(Runnable)": null } });
+    defLib("java.util.concurrent.ExecutorService", { kind: "interface", impl: ["Executor", "AutoCloseable"], m: {
+      "<T> Future<T> submit(java.util.concurrent.Callable<T>)": null, "Future<?> submit(Runnable)": null,
+      "void shutdown()": null, "List<Runnable> shutdownNow()": null, "boolean isShutdown()": null, "boolean isTerminated()": null,
+      "boolean awaitTermination(long,java.util.concurrent.TimeUnit) throws InterruptedException": null,
+      "<T> List<Future<T>> invokeAll(Collection<? extends java.util.concurrent.Callable<T>>) throws InterruptedException": null,
+      "<T> T invokeAny(Collection<? extends java.util.concurrent.Callable<T>>) throws InterruptedException,java.util.concurrent.ExecutionException": null,
+      "void close()": null
+    } });
+    var poolSeq = 0;
+    function mkPool(n, virt) { var rt = RT(); rt.poolSeq = (rt.poolSeq || 0) + 1; return { $c: L("java.util.concurrent.ExecutorImpl"), n: n || 1, virt: !!virt, id: rt.poolSeq, k: 0, shut: false }; }
+    function poolThreadName(p) { if (p.virt) return ""; var i = (p.k++ % p.n) + 1; return "pool-" + p.id + "-thread-" + i; }
+    function runTask(p, fn) {
+      if (p.shut) throwJ("java.util.concurrent.RejectedExecutionException", "Task rejected");
+      var nm = poolThreadName(p);
+      return mkFuture(function () { return runInThread(nm, fn); });
+    }
+    I.defExc("java.util.concurrent.RejectedExecutionException", "RuntimeException");
+    I.defExc("java.util.concurrent.CompletionException", "RuntimeException");
+    I.defExc("java.util.concurrent.CancellationException", "IllegalStateException");
+    defLib("java.util.concurrent.ExecutorImpl", { impl: ["java.util.concurrent.ExecutorService", "java.util.concurrent.ScheduledExecutorService"], bin: "java.util.concurrent.ThreadPoolExecutor", m: {
+      "<T> Future<T> submit(java.util.concurrent.Callable<T>)": function (c) { return runTask(this, function () { return call(c, "call", []); }); },
+      "Future<?> submit(Runnable)": function (r) { var f = runTask(this, function () { call(r, "run", []); return null; }); if (f.exc && false) {} return f; },
+      "void execute(Runnable)": function (r) { var self = this; var nm = poolThreadName(this); runInThread(nm, function () { try { call(r, "run", []); } catch (e) { if (I.isInternal(e)) throw e; var ex = I.toJava(e); if (!ex) throw e; RT().write("err", "Exception in thread \"" + nm + "\" " + I.stackTraceText(ex)); } }); },
+      "void shutdown()": function () { this.shut = true; },
+      "List<Runnable> shutdownNow()": function () { this.shut = true; return mkList([]); },
+      "boolean isShutdown()": function () { return this.shut; }, "boolean isTerminated()": function () { return this.shut; },
+      "boolean awaitTermination(long,java.util.concurrent.TimeUnit)": function () { return true; },
+      "<T> List<Future<T>> invokeAll(Collection<? extends java.util.concurrent.Callable<T>>)": function (cs) { var self = this; return mkList(toArr(cs).map(function (c) { return runTask(self, function () { return call(c, "call", []); }); })); },
+      "<T> T invokeAny(Collection<? extends java.util.concurrent.Callable<T>>)": function (cs) { var self = this; var a = toArr(cs); return futGet(runTask(self, function () { return call(a[0], "call", []); })); },
+      "void close()": function () { this.shut = true; },
+      "java.util.concurrent.ScheduledFuture<?> schedule(Runnable,long,java.util.concurrent.TimeUnit)": function (r, d, u) { RT().clockAdvance(Number(d) * unitMs(u)); return runTask(this, function () { call(r, "run", []); return null; }); }
+    } });
+    defLib("java.util.concurrent.ScheduledExecutorService", { kind: "interface", impl: ["java.util.concurrent.ExecutorService"], m: { "java.util.concurrent.ScheduledFuture<?> schedule(Runnable,long,java.util.concurrent.TimeUnit)": null } });
+    defLib("java.util.concurrent.ScheduledFuture", { kind: "interface", tp: "V", impl: ["java.util.concurrent.Future<V>"], m: {} });
+    defLib("java.util.concurrent.Executors", { flags: "public final", noCtor: true, m: {
+      "static ExecutorService newFixedThreadPool(int)": function (n) { return mkPool(n); },
+      "static ExecutorService newSingleThreadExecutor()": function () { return mkPool(1); },
+      "static ExecutorService newCachedThreadPool()": function () { return mkPool(1000); },
+      "static ExecutorService newWorkStealingPool()": function () { return mkPool(4); },
+      "static ExecutorService newVirtualThreadPerTaskExecutor()": function () { return mkPool(1, true); },
+      "static ScheduledExecutorService newScheduledThreadPool(int)": function (n) { return mkPool(n); },
+      "static ExecutorService newThreadPerTaskExecutor(java.util.concurrent.ThreadFactory)": function () { return mkPool(1000); }
+    } });
+    defLib("java.util.concurrent.ThreadFactory", { kind: "interface", m: { "Thread newThread(Runnable)": null } });
+    function unitMs(u) { return { NANOSECONDS: 1e-6, MICROSECONDS: 1e-3, MILLISECONDS: 1, SECONDS: 1000, MINUTES: 60000, HOURS: 3600000, DAYS: 86400000 }[u.$name] || 1; }
+    libEnum("java.util.concurrent.TimeUnit", ["NANOSECONDS", "MICROSECONDS", "MILLISECONDS", "SECONDS", "MINUTES", "HOURS", "DAYS"], {
+      "void sleep(long) throws InterruptedException": function (n) { RT().clockAdvance(Number(n) * unitMs(this)); },
+      "long toMillis(long)": function (n) { return BigInt(Math.floor(Number(n) * unitMs(this))); },
+      "long toSeconds(long)": function (n) { return BigInt(Math.floor(Number(n) * unitMs(this) / 1000)); }
+    });
+    // CompletableFuture
+    var CF_POOL = "ForkJoinPool.commonPool-worker-1";
+    function cf(val, exc) { return { $c: L("java.util.concurrent.CompletableFuture"), val: val, exc: exc || null }; }
+    function cfRun(fn, name) { try { return cf(runInThread(name || CF_POOL, fn)); } catch (e) { if (I.isInternal(e)) throw e; var ex = I.toJava(e); if (!ex) throw e; var w = ex.$c.full === "java.util.concurrent.CompletionException" ? ex : (function () { var c = I.mkThrowable("java.util.concurrent.CompletionException", jstr(toStr(ex))); c.cause = ex; return c; })(); return cf(null, w); } }
+    function cfThen(self, fn) { if (self.exc) return cf(null, self.exc); return cfRun(function () { return fn(self.val); }, RT().curThread ? RT().curThread.name : "main"); }
+    defLib("java.util.concurrent.CompletionStage", { kind: "interface", tp: "T", m: {} });
+    defLib("java.util.concurrent.CompletableFuture", { tp: "T", impl: ["Future<T>", "java.util.concurrent.CompletionStage<T>"], m: {
+      "<init>()": function () { this.val = null; this.exc = null; this.pending = true; },
+      "static <U> CompletableFuture<U> supplyAsync(java.util.function.Supplier<U>)": function (s) { return cfRun(function () { return call(s, "get", []); }); },
+      "static <U> CompletableFuture<U> supplyAsync(java.util.function.Supplier<U>,Executor)": function (s, ex) { var nm = ex && ex.n ? poolThreadName(ex) : CF_POOL; return cfRun(function () { return call(s, "get", []); }, nm); },
+      "static CompletableFuture<Void> runAsync(Runnable)": function (r) { return cfRun(function () { call(r, "run", []); return null; }); },
+      "static CompletableFuture<Void> runAsync(Runnable,Executor)": function (r, ex) { var nm = ex && ex.n ? poolThreadName(ex) : CF_POOL; return cfRun(function () { call(r, "run", []); return null; }, nm); },
+      "static <U> CompletableFuture<U> completedFuture(U)": function (v) { return cf(v); },
+      "static CompletableFuture<Void> allOf(CompletableFuture<?>...)": function (a) { var bad = Array.from(a.a).filter(function (x) { return x.exc; })[0]; return cf(null, bad ? bad.exc : null); },
+      "static CompletableFuture<Object> anyOf(CompletableFuture<?>...)": function (a) { var f = a.a[0]; return cf(f ? f.val : null, f ? f.exc : null); },
+      "<U> CompletableFuture<U> thenApply(java.util.function.Function<? super T,? extends U>)": function (f) { return cfThen(this, function (v) { return call(f, "apply", [v]); }); },
+      "<U> CompletableFuture<U> thenApplyAsync(java.util.function.Function<? super T,? extends U>)": function (f) { var self = this; if (self.exc) return cf(null, self.exc); return cfRun(function () { return call(f, "apply", [self.val]); }); },
+      "CompletableFuture<Void> thenAccept(java.util.function.Consumer<? super T>)": function (c) { return cfThen(this, function (v) { call(c, "accept", [v]); return null; }); },
+      "CompletableFuture<Void> thenRun(Runnable)": function (r) { return cfThen(this, function () { call(r, "run", []); return null; }); },
+      "<U,V> CompletableFuture<V> thenCombine(java.util.concurrent.CompletionStage<? extends U>,java.util.function.BiFunction<? super T,? super U,? extends V>)": function (o, f) { var self = this; if (self.exc) return cf(null, self.exc); if (o.exc) return cf(null, o.exc); return cfRun(function () { return call(f, "apply", [self.val, o.val]); }, "main"); },
+      "<U> CompletableFuture<U> thenCompose(java.util.function.Function<? super T,? extends java.util.concurrent.CompletionStage<U>>)": function (f) { if (this.exc) return cf(null, this.exc); var self = this; var r = cfRun(function () { return call(f, "apply", [self.val]); }, "main"); return r.exc ? r : r.val; },
+      "CompletableFuture<T> exceptionally(java.util.function.Function<Throwable,? extends T>)": function (f) { if (!this.exc) return this; var ex = this.exc; return cfRun(function () { return call(f, "apply", [ex]); }, "main"); },
+      "<U> CompletableFuture<U> handle(java.util.function.BiFunction<? super T,Throwable,? extends U>)": function (f) { var self = this; return cfRun(function () { return call(f, "apply", [self.exc ? null : self.val, self.exc]); }, "main"); },
+      "CompletableFuture<T> whenComplete(java.util.function.BiConsumer<? super T,? super Throwable>)": function (f) { call(f, "accept", [this.exc ? null : this.val, this.exc]); return this; },
+      "T join()": function () { if (this.exc) throw new I.JavaThrow(this.exc); return this.val; },
+      "T get() throws InterruptedException,java.util.concurrent.ExecutionException": function () { if (this.exc) { var c = this.exc.cause || this.exc; var w = I.mkThrowable("java.util.concurrent.ExecutionException", jstr(toStr(c))); w.cause = c; throw new I.JavaThrow(w); } return this.val; },
+      "T get(long,java.util.concurrent.TimeUnit)": function () { return jcall(this, "get", []); },
+      "boolean complete(T)": function (v) { if (!this.pending) return false; this.val = v; this.pending = false; return true; },
+      "boolean isDone()": function () { return !this.pending; },
+      "T resultNow()": function () { return this.val; },
+      "String toString()": function () { return jstr("java.util.concurrent.CompletableFuture@" + I.identityHash(this).toString(16) + (this.exc ? "[Completed exceptionally: " + toStr(this.exc) + "]" : "[Completed normally]")); }
+    } });
+    function atomic(name, prim) {
+      var isL = prim === "long";
+      function v(x) { return isL ? BigInt.asIntN(64, x) : x | 0; }
+      var one = isL ? 1n : 1, zero = isL ? 0n : 0;
+      var m = { "<init>()": function () { this.v = zero; } };
+      m["<init>(" + prim + ")"] = function (x) { this.v = x; };
+      m[prim + " get()"] = function () { return this.v; };
+      m["void set(" + prim + ")"] = function (x) { this.v = x; };
+      m[prim + " incrementAndGet()"] = function () { return this.v = v(this.v + one); };
+      m[prim + " decrementAndGet()"] = function () { return this.v = v(this.v - one); };
+      m[prim + " getAndIncrement()"] = function () { var o = this.v; this.v = v(this.v + one); return o; };
+      m[prim + " getAndDecrement()"] = function () { var o = this.v; this.v = v(this.v - one); return o; };
+      m[prim + " addAndGet(" + prim + ")"] = function (d) { return this.v = v(this.v + d); };
+      m[prim + " getAndAdd(" + prim + ")"] = function (d) { var o = this.v; this.v = v(this.v + d); return o; };
+      m[prim + " getAndSet(" + prim + ")"] = function (d) { var o = this.v; this.v = d; return o; };
+      m["boolean compareAndSet(" + prim + "," + prim + ")"] = function (a, b) { if (this.v === a) { this.v = b; return true; } return false; };
+      var FN = isL ? "LongUnaryOperator" : "IntUnaryOperator", BF = isL ? "LongBinaryOperator" : "IntBinaryOperator", AP = isL ? "applyAsLong" : "applyAsInt";
+      m[prim + " updateAndGet(java.util.function." + FN + ")"] = function (f) { return this.v = call(f, AP, [this.v]); };
+      m[prim + " getAndUpdate(java.util.function." + FN + ")"] = function (f) { var o = this.v; this.v = call(f, AP, [this.v]); return o; };
+      m[prim + " accumulateAndGet(" + prim + ",java.util.function." + BF + ")"] = function (x, f) { return this.v = call(f, AP, [this.v, x]); };
+      m["int intValue()"] = function () { return Number(this.v); };
+      m["long longValue()"] = function () { return BigInt(this.v); };
+      m["double doubleValue()"] = function () { return Number(this.v); };
+      m["float floatValue()"] = function () { return Number(this.v); };
+      m["String toString()"] = function () { return jstr(String(this.v)); };
+      defLib("java.util.concurrent.atomic." + name, { ext: "Number", m: m });
+    }
+    atomic("AtomicInteger", "int");
+    atomic("AtomicLong", "long");
+    defLib("java.util.concurrent.atomic.AtomicBoolean", { m: {
+      "<init>()": function () { this.v = false; }, "<init>(boolean)": function (b) { this.v = b; },
+      "boolean get()": function () { return this.v; }, "void set(boolean)": function (b) { this.v = b; },
+      "boolean compareAndSet(boolean,boolean)": function (a, b) { if (this.v === a) { this.v = b; return true; } return false; },
+      "boolean getAndSet(boolean)": function (b) { var o = this.v; this.v = b; return o; },
+      "String toString()": function () { return jstr(String(this.v)); }
+    } });
+    defLib("java.util.concurrent.atomic.AtomicReference", { tp: "V", m: {
+      "<init>()": function () { this.v = null; }, "<init>(V)": function (x) { this.v = x; },
+      "V get()": function () { return this.v; }, "void set(V)": function (x) { this.v = x; },
+      "V getAndSet(V)": function (x) { var o = this.v; this.v = x; return o; },
+      "boolean compareAndSet(V,V)": function (a, b) { if (this.v === a) { this.v = b; return true; } return false; },
+      "V updateAndGet(java.util.function.UnaryOperator<V>)": function (f) { return this.v = call(f, "apply", [this.v]); },
+      "String toString()": function () { return jstr(toStr(this.v)); }
+    } });
+    // ConcurrentHashMap e CopyOnWriteArrayList: mesmas estruturas, outro nome
+    (function () {
+      var HMs = L("java.util.HashMap").lib.spec.m, m = {};
+      Object.keys(HMs).forEach(function (k) { m[k] = HMs[k]; });
+      defLib("java.util.concurrent.ConcurrentHashMap", { tp: "K,V", impl: ["java.util.concurrent.ConcurrentMap<K,V>", "java.io.Serializable"], m: m });
+      defLib("java.util.concurrent.ConcurrentMap", { kind: "interface", tp: "K,V", impl: ["Map<K,V>"], m: {} });
+      var AL = L("java.util.ArrayList").lib.spec.m, m2 = {};
+      Object.keys(AL).forEach(function (k) { m2[k] = AL[k]; });
+      defLib("java.util.concurrent.CopyOnWriteArrayList", { tp: "E", impl: ["List<E>", "java.util.RandomAccess"], m: m2 });
+      L("java.util.concurrent.CopyOnWriteArrayList").toArr = function (o) { return o.a.slice(); };
+      var DQ = L("java.util.ArrayDeque").lib.spec.m, m3 = {};
+      Object.keys(DQ).forEach(function (k) { m3[k] = DQ[k]; });
+      m3["void put(E) throws InterruptedException"] = DQ["boolean offer(E)"];
+      m3["E take() throws InterruptedException"] = DQ["E poll()"];
+      defLib("java.util.concurrent.LinkedBlockingQueue", { tp: "E", impl: ["java.util.concurrent.BlockingQueue<E>"], m: m3 });
+      defLib("java.util.concurrent.ArrayBlockingQueue", { tp: "E", impl: ["java.util.concurrent.BlockingQueue<E>"], m: Object.assign({}, m3, { "<init>(int)": m3["<init>()"] }) });
+      defLib("java.util.concurrent.BlockingQueue", { kind: "interface", tp: "E", impl: ["Queue<E>"], m: { "void put(E) throws InterruptedException": null, "E take() throws InterruptedException": null } });
+      L("java.util.concurrent.LinkedBlockingQueue").toArr = function (o) { return o.a.slice(); };
+    })();
+    defLib("java.util.concurrent.CountDownLatch", { m: {
+      "<init>(int)": function (n) { this.n = n; },
+      "void countDown()": function () { if (this.n > 0) this.n--; },
+      "long getCount()": function () { return BigInt(this.n); },
+      "void await() throws InterruptedException": function () {},
+      "boolean await(long,java.util.concurrent.TimeUnit) throws InterruptedException": function () { return this.n === 0; }
+    } });
+    defLib("java.util.concurrent.Semaphore", { m: {
+      "<init>(int)": function (n) { this.n = n; },
+      "void acquire() throws InterruptedException": function () { this.n--; }, "void release()": function () { this.n++; },
+      "boolean tryAcquire()": function () { if (this.n > 0) { this.n--; return true; } return false; },
+      "int availablePermits()": function () { return this.n; }
+    } });
+    defLib("java.util.concurrent.locks.Lock", { kind: "interface", m: { "void lock()": null, "void unlock()": null, "boolean tryLock()": null } });
+    defLib("java.util.concurrent.locks.ReentrantLock", { impl: ["java.util.concurrent.locks.Lock"], m: {
+      "<init>()": function () { this.c = 0; }, "<init>(boolean)": function () { this.c = 0; },
+      "void lock()": function () { this.c++; },
+      "void unlock()": function () { if (this.c <= 0) throwJ("java.lang.IllegalMonitorStateException", null); this.c--; },
+      "boolean tryLock()": function () { this.c++; return true; },
+      "boolean isLocked()": function () { return this.c > 0; }
+    } });
+    I.defExc("java.lang.IllegalMonitorStateException", "RuntimeException");
+    defLib("java.util.concurrent.ThreadLocalRandom", { ext: "java.util.Random", noCtor: true, m: {
+      "static ThreadLocalRandom current()": function () { var rt = RT(); if (!rt.tlr) { rt.tlr = { $c: L("java.util.concurrent.ThreadLocalRandom"), r: new I.JRandom(rt.nextSeed()) }; } return rt.tlr; }
     } });
   });
 })(typeof window !== "undefined" ? window : globalThis);

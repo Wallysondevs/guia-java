@@ -1,0 +1,40 @@
+### limites-incompativeis
+import java.util.*;
+interface Pagavel { double valor(); }
+class Boleto implements Pagavel { public double valor() { return 1; } }
+class Luz { }
+public class Main {
+    public static void main(String[] args) {
+        List<Pagavel> contas = List.of(new Boleto(), new Luz());
+    }
+}
+### limites-incompativeis2
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = List.of(1, 2);
+        List<Integer> m = new ArrayList<>(List.of("a"));
+    }
+}
+### groupingby-treemap
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    record Aluno(String nome, String cidade) {}
+    public static void main(String[] args) {
+        List<Aluno> l = List.of(new Aluno("a", "Recife"), new Aluno("b", "Natal"), new Aluno("c", "Recife"));
+        Map<String, Long> m = l.stream().collect(Collectors.groupingBy(Aluno::cidade, TreeMap::new, Collectors.counting()));
+        System.out.println(m);
+        Map<String, List<String>> n = l.stream().collect(Collectors.groupingBy(Aluno::cidade, Collectors.mapping(Aluno::nome, Collectors.toList())));
+        System.out.println(n);
+        Map<Boolean, Long> p = l.stream().collect(Collectors.partitioningBy(a -> a.cidade().equals("Recife"), Collectors.counting()));
+        System.out.println(p);
+        System.out.println(l.stream().map(Aluno::nome).collect(Collectors.joining(", ", "[", "]")));
+        System.out.println(l.stream().sorted(Comparator.comparing(Aluno::cidade).reversed().thenComparing(Aluno::nome)).toList());
+        System.out.println(l.stream().collect(Collectors.toMap(Aluno::nome, Aluno::cidade)));
+        System.out.println(IntStream.rangeClosed(1, 5).boxed().collect(Collectors.toList()));
+        System.out.println(Stream.of("a", "bb", "ccc").collect(Collectors.groupingBy(String::length, Collectors.counting())));
+        System.out.println(l.stream().mapToInt(a -> a.nome().length()).summaryStatistics());
+        System.out.println(Stream.of(1.5, 2.5).collect(Collectors.averagingDouble(d -> d)));
+    }
+}

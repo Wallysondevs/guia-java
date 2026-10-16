@@ -3491,7 +3491,7 @@
   function Infer(vars) {
     this.vars = vars; this.ids = {}; this.b = {};
     var self = this;
-    vars.forEach(function (v) { self.ids[v.id] = true; self.b[v.id] = { eq: null, lower: [], upper: [] }; v.inferring = true; });
+    vars.forEach(function (v) { self.ids[v.id] = true; self.b[v.id] = { eq: null, lower: [], upper: [] }; v.inferring = true; v.inferCtx = self; });
     this.solved = null;
   }
   Infer.prototype.isVar = function (t) { return t && t.k === "tvar" && this.ids[t.sym.id]; };
@@ -3507,6 +3507,11 @@
     return r;
   };
   Infer.prototype.isResolved = function (v) { return this.solved && has(this.solved, v.id); };
+  function ownerInf(t) {
+    var r = null;
+    (function walk(x) { if (!x || r) return; if (x.k === "tvar") { if (x.sym.inferring && x.sym.inferCtx) r = x.sym.inferCtx; return; } if (x.k === "array") walk(x.elem); else if (x.k === "wild") walk(x.bound); else if (x.k === "class" && x.args) x.args.forEach(walk); })(t);
+    return r;
+  }
   function isForeignFree(t, inf) { return t.k === "tvar" && t.sym.inferring && !(inf && inf.ids[t.sym.id]); }
   // kind: "lower" (actual <: formal), "upper" (formal <: actual), "eq"
   Infer.prototype.unify = function (formal, actual, kind) {
@@ -3577,7 +3582,29 @@
       if (has(self.solved, v.id)) return;
       var b = self.b[v.id], r = null;
       var map = self.solvedMap();
-      if (b.eq) r = b.eq;
+      var ctorLow = b.lower.filter(function (x) { return x.ctorRef; })[0];
+      if (ctorLow) {
+        b.lower = b.lower.filter(function (x) { return !x.ctorRef; });
+        // Classe::new genérica: argumentos vêm do limite declarado (ex.: M extends Map<K,D>)
+        var others = self.vars.filter(function (o) { return o !== v && !has(self.solved, o.id); });
+        if (others.length) self.solve(others);
+        map = self.solvedMap();
+        var bnd = v.bounds.length ? subst(v.bounds[0], map) : null;
+        var cs = ctorLow.sym;
+        if (bnd && bnd.k === "class" && cs.tparams.length) {
+          var fv = cs.tparams.map(function (tv) { return new TVarSym(tv.name, cs); });
+          var fm = {}; cs.tparams.forEach(function (tv, i) { fm[tv.id] = fv[i].type; });
+          var ti = new Infer(fv);
+          ti.unify(subst(cs.thisType(), fm), bnd, "upper");
+          var tm = ti.solve();
+          b.lower.push(new ClassType(cs, fv.map(function (x) { return tm[x.id]; })));
+        } else b.lower.push(cs.rawType());
+      }
+      if (b.eq) {
+        r = b.eq;
+        var bad = b.lower.filter(function (x) { return !isSubtype(subst(x, map), r) && !isErr(x); });
+        if (bad.length && !self.conflict) self.conflict = { v: v, eq: r, lower: b.lower.slice() };
+      }
       else if (b.lower.length) r = lub(b.lower.map(function (x) { return subst(x, map); }));
       else if (b.upper.length) {
         var ups = b.upper.map(function (x) { return subst(x, map); }).filter(function (x) { return !isObjectType(x); });
@@ -3720,7 +3747,7 @@
     return args.map(function (a) {
       var x = a;
       while (x.k === "Paren") x = x.expr;
-      if (x.k === "Lambda" || x.k === "MethodRef") return { node: a, poly: true, kind: x.k, inner: x };
+      if (x.k === "Lambda" || x.k === "MethodRef") return { node: a, poly: true, kind: x.k, inner: x, env: env };
       if (x.k === "Cond" && isPolyExpr(x)) return { node: a, poly: true, kind: "Cond", inner: x };
       if (x.k === "Call" || (x.k === "New" && x.type.parts && x.type.parts[x.type.parts.length - 1].args && x.type.parts[x.type.parts.length - 1].args.diamond && !x.body)) {
         var head = x.k === "Call" ? self.callHead(x, env) : self.newHead(x, env);
@@ -3767,12 +3794,16 @@
       if (ss.params.length !== ai.inner.params.length) return false;
       var body = ai.inner.body;
       var voidRet = ss.ret === T["void"];
-      if (body.k !== "Block") return voidRet ? isStatementExpr(body) : true;
+      if (body.k !== "Block") {
+        if (voidRet) return isStatementExpr(body);
+        if (ai.inner.params.length === 0 && body.k === "Call") { if (ai.voidBody === undefined) ai.voidBody = this.quietVoid(body, ai.env); if (ai.voidBody) return false; }
+        return true;
+      }
       var rv = blockReturns(body);
       if (voidRet) return !rv.value;
       return rv.value || !rv.normal;
     }
-    if (ai.kind === "MethodRef") return !!ss;
+    if (ai.kind === "MethodRef") { if (!ss) return false; return this.mrefArityOk(ai, ss.params.length); }
     if (ai.kind === "Cond") return true;
     if (ai.kind === "Call") {
       var p = ai.prov;
@@ -3781,6 +3812,35 @@
       return looseConv(pe, fe) || isErr(pe);
     }
     return true;
+  };
+  // o corpo (expressão) de uma lambda sem parâmetros é void? (atribuição descartável)
+  CK.quietVoid = function (body, env) {
+    if (!env) return false;
+    var n = this.errs.length, t;
+    var savedCaps = this.prog.captureRefs ? this.prog.captureRefs.length : 0;
+    try { t = this.attribExpr(cloneTree(body), env.dup({ frame: { kind: "lambda", captures: [], parentFrame: env.frame } }), null); } catch (e) { t = T_ERR; }
+    this.errs.length = n;
+    if (this.prog.captureRefs) this.prog.captureRefs.length = savedCaps;
+    return t === T["void"];
+  };
+  CK.mrefArityOk = function (ai, n) {
+    var x = ai.inner, env = ai.env;
+    if (!env || x.target.k === "TypeExpr" || x.target.k === "Super") return true;
+    var tt = null;
+    try { tt = this.qualTreeQuiet(x.target, env); } catch (e) { return true; }
+    if (!tt) return true;
+    if (x.name === "new") { if (tt.kind !== "class") return true; completeAny(this, tt.sym); return tt.sym.ctors.some(function (c) { return c.params.length === n || (c.varargs && n >= c.params.length - 1); }); }
+    var site = tt.kind === "class" ? tt.sym.thisType() : tt.type;
+    if (!site || isErr(site) || site.k === "prim") return true;
+    var ms = this.allMethods(site, x.name);
+    if (!ms.length) return true;
+    return ms.some(function (c) {
+      var m = c.m, k = m.params.length;
+      var okN = k === n || (m.varargs && n >= k - 1);
+      var okU = tt.kind === "class" && !m.flags["static"] && (k === n - 1 || (m.varargs && n - 1 >= k - 1));
+      if (tt.kind === "class") return (m.flags["static"] && okN) || okU;
+      return okN;
+    });
   };
   function eraseFree(t) {
     // apaga variáveis em inferência para comparações grosseiras
@@ -3944,7 +4004,7 @@
     if (e instanceof SourceFile) return e;
     var o = {};
     for (var k in e) {
-      if (k === "type" && e.k !== "Cast" && e.k !== "New" && e.k !== "NewArray" && e.k !== "ClassLit" && e.k !== "TypeExpr" && e.k !== "TypePattern" && e.k !== "RecordPattern" && e.k !== "LocalVar") continue;
+      if (k === "type" && e[k] && typeof e[k] === "object" && /^(prim|class|array|tvar|null|err|wild|inter|diamond)$/.test(e[k].k)) continue;
       if (k === "ref" || k === "msym" || k === "cv" || k === "sym" || k === "head") continue;
       o[k] = cloneTree(e[k]);
     }
@@ -3972,7 +4032,7 @@
           if (sa && sb && !sameType(erasure(fa), erasure(fb))) {
             if (isSubtype(fa, fb)) continue;
             if (sa.ret !== T["void"] && sb.ret === T["void"]) continue;
-            if (sa.ret.k === "prim" && sb.ret.k !== "prim" && sb.ret !== T["void"]) continue;
+            if (sa.ret.k === "prim" && sa.ret !== T["void"] && sb.ret.k !== "prim") continue;
             if (sa.ret.k !== "prim" && sb.ret.k !== "prim" && sa.ret !== T["void"] && sb.ret !== T["void"] && isSubtype(sa.ret, sb.ret)) continue;
             return false;
           }
@@ -4216,6 +4276,7 @@
         if (!ai.poly) return;
         var f = formalAt(i);
         var cur = subst(f, inf.solvedMap());
+        if ((ai.kind === "Lambda" || ai.kind === "MethodRef") && cur.k === "tvar" && inf.ids[cur.sym.id]) { inf.solve([cur.sym]); cur = subst(f, inf.solvedMap()); }
         var part = self.partialSolve(inf);
         var ss = (ai.kind === "Lambda" || ai.kind === "MethodRef") ? self.samOf(subst(cur, part)) : null;
         if (ss) {
@@ -4224,6 +4285,7 @@
           if (need.length) inf.solve(need);
           cur = subst(f, inf.solvedMap());
         }
+        if (ai.kind === "Call") { var pm = self.partialSolve(inf), sm = inf.solvedMap(); for (var q in sm) pm[q] = sm[q]; cur = subst(f, pm); }
         var t = self.completeArg(ai, cur, env, inf);
         if (ai.kind === "Call" && !isErr(t)) inf.unify(f, t, "lower");
       });
@@ -4231,6 +4293,11 @@
       formals = formals.map(function (f) { return subst(f, map); });
       ret = subst(ret, map);
       inf.finish();
+      if (inf.conflict) {
+        var cf = inf.conflict, ov = cf.v.orig || cf.v;
+        this.err(env, e.pos, "incompatible types: inference variable " + ov.name + " has incompatible bounds\n    equality constraints: " + typeStr(cf.eq) + "\n    lower bounds: " + cf.lower.slice().reverse().map(typeStr).join(",") + this.whereFor([ov.type]));
+        e.type = T_ERR; return T_ERR;
+      }
     } else {
       args.forEach(function (ai, i) { if (ai.poly) self.completeArg(ai, formalAt(i), env, null); });
     }
@@ -4354,6 +4421,7 @@
           if (!ai.poly) return;
           var f = formalAt(i);
           var cur = subst(f, inf.solvedMap());
+          if ((ai.kind === "Lambda" || ai.kind === "MethodRef") && cur.k === "tvar" && inf.ids[cur.sym.id]) { inf.solve([cur.sym]); cur = subst(f, inf.solvedMap()); }
           var ss0 = (ai.kind === "Lambda" || ai.kind === "MethodRef") ? self.samOf(cur) : null;
           if (ss0) {
             var need = [];
@@ -4361,6 +4429,7 @@
             if (need.length) inf.solve(need);
             cur = subst(f, inf.solvedMap());
           }
+          if (ai.kind === "Call") { var pm2 = self.partialSolve(inf), sm2 = inf.solvedMap(); for (var q2 in sm2) pm2[q2] = sm2[q2]; cur = subst(f, pm2); }
           var at = self.completeArg(ai, cur, env, inf);
           if (ai.kind === "Call" && !isErr(at)) inf.unify(f, at, "lower");
         });
@@ -4502,6 +4571,7 @@
       this.err(env, e.start !== undefined ? e.start : e.pos, "incompatible types: incompatible parameter types in lambda expression");
       return T_ERR;
     }
+    if (!(inf && inf.mentions(ret))) { var oi = ownerInf(ret); if (oi) inf = oi; }
     var frame = { kind: "lambda", captures: [], parentFrame: env.frame, node: e };
     e.frame = frame;
     var lenv = env.dup({ scope: new Scope(env.scope), frame: frame, ret: ret, retInf: inf && inf.mentions(ret) ? inf : null, inLoop: 0, inSwitch: 0, labels: [], yieldTarget: null, slotInfo: new SlotInfo(0), lambdaNode: e, inLambda: true });
@@ -4555,6 +4625,7 @@
       ret = subst(ret, inf.solvedMap());
     }
     params = params.map(capUpper);
+    if (!(inf && inf.mentions(ret))) { var oi2 = ownerInf(ret); if (oi2) inf = oi2; }
     var fakeArgs = function (ps) { return ps.map(function (t) { return { node: e, type: t }; }); };
     var name = e.name, chosen = null, kind = null, site = null, mret = null;
     var tgt = e.target;
@@ -4588,7 +4659,10 @@
           this.errs.length = n0;
           if (!br) { this.err(env, e.pos, "incompatible types: invalid constructor reference\n    constructor " + csym.name + " in class " + csym.name + " cannot be applied to given types"); return T_ERR; }
           chosen = br.cand.m; kind = "ctor";
-          if (br.res.inf) {
+          if (br.res.inf && csym.tparams.length && !ctype.args && inf && ret && ret.k === "tvar" && inf.ids[ret.sym.id] && ret.sym.bounds.length) {
+            br.res.inf.finish();
+            mret = new ClassType(csym, null); mret = Object.create(mret); mret.ctorRef = true;
+          } else if (br.res.inf) {
             var inf2 = br.res.inf; inf2.activate();
             var cret = new ClassType(csym, csym.tparams.map(function (tv) { return br.res.fv.map[tv.id]; }));
             if (ret && ret !== T["void"]) inf2.unify(cret, ret.k === "prim" ? boxedType(ret) : ret, "upper");
@@ -8254,7 +8328,7 @@
   var FMT_CALLER = {
     printf: ["java.base/java.io.PrintStream.format(PrintStream.java:1183)", "java.base/java.io.PrintStream.printf(PrintStream.java:1081)"],
     format: ["java.base/java.io.PrintStream.format(PrintStream.java:1183)"],
-    string: ["java.base/java.lang.String.format(String.java:4544)"],
+    string: ["java.base/java.util.Formatter.format(Formatter.java:2698)", "java.base/java.lang.String.format(String.java:4455)"],
     formatted: ["java.base/java.lang.String.formatted(String.java:4579)"]
   };
   // caller: "printf"/"string"/...; emit: função que recebe a saída parcial (printf escreve aos pedaços)
@@ -9061,7 +9135,6 @@
       "final Class<E> getDeclaringClass()": function () { var c = this.$c; if (!c.isEnum()) c = c.superT.sym; return classObject(c.rawType()); },
       "static <T extends Enum<T>> T valueOf(Class<T>,String)": function (c, n) { var sym = c.t.sym; return vcallStatic(sym, "valueOf", [n]); }
     } });
-    defLib("java.lang.Iterable", LIB["java.lang.Iterable"].lib.spec);
     // StrictMath = Math
     defLib("java.lang.StrictMath", { flags: "public final", noCtor: true, m: { "static double sqrt(double)": Math.sqrt, "static double pow(double,double)": Math.pow, "static double abs(double)": Math.abs } });
     defLib("java.lang.Runtime", { noCtor: true, m: {
@@ -9451,7 +9524,12 @@
           else if (e instanceof StopSignal) { status = 130; }
           else {
             var ex = toJava(e);
-            if (!ex) throw e;
+            if (!ex) {
+              rt.write("err", "(simulador) erro interno: " + (e && e.message || e) + "\n");
+              if (typeof console !== "undefined" && JavaSim.debug) console.error(e);
+              status = 1;
+              return { chunks: rt.chunks, status: 1, excecao: null, needInput: false, interno: true, rt: rt };
+            }
             rt.stack = [];
             try { rt.write("err", "Exception in thread \"main\" " + stackTraceText(ex)); }
             catch (e2) {
@@ -9506,7 +9584,8 @@
     compareStrings: compareStrings, doubleCompare: doubleCompare, JRandom: JRandom, LOC_PT: LOC_PT, LOC_US: LOC_US, fixedParts: fixedParts, groupDigits: groupDigits,
     erasure: erasure, isSubClass: isSubClass, castFail: castFail, Input: Input, unboxedType: unboxedType, UNBOX: UNBOX, BOX: BOX, boxHash: boxHash,
     javaRegex: javaRegex, jsplit: jsplit, strArray: strArray, toInt32: toInt32, d2l: d2l, enterFrame: enterFrame, Frame: Frame, CLOCK0: CLOCK0, repeat: repeat,
-    stackTraceText: stackTraceText, ensureInit: ensureInit, newObj: newObj, LIB: LIB, parseDoubleJ: function (s) { return JavaSim.parseDoubleJ(s); }
+    stackTraceText: stackTraceText, ensureInit: ensureInit, complete: complete,
+    newLib: function (full, key, args) { var sy = L(full); complete(sy); var c = sy.ctors.filter(function (k) { return k.key === (key || "<init>()"); })[0]; var o = { $c: sy }; c.impl.apply(o, args || []); return o; }, newObj: newObj, LIB: LIB, parseDoubleJ: function (s) { return JavaSim.parseDoubleJ(s); }
   };
   JavaSim.lambdaClass = function (sym) {
     complete(sym);
@@ -9523,7 +9602,7 @@
   /* =====================================================================
      19. Metas (data-goal)
      ===================================================================== */
-  var META_TIPOS = /^(out|outre|err|errre|compila|erro-javac|excecao|exit|src)(?=:|$)/;
+  var META_TIPOS = /^(out|outre|err|errre|compila|erro-javac|excecao|exit|src)(?=:|,|$)/;
   function dividirMetas(meta) {
     var r = [], cur = "";
     for (var i = 0; i < meta.length; i++) {

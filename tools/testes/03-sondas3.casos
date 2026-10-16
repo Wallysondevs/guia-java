@@ -1,0 +1,133 @@
+### arq-inexistente
+import java.io.*;
+import java.nio.file.*;
+public class Main {
+    public static void main(String[] args) throws Exception {
+        try { new FileReader("nao.txt"); } catch (FileNotFoundException e) { System.out.println(e.getMessage()); }
+        try { Files.readString(Path.of("nao.txt")); } catch (NoSuchFileException e) { System.out.println(e + " | " + e.getMessage()); }
+        Files.writeString(Path.of("a.txt"), "linha1\nlinha2\n");
+        System.out.println(Files.readAllLines(Path.of("a.txt")));
+        System.out.println(Files.size(Path.of("a.txt")) + " " + Files.exists(Path.of("a.txt")) + " " + Path.of("a.txt").toAbsolutePath().getFileName());
+        Files.readString(Path.of("x/y.txt"));
+    }
+}
+### bigdecimal
+import java.math.*;
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal a = new BigDecimal("10.90"), b = new BigDecimal("4.20");
+        System.out.println(a.add(b) + " " + a.multiply(b) + " " + a.subtract(b) + " " + new BigDecimal(0.1));
+        System.out.println(BigDecimal.valueOf(0.1).add(BigDecimal.valueOf(0.2)) + " " + new BigDecimal("100").divide(new BigDecimal("4")));
+        System.out.println(new BigDecimal("100").divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP) + " " + new BigDecimal("2.345").setScale(2, RoundingMode.HALF_EVEN));
+        System.out.println(new BigDecimal("100").divide(new BigDecimal("0.5")) + " " + new BigDecimal("1E+3").toPlainString() + " " + new BigDecimal("0.00000012") + " " + BigDecimal.TEN.pow(3));
+        System.out.println(new BigDecimal("2.50").equals(new BigDecimal("2.5")) + " " + new BigDecimal("2.50").compareTo(new BigDecimal("2.5")) + " " + new BigDecimal("2.50").stripTrailingZeros());
+        System.out.printf("%.2f %s%n", new BigDecimal("3.14159"), new BigInteger("123456789012345678901234567890").multiply(BigInteger.TWO));
+        System.out.println(new BigDecimal("1").divide(new BigDecimal("3")));
+    }
+}
+### tempo
+import java.time.*;
+import java.time.format.*;
+import java.time.temporal.*;
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        LocalDate d = LocalDate.of(2026, 10, 16);
+        System.out.println(d + " " + d.plusDays(30) + " " + d.getDayOfWeek() + " " + d.getMonth() + " " + d.lengthOfMonth() + " " + d.isLeapYear());
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.println(d.format(f) + " " + LocalDate.parse("31/02/2026", f) + " " + d.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM 'de' yyyy")));
+        System.out.println(d.format(DateTimeFormatter.ofPattern("EEE dd MMM yy")) + " " + d.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.of("pt", "BR")) + " " + Month.MARCH.getDisplayName(TextStyle.SHORT, Locale.of("pt","BR")));
+        System.out.println(Period.between(LocalDate.of(1997, 3, 14), d) + " " + ChronoUnit.DAYS.between(LocalDate.of(2026,1,1), d) + " " + LocalTime.of(9, 5) + " " + LocalTime.of(9, 5, 7) + " " + LocalDateTime.of(2026, 10, 16, 10, 30));
+        System.out.println(Duration.ofMinutes(90) + " " + Duration.between(LocalTime.of(8, 0), LocalTime.of(17, 45)).toMinutes() + " " + LocalDateTime.of(2026, 10, 16, 10, 30).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + " " + DayOfWeek.MONDAY.plus(3) + " " + Period.ofDays(45));
+        try { LocalDate.of(2026, 2, 30); } catch (DateTimeException e) { System.out.println(e.getMessage()); }
+        try { LocalDate.parse("2026-13-01"); } catch (DateTimeParseException e) { System.out.println(e.getMessage()); }
+    }
+}
+### formatos
+import java.text.*;
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        NumberFormat m = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
+        System.out.println(m.format(1234.56) + "|" + m.format(-5) + "|" + NumberFormat.getInstance(Locale.of("pt", "BR")).format(1234567.891) + "|" + NumberFormat.getPercentInstance(Locale.of("pt", "BR")).format(0.155));
+        System.out.println(new DecimalFormat("#,##0.00").format(1234.565) + "|" + new DecimalFormat("0.#").format(2.0) + "|" + new DecimalFormat("000").format(7) + "|" + NumberFormat.getCurrencyInstance(Locale.US).format(1234.5));
+    }
+}
+### regex
+import java.util.regex.*;
+public class Main {
+    public static void main(String[] args) {
+        Matcher mt = Pattern.compile("(\\w+)@(\\w+)\\.com").matcher("ana@ex.com e bia@foo.com");
+        while (mt.find()) System.out.println(mt.group() + " " + mt.group(1) + " " + mt.start() + " " + mt.end());
+        System.out.println("abc123".matches("[a-z]+\\d+") + " " + "a1b2".replaceAll("\\d", "#") + " " + Pattern.matches("\\d{3}", "123"));
+        Pattern p = Pattern.compile("x");
+        p.matcher("y").group();
+    }
+}
+### threads
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(() -> System.out.println("oi de " + Thread.currentThread().getName()), "ajudante");
+        t.start(); t.join();
+        System.out.println(Thread.currentThread().getName());
+        try (ExecutorService ex = Executors.newFixedThreadPool(2)) {
+            Future<Integer> f = ex.submit(() -> 10 + 20);
+            System.out.println(f.get());
+            List<Future<String>> fs = ex.invokeAll(List.of(() -> Thread.currentThread().getName(), () -> "b"));
+            System.out.println(fs.get(1).get() + " " + fs.get(0).get().startsWith("pool-1-thread-"));
+        }
+        CompletableFuture<Integer> cf = CompletableFuture.supplyAsync(() -> 21).thenApply(x -> x * 2);
+        System.out.println(cf.join());
+        AtomicInteger ai = new AtomicInteger();
+        System.out.println(ai.incrementAndGet() + " " + ai.addAndGet(5) + " " + ai);
+        Future<?> bad = Executors.newSingleThreadExecutor().submit(() -> { throw new IllegalStateException("x"); });
+        try { bad.get(); } catch (ExecutionException e) { System.out.println(e.getMessage() + " | " + e.getCause()); }
+        System.exit(0);
+    }
+}
+### string-format-erro
+public class Main {
+    public static void main(String[] args) {
+        String s = String.format("%d", 1.5);
+    }
+}
+### lista-erros
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<Integer> l = new ArrayList<>(List.of(1, 2, 3));
+        try { l.get(5); } catch (IndexOutOfBoundsException e) { System.out.println(e); }
+        try { List.of(1).add(2); } catch (UnsupportedOperationException e) { System.out.println(e); }
+        try { for (Integer x : l) if (x == 2) l.remove(x); } catch (ConcurrentModificationException e) { System.out.println(e); }
+        Map<String,Integer> m = new HashMap<>();
+        m.put("a", 1);
+        int v = m.get("b");
+    }
+}
+### lista-erros2
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = List.of("a");
+        l.add("b");
+    }
+}
+### lista-erros3
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>(List.of("a", "b", "c"));
+        for (String s : l) if (s.equals("a")) l.remove(s);
+    }
+}
+### lista-erros4
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>();
+        l.get(0);
+    }
+}
