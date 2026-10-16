@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Coleções — List, Set, Queue e Map: visão geral | Guia Java</title>
+<meta name="description" content="Por que o Java tem coleções (o array tem tamanho fixo), o mapa das interfaces Collection, List, Set, Queue e Map, as implementações mais usadas, uma tabela de qual usar e a regra de programar para a interface, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Coleções</span></h1>
+
+<p class="intro">Um programa de verdade quase nunca trabalha com um dado só: são os alunos de uma turma, os produtos de uma loja, as notas de uma prova. Até aqui você guardava vários valores num <a href="arrays.html">array</a>. Nesta aula você vai conhecer as <strong>coleções</strong>: "caixas" prontas do Java que crescem sozinhas, evitam repetição, mantêm ordem ou ligam um nome a um valor. É a visão geral; cada coleção ganha a sua própria aula em seguida.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que o array não basta: ele tem <strong>tamanho fixo</strong>.</li>
+  <li>O que é uma coleção e o que o Java chama de <strong>Collections Framework</strong>.</li>
+  <li>As quatro famílias: <code>List</code>, <code>Set</code>, <code>Queue</code> e <code>Map</code>, e o que cada uma faz.</li>
+  <li>A diferença entre <strong>interface</strong> (o "contrato") e <strong>implementação</strong> (a classe que faz o trabalho).</li>
+  <li>Qual coleção usar em cada situação.</li>
+  <li>Por que se escreve <code>List&lt;String&gt; x = new ArrayList&lt;&gt;()</code>, e não <code>ArrayList&lt;String&gt; x = …</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula foram compilados e executados com o JDK 25 na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>). As saídas são reais.</p>
+
+<hr>
+
+<h2>O problema: o array tem tamanho fixo</h2>
+<p>A Ana é professora e quer guardar os nomes dos alunos da turma. Com o que você já sabe, ela cria um array de <code>String</code>. Para criar um array, é preciso dizer <strong>quantas posições</strong> ele tem, e esse número nunca mais muda.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = new String[3];
+        alunos[0] = "Ana";
+        alunos[1] = "Bruno";
+        alunos[2] = "Carla";
+        System.out.println("Cabem " + alunos.length + " alunos.");
+        alunos[3] = "Duda";
+    }
+}
+</pre>
+
+<p>No meio do semestre chega a Duda. A Ana tenta guardá-la na posição <code>3</code>, a quarta:</p>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Cabem 3 alunos.
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 3
+	at Main.main(Main.java:8)</pre>
+
+<p>O programa compilou, mas <strong>parou com uma exceção</strong> na linha 8: "índice 3 fora dos limites para tamanho 3". O array tem as posições 0, 1 e 2, e não existe jeito de "esticar" um array. A única saída seria criar outro array, maior, e copiar tudo para ele (é o que o <code>Arrays.copyOf</code> da aula <a href="classe-arrays.html">A Classe Arrays</a> faz). Fazer isso à mão toda vez que chega um aluno é trabalhoso e fácil de errar.</p>
+
+<h3>A solução: uma coleção que cresce sozinha</h3>
+<p>O Java já vem com classes que fazem esse trabalho para você. A mais usada é a <code>ArrayList</code>, uma "lista que cresce". Você não diz o tamanho: só vai acrescentando.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Ana");
+        alunos.add("Bruno");
+        alunos.add("Carla");
+        System.out.println(alunos + " tamanho " + alunos.size());
+        alunos.add("Duda");
+        System.out.println(alunos + " tamanho " + alunos.size());
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import java.util.ArrayList;</dt><dd>As coleções moram no pacote <code>java.util</code> ("utilitários"). Sem o <code>import</code>, o compilador não sabe quem é <code>ArrayList</code> (veja <a href="pacotes.html">Pacotes e import</a>).</dd>
+  <dt>ArrayList&lt;String&gt;</dt><dd>O tipo da variável: "uma ArrayList de Strings". O que vai entre <code>&lt; &gt;</code> é o tipo dos elementos. Isso se chama <strong>generics</strong>, assunto da aula <a href="generics.html">Generics</a>.</dd>
+  <dt>new ArrayList&lt;&gt;()</dt><dd>Cria a lista, vazia. O <code>&lt;&gt;</code> vazio (o "diamante") quer dizer "o mesmo tipo do lado esquerdo".</dd>
+  <dt>alunos.add("Ana")</dt><dd><code>add</code> = acrescentar. Põe o elemento no fim da lista.</dd>
+  <dt>alunos.size()</dt><dd><code>size</code> = tamanho. Quantos elementos existem <strong>agora</strong> (no array era <code>length</code>, sem parênteses).</dd>
+  <dt>alunos + " tamanho "</dt><dd>Uma coleção pode ser impressa direto: ela mostra os elementos entre colchetes, separados por vírgula.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[Ana, Bruno, Carla] tamanho 3
+[Ana, Bruno, Carla, Duda] tamanho 4      « cresceu sozinha, sem erro</pre>
+
+<p>Repare em outra vantagem: o array precisava de um laço para ser mostrado (ou do <code>Arrays.toString</code>); a lista se imprime sozinha.</p>
+
+<div class="tryjava" data-goal="out:[Ana, Bruno, Carla, Duda],src:ArrayList">
+<p class="try-task"><strong>Missão:</strong> rode o programa e veja a exceção. Depois troque o array por uma <code>ArrayList&lt;String&gt;</code> (com <code>add</code>), acrescente a Duda e mostre a lista inteira com <code>System.out.println(alunos)</code>. A saída deve ser <code>[Ana, Bruno, Carla, Duda]</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = new String[3];
+        alunos[0] = "Ana";
+        alunos[1] = "Bruno";
+        alunos[2] = "Carla";
+        alunos[3] = "Duda";
+        System.out.println(alunos);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Ana");
+        alunos.add("Bruno");
+        alunos.add("Carla");
+        alunos.add("Duda");
+        System.out.println(alunos);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O que é uma coleção</h2>
+<p>Uma <strong>coleção</strong> é um objeto que guarda <strong>outros objetos</strong>, como uma gaveta guarda papéis. O Java traz, no pacote <code>java.util</code>, um conjunto inteiro dessas gavetas, todas parecidas no jeito de usar. Esse conjunto se chama <strong>Collections Framework</strong> ("estrutura de coleções").</p>
+
+<p>Pense nas coisas que a Ana usa na escola. Cada uma tem um jeito diferente de organizar:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na vida real</th><th>Como organiza</th><th>No Java</th></tr>
+<tr><td>A <strong>lista de chamada</strong></td><td>Em ordem, cada aluno numa posição (1º, 2º, 3º…). Pode haver dois "João".</td><td><code>List</code> (lista)</td></tr>
+<tr><td>O <strong>conjunto de cidades</strong> de onde vêm os alunos</td><td>Cada cidade aparece uma vez só, não importa quantos alunos moram nela.</td><td><code>Set</code> (conjunto)</td></tr>
+<tr><td>A <strong>fila da cantina</strong></td><td>Quem chega primeiro é atendido primeiro.</td><td><code>Queue</code> (fila)</td></tr>
+<tr><td>O <strong>diário de notas</strong></td><td>Cada nome (a chave) aponta para uma nota (o valor). Você procura pelo nome.</td><td><code>Map</code> (mapa, dicionário)</td></tr>
+</table>
+</div>
+
+<p>Veja as quatro funcionando no mesmo programa. Não se preocupe com cada método agora: cada um vai ser explicado na aula da sua coleção.</p>
+
+<pre class="file" data-file="Main.java">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // List: fila de chamada, com ordem e repetição
+        List&lt;String&gt; chamada = new ArrayList&lt;&gt;();
+        chamada.add("Ana");
+        chamada.add("Bruno");
+        chamada.add("Ana");
+        System.out.println("List:  " + chamada);
+
+        // Set: sem repetição
+        Set&lt;String&gt; cidades = new HashSet&lt;&gt;();
+        cidades.add("Recife");
+        cidades.add("Natal");
+        cidades.add("Recife");
+        System.out.println("Set:   " + cidades);
+
+        // Queue: o primeiro que entra é o primeiro que sai
+        Queue&lt;String&gt; fila = new ArrayDeque&lt;&gt;();
+        fila.offer("Ana");
+        fila.offer("Bruno");
+        fila.offer("Carla");
+        System.out.println("Queue: " + fila + " -&gt; atende " + fila.poll() + ", sobra " + fila);
+
+        // Map: chave -&gt; valor
+        Map&lt;String, Double&gt; notas = new HashMap&lt;&gt;();
+        notas.put("Ana", 9.5);
+        notas.put("Bruno", 7.0);
+        System.out.println("Map:   " + notas + " -&gt; nota da Ana: " + notas.get("Ana"));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+List:  [Ana, Bruno, Ana]                                      « ordem de chegada, "Ana" duas vezes
+Set:   [Recife, Natal]                                        « o segundo "Recife" foi ignorado
+Queue: [Ana, Bruno, Carla] -&gt; atende Ana, sobra [Bruno, Carla]  « poll() tira o primeiro da fila
+Map:   {Bruno=7.0, Ana=9.5} -&gt; nota da Ana: 9.5               « o mapa usa chaves { } e chave=valor</pre>
+
+<p>O que observar em cada linha:</p>
+<ul>
+  <li><strong>List</strong> guardou tudo, na ordem em que foi acrescentado, inclusive o "Ana" repetido.</li>
+  <li><strong>Set</strong> recusou a segunda "Recife": num conjunto, cada elemento existe uma vez só.</li>
+  <li><strong>Queue</strong>: <code>offer</code> põe no fim da fila e <code>poll</code> tira do começo. A Ana foi a primeira a entrar e a primeira a sair.</li>
+  <li><strong>Map</strong>: cada <code>put</code> liga uma chave ("Ana") a um valor (9.5); <code>get("Ana")</code> busca pelo nome. Repare que o Bruno apareceu <strong>antes</strong> da Ana, embora tenha sido colocado depois: o <code>HashMap</code> não guarda a ordem de chegada. Você vai entender por quê na aula <a href="hashmap.html">HashMap</a>.</li>
+</ul>
+
+<div class="tip">
+<strong><code>import java.util.*;</code></strong>
+<p>O <code>*</code> importa todas as classes do pacote <code>java.util</code> de uma vez: <code>List</code>, <code>ArrayList</code>, <code>Set</code>, <code>HashMap</code>… É prático quando o programa usa várias coleções. A outra forma é importar uma por uma (<code>import java.util.ArrayList;</code>), que deixa claro o que o arquivo usa. As duas funcionam e não mudam a velocidade do programa.</p>
+</div>
+
+<hr>
+
+<h2>O mapa das interfaces</h2>
+<p>Você notou que o programa acima escreveu, por exemplo, <code>List&lt;String&gt; chamada = new ArrayList&lt;&gt;()</code>: o tipo da variável é <code>List</code>, mas o objeto criado é um <code>ArrayList</code>. São duas coisas diferentes:</p>
+
+<ul>
+  <li><code>List</code> é uma <a href="interfaces.html">interface</a>: um <strong>contrato</strong> que diz o que uma lista sabe fazer (<code>add</code>, <code>get</code>, <code>size</code>, <code>remove</code>…), sem dizer como.</li>
+  <li><code>ArrayList</code> é uma <strong>implementação</strong>: uma classe que cumpre esse contrato de um jeito específico (guardando tudo num array interno que ela troca por um maior quando enche).</li>
+</ul>
+
+<p>É como "veículo" e "ônibus": todo ônibus é um veículo, e quem só precisa "de um veículo para ir à escola" aceita ônibus, carro ou bicicleta. O Java organiza as coleções numa árvore de interfaces assim:</p>
+
+<pre class="syntax">Iterable                  « "dá para percorrer com for-each"
+ └── Collection           « um grupo de elementos: add, remove, size, contains…
+      ├── List            « ordem + posição (índice) + aceita repetidos
+      │     ├── ArrayList
+      │     └── LinkedList
+      ├── Set             « sem repetidos
+      │     ├── HashSet
+      │     ├── LinkedHashSet
+      │     └── TreeSet   (é um SortedSet: sempre ordenado)
+      └── Queue           « fila: entra no fim, sai do começo
+            └── Deque     « fila de duas pontas (também serve de pilha)
+                  ├── ArrayDeque
+                  └── LinkedList   (é List e Deque ao mesmo tempo)
+
+Map                       « chave → valor (NÃO é uma Collection)
+ ├── HashMap
+ ├── LinkedHashMap
+ └── TreeMap              (é um SortedMap: chaves sempre ordenadas)</pre>
+
+<p>Três detalhes importantes nesse mapa:</p>
+<ol>
+  <li><strong><code>Collection</code></strong> é o "avô" de listas, conjuntos e filas. Tudo o que é <code>Collection</code> tem <code>add</code>, <code>remove</code>, <code>size</code>, <code>isEmpty</code>, <code>contains</code> e pode ser percorrido com <a href="for-each.html">for-each</a>.</li>
+  <li><strong><code>Map</code> fica de fora</strong> da árvore de <code>Collection</code>. Ele guarda <em>pares</em> (chave e valor), não elementos soltos, então tem métodos próprios: <code>put</code>, <code>get</code>, <code>keySet</code>…</li>
+  <li><strong><code>LinkedList</code> aparece duas vezes</strong>: ela é ao mesmo tempo uma lista e uma fila de duas pontas. Uma classe pode implementar várias interfaces.</li>
+</ol>
+
+<div class="note">
+<strong>Não confunda: <code>Collection</code>, <code>Collections</code> e "coleções"</strong>
+<p><code>Collection</code> (no singular) é a interface do topo da árvore. <code>Collections</code> (no plural) é uma <strong>classe de ferramentas</strong>, com métodos prontos como <code>Collections.sort</code> e <code>Collections.max</code>; ela tem a sua aula: <a href="collections.html">A Classe Collections</a>. E "coleções", em português, é o nome geral de tudo isso.</p>
+</div>
+
+<h3>As implementações e o que as diferencia</h3>
+<p>Cada interface tem várias implementações. Elas fazem a mesma coisa (cumprem o mesmo contrato), mas com diferenças de <strong>ordem</strong> e de <strong>velocidade</strong>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Implementação</th><th>Interface</th><th>Ordem dos elementos</th><th>Repetidos?</th><th>Ponto forte</th><th>Aula</th></tr>
+<tr><td><code>ArrayList</code></td><td><code>List</code></td><td>A de inserção</td><td>Sim</td><td>Acesso rápido por posição (<code>get(5)</code>). A lista padrão.</td><td><a href="arraylist.html">ArrayList</a></td></tr>
+<tr><td><code>LinkedList</code></td><td><code>List</code>, <code>Deque</code></td><td>A de inserção</td><td>Sim</td><td>Inserir e remover nas pontas.</td><td><a href="linkedlist.html">LinkedList</a></td></tr>
+<tr><td><code>ArrayDeque</code></td><td><code>Deque</code></td><td>A da fila</td><td>Sim</td><td>Fila e pilha rápidas.</td><td><a href="linkedlist.html">LinkedList</a></td></tr>
+<tr><td><code>HashSet</code></td><td><code>Set</code></td><td><strong>Nenhuma garantida</strong></td><td>Não</td><td>Saber muito rápido se algo está no conjunto.</td><td><a href="hashset.html">HashSet</a></td></tr>
+<tr><td><code>LinkedHashSet</code></td><td><code>Set</code></td><td>A de inserção</td><td>Não</td><td>Sem repetidos, mas lembra a ordem.</td><td><a href="hashset.html">HashSet</a></td></tr>
+<tr><td><code>TreeSet</code></td><td><code>Set</code></td><td><strong>Ordenada</strong> (A→Z, 1→9)</td><td>Não</td><td>Sempre em ordem; acha o menor, o maior, "o próximo".</td><td><a href="treemap-treeset.html">TreeMap e TreeSet</a></td></tr>
+<tr><td><code>HashMap</code></td><td><code>Map</code></td><td><strong>Nenhuma garantida</strong></td><td>Chaves não</td><td>Buscar um valor pela chave muito rápido.</td><td><a href="hashmap.html">HashMap</a></td></tr>
+<tr><td><code>LinkedHashMap</code></td><td><code>Map</code></td><td>A de inserção</td><td>Chaves não</td><td>Como o <code>HashMap</code>, mas lembra a ordem.</td><td><a href="hashmap.html">HashMap</a></td></tr>
+<tr><td><code>TreeMap</code></td><td><code>Map</code></td><td><strong>Chaves ordenadas</strong></td><td>Chaves não</td><td>Mapa sempre em ordem de chave.</td><td><a href="treemap-treeset.html">TreeMap e TreeSet</a></td></tr>
+</table>
+</div>
+
+<p>Os nomes seguem um padrão que ajuda a lembrar: a primeira parte diz <strong>como</strong> a coleção guarda os dados (<em>Array</em> = num array, <em>Linked</em> = elos encadeados, <em>Hash</em> = por um número de espalhamento, <em>Tree</em> = numa árvore ordenada) e a segunda parte diz <strong>o que</strong> ela é (<em>List</em>, <em>Set</em>, <em>Map</em>, <em>Deque</em>).</p>
+
+<hr>
+
+<h2>Qual coleção usar?</h2>
+<p>Na prática, quatro classes resolvem quase tudo: <code>ArrayList</code>, <code>HashMap</code>, <code>HashSet</code> e <code>ArrayDeque</code>. Use a tabela fazendo a pergunta da primeira coluna:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você precisa…</th><th>Use</th><th>Exemplo da Ana</th></tr>
+<tr><td>de uma sequência de coisas, em ordem, que pode crescer</td><td><code>ArrayList</code></td><td>Os alunos na ordem da chamada.</td></tr>
+<tr><td>de buscar um valor por um nome (ou código)</td><td><code>HashMap</code></td><td>A nota de cada aluno; o preço de cada produto.</td></tr>
+<tr><td>do mesmo, mas na ordem em que foi colocado</td><td><code>LinkedHashMap</code></td><td>Um cardápio que deve sair na ordem em que foi escrito.</td></tr>
+<tr><td>do mesmo, mas com as chaves em ordem alfabética/numérica</td><td><code>TreeMap</code></td><td>O diário de notas em ordem alfabética.</td></tr>
+<tr><td>de guardar coisas <strong>sem repetição</strong> ou saber "já vi isso?"</td><td><code>HashSet</code></td><td>As cidades diferentes dos alunos.</td></tr>
+<tr><td>sem repetição e em ordem alfabética/numérica</td><td><code>TreeSet</code></td><td>As matérias da escola, de A a Z.</td></tr>
+<tr><td>de uma fila (primeiro a chegar, primeiro a sair)</td><td><code>ArrayDeque</code></td><td>A fila de atendimento da secretaria.</td></tr>
+<tr><td>de uma pilha (o último a entrar sai primeiro)</td><td><code>ArrayDeque</code></td><td>O "desfazer" de um editor de texto.</td></tr>
+<tr><td>de uma lista fixa, que não vai mudar</td><td><code>List.of(…)</code></td><td>Os dias da semana.</td></tr>
+<tr><td>de muitos números e o tamanho é conhecido e fixo</td><td>um array (<code>int[]</code>)</td><td>As 12 temperaturas médias do ano.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Na dúvida, comece com <code>ArrayList</code> ou <code>HashMap</code></strong>
+<p>Se você precisa "de vários", é <code>ArrayList</code>. Se precisa "procurar por nome", é <code>HashMap</code>. Só troque quando aparecer uma necessidade concreta (sem repetidos, em ordem, fila). E, como você vai ver na próxima seção, trocar depois é fácil.</p>
+</div>
+
+<h3>Coleções guardam objetos, não primitivos</h3>
+<p>Uma coleção só guarda <strong>objetos</strong>. Por isso não existe <code>List&lt;int&gt;</code> nem <code>Map&lt;String, double&gt;</code>: para números, use as classes "embrulho" <code>Integer</code>, <code>Double</code>, <code>Boolean</code>, <code>Character</code>… (as <a href="wrappers.html">wrappers</a>). O Java converte <code>int</code> ↔ <code>Integer</code> sozinho quando você faz <code>add(10)</code> ou <code>int x = lista.get(0)</code>; isso se chama <em>autoboxing</em>. Foi o que o programa do mapa fez com <code>Map&lt;String, Double&gt;</code> e <code>notas.put("Ana", 9.5)</code>. O erro de tentar <code>List&lt;int&gt;</code> está na aula <a href="generics.html">Generics</a>.</p>
+
+<hr>
+
+<h2>Programar para a interface</h2>
+<p>Agora a regra que você vai ver em todo código Java profissional. Compare as duas formas de criar a mesma lista:</p>
+
+<pre class="syntax">ArrayList&lt;String&gt; frutas = new ArrayList&lt;&gt;();   // tipo da variável = a classe
+List&lt;String&gt; frutas = new ArrayList&lt;&gt;();        // tipo da variável = a interface (preferida)
+</pre>
+
+<p>As duas funcionam. A segunda é a recomendada: a variável é declarada com o <strong>tipo mais geral que serve</strong> (a interface <code>List</code>), e só o <code>new</code> diz qual implementação foi escolhida. Isso se chama <strong>programar para a interface</strong>. As vantagens:</p>
+
+<ul>
+  <li><strong>Trocar a implementação muda uma linha só.</strong> Se um dia a <code>LinkedList</code> for melhor, você troca o <code>new</code> e o resto do programa continua igual, porque ele só usa o que toda <code>List</code> tem.</li>
+  <li><strong>Métodos que recebem <code>List</code> aceitam qualquer lista</strong>: <code>ArrayList</code>, <code>LinkedList</code>, a lista imutável do <code>List.of</code>…</li>
+  <li><strong>O código diz o que importa.</strong> Quem lê <code>List&lt;String&gt;</code> entende "uma sequência de textos", sem se distrair com detalhes de como ela é guardada.</li>
+</ul>
+
+<p>Veja as duas vantagens no mesmo programa:</p>
+
+<pre class="file" data-file="Main.java">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;();
+        frutas.add("maçã");
+        frutas.add("banana");
+        System.out.println(frutas.getClass().getSimpleName() + " " + frutas);
+
+        frutas = new LinkedList&lt;&gt;(frutas);
+        frutas.add("caju");
+        System.out.println(frutas.getClass().getSimpleName() + " " + frutas);
+        mostrar(frutas);
+        mostrar(List.of("uva", "kiwi"));
+    }
+
+    static void mostrar(List&lt;String&gt; lista) {
+        System.out.println("A lista tem " + lista.size() + " itens: " + lista);
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>List&lt;String&gt; frutas = new ArrayList&lt;&gt;();</code></td><td>A variável é do tipo <code>List</code>; o objeto é um <code>ArrayList</code>.</td></tr>
+<tr><td><code>frutas.getClass().getSimpleName()</code></td><td>Pergunta ao objeto "de que classe você é?" (método herdado de <a href="object.html">Object</a>). Só para você ver o que está dentro da variável.</td></tr>
+<tr><td><code>frutas = new LinkedList&lt;&gt;(frutas);</code></td><td>Cria uma <code>LinkedList</code> com uma cópia dos elementos e guarda <strong>na mesma variável</strong>. Funciona porque <code>LinkedList</code> também é uma <code>List</code>.</td></tr>
+<tr><td><code>static void mostrar(List&lt;String&gt; lista)</code></td><td>Um <a href="metodos.html">método</a> que aceita qualquer <code>List</code> de Strings.</td></tr>
+<tr><td><code>mostrar(List.of("uva", "kiwi"))</code></td><td><code>List.of</code> cria uma lista pronta (e imutável). O mesmo método serve.</td></tr>
+</table>
+</div>
+
+<pre class="term">$ javac Main.java
+$ java Main
+ArrayList [maçã, banana]
+LinkedList [maçã, banana, caju]          « mesma variável, outra implementação
+A lista tem 3 itens: [maçã, banana, caju]
+A lista tem 2 itens: [uva, kiwi]         « o método aceitou outro tipo de lista</pre>
+
+<p>Se o método fosse <code>mostrar(ArrayList&lt;String&gt; lista)</code>, as duas últimas chamadas <strong>não compilariam</strong>: uma <code>LinkedList</code> não é uma <code>ArrayList</code>. Por isso, em parâmetros, prefira sempre a interface (<code>List</code>, <code>Set</code>, <code>Map</code>) ou até a mais geral de todas que sirva (<code>Collection</code>).</p>
+
+<div class="note">
+<strong>E o <code>var</code>?</strong>
+<p>Com <code>var frutas = new ArrayList&lt;String&gt;();</code> (veja <a href="var.html">var</a>), o tipo da variável vira <code>ArrayList&lt;String&gt;</code>, a classe. Para variáveis locais curtas isso é aceitável, mas em atributos, parâmetros e retornos de métodos use a interface.</p>
+</div>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> troque <code>new ArrayList&lt;&gt;()</code> por <code>new LinkedList&lt;&gt;()</code> e rode de novo. O resto do programa precisa mudar? Depois troque <code>HashSet</code> por <code>TreeSet</code> e veja a ordem das cidades mudar.</p>
+<pre class="script">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; chamada = new ArrayList&lt;&gt;();
+        chamada.add("Carla");
+        chamada.add("Ana");
+        chamada.add("Bruno");
+        System.out.println(chamada.getClass().getSimpleName() + " " + chamada);
+
+        Set&lt;String&gt; cidades = new HashSet&lt;&gt;();
+        cidades.add("Recife");
+        cidades.add("Natal");
+        cidades.add("Olinda");
+        cidades.add("Recife");
+        System.out.println(cidades.getClass().getSimpleName() + " " + cidades);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … class ArrayList": esqueceu o import</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Ana");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        ^
+  symbol:   class ArrayList
+  location: class Main
+Main.java:3: error: cannot find symbol
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+                                       ^
+  symbol:   class ArrayList
+  location: class Main
+2 errors</pre>
+<p><strong>O que quer dizer:</strong> "não encontrei o símbolo: a classe <code>ArrayList</code>". São dois erros porque o nome aparece duas vezes na linha (no tipo e no <code>new</code>). Diferente de <code>String</code> e <code>Math</code>, que moram em <code>java.lang</code> e são importadas automaticamente, as coleções moram em <code>java.util</code>.</p>
+<p><strong>Como consertar:</strong> acrescente <code>import java.util.ArrayList;</code> (ou <code>import java.util.*;</code>) antes de <code>public class Main</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"List is abstract; cannot be instantiated": tentou criar a interface</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new List&lt;&gt;();
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:5: error: List is abstract; cannot be instantiated
+        List&lt;String&gt; alunos = new List&lt;&gt;();
+                              ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "List é abstrata; não pode ser instanciada (criada)". <code>List</code> é só o contrato: ela diz o que uma lista faz, mas não tem o código que faz. É como pedir "um veículo" na loja: você precisa escolher qual.</p>
+<p><strong>Como consertar:</strong> do lado do <code>new</code>, use uma implementação: <code>new ArrayList&lt;&gt;()</code> ou <code>new LinkedList&lt;&gt;()</code>. Do lado esquerdo, a interface continua certa.</p>
+</div>
+
+<div class="cenario">
+<strong>"ArrayIndexOutOfBoundsException": o array encheu</strong>
+<pre class="term">$ java Main
+Cabem 3 alunos.
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 3
+	at Main.main(Main.java:8)</pre>
+<p><strong>O que quer dizer:</strong> você tentou usar uma posição que o array não tem. Se a quantidade de elementos pode mudar durante o programa, um array é a ferramenta errada.</p>
+<p><strong>Como consertar:</strong> troque o array por uma <code>ArrayList</code>, como no começo da aula.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>É…</th><th>Guarda</th><th>Métodos típicos</th></tr>
+<tr><td><code>Collection&lt;E&gt;</code></td><td>Interface</td><td>Um grupo de elementos</td><td><code>add</code>, <code>remove</code>, <code>size</code>, <code>isEmpty</code>, <code>contains</code>, <code>clear</code></td></tr>
+<tr><td><code>List&lt;E&gt;</code></td><td>Interface</td><td>Sequência com posições, aceita repetidos</td><td><code>get(i)</code>, <code>set(i, x)</code>, <code>add(i, x)</code>, <code>indexOf</code>, <code>sort</code></td></tr>
+<tr><td><code>Set&lt;E&gt;</code></td><td>Interface</td><td>Elementos sem repetição</td><td><code>add</code> (devolve <code>false</code> se já existe), <code>contains</code></td></tr>
+<tr><td><code>Queue&lt;E&gt;</code></td><td>Interface</td><td>Fila</td><td><code>offer</code>, <code>poll</code>, <code>peek</code></td></tr>
+<tr><td><code>Deque&lt;E&gt;</code></td><td>Interface</td><td>Fila de duas pontas / pilha</td><td><code>addFirst</code>, <code>addLast</code>, <code>push</code>, <code>pop</code></td></tr>
+<tr><td><code>Map&lt;K, V&gt;</code></td><td>Interface</td><td>Pares chave → valor</td><td><code>put</code>, <code>get</code>, <code>containsKey</code>, <code>keySet</code>, <code>values</code></td></tr>
+<tr><td><code>ArrayList</code>, <code>LinkedList</code></td><td>Classes</td><td>Implementam <code>List</code></td><td>—</td></tr>
+<tr><td><code>HashSet</code>, <code>LinkedHashSet</code>, <code>TreeSet</code></td><td>Classes</td><td>Implementam <code>Set</code></td><td>—</td></tr>
+<tr><td><code>ArrayDeque</code></td><td>Classe</td><td>Implementa <code>Deque</code></td><td>—</td></tr>
+<tr><td><code>HashMap</code>, <code>LinkedHashMap</code>, <code>TreeMap</code></td><td>Classes</td><td>Implementam <code>Map</code></td><td>—</td></tr>
+<tr><td><code>List.of</code>, <code>Set.of</code>, <code>Map.of</code></td><td>Métodos de fábrica</td><td>Coleções prontas e imutáveis</td><td>—</td></tr>
+</table>
+</div>
+<p>Para uma cola com os métodos de todas as coleções, veja <a href="ref-colecoes.html">Cola de Coleções</a>.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O pacote certo</h3>
+<p>Complete o import que traz todas as coleções:</p>
+<div class="ex-code">import <input data-answer="java.util.*;|java.util.*" aria-label="pacote"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Programar para a interface</h3>
+<p>Complete o tipo da variável do jeito recomendado:</p>
+<div class="ex-code"><input data-answer="List&lt;String&gt;" aria-label="tipo"> nomes = new ArrayList&lt;&gt;();</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quantos tem agora?</h3>
+<p>Complete com o método que diz quantos elementos a lista tem:</p>
+<div class="ex-code">System.out.println(nomes.<input data-answer="size()" aria-label="método">);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. A Ana quer guardar o e-mail de cada aluno e encontrar o e-mail pelo nome. Qual coleção?</p>
+<label><input type="radio" name="q4"> <code>ArrayList</code></label>
+<label><input type="radio" name="q4"> <code>HashSet</code></label>
+<label><input type="radio" name="q4"> <code>HashMap</code></label>
+<label><input type="radio" name="q4"> <code>ArrayDeque</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Num <code>Set&lt;String&gt;</code> vazio, a Ana faz <code>add("Natal")</code> três vezes. Quanto vale <code>size()</code>?</p>
+<label><input type="radio" name="q5"> 0</label>
+<label><input type="radio" name="q5"> 1</label>
+<label><input type="radio" name="q5"> 3</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual destes <strong>não</strong> é uma <code>Collection</code>?</p>
+<label><input type="radio" name="q6"> <code>Map</code></label>
+<label><input type="radio" name="q6"> <code>List</code></label>
+<label><input type="radio" name="q6"> <code>Set</code></label>
+<label><input type="radio" name="q6"> <code>Queue</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">7. Por que <code>new List&lt;&gt;()</code> não compila?</p>
+<label><input type="radio" name="q7"> Porque faltou o tipo dentro do diamante.</label>
+<label><input type="radio" name="q7"> Porque <code>List</code> é uma interface: é preciso escolher uma implementação, como <code>ArrayList</code>.</label>
+<label><input type="radio" name="q7"> Porque listas só podem ser criadas com <code>List.of</code>.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Alunos: 5,out:Cidades diferentes: 3,src:List&lt;String&gt;\s+\w+\s*=,src:Set&lt;String&gt;\s+\w+\s*=">
+<p class="try-task"><strong>Missão final:</strong> a Ana anotou a cidade de cada aluno no array <code>anotadas</code>. Crie uma <code>List&lt;String&gt;</code> com <strong>todas</strong> as cidades e um <code>Set&lt;String&gt;</code> com as cidades <strong>diferentes</strong> (programando para a interface), preencha os dois com um for-each e mostre <code>Alunos: 5</code> e <code>Cidades diferentes: 3</code> usando <code>size()</code>.</p>
+<pre class="script">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] anotadas = {"Recife", "Natal", "Recife", "Olinda", "Natal"};
+
+        // crie a List e o Set aqui
+
+        for (String cidade : anotadas) {
+            // acrescente a cidade nas duas coleções
+        }
+
+        // mostre os tamanhos
+    }
+}
+</pre>
+<pre class="solucao">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] anotadas = {"Recife", "Natal", "Recife", "Olinda", "Natal"};
+
+        List&lt;String&gt; todas = new ArrayList&lt;&gt;();
+        Set&lt;String&gt; diferentes = new HashSet&lt;&gt;();
+        for (String cidade : anotadas) {
+            todas.add(cidade);
+            diferentes.add(cidade);
+        }
+        System.out.println("Alunos: " + todas.size());
+        System.out.println("Cidades diferentes: " + diferentes.size());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um array tem <strong>tamanho fixo</strong>; passar do fim dá <code>ArrayIndexOutOfBoundsException</code>. Coleções crescem sozinhas.</li>
+  <li>As coleções moram em <code>java.util</code>: importe com <code>import java.util.*;</code> ou uma por uma.</li>
+  <li><code>List</code> = ordem e repetidos; <code>Set</code> = sem repetidos; <code>Queue</code>/<code>Deque</code> = fila e pilha; <code>Map</code> = chave → valor (e não é uma <code>Collection</code>).</li>
+  <li>Interfaces dizem <strong>o que</strong> se faz; implementações (<code>ArrayList</code>, <code>HashSet</code>, <code>HashMap</code>…) dizem <strong>como</strong>.</li>
+  <li><code>HashSet</code> e <code>HashMap</code> não garantem ordem; as versões <code>Linked…</code> lembram a ordem de inserção; as <code>Tree…</code> ordenam.</li>
+  <li>Coleções guardam objetos: use <code>Integer</code>, <code>Double</code>… no lugar de <code>int</code>, <code>double</code>.</li>
+  <li>Programe para a interface: <code>List&lt;String&gt; x = new ArrayList&lt;&gt;();</code>. Trocar a implementação muda uma linha.</li>
+</ul>
+
+<p>Próxima aula: a coleção mais usada do Java, a <a href="arraylist.html">ArrayList</a>.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
