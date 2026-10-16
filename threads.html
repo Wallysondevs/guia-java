@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Threads — start, join, sleep e saídas intercaladas | Guia Java</title>
+<meta name="description" content="Threads no Java para iniciantes: o que é uma thread, new Thread(() -> …).start(), join, Thread.sleep, nomes, Runnable, a saída intercalada que muda a cada execução (com duas execuções reais), run × start e o perigo do estado compartilhado.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Threads</span></h1>
+
+<p class="intro">Até aqui, todo programa fez <strong>uma coisa de cada vez</strong>: uma linha depois da outra. Uma <strong>thread</strong> (em inglês, "fio" ou "linha", como o fio de uma conversa) é uma linha de execução independente. Com várias threads, o programa faz várias coisas <strong>ao mesmo tempo</strong>: baixar um arquivo enquanto mostra uma barra de progresso, atender vários clientes de uma vez. O preço é que a ordem das coisas deixa de ser previsível.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma thread e o que é a thread <code>main</code>.</li>
+  <li>Criar e iniciar uma thread com <code>new Thread(() -&gt; …).start()</code>.</li>
+  <li>Por que a saída sai <strong>misturada</strong> e muda a cada execução (com duas execuções reais).</li>
+  <li>Esperar uma thread com <code>join</code>, pausar com <code>Thread.sleep</code>, dar nomes às threads.</li>
+  <li>As formas de escrever a tarefa (<code>Runnable</code>, lambda, <code>extends Thread</code>), o erro de chamar <code>run()</code> no lugar de <code>start()</code> e o perigo de duas threads mexerem na mesma variável.</li>
+</ul>
+</div>
+
+<p>Esta aula usa <a href="lambdas.html">lambdas</a> e <a href="checked-unchecked.html">exceções checked</a>. É a primeira do grupo Concorrência; as próximas são <a href="executors.html">ExecutorService</a>, <a href="virtual-threads.html">Threads Virtuais</a> e <a href="sincronizacao.html">synchronized e Locks</a>. Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Imagine a cozinha da lanchonete da Ana. Com <strong>uma</strong> cozinheira, os pedidos saem um depois do outro: ela frita a batata, depois monta o lanche, depois faz o suco. Com <strong>duas</strong> cozinheiras, enquanto uma frita a batata a outra monta o lanche. Os pedidos saem mais rápido, mas agora surgem perguntas novas:</p>
+<ul>
+  <li>Quem termina primeiro? Depende: de quem pegou a frigideira antes, de quem foi atender o telefone… Cada dia é diferente.</li>
+  <li>Como a Ana sabe que <strong>as duas</strong> terminaram antes de entregar a bandeja? Ela precisa <strong>esperar</strong>.</li>
+  <li>E se as duas pegarem o mesmo pote de sal ao mesmo tempo? Confusão.</li>
+</ul>
+<p>Cada cozinheira é uma <strong>thread</strong>. Quem decide quem trabalha em cada momento é o <strong>escalonador</strong> (<em>scheduler</em>) do sistema operacional, que distribui os núcleos do processador entre as threads, trocando entre elas milhares de vezes por segundo. Você não controla essa escala. Essas três perguntas são o assunto desta aula e das próximas.</p>
+
+<hr>
+
+<h2>1. Você sempre esteve numa thread: a <code>main</code></h2>
+<p>Quando você roda <code>java Main</code>, a JVM cria uma thread chamada <code>main</code> e começa por ela o método <code>main</code>. O método estático <code>Thread.currentThread()</code> ("thread atual") diz em qual thread uma linha está rodando:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá da thread " + Thread.currentThread().getName());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Olá da thread main</pre>
+
+<hr>
+
+<h2>2. Criando outras threads</h2>
+<p>A classe <code>Thread</code> representa uma thread. Você entrega a ela a <strong>tarefa</strong> (o código que deve rodar) e manda começar com <code>start()</code>. A Ana e o Bruno vão embalar cinco pedidos cada um, ao mesmo tempo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread ana = new Thread(() -&gt; {
+            for (int i = 1; i &lt;= 5; i++) {
+                System.out.println("Ana embalou o pedido " + i);
+            }
+        });
+        Thread bruno = new Thread(() -&gt; {
+            for (int i = 1; i &lt;= 5; i++) {
+                System.out.println("Bruno embalou o pedido " + i);
+            }
+        });
+        ana.start();
+        bruno.start();
+        ana.join();
+        bruno.join();
+        System.out.println("Todos os pedidos embalados.");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>new Thread(</dt><dd>Cria um objeto <code>Thread</code>. Ele ainda <strong>não</strong> está rodando: é a cozinheira contratada, mas parada.</dd>
+  <dt>() -&gt; { … }</dt><dd>A tarefa, escrita como uma <a href="lambdas.html">lambda</a>: sem parâmetros, com o código entre chaves.</dd>
+  <dt>ana.start()</dt><dd>"Começar": cria a linha de execução de verdade e roda a tarefa <strong>nela</strong>. O <code>start()</code> volta na hora; a <code>main</code> segue para a próxima linha sem esperar.</dd>
+  <dt>ana.join()</dt><dd>"Juntar-se": a <code>main</code> para e <strong>espera</strong> a thread <code>ana</code> terminar.</dd>
+  <dt>throws InterruptedException</dt><dd>O <code>join</code> pode lançar essa exceção checked (veja a seção 4); aqui ela é só repassada.</dd>
+</dl>
+
+<h3>A mesma saída? Não.</h3>
+<p>A Ana compilou uma vez e rodou o programa <strong>duas vezes seguidas</strong>, sem mudar nada:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main
+Ana embalou o pedido 1
+Bruno embalou o pedido 1
+Ana embalou o pedido 2
+Ana embalou o pedido 3
+Bruno embalou o pedido 2
+Ana embalou o pedido 4
+Ana embalou o pedido 5
+Bruno embalou o pedido 3
+Bruno embalou o pedido 4
+Bruno embalou o pedido 5
+Todos os pedidos embalados.
+$ java Main
+Bruno embalou o pedido 1
+Bruno embalou o pedido 2
+Bruno embalou o pedido 3
+Bruno embalou o pedido 4
+Bruno embalou o pedido 5
+Ana embalou o pedido 1
+Ana embalou o pedido 2
+Ana embalou o pedido 3
+Ana embalou o pedido 4
+Ana embalou o pedido 5
+Todos os pedidos embalados.</pre>
+
+<p>Na primeira vez, as linhas saíram <strong>intercaladas</strong> (misturadas). Na segunda, o Bruno fez tudo antes de a Ana começar, mesmo tendo sido iniciado <strong>depois</strong>. Nas suas execuções, a ordem vai ser outra. Isso não é um defeito: é a natureza das threads. O escalonador decide quem roda em cada instante, e essa decisão depende de tudo o que está acontecendo no computador.</p>
+
+<p>Mas repare no que <strong>não</strong> muda:</p>
+<ul>
+  <li>Dentro de cada thread, a ordem é respeitada: a Ana sempre embala o 1 antes do 2.</li>
+  <li><code>Todos os pedidos embalados.</code> é sempre a última linha, graças aos dois <code>join</code>.</li>
+</ul>
+
+<div class="warning">
+<strong>No editor do guia, a ordem é sempre a mesma</strong>
+<p>O simulador do guia não tem threads de verdade: ele executa as tarefas <strong>em sequência</strong>, uma depois da outra, sempre na mesma ordem, para que as missões possam ser conferidas (veja <a href="simulador.html">O Editor do Guia</a>). A saída dele é <strong>uma</strong> das ordens possíveis, nunca a mistura. Por isso as saídas desta aula, nos blocos de terminal, são do JDK real, e as missões só conferem o que é garantido: que cada linha aparece, e o que vem depois de um <code>join</code>.</p>
+</div>
+
+<h3>Sem <code>join</code>, a <code>main</code> não espera</h3>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Thread entrega = new Thread(() -&gt; {
+            System.out.println("Entrega saiu");
+            System.out.println("Entrega chegou");
+        });
+        entrega.start();
+        System.out.println("Fim do main");
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Fim do main
+Entrega saiu
+Entrega chegou</pre>
+
+<p>A <code>main</code> chegou ao fim antes de a entrega começar. Mesmo assim o programa esperou a entrega: a JVM só termina quando <strong>todas</strong> as threads comuns acabam. Mas se a <code>main</code> fosse usar o resultado da entrega, ela o usaria antes de ele existir. Sempre que precisar do trabalho de uma thread, chame <code>join()</code>.</p>
+
+<div class="tryjava" data-goal="out:Ana terminou,out:Bruno terminou,out:Fim do expediente,src:\.start\(\),src:\.join\(\)">
+<p class="try-task"><strong>Missão:</strong> crie as threads <code>ana</code> e <code>bruno</code> (cada uma mostra <code>Ana terminou</code> / <code>Bruno terminou</code>), inicie as duas com <code>start()</code>, espere as duas com <code>join()</code> e só então mostre <code>Fim do expediente</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread ana = new Thread(() -&gt; System.out.println("Ana terminou"));
+        // crie a thread bruno
+
+        // inicie as duas e espere as duas
+
+        System.out.println("Fim do expediente");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread ana = new Thread(() -&gt; System.out.println("Ana terminou"));
+        Thread bruno = new Thread(() -&gt; System.out.println("Bruno terminou"));
+        ana.start();
+        bruno.start();
+        ana.join();
+        bruno.join();
+        System.out.println("Fim do expediente");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Nomes e <code>Thread.sleep</code></h2>
+<p>O segundo argumento do construtor dá um <strong>nome</strong> à thread (sem ele, o Java inventa <code>Thread-0</code>, <code>Thread-1</code>…). E <code>Thread.sleep(ms)</code> ("dormir") pausa a thread atual pelo número de milissegundos indicado (1000 ms = 1 segundo), sem gastar processador:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread forno = new Thread(() -&gt; {
+            System.out.println(Thread.currentThread().getName() + ": bolo no forno");
+            try {
+                Thread.sleep(1500);
+            } catch (InterruptedException e) {
+                System.out.println("Alguém interrompeu o forno!");
+                return;
+            }
+            System.out.println(Thread.currentThread().getName() + ": bolo pronto");
+        }, "forno");
+
+        long inicio = System.currentTimeMillis();
+        forno.start();
+        System.out.println("main: enquanto isso, lavo a louça");
+        forno.join();
+        long fim = System.currentTimeMillis();
+        System.out.println("main: esperei o forno; levou cerca de " + (fim - inicio) / 100 * 100 + " ms");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+main: enquanto isso, lavo a louça
+forno: bolo no forno
+forno: bolo pronto
+main: esperei o forno; levou cerca de 1500 ms</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>new Thread(() -&gt; { … }, "forno")</code></td><td>Tarefa + nome da thread.</td></tr>
+<tr><td><code>Thread.currentThread().getName()</code></td><td>Dentro da tarefa, dá <code>forno</code>; na <code>main</code>, dá <code>main</code>.</td></tr>
+<tr><td><code>Thread.sleep(1500)</code></td><td>A thread <code>forno</code> dorme 1,5 segundo. A <code>main</code> continua livre (lavou a louça).</td></tr>
+<tr><td><code>catch (InterruptedException e)</code></td><td>Se outra thread "acordar" o forno no meio do sono (com <code>forno.interrupt()</code>), cai aqui.</td></tr>
+<tr><td><code>System.currentTimeMillis()</code></td><td>A hora atual em milissegundos; a diferença mede quanto tempo passou. O <code>/ 100 * 100</code> arredonda para baixo, de 100 em 100.</td></tr>
+</table>
+</div>
+
+<h2>4. Por que <code>InterruptedException</code>?</h2>
+<p><code>sleep</code> e <code>join</code> são <strong>bloqueantes</strong>: a thread fica parada esperando. O Java permite que outra thread peça "pare de esperar" (<code>interrupt()</code>), e a espera termina com a exceção <code>InterruptedException</code>. Como ela é <a href="checked-unchecked.html">checked</a>, o compilador obriga você a decidir o que fazer:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Esperando...");
+        Thread.sleep(1000);
+        System.out.println("Pronto");
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: unreported exception InterruptedException; must be caught or declared to be thrown
+        Thread.sleep(1000);
+                    ^
+1 error</pre>
+
+<p>Duas saídas: declarar <code>throws InterruptedException</code> no método (bom no <code>main</code> de exemplos) ou usar <code>try/catch</code> (obrigatório dentro de uma lambda de <code>Runnable</code>, porque o método <code>run()</code> não pode declarar exceções checked).</p>
+
+<hr>
+
+<h2>5. Formas de escrever a tarefa</h2>
+<p>A tarefa de uma thread é um <code>Runnable</code> ("executável"): uma <a href="interfaces-funcionais.html">interface funcional</a> com um único método, <code>void run()</code>. A lambda que você viu é um <code>Runnable</code>. Há outras formas:</p>
+
+<pre class="file" data-file="Main.java">class Contagem implements Runnable {
+    private final String fruta;
+
+    Contagem(String fruta) {
+        this.fruta = fruta;
+    }
+
+    @Override
+    public void run() {
+        System.out.println("Contando " + fruta + " na thread " + Thread.currentThread().getName());
+    }
+}
+
+class Entregador extends Thread {
+    Entregador(String nome) {
+        super(nome);
+    }
+
+    @Override
+    public void run() {
+        System.out.println(getName() + " saiu para entregar");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread t1 = new Thread(new Contagem("maçãs"), "contador-1");
+        Thread t2 = new Entregador("entregador-1");
+        Thread t3 = Thread.ofPlatform().name("caixa").start(() -&gt;
+            System.out.println("Abrindo o caixa na thread " + Thread.currentThread().getName()));
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+        t3.join();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+entregador-1 saiu para entregar
+Abrindo o caixa na thread caixa
+Contando maçãs na thread contador-1</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>new Thread(() -&gt; …)</code></td><td>Tarefa curta. A mais comum.</td></tr>
+<tr><td><code>class X implements Runnable</code> + <code>new Thread(new X(…))</code></td><td>Tarefa maior, com dados próprios (a fruta). A classe pode herdar de outra.</td></tr>
+<tr><td><code>class X extends Thread</code></td><td>Forma antiga. Evite: mistura "o que fazer" com "quem faz", e gasta a única herança da classe.</td></tr>
+<tr><td><code>Thread.ofPlatform().name("…").start(tarefa)</code> <span class="versao">Java 21+</span></td><td>Construtor "fluente": cria, nomeia e já inicia. Tem um irmão, <code>Thread.ofVirtual()</code>, assunto de <a href="virtual-threads.html">Threads Virtuais</a>.</td></tr>
+<tr><td><a href="executors.html"><code>ExecutorService</code></a></td><td>Muitas tarefas: em vez de criar threads à mão, você entrega tarefas a um "time" de threads. É o que se usa em programas de verdade (próxima aula).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. O perigo: duas threads, uma variável</h2>
+<p>Duas threads que só <strong>leem</strong> dados não atrapalham uma à outra. O problema começa quando elas <strong>alteram</strong> a mesma variável. Os dois caixas da loja registram 100 000 vendas cada um no mesmo contador:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static int vendas = 0;
+
+    public static void main(String[] args) throws InterruptedException {
+        Runnable vender = () -&gt; {
+            for (int i = 0; i &lt; 100_000; i++) {
+                vendas++;
+            }
+        };
+        Thread caixa1 = new Thread(vender);
+        Thread caixa2 = new Thread(vender);
+        caixa1.start();
+        caixa2.start();
+        caixa1.join();
+        caixa2.join();
+        System.out.println("Vendas registradas: " + vendas + " (esperado: 200000)");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main
+Vendas registradas: 127820 (esperado: 200000)
+$ java Main
+Vendas registradas: 113625 (esperado: 200000)
+$ java Main
+Vendas registradas: 106254 (esperado: 200000)</pre>
+
+<p>Dezenas de milhares de vendas sumiram, e um número diferente a cada vez. O <code>vendas++</code> parece um passo só, mas são três: ler o valor, somar 1, gravar. Se as duas threads leem o mesmo valor antes de qualquer uma gravar, uma soma se perde. Isso se chama <strong>condição de corrida</strong>, e a aula <a href="sincronizacao.html">synchronized e Locks</a> é inteira sobre como evitá-la.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3>Chamar <code>run()</code> em vez de <code>start()</code></h3>
+<div class="warning"><strong>Este código tem um erro de lógica de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Runnable tarefa = () -&gt; System.out.println("Rodando na thread: " + Thread.currentThread().getName());
+        Thread t = new Thread(tarefa, "ajudante");
+        t.run();
+        t.start();
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Rodando na thread: main
+Rodando na thread: ajudante</pre>
+<p><strong>O que aconteceu:</strong> <code>t.run()</code> é uma chamada de método comum: a tarefa rodou <strong>na própria <code>main</code></strong>, sem thread nova nenhuma. Só o <code>start()</code> cria a linha de execução. O compilador não reclama, porque <code>run()</code> é um método público válido. <strong>Conserto:</strong> para rodar em paralelo, sempre <code>start()</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>Iniciar a mesma thread duas vezes</h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Thread t = new Thread(() -&gt; System.out.println("Oi"));
+        t.start();
+        t.start();
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Oi
+Exception in thread "main" java.lang.IllegalThreadStateException
+	at java.base/java.lang.Thread.start(Thread.java:1416)
+	at Main.main(Main.java:5)</pre>
+<p><strong>O que quer dizer:</strong> "estado de thread ilegal". Uma thread só pode ser iniciada uma vez; depois que termina, não volta. <strong>Conserto:</strong> crie um <code>new Thread(…)</code> novo para cada execução, ou use um <a href="executors.html"><code>ExecutorService</code></a>, que reaproveita threads.</p>
+</div>
+
+<div class="cenario">
+<h3><code>unreported exception InterruptedException</code></h3>
+<p><code>sleep</code> ou <code>join</code> sem tratar a exceção (seção 4). <strong>Conserto:</strong> <code>throws InterruptedException</code> no método, ou <code>try/catch</code> dentro da lambda.</p>
+</div>
+
+<div class="cenario">
+<h3>O resultado muda a cada execução</h3>
+<p>Se a <strong>ordem</strong> das linhas muda, é normal (seção 2). Se um <strong>número</strong> muda, como o contador de vendas, há duas threads alterando a mesma variável sem proteção (seção 6). Veja <a href="sincronizacao.html">synchronized e Locks</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>new Thread(tarefa)</code> / <code>new Thread(tarefa, "nome")</code></td><td>Cria a thread (parada)</td></tr>
+<tr><td><code>t.start()</code></td><td>Inicia; volta na hora</td></tr>
+<tr><td><code>t.join()</code></td><td>Espera <code>t</code> terminar</td></tr>
+<tr><td><code>Thread.sleep(ms)</code></td><td>Pausa a thread atual</td></tr>
+<tr><td><code>Thread.currentThread()</code></td><td>A thread que está rodando esta linha</td></tr>
+<tr><td><code>t.getName()</code> / <code>t.setName("…")</code></td><td>Nome da thread</td></tr>
+<tr><td><code>t.isAlive()</code></td><td>Ainda está rodando?</td></tr>
+<tr><td><code>t.interrupt()</code></td><td>Pede para <code>t</code> parar de esperar (<code>sleep</code>/<code>join</code> lançam <code>InterruptedException</code>)</td></tr>
+<tr><td><code>Thread.ofPlatform().name("…").start(tarefa)</code></td><td>Cria, nomeia e inicia (Java 21+)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete para iniciar a thread <code>t</code> de verdade:</p>
+<div class="ex-code">t.<input data-answer="start()">;</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete para a <code>main</code> esperar a thread <code>t</code> terminar:</p>
+<div class="ex-code">t.<input data-answer="join()">;</div>
+</div>
+
+<div class="exercise">
+<p>3. Complete para pausar a thread atual por meio segundo:</p>
+<div class="ex-code">Thread.<input data-answer="sleep(500)">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Duas threads mostram 5 linhas cada uma. Rodando o programa várias vezes, o que acontece?</p>
+<label><input type="radio" name="q4"> A saída é sempre igual: primeiro a thread iniciada antes.</label>
+<label><input type="radio" name="q4"> As linhas podem se misturar de um jeito diferente a cada vez, mas cada thread mantém a sua própria ordem.</label>
+<label><input type="radio" name="q4"> O Java não deixa duas threads usarem <code>println</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que acontece com <code>t.run()</code> no lugar de <code>t.start()</code>?</p>
+<label><input type="radio" name="q5"> A tarefa roda na thread atual, como um método comum; nenhuma thread nova é criada.</label>
+<label><input type="radio" name="q5"> Erro de compilação.</label>
+<label><input type="radio" name="q5"> A tarefa roda duas vezes.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Por que dois caixas fazendo <code>vendas++</code> 100 000 vezes cada um não chegam a 200 000?</p>
+<label><input type="radio" name="q6"> Porque <code>int</code> estoura acima de 100 000.</label>
+<label><input type="radio" name="q6"> Porque faltou <code>join</code>.</label>
+<label><input type="radio" name="q6"> Porque <code>vendas++</code> é ler, somar e gravar; as threads se atropelam e algumas somas se perdem.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Rodando na thread: ajudante,src:\.start\(\),src:\.join\(\)">
+<p class="try-task"><strong>Missão final:</strong> este programa chama <code>run()</code>, então a tarefa roda na thread <code>main</code>. Troque para <code>start()</code> e espere a thread com <code>join()</code>, para que apareça <code>Rodando na thread: ajudante</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Runnable tarefa = () -&gt; System.out.println("Rodando na thread: " + Thread.currentThread().getName());
+        Thread t = new Thread(tarefa, "ajudante");
+        t.run();
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Runnable tarefa = () -&gt; System.out.println("Rodando na thread: " + Thread.currentThread().getName());
+        Thread t = new Thread(tarefa, "ajudante");
+        t.start();
+        t.join();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma thread é uma linha de execução independente; todo programa começa na thread <code>main</code>.</li>
+  <li><code>new Thread(() -&gt; …)</code> cria; <code>start()</code> inicia (não <code>run()</code>!); <code>join()</code> espera; <code>Thread.sleep(ms)</code> pausa.</li>
+  <li>A ordem entre threads é decidida pelo escalonador: a saída se mistura e <strong>muda a cada execução</strong>. Dentro de cada thread, a ordem é mantida.</li>
+  <li><code>sleep</code> e <code>join</code> lançam <code>InterruptedException</code>, que é checked.</li>
+  <li>Threads que alteram a mesma variável perdem dados (condição de corrida): veja <a href="sincronizacao.html">synchronized e Locks</a>.</li>
+  <li>No editor do guia, as tarefas rodam em sequência e numa ordem fixa; as saídas misturadas desta página são do JDK real.</li>
+</ul>
+
+<p>Próxima aula: <a href="executors.html">ExecutorService</a>, para não criar threads à mão.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
