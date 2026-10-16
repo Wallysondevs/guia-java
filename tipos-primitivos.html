@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Tipos Primitivos — os 8 tipos básicos | Guia Java</title>
+<meta name="description" content="Os 8 tipos primitivos do Java (byte, short, int, long, float, double, char, boolean): tamanho, faixa de valores, valor padrão, a diferença entre primitivo e referência (String) e como escolher o tipo certo, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Tipos Primitivos</span></h1>
+
+<p class="intro">Na aula <a href="variaveis.html">Variáveis</a> você viu que toda variável tem um <strong>tipo</strong>, o "formato da caixa". O Java tem exatamente <strong>oito</strong> tipos básicos, embutidos na linguagem, chamados <strong>tipos primitivos</strong>. Esta aula apresenta os oito de uma vez, para você ter o mapa completo; as próximas aulas aprofundam cada grupo.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os 8 tipos primitivos: o que cada um guarda, quanto espaço ocupa e até onde vai.</li>
+  <li>Por que o Java exige tipos (e como eles protegem você de erros).</li>
+  <li>A diferença entre um tipo <strong>primitivo</strong> e um tipo de <strong>referência</strong>, como <code>String</code>.</li>
+  <li>Qual tipo escolher em cada situação.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>Por que existem tipos?</h2>
+<p>Imagine o armário de uma cozinha. Há potes pequenos para o sal, potes grandes para o arroz, uma garrafa para o óleo. Você não guarda óleo num saquinho de papel nem uma colher de sal num pote de 5 kg. Cada recipiente é feito para um tipo de conteúdo e um tamanho.</p>
+
+<p>No computador é igual. Tudo é guardado na memória como <strong>bits</strong> (zeros e uns), e o mesmo punhado de bits pode significar um número, uma letra ou "verdadeiro". O tipo diz ao Java <strong>como ler</strong> aqueles bits e <strong>quanto espaço</strong> reservar. Em troca, o Java confere, antes de rodar, se você está guardando cada coisa no recipiente certo:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int quantidade = 2.5;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from double to int
+        int quantidade = 2.5;
+                         ^
+1 error</pre>
+
+<p>"Tipos incompatíveis: possível conversão com perda, de double para int". Uma caixa <code>int</code> só guarda inteiros; para caber, o <code>2.5</code> perderia o <code>.5</code>, e o Java não faz isso escondido. O erro aparece <strong>na compilação</strong>, antes de o programa rodar, e é exatamente para isso que os tipos existem: achar erros cedo. Linguagens que verificam os tipos assim são chamadas de <strong>estaticamente tipadas</strong>.</p>
+
+<hr>
+
+<h2>Os 8 tipos primitivos</h2>
+<p>Eles se dividem em quatro famílias:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Família</th><th>Tipos</th><th>Guardam</th><th>Aula</th></tr>
+<tr><td>Inteiros</td><td><code>byte</code>, <code>short</code>, <code>int</code>, <code>long</code></td><td>Números sem parte decimal</td><td><a href="inteiros.html">int, long, short, byte</a></td></tr>
+<tr><td>Decimais (ponto flutuante)</td><td><code>float</code>, <code>double</code></td><td>Números com parte decimal</td><td><a href="decimais.html">double e float</a></td></tr>
+<tr><td>Caractere</td><td><code>char</code></td><td>Uma letra, dígito ou símbolo</td><td><a href="char-boolean.html">char e boolean</a></td></tr>
+<tr><td>Lógico</td><td><code>boolean</code></td><td><code>true</code> (verdadeiro) ou <code>false</code> (falso)</td><td><a href="char-boolean.html">char e boolean</a></td></tr>
+</table>
+</div>
+
+<p>E aqui está a tabela completa. Não precisa decorar os números: guarde a ideia de que cada tipo tem um limite.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Tamanho</th><th>Faixa de valores</th><th>Valor padrão</th><th>Exemplo</th></tr>
+<tr><td><code>byte</code></td><td>8 bits (1 byte)</td><td>-128 a 127</td><td><code>0</code></td><td><code>byte idadeDoGato = 7;</code></td></tr>
+<tr><td><code>short</code></td><td>16 bits (2 bytes)</td><td>-32.768 a 32.767</td><td><code>0</code></td><td><code>short ano = 1997;</code></td></tr>
+<tr><td><code>int</code></td><td>32 bits (4 bytes)</td><td>-2.147.483.648 a 2.147.483.647 (cerca de ±2,1 bilhões)</td><td><code>0</code></td><td><code>int habitantes = 213000000;</code></td></tr>
+<tr><td><code>long</code></td><td>64 bits (8 bytes)</td><td>cerca de ±9,2 quintilhões (19 dígitos)</td><td><code>0L</code></td><td><code>long estrelas = 400000000000L;</code></td></tr>
+<tr><td><code>float</code></td><td>32 bits (4 bytes)</td><td>até cerca de ±3,4 × 10<sup>38</sup>, com 6 a 7 dígitos de precisão</td><td><code>0.0f</code></td><td><code>float temperatura = 36.5f;</code></td></tr>
+<tr><td><code>double</code></td><td>64 bits (8 bytes)</td><td>até cerca de ±1,8 × 10<sup>308</sup>, com 15 a 16 dígitos de precisão</td><td><code>0.0</code></td><td><code>double preco = 9.90;</code></td></tr>
+<tr><td><code>char</code></td><td>16 bits (2 bytes)</td><td>um caractere Unicode (códigos 0 a 65.535)</td><td><code>'\u0000'</code></td><td><code>char inicial = 'A';</code></td></tr>
+<tr><td><code>boolean</code></td><td>não definido pela especificação</td><td><code>true</code> ou <code>false</code></td><td><code>false</code></td><td><code>boolean temCadastro = true;</code></td></tr>
+</table>
+</div>
+
+<p>Os nomes vêm do inglês: <em>byte</em> (8 bits), <em>short</em> ("curto"), <em>int</em> (<em>integer</em>, "inteiro"), <em>long</em> ("longo"), <em>float</em> ("flutuar", de <em>floating point</em>, "ponto flutuante"), <em>double</em> ("duplo": o dobro da precisão do float), <em>char</em> (<em>character</em>, "caractere") e <em>boolean</em> (do matemático George Boole, que criou a lógica de verdadeiro e falso).</p>
+
+<h3>Os oito num programa</h3>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        byte idadeDoGato = 7;
+        short anoDeNascimento = 1997;
+        int habitantes = 213000000;
+        long estrelas = 400000000000L;
+        float temperatura = 36.5f;
+        double preco = 9.90;
+        char inicial = 'A';
+        boolean temCadastro = true;
+        System.out.println(idadeDoGato);
+        System.out.println(anoDeNascimento);
+        System.out.println(habitantes);
+        System.out.println(estrelas);
+        System.out.println(temperatura);
+        System.out.println(preco);
+        System.out.println(inicial);
+        System.out.println(temCadastro);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+7
+1997
+213000000
+400000000000
+36.5
+9.9                « o zero do fim de 9.90 não é guardado
+A
+true</pre>
+
+<p>Repare nos detalhes de escrita, cada um explicado na aula da sua família:</p>
+<dl class="anatomy">
+  <dt>400000000000L</dt><dd>O <code>L</code> no fim marca um número <code>long</code>. Sem ele, o Java acha que é um <code>int</code> grande demais e recusa (<a href="inteiros.html">int, long, short, byte</a>).</dd>
+  <dt>36.5f</dt><dd>O <code>f</code> marca um <code>float</code>. Sem ele, <code>36.5</code> é <code>double</code> (<a href="decimais.html">double e float</a>).</dd>
+  <dt>'A'</dt><dd>Um <code>char</code> vai entre <strong>aspas simples</strong>; texto (<code>String</code>) vai entre aspas duplas (<a href="char-boolean.html">char e boolean</a>).</dd>
+  <dt>true</dt><dd>Um <code>boolean</code> é escrito sem aspas, em minúsculas.</dd>
+</dl>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> mude os valores. Tente <code>byte idadeDoGato = 200;</code> (passa do limite de 127), tire o <code>L</code> do <code>long</code> ou o <code>f</code> do <code>float</code>, e veja o que o compilador responde.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        byte idadeDoGato = 7;
+        short anoDeNascimento = 1997;
+        int habitantes = 213000000;
+        long estrelas = 400000000000L;
+        float temperatura = 36.5f;
+        double preco = 9.90;
+        char inicial = 'A';
+        boolean temCadastro = true;
+        System.out.println(idadeDoGato);
+        System.out.println(anoDeNascimento);
+        System.out.println(habitantes);
+        System.out.println(estrelas);
+        System.out.println(temperatura);
+        System.out.println(preco);
+        System.out.println(inicial);
+        System.out.println(temCadastro);
+    }
+}
+</pre>
+</div>
+
+<h3>Os limites, direto do Java</h3>
+<p>Você não precisa decorar as faixas: o próprio Java as guarda em <strong>constantes</strong>, como <code>Integer.MAX_VALUE</code> ("valor máximo de um inteiro"). <code>Byte</code>, <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code> e <code>Character</code> são classes "irmãs" dos primitivos, chamadas <a href="wrappers.html">wrappers</a>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("byte:  " + Byte.MIN_VALUE + " a " + Byte.MAX_VALUE);
+        System.out.println("short: " + Short.MIN_VALUE + " a " + Short.MAX_VALUE);
+        System.out.println("int:   " + Integer.MIN_VALUE + " a " + Integer.MAX_VALUE);
+        System.out.println("long:  " + Long.MIN_VALUE + " a " + Long.MAX_VALUE);
+        System.out.println("float:  até " + Float.MAX_VALUE);
+        System.out.println("double: até " + Double.MAX_VALUE);
+        System.out.println("char:  " + (int) Character.MIN_VALUE + " a " + (int) Character.MAX_VALUE);
+        System.out.println("bits de um int: " + Integer.SIZE + ", bytes: " + Integer.BYTES);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+byte:  -128 a 127
+short: -32768 a 32767
+int:   -2147483648 a 2147483647
+long:  -9223372036854775808 a 9223372036854775807
+float:  até 3.4028235E38
+double: até 1.7976931348623157E308
+char:  0 a 65535
+bits de um int: 32, bytes: 4</pre>
+
+<p><code>3.4028235E38</code> é a notação científica que o Java usa para números enormes: quer dizer 3,4028235 × 10<sup>38</sup> (explicada em <a href="decimais.html">double e float</a>). O <code>(int)</code> antes de <code>Character.MIN_VALUE</code> pede para mostrar o código numérico em vez do caractere; isso se chama <em>casting</em> (<a href="conversao-tipos.html">Conversão de Tipos</a>).</p>
+
+<div class="tryjshell" data-goal="out:2147483647">
+<p class="try-task"><strong>Missão:</strong> no JShell, descubra o maior valor que cabe num <code>int</code>. Digite <code>Integer.MAX_VALUE</code> e aperte Enter. Depois, por curiosidade, experimente <code>Long.MAX_VALUE</code> e <code>Byte.MIN_VALUE</code>.</p>
+<pre class="solucao">Integer.MAX_VALUE</pre>
+</div>
+
+<h3>O valor padrão</h3>
+<p>A coluna "valor padrão" da tabela é o valor que o Java coloca sozinho em variáveis que ficam <strong>dentro de objetos e arrays</strong> (os <a href="atributos.html">atributos</a> e os elementos de um <a href="arrays.html">array</a>, assuntos de outras aulas). O JShell, que guarda as variáveis de um jeito parecido, mostra esses valores quando você declara sem atribuir:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; int x;
+x ==&gt; 0
+
+jshell&gt; double d;
+d ==&gt; 0.0
+
+jshell&gt; boolean b;
+b ==&gt; false
+
+jshell&gt; char c;
+c ==&gt; '\000'
+
+jshell&gt; String s;
+s ==&gt; null
+
+jshell&gt; /exit
+|  Goodbye</pre>
+
+<p><code>'\000'</code> é o caractere de código zero (invisível). <code>null</code> quer dizer "nenhum objeto"; você vai entender na próxima seção.</p>
+
+<div class="warning">
+<strong>Variáveis dentro do <code>main</code> não ganham valor padrão</strong>
+<p>Num programa, as variáveis declaradas dentro de um método (como o <code>main</code>) são <strong>variáveis locais</strong> e começam sem valor nenhum. Usar uma delas antes de atribuir dá <code>variable … might not have been initialized</code>, como você viu em <a href="variaveis.html">Variáveis</a>. O valor padrão vale só para atributos e arrays (e para o JShell).</p>
+</div>
+
+<hr>
+
+<h2>Primitivo × referência: e a <code>String</code>?</h2>
+<p>Você já usou <code>String</code> e ela não está na lista dos oito. Isso porque <code>String</code> não é primitivo: é uma <strong>classe</strong>, e as variáveis de classes são de <strong>tipo de referência</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Tipo primitivo</th><th>Tipo de referência</th></tr>
+<tr><td>Quais são</td><td>Só os 8: <code>byte short int long float double char boolean</code></td><td>Todos os outros: <code>String</code>, <code>Scanner</code>, arrays, as classes que você criar…</td></tr>
+<tr><td>Como se escreve</td><td>Tudo minúsculo: <code>int</code></td><td>Por convenção, começa com maiúscula: <code>String</code></td></tr>
+<tr><td>O que a variável guarda</td><td>O próprio valor (<code>29</code>)</td><td>O <strong>endereço</strong> de um objeto que mora em outro lugar da memória</td></tr>
+<tr><td>Tem métodos (ações com ponto)?</td><td>Não</td><td>Sim: <code>nome.length()</code>, <code>nome.toUpperCase()</code></td></tr>
+<tr><td>Pode valer <code>null</code>?</td><td>Não</td><td>Sim (<code>null</code> = "não aponta para nenhum objeto")</td></tr>
+</table>
+</div>
+
+<p>Na comparação da caixa: uma variável primitiva é uma caixa com o valor <strong>dentro</strong>. Uma variável de referência é uma caixa com um <strong>papel anotado com o endereço</strong> de onde o objeto está guardado. O objeto <code>String</code> sabe fazer coisas, como contar as próprias letras; um <code>int</code> é só um número.</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        int idade = 29;
+        System.out.println(nome.length());
+        System.out.println(nome.toUpperCase());
+        System.out.println(idade.length());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:7: error: int cannot be dereferenced
+        System.out.println(idade.length());
+                                ^
+1 error</pre>
+
+<p>"int não pode ser desreferenciado": o ponto (<code>.</code>) depois de uma variável quer dizer "vá até o objeto e peça algo a ele". Um <code>int</code> não aponta para objeto nenhum, então não há onde ir. Sem a linha 7, o programa compila e mostra <code>3</code> (o número de letras) e <code>ANA</code>. Strings ganham aulas próprias: <a href="strings.html">Strings</a> e <a href="metodos-string.html">Métodos de String</a>. A diferença entre guardar o valor e guardar o endereço volta em <a href="classes-objetos.html">Classes e Objetos</a>.</p>
+
+<div class="tip">
+<strong>Cada primitivo tem uma classe "embrulho"</strong>
+<p><code>int</code> tem <code>Integer</code>, <code>double</code> tem <code>Double</code>, <code>char</code> tem <code>Character</code>, <code>boolean</code> tem <code>Boolean</code>, e assim por diante. São elas que guardam as constantes como <code>Integer.MAX_VALUE</code> e métodos úteis como <code>Integer.parseInt</code>. Veja <a href="wrappers.html">Wrappers e Autoboxing</a>.</p>
+</div>
+
+<hr>
+
+<h2>Como escolher o tipo</h2>
+<p>Na prática, quatro tipos resolvem quase tudo. Comece por esta tabela:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer guardar…</th><th>Use</th><th>Exemplo</th></tr>
+<tr><td>Quantidades, contagens, idades, anos</td><td><code>int</code></td><td><code>int alunos = 32;</code></td></tr>
+<tr><td>Números inteiros que podem passar de 2 bilhões (população mundial, milissegundos, tamanho de arquivos)</td><td><code>long</code></td><td><code>long populacao = 8100000000L;</code></td></tr>
+<tr><td>Medidas e contas com vírgula (altura, média, temperatura)</td><td><code>double</code></td><td><code>double media = 7.5;</code></td></tr>
+<tr><td>Sim ou não, ligado ou desligado</td><td><code>boolean</code></td><td><code>boolean aprovada = true;</code></td></tr>
+<tr><td>Uma única letra ou símbolo</td><td><code>char</code></td><td><code>char turma = 'B';</code></td></tr>
+<tr><td>Texto (nome, frase, até uma letra só, se for "texto")</td><td><code>String</code> (referência)</td><td><code>String nome = "Ana";</code></td></tr>
+<tr><td>Dinheiro</td><td><code>BigDecimal</code> (referência)</td><td>Veja <a href="bigdecimal.html">BigDecimal e Dinheiro</a></td></tr>
+<tr><td>Economizar memória em milhões de valores pequenos</td><td><code>byte</code>, <code>short</code>, <code>float</code></td><td>Raro em programas do dia a dia</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>Por que não usar <code>byte</code> para uma idade, já que cabe?</strong>
+<p>Poderia, mas não vale a pena. As contas em Java são feitas em <code>int</code> (você vai ver em <a href="conversao-tipos.html">Conversão de Tipos</a> que <code>byte + byte</code> dá <code>int</code>), então um <code>byte</code> obriga a conversões chatas, e a economia de 3 bytes não faz diferença num programa comum. Use <code>int</code> como padrão para inteiros e <code>double</code> para decimais.</p>
+</div>
+
+<div class="warning">
+<strong>Número de telefone, CPF e CEP não são números</strong>
+<p>Você não faz contas com eles, eles podem começar com zero (<code>01310-100</code>) e o CPF passa do limite do <code>int</code>. Guarde em <code>String</code>: <code>String cep = "01310-100";</code>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … symbol: class string"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        string nome = "Ana";
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        string nome = "Ana";
+        ^
+  symbol:   class string
+  location: class Main
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o Java procurou uma <strong>classe</strong> chamada <code>string</code> (minúsculo) e não achou. A classe se chama <code>String</code>, com S maiúsculo. O erro inverso também existe: <code>Int idade = 29;</code> dá <code>symbol: class Int</code>, porque os primitivos são <strong>sempre minúsculos</strong>.</p>
+<p><strong>Como consertar:</strong> primitivos em minúsculas (<code>int</code>, <code>double</code>, <code>boolean</code>); <code>String</code> com maiúscula.</p>
+</div>
+
+<div class="cenario">
+<strong>"possible lossy conversion from int to byte"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from int to byte
+        byte idade = 200;
+                     ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> 200 passa do limite do <code>byte</code> (127). O Java trata o 200 como um <code>int</code> e avisa que guardá-lo num <code>byte</code> perderia informação. Com <code>byte idade = 100;</code> não há erro: o Java vê que 100 cabe.</p>
+<p><strong>Como consertar:</strong> use um tipo maior (<code>int</code>). Os limites e o que acontece quando um número passa deles estão em <a href="inteiros.html">int, long, short, byte</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>"int cannot be dereferenced"</strong>
+<p><strong>O que quer dizer:</strong> você colocou um ponto depois de uma variável primitiva (<code>idade.length()</code>, <code>preco.toString()</code>). Primitivos não têm métodos.</p>
+<p><strong>Como consertar:</strong> use os métodos das classes embrulho, que recebem o valor entre parênteses: <code>String.valueOf(idade)</code> ou <code>Integer.toString(idade)</code> transformam o número em texto (<a href="conversao-tipos.html">Conversão de Tipos</a>).</p>
+</div>
+
+<div class="tryjava" data-goal="compila,out:32 7.5 B true,src:\bdouble\s+media\b,src:\bboolean\s+aprovada\b">
+<p class="try-task"><strong>Missão:</strong> a professora Ana declarou tudo como <code>int</code> e o programa não compila. Troque o tipo de cada variável pelo tipo certo (e, se precisar, as aspas do valor) para a saída ser <code>32 7.5 B true</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int alunos = 32;
+        int media = 7.5;
+        int turma = "B";
+        int aprovada = true;
+        System.out.println(alunos + " " + media + " " + turma + " " + aprovada);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int alunos = 32;
+        double media = 7.5;
+        char turma = 'B';
+        boolean aprovada = true;
+        System.out.println(alunos + " " + media + " " + turma + " " + aprovada);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Literal (como escrever o valor)</th><th>Máximo / mínimo</th><th>Classe embrulho</th></tr>
+<tr><td><code>byte</code></td><td><code>7</code></td><td><code>Byte.MAX_VALUE</code> / <code>Byte.MIN_VALUE</code></td><td><code>Byte</code></td></tr>
+<tr><td><code>short</code></td><td><code>1997</code></td><td><code>Short.MAX_VALUE</code> / <code>Short.MIN_VALUE</code></td><td><code>Short</code></td></tr>
+<tr><td><code>int</code></td><td><code>29</code>, <code>1_000_000</code></td><td><code>Integer.MAX_VALUE</code> / <code>Integer.MIN_VALUE</code></td><td><code>Integer</code></td></tr>
+<tr><td><code>long</code></td><td><code>29L</code></td><td><code>Long.MAX_VALUE</code> / <code>Long.MIN_VALUE</code></td><td><code>Long</code></td></tr>
+<tr><td><code>float</code></td><td><code>36.5f</code></td><td><code>Float.MAX_VALUE</code></td><td><code>Float</code></td></tr>
+<tr><td><code>double</code></td><td><code>9.90</code>, <code>1.5e3</code></td><td><code>Double.MAX_VALUE</code></td><td><code>Double</code></td></tr>
+<tr><td><code>char</code></td><td><code>'A'</code>, <code>'é'</code></td><td><code>Character.MAX_VALUE</code></td><td><code>Character</code></td></tr>
+<tr><td><code>boolean</code></td><td><code>true</code>, <code>false</code></td><td>—</td><td><code>Boolean</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O tipo da média</h3>
+<p>Complete com o tipo mais indicado para guardar a média <code>8.25</code>:</p>
+<div class="ex-code"><input data-answer="double" aria-label="tipo"> media = 8.25;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Sim ou não</h3>
+<p>Complete com o tipo primitivo que guarda <code>true</code> ou <code>false</code>:</p>
+<div class="ex-code"><input data-answer="boolean" aria-label="tipo"> pago = false;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quantos tipos?</h3>
+<p>Quantos tipos primitivos o Java tem? Escreva o número:</p>
+<div class="ex-code"><input data-answer="8|oito" aria-label="quantidade"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destes <strong>não</strong> é um tipo primitivo?</p>
+<label><input type="radio" name="q4"> <code>char</code></label>
+<label><input type="radio" name="q4"> <code>String</code></label>
+<label><input type="radio" name="q4"> <code>long</code></label>
+<label><input type="radio" name="q4"> <code>boolean</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual o melhor tipo para guardar um CEP como <code>01310-100</code>?</p>
+<label><input type="radio" name="q5"> <code>int</code></label>
+<label><input type="radio" name="q5"> <code>long</code></label>
+<label><input type="radio" name="q5"> <code>String</code></label>
+<label><input type="radio" name="q5"> <code>double</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que acontece com <code>byte nota = 300;</code>?</p>
+<label><input type="radio" name="q6"> Não compila: 300 não cabe num <code>byte</code> (<code>possible lossy conversion from int to byte</code>).</label>
+<label><input type="radio" name="q6"> Compila e guarda 300.</label>
+<label><input type="radio" name="q6"> Compila e guarda 127.</label>
+<label><input type="radio" name="q6"> Compila, mas dá erro ao rodar.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Por que <code>idade.length()</code> não compila quando <code>idade</code> é <code>int</code>?</p>
+<label><input type="radio" name="q7"> Porque falta o ponto e vírgula.</label>
+<label><input type="radio" name="q7"> Porque <code>length</code> se escreve com maiúscula.</label>
+<label><input type="radio" name="q7"> Porque <code>idade</code> não foi inicializada.</label>
+<label><input type="radio" name="q7"> Porque primitivos não têm métodos; só objetos (como <code>String</code>) têm.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O Java tem 8 tipos primitivos: <code>byte</code>, <code>short</code>, <code>int</code>, <code>long</code> (inteiros), <code>float</code>, <code>double</code> (decimais), <code>char</code> (um caractere) e <code>boolean</code> (verdadeiro/falso).</li>
+  <li>Cada tipo tem tamanho e faixa fixos; as constantes <code>Integer.MAX_VALUE</code> e companhia mostram os limites.</li>
+  <li>Os tipos deixam o <code>javac</code> achar erros antes de o programa rodar (<code>incompatible types</code>).</li>
+  <li><code>String</code> não é primitivo: é uma classe (tipo de referência), começa com maiúscula, tem métodos e pode ser <code>null</code>.</li>
+  <li>Valor padrão (0, <code>false</code>, <code>null</code>…) só vale para atributos e arrays; variáveis locais precisam de valor antes do uso.</li>
+  <li>No dia a dia: <code>int</code>, <code>long</code> para números muito grandes, <code>double</code>, <code>boolean</code>, <code>char</code> e <code>String</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
