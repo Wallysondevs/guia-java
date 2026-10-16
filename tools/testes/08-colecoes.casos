@@ -1,0 +1,251 @@
+### arraylist-ops
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>();
+        l.add("banana"); l.add("maçã"); l.add(0, "uva"); l.add("kiwi");
+        System.out.println(l + " " + l.size() + " " + l.get(1) + " " + l.indexOf("kiwi") + " " + l.contains("pera"));
+        l.set(1, "BANANA"); l.remove("kiwi"); l.remove(0);
+        System.out.println(l + " " + l.isEmpty());
+        List<Integer> n = new ArrayList<>(List.of(5, 3, 8, 1));
+        n.remove(Integer.valueOf(8)); n.remove(0);
+        System.out.println(n);
+        Collections.sort(n); System.out.println(n);
+        n.sort(Comparator.reverseOrder()); System.out.println(n);
+        n.addAll(List.of(7, 7)); n.removeIf(x -> x == 7);
+        System.out.println(n + " " + n.subList(0, 1) + " " + Collections.max(n) + " " + Collections.min(n));
+        List<String> copia = new ArrayList<>(l); copia.clear();
+        System.out.println(copia + " " + l);
+        Iterator<Integer> it = n.iterator();
+        while (it.hasNext()) if (it.next() == 3) it.remove();
+        System.out.println(n);
+        List<String> nomes = new ArrayList<>(List.of("Carla", "ana", "Bruno"));
+        nomes.sort(String.CASE_INSENSITIVE_ORDER); System.out.println(nomes);
+        nomes.replaceAll(String::toUpperCase); System.out.println(nomes + " " + String.join(";", nomes));
+        System.out.println(nomes.getFirst() + " " + nomes.getLast() + " " + nomes.reversed());
+    }
+}
+### hashmap-ops
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        Map<String, Integer> estoque = new HashMap<>();
+        estoque.put("maçã", 10); estoque.put("banana", 20); estoque.put("uva", 0); estoque.put("kiwi", 5);
+        System.out.println(estoque + " " + estoque.get("banana") + " " + estoque.get("pera") + " " + estoque.getOrDefault("pera", -1));
+        estoque.put("maçã", 15); estoque.putIfAbsent("maçã", 99); estoque.putIfAbsent("pera", 3);
+        estoque.merge("banana", 5, Integer::sum); estoque.merge("melão", 1, Integer::sum);
+        estoque.remove("uva");
+        System.out.println(estoque + " " + estoque.size() + " " + estoque.containsKey("kiwi") + " " + estoque.containsValue(25));
+        for (Map.Entry<String, Integer> e : estoque.entrySet()) System.out.print(e.getKey() + ":" + e.getValue() + " ");
+        System.out.println();
+        System.out.println(estoque.keySet() + " " + estoque.values());
+        estoque.forEach((k, v) -> System.out.print(k + "=" + v + ";"));
+        System.out.println();
+        Map<String, Integer> contagem = new HashMap<>();
+        for (String p : "o rato roeu a roupa do rei de roma o rato".split(" ")) contagem.put(p, contagem.getOrDefault(p, 0) + 1);
+        System.out.println(contagem);
+        Map<Character, Integer> letras = new TreeMap<>();
+        for (char c : "abracadabra".toCharArray()) letras.merge(c, 1, Integer::sum);
+        System.out.println(letras);
+        Map<Integer, String> nums = new HashMap<>();
+        for (int i = 20; i >= 0; i -= 3) nums.put(i, "n" + i);
+        System.out.println(nums);
+    }
+}
+### hashmap-muitos
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        Map<String, Integer> m = new HashMap<>();
+        String[] palavras = {"Java", "Python", "C", "Ruby", "Go", "Rust", "Kotlin", "Scala", "Swift", "PHP", "Perl", "Lua", "Haskell", "Elixir", "Dart", "TypeScript", "JavaScript", "Bash", "SQL", "R"};
+        for (String p : palavras) m.put(p, p.length());
+        System.out.println(m);
+        Set<String> s = new HashSet<>(Arrays.asList(palavras));
+        System.out.println(s);
+        Set<Integer> nums = new HashSet<>();
+        for (int i = 0; i < 40; i += 7) nums.add(i * 13);
+        System.out.println(nums);
+        Map<String, Integer> m2 = new HashMap<>();
+        for (String p : palavras) m2.merge(p.substring(0, 1), 1, Integer::sum);
+        System.out.println(m2);
+        Map<String, List<String>> g = new HashMap<>();
+        for (String p : palavras) g.computeIfAbsent(p.length() > 3 ? "longo" : "curto", k -> new ArrayList<>()).add(p);
+        System.out.println(g);
+    }
+}
+### sets
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        Set<String> hs = new HashSet<>(List.of("pera", "uva", "maçã", "banana", "kiwi"));
+        Set<String> lhs = new LinkedHashSet<>(List.of("pera", "uva", "maçã", "banana", "kiwi"));
+        Set<String> ts = new TreeSet<>(hs);
+        System.out.println(hs + "\n" + lhs + "\n" + ts);
+        System.out.println(hs.add("uva") + " " + hs.add("figo") + " " + hs.contains("figo") + " " + hs.remove("pera") + " " + hs.size());
+        Set<Integer> a = new TreeSet<>(List.of(1, 2, 3, 4)), b = new TreeSet<>(List.of(3, 4, 5));
+        Set<Integer> uniao = new TreeSet<>(a); uniao.addAll(b);
+        Set<Integer> inter = new TreeSet<>(a); inter.retainAll(b);
+        Set<Integer> dif = new TreeSet<>(a); dif.removeAll(b);
+        System.out.println(uniao + " " + inter + " " + dif);
+        TreeSet<Integer> t = new TreeSet<>(List.of(10, 5, 20, 15));
+        System.out.println(t.first() + " " + t.last() + " " + t.floor(12) + " " + t.ceiling(12) + " " + t.higher(20) + " " + t.headSet(15) + " " + t.tailSet(15) + " " + t.descendingSet());
+    }
+}
+### treemap-ops
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        TreeMap<String, Double> notas = new TreeMap<>();
+        notas.put("Carla", 8.5); notas.put("Ana", 9.5); notas.put("Bruno", 7.0); notas.put("Duda", 6.0);
+        System.out.println(notas + " " + notas.firstKey() + " " + notas.lastEntry() + " " + notas.headMap("C") + " " + notas.tailMap("C"));
+        System.out.println(notas.floorKey("Bia") + " " + notas.ceilingKey("Bia") + " " + notas.descendingMap());
+        TreeMap<Integer, String> inv = new TreeMap<>(Comparator.reverseOrder());
+        inv.put(1, "um"); inv.put(3, "três"); inv.put(2, "dois");
+        System.out.println(inv + " " + inv.pollFirstEntry() + " " + inv);
+    }
+}
+### deque-fila
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        Deque<Integer> pilha = new ArrayDeque<>();
+        pilha.push(1); pilha.push(2); pilha.push(3);
+        System.out.println(pilha + " " + pilha.peek() + " " + pilha.pop() + " " + pilha);
+        Queue<String> fila = new LinkedList<>();
+        fila.offer("a"); fila.offer("b"); fila.add("c");
+        System.out.println(fila.poll() + " " + fila.peek() + " " + fila);
+        PriorityQueue<Integer> pq = new PriorityQueue<>(List.of(5, 1, 4, 2, 3));
+        System.out.print(pq + " -> ");
+        while (!pq.isEmpty()) System.out.print(pq.poll() + " ");
+        System.out.println();
+        PriorityQueue<String> pqs = new PriorityQueue<>(Comparator.comparing(String::length).thenComparing(Comparator.reverseOrder()));
+        pqs.addAll(List.of("kiwi", "uva", "banana", "fig", "pera"));
+        while (!pqs.isEmpty()) System.out.print(pqs.poll() + " ");
+        System.out.println();
+        LinkedList<Integer> ll = new LinkedList<>(List.of(1, 2, 3));
+        ll.addFirst(0); ll.addLast(4); ll.removeFirst();
+        System.out.println(ll + " " + ll.getFirst() + " " + ll.peekLast());
+        Stack<Integer> st = new Stack<>();
+        st.push(1); st.push(2);
+        System.out.println(st + " " + st.pop() + " " + st.peek() + " " + st.empty());
+    }
+}
+### imutaveis
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<Integer> l = List.of(1, 2, 3);
+        List<Integer> a = Arrays.asList(1, 2, 3);
+        a.set(0, 9);
+        System.out.println(l + " " + a);
+        try { a.add(4); } catch (UnsupportedOperationException e) { System.out.println("asList: " + e); }
+        try { l.set(0, 1); } catch (UnsupportedOperationException e) { System.out.println("List.of: " + e); }
+        List<Integer> um = Collections.unmodifiableList(new ArrayList<>(l));
+        try { um.add(1); } catch (UnsupportedOperationException e) { System.out.println("unmodifiable"); }
+        Map<String, Integer> m = Map.of("a", 1);
+        try { m.put("b", 2); } catch (UnsupportedOperationException e) { System.out.println("Map.of " + e); }
+        try { List.of(1, null); } catch (NullPointerException e) { System.out.println("NPE List.of"); }
+        System.out.println(List.copyOf(a) + " " + Collections.emptyList() + " " + Collections.nCopies(3, "x") + " " + Collections.singletonList(5));
+    }
+}
+### collections-util
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<Integer> l = new ArrayList<>(List.of(4, 2, 9, 2, 7));
+        Collections.reverse(l); System.out.println(l);
+        Collections.swap(l, 0, 4); System.out.println(l);
+        System.out.println(Collections.frequency(l, 2) + " " + Collections.max(l) + " " + Collections.min(l, Comparator.reverseOrder()));
+        Collections.sort(l); System.out.println(l + " " + Collections.binarySearch(l, 7));
+        Collections.rotate(l, 2); System.out.println(l);
+        Collections.addAll(l, 1, 1); System.out.println(l);
+        List<String> nomes = new ArrayList<>(List.of("Bruno", "Ana", "Carla", "Duda", "Edu"));
+        Collections.shuffle(nomes, new Random(42));
+        System.out.println(nomes);
+        Collections.shuffle(nomes, new Random(7));
+        System.out.println(nomes);
+        System.out.println(Collections.disjoint(List.of(1, 2), List.of(3)) + " " + Collections.emptyMap());
+    }
+}
+### comparable-comparator
+import java.util.*;
+public class Main {
+    static class Aluno implements Comparable<Aluno> {
+        String nome; double nota; int idade;
+        Aluno(String n, double t, int i) { nome = n; nota = t; idade = i; }
+        public int compareTo(Aluno o) { return nome.compareTo(o.nome); }
+        String getNome() { return nome; } double getNota() { return nota; } int getIdade() { return idade; }
+        public String toString() { return nome + "(" + nota + "," + idade + ")"; }
+    }
+    public static void main(String[] args) {
+        List<Aluno> t = new ArrayList<>(List.of(new Aluno("Carla", 9.5, 22), new Aluno("Ana", 9.5, 29), new Aluno("Bruno", 7.0, 34), new Aluno("Duda", 8.0, 22)));
+        Collections.sort(t); System.out.println(t);
+        t.sort(Comparator.comparing(Aluno::getNota)); System.out.println(t);
+        t.sort(Comparator.comparingDouble(Aluno::getNota).reversed().thenComparing(Aluno::getNome)); System.out.println(t);
+        t.sort(Comparator.comparingInt(Aluno::getIdade).thenComparing(Aluno::getNota, Comparator.reverseOrder())); System.out.println(t);
+        t.sort((a, b) -> b.idade - a.idade); System.out.println(t);
+        t.sort(Comparator.comparing(a -> a.nome.length())); System.out.println(t);
+        System.out.println(Collections.max(t, Comparator.comparing(Aluno::getNota)));
+        TreeSet<Aluno> ts = new TreeSet<>(Comparator.comparing(Aluno::getIdade));
+        ts.addAll(t); System.out.println(ts);
+        Comparator<String> porTamanho = new Comparator<String>() { public int compare(String a, String b) { return Integer.compare(a.length(), b.length()); } };
+        List<String> ps = new ArrayList<>(List.of("bbb", "a", "cc"));
+        ps.sort(porTamanho.reversed()); System.out.println(ps);
+        ps.sort(Comparator.nullsFirst(Comparator.naturalOrder())); System.out.println(ps);
+    }
+}
+### iterator-cme
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>(List.of("a", "b", "c", "d"));
+        for (Iterator<String> it = l.iterator(); it.hasNext(); ) { String s = it.next(); if (s.equals("b")) it.remove(); }
+        System.out.println(l);
+        ListIterator<String> li = l.listIterator();
+        while (li.hasNext()) { int i = li.nextIndex(); String s = li.next(); li.set(s + i); }
+        System.out.println(l);
+        Map<String, Integer> m = new HashMap<>(Map.of("x", 1, "y", 2));
+        m.entrySet().removeIf(e -> e.getValue() > 1);
+        System.out.println(m);
+        try { for (String s : l) if (s.startsWith("a")) l.add("z"); } catch (ConcurrentModificationException e) { System.out.println(e); }
+        Map<String, Integer> m2 = new HashMap<>(Map.of("a", 1, "b", 2, "c", 3));
+        for (String k : m2.keySet()) { if (k.equals("a")) { m2.remove(k); break; } }
+        System.out.println(m2);
+    }
+}
+### linkedhashmap-lru
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        Map<String, Integer> lhm = new LinkedHashMap<>();
+        lhm.put("z", 1); lhm.put("a", 2); lhm.put("m", 3); lhm.put("a", 9);
+        System.out.println(lhm);
+        LinkedHashMap<Integer, String> lru = new LinkedHashMap<>(16, 0.75f, true) {
+            protected boolean removeEldestEntry(Map.Entry<Integer, String> e) { return size() > 3; }
+        };
+        for (int i = 1; i <= 4; i++) lru.put(i, "v" + i);
+        lru.get(2); lru.put(5, "v5");
+        System.out.println(lru);
+    }
+}
+### hashset-objetos
+import java.util.*;
+public class Main {
+    static class Produto {
+        String nome; Produto(String n) { nome = n; }
+        public String toString() { return nome; }
+    }
+    static class ProdutoEq {
+        String nome; ProdutoEq(String n) { nome = n; }
+        public boolean equals(Object o) { return o instanceof ProdutoEq p && p.nome.equals(nome); }
+        public int hashCode() { return nome.hashCode(); }
+        public String toString() { return nome; }
+    }
+    public static void main(String[] args) {
+        Set<Produto> s1 = new HashSet<>();
+        s1.add(new Produto("café")); s1.add(new Produto("café"));
+        Set<ProdutoEq> s2 = new HashSet<>();
+        s2.add(new ProdutoEq("café")); s2.add(new ProdutoEq("café")); s2.add(new ProdutoEq("leite")); s2.add(new ProdutoEq("açúcar"));
+        System.out.println(s1.size() + " " + s2.size() + " " + s2 + " " + s2.contains(new ProdutoEq("leite")));
+    }
+}

@@ -1,0 +1,112 @@
+### scanner-linhas [stdin="Ana Souza\n29\n1,75\nsim\n"]
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Nome: ");
+        String nome = sc.nextLine();
+        System.out.print("Idade: ");
+        int idade = sc.nextInt();
+        System.out.print("Altura: ");
+        double alt = sc.nextDouble();
+        sc.nextLine();
+        System.out.print("Confirma? ");
+        String r = sc.nextLine();
+        System.out.println();
+        System.out.printf("%s, %d anos, %.2f m, %s%n", nome, idade, alt, r);
+        sc.close();
+    }
+}
+### scanner-soma [stdin="3 4 5\n10\n"]
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int soma = 0, n = 0;
+        while (sc.hasNextInt()) { soma += sc.nextInt(); n++; }
+        System.out.println("soma=" + soma + " n=" + n + " " + sc.hasNext());
+    }
+}
+### scanner-validacao [stdin="abc\n-5\n42\n"]
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int v = -1;
+        while (v < 0) {
+            System.out.print("Número positivo: ");
+            if (sc.hasNextInt()) { v = sc.nextInt(); if (v < 0) System.out.println("negativo!"); }
+            else { System.out.println("'" + sc.next() + "' não é número"); }
+        }
+        System.out.println("ok " + v);
+    }
+}
+### scanner-us [stdin="3.5 1,5\n"]
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in).useLocale(Locale.US);
+        System.out.println(sc.nextDouble());
+        try { sc.nextDouble(); } catch (InputMismatchException e) { System.out.println("mismatch " + sc.next()); }
+    }
+}
+### scanner-eof-int
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Digite: ");
+        int x = sc.nextInt();
+    }
+}
+### scanner-string
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner("10 20\nfim da linha\núltima");
+        System.out.println(sc.nextInt() + sc.nextInt());
+        System.out.println("[" + sc.nextLine() + "]");
+        System.out.println(sc.nextLine());
+        while (sc.hasNextLine()) System.out.println(">" + sc.nextLine());
+    }
+}
+### bufferedreader [stdin="linha 1\nlinha 2\n"]
+import java.io.*;
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String l;
+        int n = 0;
+        while ((l = br.readLine()) != null) { n++; System.out.println(n + ": " + l); }
+    }
+}
+### args-entrada [args="Ana 29 São"]
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(args.length);
+        for (String a : args) System.out.println("[" + a + "]");
+        int idade = Integer.parseInt(args[1]);
+        System.out.println(args[0] + " " + (idade + 1));
+    }
+}
+### args-vazio
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(args.length);
+        System.out.println(args[0]);
+    }
+}
+### parse-erros
+public class Main {
+    public static void main(String[] args) {
+        String[] xs = {"12", " 7", "3.5", "", "2147483648", "-0", "+5", "0x10"};
+        for (String x : xs) {
+            try { System.out.println(Integer.parseInt(x)); } catch (NumberFormatException e) { System.out.println(e.getMessage()); }
+        }
+        String[] ds = {"3.5", "3,5", "1e3", " 2.0 ", "abc", "NaN"};
+        for (String d : ds) {
+            try { System.out.println(Double.parseDouble(d)); } catch (NumberFormatException e) { System.out.println(e.getMessage()); }
+        }
+        Integer.parseInt("12a");
+    }
+}

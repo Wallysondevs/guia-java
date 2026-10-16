@@ -1,0 +1,162 @@
+### main-compacto
+void main() {
+    String nome = "Ana";
+    IO.println("Olá, " + nome);
+    List<Integer> l = new ArrayList<>(List.of(3, 1, 2));
+    Collections.sort(l);
+    IO.println(l);
+    IO.print("sem quebra");
+    IO.println();
+    IO.println(dobro(21));
+}
+int dobro(int x) { return x * 2; }
+### main-compacto-scanner [stdin="Ana\n29\n"]
+void main() {
+    String nome = IO.readln("Nome: ");
+    int idade = Integer.parseInt(IO.readln("Idade: "));
+    IO.println(nome + " tem " + idade + " anos");
+}
+### main-instancia-campos
+public class Main {
+    int contador = 0;
+    void main() {
+        contador++;
+        System.out.println("contador " + contador);
+    }
+}
+### import-module
+import module java.base;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = List.of("a");
+        Map<String, Integer> m = new HashMap<>();
+        m.put("x", 1);
+        System.out.println(l + " " + m + " " + LocalDate.of(2026, 1, 1));
+    }
+}
+### construtor-flexivel
+public class Main {
+    static class Base { Base(int v) { System.out.println("Base " + v); } }
+    static class Filha extends Base {
+        Filha(int v) {
+            if (v < 0) throw new IllegalArgumentException("negativo");
+            System.out.println("validou " + v);
+            super(v * 2);
+            System.out.println("depois do super");
+        }
+    }
+    public static void main(String[] args) {
+        new Filha(5);
+        try { new Filha(-1); } catch (IllegalArgumentException e) { System.out.println(e.getMessage()); }
+    }
+}
+### pattern-record-aninhado
+public class Main {
+    record Ponto(int x, int y) {}
+    record Linha(Ponto a, Ponto b) {}
+    static String descreve(Object o) {
+        if (o instanceof Linha(Ponto(var x1, var y1), Ponto(int x2, int y2)) && x1 == x2) return "vertical em x=" + x1 + " de " + y1 + " a " + y2;
+        if (o instanceof Linha l) return "linha " + l;
+        return "?";
+    }
+    public static void main(String[] args) {
+        System.out.println(descreve(new Linha(new Ponto(1, 2), new Ponto(1, 5))));
+        System.out.println(descreve(new Linha(new Ponto(0, 0), new Ponto(3, 4))));
+        Object o = 42;
+        String r = switch (o) {
+            case Integer i when i > 40 -> "grande";
+            case Integer i -> "pequeno";
+            default -> "outro";
+        };
+        System.out.println(r);
+    }
+}
+### sealed-classes
+public class Main {
+    sealed static abstract class Veiculo permits Carro, Moto {}
+    static final class Carro extends Veiculo { int portas = 4; }
+    static non-sealed class Moto extends Veiculo {}
+    static class Scooter extends Moto {}
+    static String tipo(Veiculo v) {
+        return switch (v) {
+            case Carro c -> "carro de " + c.portas + " portas";
+            case Moto m -> "moto (" + m.getClass().getSimpleName() + ")";
+        };
+    }
+    public static void main(String[] args) {
+        System.out.println(tipo(new Carro()) + " / " + tipo(new Moto()) + " / " + tipo(new Scooter()));
+    }
+}
+### threads-deterministicas
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.*;
+public class Main {
+    public static void main(String[] args) throws Exception {
+        AtomicInteger cont = new AtomicInteger();
+        Thread t1 = new Thread(() -> { for (int i = 0; i < 1000; i++) cont.incrementAndGet(); });
+        Thread t2 = new Thread(() -> { for (int i = 0; i < 1000; i++) cont.incrementAndGet(); });
+        t1.start(); t2.start(); t1.join(); t2.join();
+        System.out.println(cont.get());
+        try (var ex = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<Integer>> fs = new ArrayList<>();
+            for (int i = 1; i <= 5; i++) { int n = i; fs.add(ex.submit(() -> n * n)); }
+            int soma = 0;
+            for (Future<Integer> f : fs) soma += f.get();
+            System.out.println(soma);
+        }
+        CompletableFuture<String> cf = CompletableFuture.supplyAsync(() -> "dados").thenApply(String::toUpperCase).thenCombine(CompletableFuture.supplyAsync(() -> 42), (s, n) -> s + n);
+        System.out.println(cf.join());
+        Thread v = Thread.ofVirtual().start(() -> System.out.println("virtual: " + Thread.currentThread().isVirtual()));
+        v.join();
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        Future<String> nome = pool.submit(() -> Thread.currentThread().getName());
+        System.out.println(nome.get());
+        pool.shutdown();
+        System.out.println(pool.awaitTermination(1, TimeUnit.SECONDS));
+    }
+}
+### synchronized-bloco
+public class Main {
+    private int n = 0;
+    synchronized void inc() { n++; }
+    public static void main(String[] args) throws InterruptedException {
+        Main m = new Main();
+        Runnable r = () -> { for (int i = 0; i < 500; i++) m.inc(); };
+        Thread a = new Thread(r), b = new Thread(r);
+        a.start(); b.start(); a.join(); b.join();
+        Object lock = new Object();
+        synchronized (lock) { m.n += 1; }
+        System.out.println(m.n);
+        Thread.sleep(10);
+        System.out.println("acordou");
+    }
+}
+### anotacoes
+public class Main {
+    @FunctionalInterface interface Op { int f(int x); }
+    @Deprecated static void velho() { System.out.println("velho"); }
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) {
+        Op o = x -> x + 1;
+        System.out.println(o.f(1));
+        velho();
+    }
+}
+### regex-mais
+import java.util.regex.*;
+public class Main {
+    public static void main(String[] args) {
+        Pattern cep = Pattern.compile("(\\d{5})-?(\\d{3})");
+        Matcher m = cep.matcher("CEP 50030-230 e 01310100");
+        while (m.find()) System.out.println(m.group(1) + "|" + m.group(2) + " em " + m.start());
+        System.out.println("ana.souza@exemplo.com".matches("[\\w.]+@[\\w.]+\\.com"));
+        System.out.println("2026-10-16".replaceAll("(\\d+)-(\\d+)-(\\d+)", "$3/$2/$1"));
+        Matcher d = Pattern.compile("(?<dia>\\d{2})/(?<mes>\\d{2})").matcher("hoje é 16/10");
+        if (d.find()) System.out.println(d.group("mes") + " " + d.group(0) + " " + d.groupCount());
+        System.out.println(Pattern.compile("JAVA", Pattern.CASE_INSENSITIVE).matcher("Eu gosto de java").find());
+        String[] partes = "a1b22c333d".split("\\d+");
+        System.out.println(String.join(",", partes) + " " + partes.length);
+        System.out.println("  muitos   espaços  ".trim().replaceAll("\\s+", " "));
+    }
+}

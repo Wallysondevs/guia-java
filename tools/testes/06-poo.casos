@@ -1,0 +1,250 @@
+### classe-simples
+public class Main {
+    static class Conta {
+        private String titular;
+        private double saldo;
+        private static int total = 0;
+        Conta(String titular) { this(titular, 0); }
+        Conta(String titular, double saldo) { this.titular = titular; this.saldo = saldo; total++; }
+        void depositar(double v) { if (v <= 0) throw new IllegalArgumentException("valor inválido: " + v); saldo += v; }
+        boolean sacar(double v) { if (v > saldo) return false; saldo -= v; return true; }
+        double getSaldo() { return saldo; }
+        static int getTotal() { return total; }
+        @Override public String toString() { return titular + ": R$ " + saldo; }
+    }
+    public static void main(String[] args) {
+        Conta a = new Conta("Ana"), b = new Conta("Bruno", 50);
+        a.depositar(100);
+        System.out.println(a.sacar(30) + " " + b.sacar(80) + " " + a + " " + b + " " + Conta.getTotal());
+        try { a.depositar(-5); } catch (IllegalArgumentException e) { System.out.println("Erro: " + e.getMessage()); }
+    }
+}
+### heranca-polimorfismo
+public class Main {
+    static abstract class Animal {
+        protected String nome;
+        Animal(String nome) { this.nome = nome; System.out.println("Animal " + nome); }
+        abstract String som();
+        String apresentar() { return nome + " faz " + som(); }
+    }
+    static class Cachorro extends Animal {
+        Cachorro(String n) { super(n); System.out.println("Cachorro " + n); }
+        String som() { return "au"; }
+        @Override String apresentar() { return "O cão " + super.apresentar(); }
+    }
+    static class Gato extends Animal {
+        Gato(String n) { super(n); }
+        String som() { return "miau"; }
+    }
+    public static void main(String[] args) {
+        Animal[] bichos = {new Cachorro("Rex"), new Gato("Mimi")};
+        for (Animal a : bichos) System.out.println(a.apresentar());
+        Animal x = bichos[0];
+        if (x instanceof Cachorro c) System.out.println("é cachorro: " + c.nome);
+        System.out.println(x instanceof Animal);
+        System.out.println(bichos[1] instanceof Cachorro);
+        try { Cachorro c2 = (Cachorro) bichos[1]; } catch (ClassCastException e) { System.out.println(e.getMessage()); }
+    }
+}
+### interfaces-default
+import java.util.*;
+public class Main {
+    interface Forma { double area(); default String descricao() { return getClass().getSimpleName() + " com área " + area(); } static Forma unitario() { return () -> 1.0; } }
+    record Circulo(double r) implements Forma { public double area() { return Math.PI * r * r; } }
+    record Retangulo(double l, double a) implements Forma { public double area() { return l * a; } }
+    interface A { default String oi() { return "A"; } }
+    interface B { default String oi() { return "B"; } }
+    static class C implements A, B { public String oi() { return A.super.oi() + B.super.oi(); } }
+    public static void main(String[] args) {
+        List<Forma> formas = List.of(new Circulo(1), new Retangulo(2, 3));
+        double total = 0;
+        for (Forma f : formas) { System.out.println(f.descricao()); total += f.area(); }
+        System.out.printf("%.3f%n", total);
+        System.out.println(Forma.unitario().area() + " " + new C().oi());
+        Comparable<String> cs = "b";
+        System.out.println(cs.compareTo("a"));
+    }
+}
+### internas-anonimas
+public class Main {
+    private int contador = 0;
+    class Interna { void inc() { contador++; } }
+    static class Aninhada { String oi() { return "aninhada"; } }
+    interface Saudacao { String saudar(String nome); }
+    public static void main(String[] args) {
+        Main m = new Main();
+        Main.Interna in = m.new Interna();
+        in.inc(); in.inc();
+        System.out.println(m.contador + " " + new Aninhada().oi());
+        String prefixo = "Olá, ";
+        Saudacao s = new Saudacao() {
+            @Override public String saudar(String nome) { return prefixo + nome + "!"; }
+        };
+        System.out.println(s.saudar("Ana"));
+        class Local { String dobro(int x) { return x + "x2=" + (x * 2); } }
+        System.out.println(new Local().dobro(21));
+        Runnable r = new Runnable() { int n = 3; public void run() { System.out.println("rodando " + n); } };
+        r.run();
+        System.out.println(s.getClass().getName() + " " + new Local().getClass().getName());
+    }
+}
+### enums-completos
+public class Main {
+    enum Planeta {
+        MERCURIO(3.303e+23, 2.4397e6), TERRA(5.976e+24, 6.37814e6);
+        private final double massa, raio;
+        Planeta(double massa, double raio) { this.massa = massa; this.raio = raio; }
+        double gravidade() { return 6.67300E-11 * massa / (raio * raio); }
+    }
+    enum Op {
+        SOMA("+") { int aplicar(int a, int b) { return a + b; } },
+        MULT("*") { int aplicar(int a, int b) { return a * b; } };
+        final String simbolo;
+        Op(String s) { simbolo = s; }
+        abstract int aplicar(int a, int b);
+    }
+    public static void main(String[] args) {
+        for (Planeta p : Planeta.values()) System.out.printf("%s %.2f%n", p, p.gravidade());
+        System.out.println(Planeta.valueOf("TERRA").ordinal() + " " + Planeta.TERRA.name() + " " + Planeta.TERRA.compareTo(Planeta.MERCURIO));
+        for (Op o : Op.values()) System.out.println(o + " " + o.simbolo + " " + o.aplicar(3, 4));
+        try { Planeta.valueOf("PLUTAO"); } catch (IllegalArgumentException e) { System.out.println(e.getMessage()); }
+        System.out.println(Op.SOMA.getClass() + " " + Op.SOMA.getDeclaringClass());
+        java.util.EnumMap<Planeta, String> em = new java.util.EnumMap<>(Planeta.class);
+        em.put(Planeta.TERRA, "casa"); em.put(Planeta.MERCURIO, "quente");
+        System.out.println(em);
+    }
+}
+### records
+import java.util.*;
+public class Main {
+    record Ponto(int x, int y) {
+        Ponto { if (x < 0) throw new IllegalArgumentException("x negativo"); }
+        Ponto() { this(0, 0); }
+        double distancia() { return Math.sqrt(x * x + y * y); }
+        static Ponto origem() { return new Ponto(); }
+    }
+    record Par<A, B>(A primeiro, B segundo) {}
+    public static void main(String[] args) {
+        Ponto p = new Ponto(3, 4);
+        System.out.println(p + " " + p.x() + " " + p.distancia() + " " + Ponto.origem());
+        System.out.println(p.equals(new Ponto(3, 4)) + " " + (p.hashCode() == new Ponto(3, 4).hashCode()) + " " + p.hashCode());
+        Par<String, Integer> par = new Par<>("Ana", 29);
+        System.out.println(par + " " + par.primeiro().length());
+        try { new Ponto(-1, 0); } catch (IllegalArgumentException e) { System.out.println(e.getMessage()); }
+        Set<Ponto> s = new HashSet<>(List.of(new Ponto(1, 2), new Ponto(2, 1), new Ponto(1, 2 - 0)));
+        System.out.println(s.size());
+    }
+}
+### sealed-pattern
+public class Main {
+    sealed interface Forma permits Circulo, Quadrado, Retangulo {}
+    record Circulo(double r) implements Forma {}
+    record Quadrado(double lado) implements Forma {}
+    record Retangulo(double l, double a) implements Forma {}
+    static double area(Forma f) {
+        return switch (f) {
+            case Circulo c -> Math.PI * c.r() * c.r();
+            case Quadrado q -> q.lado() * q.lado();
+            case Retangulo(double l, double a) when l == a -> l * l;
+            case Retangulo(var l, var a) -> l * a;
+        };
+    }
+    static String desc(Object o) {
+        return switch (o) {
+            case null -> "nulo";
+            case Integer i when i > 10 -> "inteiro grande " + i;
+            case Integer i -> "inteiro " + i;
+            case String s -> "texto de " + s.length();
+            default -> "outro: " + o;
+        };
+    }
+    public static void main(String[] args) {
+        System.out.printf("%.2f %.1f %.1f %.1f%n", area(new Circulo(1)), area(new Quadrado(2)), area(new Retangulo(3, 3)), area(new Retangulo(2, 5)));
+        for (Object o : new Object[]{null, 5, 50, "abc", 2.5}) System.out.println(desc(o));
+        Object obj = "Java";
+        if (obj instanceof String s && s.length() > 2) System.out.println(s.toUpperCase());
+        if (!(obj instanceof Integer n)) System.out.println("não é inteiro");
+    }
+}
+### generics-classe
+import java.util.*;
+public class Main {
+    static class Caixa<T> {
+        private T valor;
+        Caixa(T v) { valor = v; }
+        T get() { return valor; }
+        <R> Caixa<R> map(java.util.function.Function<T, R> f) { return new Caixa<>(f.apply(valor)); }
+    }
+    static <T extends Comparable<T>> T maior(List<T> l) {
+        T m = l.get(0);
+        for (T x : l) if (x.compareTo(m) > 0) m = x;
+        return m;
+    }
+    static double soma(List<? extends Number> l) { double s = 0; for (Number n : l) s += n.doubleValue(); return s; }
+    static void adiciona(List<? super Integer> l) { l.add(42); }
+    static <T> void troca(T[] a, int i, int j) { T t = a[i]; a[i] = a[j]; a[j] = t; }
+    public static void main(String[] args) {
+        Caixa<String> c = new Caixa<>("Ana");
+        System.out.println(c.get() + " " + c.map(String::length).get() + " " + maior(List.of(3, 9, 2)) + " " + maior(List.of("pera", "uva", "abacaxi")));
+        System.out.println(soma(List.of(1, 2.5, 3L)));
+        List<Number> nums = new ArrayList<>();
+        adiciona(nums);
+        System.out.println(nums);
+        String[] arr = {"a", "b"};
+        troca(arr, 0, 1);
+        System.out.println(Arrays.toString(arr));
+        Map<String, List<Integer>> m = new TreeMap<>();
+        m.computeIfAbsent("pares", k -> new ArrayList<>()).add(2);
+        m.computeIfAbsent("pares", k -> new ArrayList<>()).add(4);
+        System.out.println(m);
+    }
+}
+### static-init
+public class Main {
+    static int a = inicia("a");
+    int b = inicia("b");
+    static { System.out.println("bloco estático"); }
+    { System.out.println("bloco de instância"); }
+    Main() { System.out.println("construtor"); }
+    static int inicia(String n) { System.out.println("inicia " + n); return 1; }
+    static class Outra { static { System.out.println("Outra carregada"); } static int x = 5; }
+    public static void main(String[] args) {
+        System.out.println("main");
+        new Main();
+        new Main();
+        System.out.println(Outra.x);
+        System.out.println(Outra.x);
+    }
+}
+### this-super
+public class Main {
+    static class A {
+        String nome = "A";
+        A() { System.out.println("A() " + quem()); }
+        String quem() { return "A.quem"; }
+    }
+    static class B extends A {
+        String nome = "B";
+        B() { super(); System.out.println("B() " + super.nome + " " + this.nome + " " + ((A) this).nome); }
+        @Override String quem() { return "B.quem " + nome; }
+    }
+    public static void main(String[] args) {
+        A x = new B();
+        System.out.println(x.nome + " " + x.quem());
+    }
+}
+### clone-arrays-objetos
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<int[]> l = new ArrayList<>();
+        int[] a = {1, 2};
+        l.add(a);
+        a[0] = 9;
+        System.out.println(l.get(0)[0]);
+        String s = null;
+        System.out.println(s + "!" + null);
+        Object[] objs = {1, "dois", 3.0, 'q', null, new int[0].length};
+        System.out.println(Arrays.toString(objs));
+    }
+}

@@ -1,0 +1,79 @@
+### datas-1
+import java.time.*;
+import java.time.format.*;
+import java.time.temporal.ChronoUnit;
+public class Main {
+    public static void main(String[] args) {
+        LocalDate natal = LocalDate.of(2026, 12, 25);
+        System.out.println(natal.getDayOfWeek() + " " + natal.getDayOfYear() + " " + natal.minusMonths(10) + " " + natal.plusYears(1).getDayOfWeek());
+        LocalDate a = LocalDate.of(2024, 1, 31);
+        System.out.println(a.plusMonths(1) + " " + a.plusMonths(13) + " " + a.isLeapYear() + " " + a.withDayOfMonth(15) + " " + a.lengthOfYear());
+        System.out.println(ChronoUnit.DAYS.between(a, natal) + " " + ChronoUnit.MONTHS.between(a, natal) + " " + ChronoUnit.YEARS.between(LocalDate.of(1997, 3, 14), LocalDate.of(2026, 10, 16)));
+        System.out.println(Period.between(LocalDate.of(2000, 2, 29), LocalDate.of(2026, 2, 28)) + " " + a.isBefore(natal) + " " + natal.compareTo(a));
+        DateTimeFormatter br = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.println(LocalDate.parse("05/03/2026", br).plusDays(30).format(br));
+        System.out.println(LocalDateTime.of(2026, 3, 5, 14, 7, 9).format(DateTimeFormatter.ofPattern("d 'de' MMMM, HH:mm:ss")));
+        System.out.println(LocalTime.of(23, 30).plusMinutes(45) + " " + LocalTime.of(8, 0).isBefore(LocalTime.NOON) + " " + Duration.ofHours(25) + " " + Duration.ofSeconds(3725));
+        try { LocalDate.parse("2026/01/01"); } catch (DateTimeParseException e) { System.out.println(e.getMessage()); }
+        System.out.println(DayOfWeek.SUNDAY.getValue() + " " + Month.FEBRUARY.length(true) + " " + Month.of(7));
+    }
+}
+### bigdecimal-2
+import java.math.*;
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (int i = 0; i < 10; i++) total = total.add(new BigDecimal("0.10"));
+        System.out.println(total + " " + total.compareTo(BigDecimal.ONE) + " " + total.equals(BigDecimal.ONE));
+        BigDecimal conta = new BigDecimal("100.00");
+        BigDecimal cada = conta.divide(new BigDecimal("3"), 2, RoundingMode.DOWN);
+        System.out.println(cada + " " + conta.subtract(cada.multiply(new BigDecimal("3"))));
+        System.out.println(new BigDecimal("19.90").multiply(BigDecimal.valueOf(3)) + " " + new BigDecimal("1.005").setScale(2, RoundingMode.HALF_UP) + " " + new BigDecimal("1.005").setScale(2, RoundingMode.HALF_EVEN));
+        System.out.println(BigDecimal.valueOf(2.50).scale() + " " + new BigDecimal("2.50").scale() + " " + BigDecimal.valueOf(100) + " " + new BigDecimal("123.4500").stripTrailingZeros().toPlainString());
+        System.out.println(new BigDecimal("10").divide(new BigDecimal("3"), MathContext.DECIMAL64) + " " + new BigDecimal("-7.5").abs().negate() + " " + new BigDecimal("2").pow(10));
+        BigInteger f = BigInteger.ONE;
+        for (int i = 1; i <= 25; i++) f = f.multiply(BigInteger.valueOf(i));
+        System.out.println(f + " " + f.mod(BigInteger.valueOf(1000007)) + " " + new BigInteger("2").pow(100));
+        System.out.printf("%.2f %s%n", new BigDecimal("1234.5678"), new BigDecimal("0.000001"));
+    }
+}
+### arquivos-1
+import java.nio.file.*;
+import java.io.*;
+import java.util.*;
+public class Main {
+    public static void main(String[] args) throws IOException {
+        Path p = Path.of("compras.txt");
+        Files.writeString(p, "pão\nleite\n");
+        Files.writeString(p, "café\n", StandardOpenOption.APPEND);
+        List<String> linhas = Files.readAllLines(p);
+        System.out.println(linhas.size() + " " + linhas + " " + Files.exists(p) + " " + Files.size(p));
+        Files.write(Path.of("notas.csv"), List.of("Ana;9.5", "Bruno;7.0"));
+        try (BufferedReader br = Files.newBufferedReader(Path.of("notas.csv"))) {
+            String l;
+            while ((l = br.readLine()) != null) { String[] c = l.split(";"); System.out.println(c[0] + " -> " + Double.parseDouble(c[1])); }
+        }
+        try (PrintWriter pw = new PrintWriter(new FileWriter("saida.txt"))) { pw.println("linha 1"); pw.printf("%d%n", 2); }
+        System.out.print(Files.readString(Path.of("saida.txt")));
+        Files.lines(p).filter(s -> s.startsWith("c")).forEach(System.out::println);
+        Files.delete(p);
+        System.out.println(Files.exists(p) + " " + p.getFileName() + " " + Path.of("a/b/c.txt").getParent() + " " + Path.of("a").resolve("b.txt"));
+        File f = new File("saida.txt");
+        System.out.println(f.exists() + " " + f.length() + " " + f.getName() + " " + f.delete() + " " + f.exists());
+        try (Scanner sc = new Scanner(new File("nada.txt"))) { } catch (FileNotFoundException e) { System.out.println(e.getMessage()); }
+    }
+}
+### formatacao-moeda
+import java.text.*;
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        NumberFormat moeda = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
+        double[] vs = {0, 0.5, 1234.567, 1000000, -42.1};
+        for (double v : vs) System.out.println(moeda.format(v));
+        DecimalFormat df = new DecimalFormat("#,##0.00");
+        System.out.println(df.format(1234567.891) + " " + df.format(0.125) + " " + df.format(0.135) + " " + new DecimalFormat("#.##").format(3.14159) + " " + new DecimalFormat("00.0").format(5.25));
+        System.out.println(String.format(Locale.US, "%.2f", 3.14159) + " " + String.format("%.2f", 3.14159) + " " + String.format(Locale.of("pt", "BR"), "%,.2f", 1234.5));
+        System.out.println(NumberFormat.getPercentInstance(Locale.of("pt", "BR")).format(0.256));
+    }
+}

@@ -592,7 +592,7 @@
         var pn = this.ident();
         pt = this.arrayDims(pt);
         m.params.push({ k: "Param", type: pt, name: pn.v, pos: pn.pos, varargs: va, mods: pm });
-        if (va && this.is(",")) this.err(this.t.pos, "')' expected");
+        if (va && this.is(",")) this.err(pn.pos, "varargs parameter must be the last parameter");
       } while (this.is(",") && this.next());
     }
     this.accept(")");
@@ -936,11 +936,15 @@
       if (this.is("default")) { this.next(); isDefault = true; }
       else if (this.is("case")) {
         this.next();
-        do {
-          if (this.is("default")) { this.next(); labels.push({ k: "DefaultLabel", pos: this.prev().pos }); continue; }
-          labels.push(this.caseLabel());
-        } while (this.is(",") && this.next());
-        if (this.isWord("when")) { this.next(); guard = this.expr(); }
+        var nl0 = this.noLambda;
+        this.noLambda = true;
+        try {
+          do {
+            if (this.is("default")) { this.next(); labels.push({ k: "DefaultLabel", pos: this.prev().pos }); continue; }
+            labels.push(this.caseLabel());
+          } while (this.is(",") && this.next());
+          if (this.isWord("when")) { this.next(); guard = this.expr(); }
+        } finally { this.noLambda = nl0; }
       } else this.err(this.t.pos, "'case', 'default', or '}' expected");
       var thisArrow;
       if (this.is("->")) { this.next(); thisArrow = true; }
@@ -1216,6 +1220,10 @@
     return { k: "Lambda", pos: ap, start: p, params: params, body: body, explicit: explicit };
   };
   PP.arguments = function () {
+    var nl0 = this.noLambda; this.noLambda = false;
+    try { return this.arguments0(); } finally { this.noLambda = nl0; }
+  };
+  PP.arguments0 = function () {
     var p = this.accept("(").pos, args = [];
     if (!this.is(")")) {
       do {
@@ -1240,7 +1248,7 @@
       case "char": this.next(); return { k: "Literal", type: "char", value: t.v.charCodeAt(0), pos: p };
       case "string": this.next(); return { k: "Literal", type: "String", value: t.v, pos: p, textBlock: !!t.textBlock };
       case "id": {
-        if (this.is("->", 1)) return this.lambda();
+        if (this.is("->", 1) && !this.noLambda) return this.lambda();
         this.next();
         if (this.is("(")) {
           var args = this.arguments();
@@ -1571,10 +1579,11 @@
   function supertypesOf(t) {
     // supertipos diretos de um ClassType, com substituição
     var sym = t.sym; completeHeader(sym);
-    var m = sym.tparams.length ? substMap(sym.tparams, t.args) : null;
+    var raw = !t.args && sym.tparams.length > 0;
+    var m = sym.tparams.length && t.args ? substMap(sym.tparams, t.args) : null;
     var r = [];
-    if (sym.superT) r.push(m ? subst(sym.superT, m) : (t.args === null && sym.tparams.length ? erasure(sym.superT) : sym.superT));
-    sym.ifaces.forEach(function (i) { r.push(m ? subst(i, m) : (t.args === null && sym.tparams.length ? erasure(i) : i)); });
+    if (sym.superT) r.push(raw ? erasure(sym.superT) : m ? subst(sym.superT, m) : sym.superT);
+    sym.ifaces.forEach(function (i) { r.push(raw ? erasure(i) : m ? subst(i, m) : i); });
     if (sym.isInterface() && !sym.ifaces.length && sym.full !== "java.lang.Object") r.push(L("java.lang.Object").rawType());
     return r;
   }
@@ -1964,6 +1973,10 @@
       });
     });
     if (spec.after) spec.after(sym);
+    if (spec.noCtor && sym.kind === "class" && !sym.ctors.length) {
+      var pc = new MethodSym("<init>", sym); pc.ret = T["void"]; pc.flags["private"] = true; pc.key = "<init>()"; pc.isLib = true; pc.impl = function () {};
+      sym.ctors.push(pc);
+    }
     if (sym.kind !== "interface" && !sym.ctors.length && !spec.noCtor) {
       var c = new MethodSym("<init>", sym); c.ret = T["void"]; c.flags["public"] = true; c.key = "<init>()"; c.isLib = true; c.impl = function () {};
       sym.ctors.push(c);
@@ -2067,18 +2080,13 @@
     }
     if (localScope) {
       sym.local = true;
-      var top = outer; while (top.outer) top = top.outer;
-      var key = top.bin;
-      if (d.anon) {
-        prog.anonCount[key] = (prog.anonCount[key] || 0) + 1;
-        sym.bin = top.bin + "$" + prog.anonCount[key];
-        sym.anon = true; sym.name = ""; sym.full = sym.bin;
-      } else {
-        var lk = key + "/" + d.name;
-        prog.localCount[lk] = (prog.localCount[lk] || 0) + 1;
-        sym.bin = top.bin + "$" + prog.localCount[lk] + d.name;
-        sym.full = sym.bin;
-      }
+      // nome como o javac: classe envolvente + $ + primeiro número livre (+ nome, se local)
+      var enc = outer.bin;
+      prog.usedNames = prog.usedNames || {};
+      var nome = d.anon ? "" : d.name;
+      for (var ni = 1; ; ni++) { var cand = enc + "$" + ni + nome; if (!prog.usedNames[cand]) { prog.usedNames[cand] = true; sym.bin = cand; break; } }
+      sym.full = sym.bin;
+      if (d.anon) { sym.anon = true; sym.name = ""; }
       sym.inner = d.kind === "class" && !localScope.staticCtx;
       if (d.kind !== "class") sym.inner = false;
     } else if (outer) {
@@ -2313,6 +2321,7 @@
     var cur = null, i = 1, outerType = null;
     var tv = this.findTypeVar(first.name, env);
     if (tv) {
+      if (tv.owner instanceof ClassSym && env.isStatic && env.cls === tv.owner && !env.typeOnly) { this.err(env, first.pos, "non-static type variable " + tv.name + " cannot be referenced from a static context"); return T_ERR; }
       if (parts.length > 1) { this.err(env, parts[1].pos, "cannot select from a type variable"); return T_ERR; }
       if (first.args) { this.err(env, first.args.pos, "unexpected type"); }
       return tv.type;
@@ -2763,8 +2772,7 @@
   CK.checkAccess = function (sym, pos, env, name) {
     if (!sym.flags["private"]) return true;
     var owner = sym.owner;
-    if (owner.isLib) return true;
-    if (topLevel(owner) === topLevel(env.cls)) return true;
+    if (!owner.isLib && topLevel(owner) === topLevel(env.cls)) return true;
     var what = sym.kind === "method" ? (sym.name === "<init>" ? owner.name : sym.name) + "(" + sym.params.map(typeStr).join(",") + ")" : sym.name;
     this.err(env, pos, what + " has private access in " + owner.name);
     return false;
@@ -3143,7 +3151,11 @@
     if (r.kind === "local") {
       var v = r.sym;
       v.assigns++;
-      if (v.flags["final"] && (v.hasInit || v.kind === "param" || v.kind === "catch" || v.kind === "foreach" || v.kind === "pattern" || v.kind === "resource")) {
+      if (v.flags["final"] && (v.kind === "param" || (v.kind === "catch" && !v.multiCatch))) {
+        (this.prog.finalParamAssigns = this.prog.finalParamAssigns || []).push({ v: v, pos: x.pos, file: env.file });
+      } else if (v.flags["final"] && v.kind === "catch") {
+        this.err(env, x.pos, "multi-catch parameter " + v.name + " may not be assigned");
+      } else if (v.flags["final"] && (v.hasInit || v.kind === "foreach" || v.kind === "pattern" || v.kind === "resource")) {
         this.err(env, x.pos, "cannot assign a value to final variable " + v.name);
       }
       if (v.kind === "resource") this.err(env, x.pos, "auto-closeable resource " + v.name + " may not be assigned");
@@ -3297,6 +3309,13 @@
     var bt = this.attribExpr(e.b, benv, poly || (pt && isRef(pt)) ? pt : null);
     if (isErr(at) || isErr(bt)) return T_ERR;
     if (at === T["void"] || bt === T["void"]) { this.err(env, (at === T["void"] ? e.a : e.b).pos, "'void' type not allowed here"); return T_ERR; }
+    if (pt && !isErr(pt) && pt.k === "prim" && pt !== T["void"] && !(isNumericOrBoxed(at) && isNumericOrBoxed(bt)) && !(isBoolOrBoxed(at) && isBoolOrBoxed(bt))) {
+      var okA = assignConv(at, pt, e.a.cv), okB = assignConv(bt, pt, e.b.cv);
+      if (!okA) this.err(env, e.a.pos, "incompatible types: bad type in conditional expression\n    " + typeStr(at) + " cannot be converted to " + typeStr(pt));
+      if (!okB) this.err(env, e.b.pos, "incompatible types: bad type in conditional expression\n    " + typeStr(bt) + " cannot be converted to " + typeStr(pt));
+      if (!okA || !okB) return T_ERR;
+      return pt;
+    }
     var r = condType(at, bt, e.a.cv, e.b.cv);
     // condicional de referência com tipo-alvo: o tipo é o alvo
     if (pt && isRef(pt) && !(at.k === "prim" && bt.k === "prim") && !(isNumericOrBoxed(at) && isNumericOrBoxed(bt)) && !(isBoolOrBoxed(at) && isBoolOrBoxed(bt))) {
@@ -4320,7 +4339,7 @@
     e.superCall = head.superCall;
     e.ifaceSuper = head.ifaceSuper;
     e.staticSite = head.staticSite;
-    e.thrown = m.throws.map(function (t) { return inf ? subst(memberType(t, site, m.owner), inf.solvedMap()) : memberType(t, site, m.owner); });
+    e.thrown = m.throws.map(function (t) { return inf ? subst(subst(memberType(t, site, m.owner), res.fv.map), inf.solvedMap()) : memberType(t, site, m.owner); });
     // argumentos com tipos finais
     args.forEach(function (ai, i) { if (!ai.poly && !isErr(ai.type)) { /* já verificado na aplicabilidade */ } });
     ret = capUpper(ret);
@@ -4772,7 +4791,7 @@
             var f = st.sym.fields[x.name];
             if (!f || !f.flags.enumConst) { self.err(env, x.pos, "an enum switch case label must be the unqualified name of an enumeration constant"); return; }
             l.enumConst = f;
-            if (seen.indexOf(f) >= 0) self.err(env, x.pos, "duplicate case label");
+            if (seen.indexOf(f) >= 0) self.err(env, c.labels[0] === l ? c.pos : x.pos, "duplicate case label");
             seen.push(f);
             return;
           }
@@ -4800,7 +4819,7 @@
           }
           var key = selKind === "int" ? castConst(x.cv, T["int"]) : String(x.cv);
           l.constVal = key;
-          if (seen.some(function (s) { return s === key; })) self.err(env, x.pos, "duplicate case label");
+          if (seen.some(function (s) { return s === key; })) self.err(env, c.labels[0] === l ? c.pos : x.pos, "duplicate case label");
           seen.push(key);
           return;
         }
@@ -5261,6 +5280,7 @@
       var v = new VarSym(c.name, vt, "catch");
       v.pos = c.namePos; v.hasInit = true;
       if (types.length > 1 || (c.mods && c.mods.flags["final"])) v.flags["final"] = true;
+      if (types.length > 1) v.multiCatch = true;
       c.vsym = v;
       self.declareVar(v, cenv);
       self.attribBlock(c.body, cenv);
@@ -5359,7 +5379,7 @@
     });
     // construtor padrão: super() implícito
     sym.ctors.forEach(function (c) {
-      if (c.isDefault || (c.anonCtor && !c.anonSuper) || c.recordAuto) self.checkImplicitSuper(sym, c, env, d.pos);
+      if ((c.isDefault && !c.anonSuper) || (c.anonCtor && !c.anonSuper) || c.recordAuto) self.checkImplicitSuper(sym, c, env, d.pos);
     });
   };
   CK.checkAllDefined = function (sym, env) {
@@ -5518,7 +5538,7 @@
         var tq = ms.throws[q];
         if (tq.k !== "class" || !isChecked(tq.sym)) continue;
         var ok = m.throws.some(function (mt) { return mt.k === "class" && isSubClass(tq.sym, mt.sym); });
-        if (!ok) { this.err(env, ms.decl.throws[q].pos, head + "\n  overridden method does not throw " + typeStr(tq)); return; }
+        if (!ok) { this.err(env, d.namePos, head + "\n  overridden method does not throw " + typeStr(tq)); return; }
       }
     }
   };
@@ -5692,6 +5712,7 @@
     this.file = sym.file;
     this.alive(sym);
     this.assign(sym);
+    (this.prog.finalParamAssigns || []).forEach(function (a) { if (topLevel(a.v.method ? a.v.method.owner : sym) === sym || !a.v.method) self.err(a.file, a.pos, "final parameter " + a.v.name + " may not be assigned"); });
     this.exc(sym);
     if (sym === this.prog.topClasses[this.prog.topClasses.length - 1]) this.captures();
   };
@@ -5711,8 +5732,9 @@
     var self = this;
     eachBody(sym, function (b) {
       if (b.expr) { self.aliveExpr(b.expr); return; }
+      self.recovery = false;
       var alive = self.aliveStat(b.block, true);
-      if (b.method && alive && b.method.ret !== T["void"] && b.method.name !== "<init>" && !isErr(b.method.ret)) {
+      if (b.method && alive && !self.recovery && b.method.ret !== T["void"] && b.method.name !== "<init>" && !isErr(b.method.ret)) {
         self.err(sym.file, b.block.endPos, "missing return statement");
       }
       if (b.init && !alive) self.err(sym.file, b.init.pos, "initializer must be able to complete normally");
@@ -5740,6 +5762,7 @@
         this.err(this.file, s.pos, "unreachable statement");
         reported = true;
         alive = true;
+        this.recovery = true;
       }
       alive = this.aliveStat(s, alive);
     }
@@ -5852,7 +5875,7 @@
           var a;
           if (b.k === "ExprStmt") { self.aliveExpr(b.expr); a = true; }
           else a = self.aliveStat(b, true);
-          if (a) { any = true; if (isExpr && b.k === "Block") self.err(self.file, b.endPos, "switch rule completes without providing a value\n  (switch rules in switch expressions should either provide a value or throw)"); }
+          if (a) { any = true; if (isExpr && b.k === "Block") self.err(self.file, b.endPos, "switch rule completes without providing a value\n  (switch rules in switch expressions must either provide a value or throw)"); }
         } else {
           lastAlive = self.aliveBlockStats(c.stats, true);
         }
@@ -6926,8 +6949,8 @@
     st.push(f);
     if (st.length > RT.maxDepth) {
       var e = new RangeError("java stack");
-      snapshotOverflow(e);
       st.pop();
+      snapshotOverflow(e);
       throw e;
     }
     if (++RT.steps > RT.limit) stepLimit();
@@ -8526,7 +8549,7 @@
   function checkIdx(i, n, kind) {
     if (i < 0 || i >= n) throwJ("java.lang.StringIndexOutOfBoundsException", kind === "charAt" ? "Index " + i + " out of bounds for length " + n : "index " + i + ", length " + n);
   }
-  function subRangeFail(b, e, n) { throwJ("java.lang.StringIndexOutOfBoundsException", "begin " + b + ", end " + e + ", length " + n); }
+  function subRangeFail(b, e, n) { throwJ("java.lang.StringIndexOutOfBoundsException", "Range [" + b + ", " + e + ") out of bounds for length " + n); }
   function isWs(c) { return c === 32 || (c >= 9 && c <= 13) || (c >= 28 && c <= 31) || c === 0x1680 || (c >= 0x2000 && c <= 0x2006) || (c >= 0x2008 && c <= 0x200a) || c === 0x2028 || c === 0x2029 || c === 0x205f || c === 0x3000; }
   function jtrim(s) { var a = 0, b = s.length; while (a < b && s.charCodeAt(a) <= 32) a++; while (b > a && s.charCodeAt(b - 1) <= 32) b--; return s.slice(a, b); }
   function jstrip(s) { var a = 0, b = s.length; while (a < b && isWs(s.charCodeAt(a))) a++; while (b > a && isWs(s.charCodeAt(b - 1))) b--; return s.slice(a, b); }
@@ -8666,6 +8689,8 @@
       "static String valueOf(boolean)": function (v) { return jstr(String(v)); },
       "static String valueOf(char)": function (v) { return jstr(String.fromCharCode(v)); },
       "static String valueOf(char[])": function (a) { return jstr(String.fromCharCode.apply(null, Array.from(a.a))); },
+      "static String valueOf(char[],int,int)": function (a, o, n) { return jstr(String.fromCharCode.apply(null, Array.from(a.a).slice(o, o + n))); },
+      "static String copyValueOf(char[],int,int)": function (a, o, n) { return jstr(String.fromCharCode.apply(null, Array.from(a.a).slice(o, o + n))); },
       "static String copyValueOf(char[])": function (a) { return jstr(String.fromCharCode.apply(null, Array.from(a.a))); },
       "static String format(String,Object...)": function (f, a) { return jstr(jformatAt(f, a.a, null, "string")); },
       "static String format(java.util.Locale,String,Object...)": function (l, f, a) { return jstr(jformatAt(f, a.a, l && l.loc, "string")); },
@@ -8684,7 +8709,8 @@
       });
     };
     // ---------- StringBuilder ----------
-    var SB = {
+    function sbIdx(sb, i) { if (i < 0 || i > sb.s.length) throwJ("java.lang.StringIndexOutOfBoundsException", "offset " + i + ", length " + sb.s.length); }
+  var SB = {
       "<init>()": function () { this.s = ""; },
       "<init>(int)": function () { this.s = ""; },
       "<init>(String)": function (s) { if (s === null) npe(); this.s = S(s); },
@@ -8699,10 +8725,10 @@
       "StringBuilder append(boolean)": function (x) { this.s += String(x); return this; },
       "StringBuilder append(char)": function (x) { this.s += String.fromCharCode(x); return this; },
       "StringBuilder append(char[])": function (a) { this.s += String.fromCharCode.apply(null, Array.from(a.a)); return this; },
-      "StringBuilder insert(int,String)": function (i, x) { this.sbIdx(i); this.s = this.s.slice(0, i) + (x === null ? "null" : S(x)) + this.s.slice(i); return this; },
-      "StringBuilder insert(int,char)": function (i, x) { this.sbIdx(i); this.s = this.s.slice(0, i) + String.fromCharCode(x) + this.s.slice(i); return this; },
-      "StringBuilder insert(int,int)": function (i, x) { this.sbIdx(i); this.s = this.s.slice(0, i) + String(x) + this.s.slice(i); return this; },
-      "StringBuilder insert(int,Object)": function (i, x) { this.sbIdx(i); this.s = this.s.slice(0, i) + toStr(x) + this.s.slice(i); return this; },
+      "StringBuilder insert(int,String)": function (i, x) { sbIdx(this, i); this.s = this.s.slice(0, i) + (x === null ? "null" : S(x)) + this.s.slice(i); return this; },
+      "StringBuilder insert(int,char)": function (i, x) { sbIdx(this, i); this.s = this.s.slice(0, i) + String.fromCharCode(x) + this.s.slice(i); return this; },
+      "StringBuilder insert(int,int)": function (i, x) { sbIdx(this, i); this.s = this.s.slice(0, i) + String(x) + this.s.slice(i); return this; },
+      "StringBuilder insert(int,Object)": function (i, x) { sbIdx(this, i); this.s = this.s.slice(0, i) + toStr(x) + this.s.slice(i); return this; },
       "StringBuilder reverse()": function () { this.s = Array.from(this.s).reverse().join(""); return this; },
       "StringBuilder delete(int,int)": function (a, b) { if (a < 0 || a > this.s.length || a > b) throwJ("java.lang.StringIndexOutOfBoundsException", "start " + a + ", end " + b + ", length " + this.s.length); this.s = this.s.slice(0, a) + this.s.slice(Math.min(b, this.s.length)); return this; },
       "StringBuilder deleteCharAt(int)": function (i) { if (i < 0 || i >= this.s.length) throwJ("java.lang.StringIndexOutOfBoundsException", "index " + i + ",length " + this.s.length); this.s = this.s.slice(0, i) + this.s.slice(i + 1); return this; },
@@ -8746,8 +8772,8 @@
       "static double hypot(double,double)": Math.hypot,
       "static double ceil(double)": Math.ceil, "static double floor(double)": Math.floor,
       "static double rint(double)": function (x) { var r = Math.round(x); if (Math.abs(x % 1) === 0.5) r = 2 * Math.round(x / 2); return r; },
-      "static long round(double)": function (x) { if (x !== x) return 0n; return d2l(Math.floor(x + 0.5)); },
-      "static int round(float)": function (x) { if (x !== x) return 0; return toInt32(Math.floor(x + 0.5)); },
+      "static long round(double)": function (x) { if (x !== x) return 0n; return d2l(Math.round(x)); },
+      "static int round(float)": function (x) { if (x !== x) return 0; return toInt32(Math.round(x)); },
       "static double random()": function () { return RT.mathRandom.nextDouble(); },
       "static double signum(double)": function (x) { return x > 0 ? 1 : x < 0 ? -1 : x; },
       "static double toRadians(double)": function (x) { return x / 180 * Math.PI; },
@@ -9200,7 +9226,7 @@
     if (bound <= 0) throwJ("java.lang.IllegalArgumentException", "bound must be positive");
     var r = this.next(31), m = bound - 1;
     if ((bound & m) === 0) return Number((BigInt(bound) * BigInt(r)) >> 31n);
-    for (var u = r; u - (r = u % bound) + m > 2147483647 || u - r + m < 0; u = this.next(31));
+    for (var u = r; ((u - (r = u % bound) + m) | 0) < 0; u = this.next(31));
     return r;
   };
   JRandom.prototype.nextIntRange = function (origin, bound) {
@@ -9209,7 +9235,7 @@
     var n = (bound - origin) | 0, m = (n - 1) | 0;
     if ((n & m) === 0) return ((r & m) + origin) | 0;
     if (n > 0) {
-      for (var u = r >>> 1; (u + m - (r = u % n)) | 0 < 0 || u + m - r > 2147483647; u = this.nextInt() >>> 1);
+      for (var u = r >>> 1; ((u + m - (r = u % n)) | 0) < 0; u = this.nextInt() >>> 1);
       return (r + origin) | 0;
     }
     while (r < origin || r >= bound) r = this.nextInt();
@@ -9262,7 +9288,7 @@
   };
   var SC_FR = {
     throwFor: "java.base/java.util.Scanner.throwFor(Scanner.java:977)",
-    throwForEof: "java.base/java.util.Scanner.throwFor(Scanner.java:972)",
+    throwForEof: "java.base/java.util.Scanner.throwFor(Scanner.java:975)",
     next: "java.base/java.util.Scanner.next(Scanner.java:1632)",
     nextBare: "java.base/java.util.Scanner.next(Scanner.java:1505)",
     nextInt1: "java.base/java.util.Scanner.nextInt(Scanner.java:2297)",

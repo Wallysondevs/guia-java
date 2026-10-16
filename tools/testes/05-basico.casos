@@ -1,0 +1,478 @@
+### str-metodos
+public class Main {
+    public static void main(String[] args) {
+        String s = "  Olá, Mundo Java  ";
+        System.out.println("[" + s.trim() + "] [" + s.strip() + "] " + s.length() + " " + s.isBlank());
+        String t = "banana";
+        System.out.println(t.indexOf('a') + " " + t.lastIndexOf("an") + " " + t.indexOf("x") + " " + t.charAt(2) + " " + t.substring(2) + " " + t.substring(1, 4));
+        System.out.println(t.replace('a', 'o') + " " + t.replace("an", "AN") + " " + t.toUpperCase() + " " + "ABC".toLowerCase());
+        System.out.println(t.contains("nan") + " " + t.startsWith("ba") + " " + t.endsWith("na") + " " + t.equals("Banana") + " " + t.equalsIgnoreCase("BANANA"));
+        System.out.println("b".compareTo("a") + " " + "a".compareTo("b") + " " + "apple".compareTo("apricot") + " " + "ab".compareTo("abc"));
+        System.out.println(String.join("-", "a", "b", "c") + " " + "x".repeat(3) + " " + "a,b,,c".split(",").length + " " + "".isEmpty());
+        for (String p : "um dois  três".split(" ")) System.out.print("[" + p + "]");
+        System.out.println();
+        System.out.println(String.valueOf(3.0) + String.valueOf(true) + String.valueOf('c') + String.valueOf(10L));
+        char[] cs = "abc".toCharArray();
+        System.out.println(cs.length + " " + new String(cs) + " " + String.valueOf(cs, 0, 2));
+        System.out.println("Java".chars().count() + " " + "a-b-c".replaceAll("-", "+") + " " + "Aaa".matches("A.*"));
+    }
+}
+### str-igualdade
+public class Main {
+    public static void main(String[] args) {
+        String a = "Java";
+        String b = "Java";
+        String c = new String("Java");
+        String d = "Ja" + "va";
+        String e = "Ja";
+        String f = e + "va";
+        final String g = "Ja";
+        String h = g + "va";
+        System.out.println((a == b) + " " + (a == c) + " " + (a == d) + " " + (a == f) + " " + (a == h) + " " + (a == f.intern()) + " " + a.equals(c));
+        String x = "java" + 25;
+        System.out.println(x == "java25");
+    }
+}
+### sb-basico
+public class Main {
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder("abc");
+        sb.append(1).append('x').append(2.5).append(true).append(" fim");
+        System.out.println(sb + " " + sb.length());
+        sb.insert(0, "[").append("]");
+        System.out.println(sb);
+        System.out.println(sb.reverse());
+        sb.setLength(3);
+        System.out.println(sb + " " + sb.charAt(1) + " " + sb.indexOf("u"));
+        StringBuilder s2 = new StringBuilder("Olá Mundo");
+        s2.delete(0, 4).deleteCharAt(0).replace(0, 1, "MM");
+        System.out.println(s2 + " " + s2.toString().equals("MMndo"));
+        StringBuilder vazio = new StringBuilder();
+        for (int i = 0; i < 5; i++) vazio.append(i).append(i < 4 ? "," : "");
+        System.out.println(vazio);
+    }
+}
+### operadores
+public class Main {
+    public static void main(String[] args) {
+        int a = 17, b = 5;
+        System.out.println(a + b + " " + (a - b) + " " + a * b + " " + a / b + " " + a % b + " " + (double) a / b);
+        System.out.println(a > b && b > 0 || a < 0);
+        System.out.println(!(a == b) + " " + (a != b) + " " + (a >= 17) + " " + (b <= 4));
+        int x = 10;
+        x += 5; System.out.print(x + " ");
+        x -= 3; System.out.print(x + " ");
+        x *= 2; System.out.print(x + " ");
+        x /= 5; System.out.print(x + " ");
+        x %= 3; System.out.println(x);
+        int i = 5;
+        int j = i++ + ++i;
+        System.out.println(i + " " + j + " " + (i-- - --i) + " " + i);
+        boolean t = true, f = false;
+        System.out.println((t & f) + " " + (t | f) + " " + (t ^ f) + " " + (t ^ t));
+        System.out.println(2 + 3 * 4 + " " + (2 + 3) * 4 + " " + 10 - 2 - 3);
+        System.out.println(1 + 2 + "3" + 4 + 5);
+        System.out.println(7 > 3 ? "maior" : "menor");
+        int idade = 17;
+        String r = idade >= 18 ? "adulto" : idade >= 12 ? "adolescente" : "criança";
+        System.out.println(r);
+    }
+}
+### if-else
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {95, 82, 71, 64, 30};
+        for (int n : notas) {
+            if (n >= 90) System.out.println(n + ": A");
+            else if (n >= 80) System.out.println(n + ": B");
+            else if (n >= 70) System.out.println(n + ": C");
+            else {
+                System.out.println(n + ": reprovado");
+            }
+        }
+    }
+}
+### switch-classico
+public class Main {
+    public static void main(String[] args) {
+        for (int d = 1; d <= 8; d++) {
+            switch (d) {
+                case 1:
+                    System.out.print("dom ");
+                    break;
+                case 2: case 3: case 4: case 5: case 6:
+                    System.out.print("útil ");
+                    break;
+                case 7:
+                    System.out.print("sáb ");
+                default:
+                    System.out.print("? ");
+            }
+        }
+        System.out.println();
+        String fruta = "uva";
+        switch (fruta) {
+            case "maçã" -> System.out.println("vermelha");
+            case "uva", "amora" -> System.out.println("roxa");
+            default -> System.out.println("outra");
+        }
+        char c = 'b';
+        switch (c) { case 'a': System.out.println("A"); break; case 'b': System.out.println("B"); }
+    }
+}
+### switch-expr
+public class Main {
+    enum Dia { SEG, TER, QUA, QUI, SEX, SAB, DOM }
+    public static void main(String[] args) {
+        for (Dia d : Dia.values()) {
+            String tipo = switch (d) {
+                case SAB, DOM -> "fim de semana";
+                default -> "dia útil";
+            };
+            int horas = switch (d) {
+                case SEG, TER, QUA, QUI -> 8;
+                case SEX -> { int h = 6; yield h; }
+                case SAB, DOM -> 0;
+            };
+            System.out.println(d + " " + d.ordinal() + " " + tipo + " " + horas);
+        }
+        int mes = 2;
+        int dias = switch (mes) { case 2: yield 28; case 4, 6, 9, 11: yield 30; default: yield 31; };
+        System.out.println(dias);
+    }
+}
+### lacos
+public class Main {
+    public static void main(String[] args) {
+        int i = 0;
+        while (i < 3) { System.out.print(i + " "); i++; }
+        System.out.println();
+        do { System.out.print(i + " "); i--; } while (i > 0);
+        System.out.println();
+        for (int a = 0, b = 10; a < b; a += 3, b -= 2) System.out.print(a + ":" + b + " ");
+        System.out.println();
+        fora:
+        for (int x = 1; x <= 3; x++) {
+            for (int y = 1; y <= 3; y++) {
+                if (y == 2) continue;
+                if (x == 3) break fora;
+                System.out.print(x + "" + y + " ");
+            }
+        }
+        System.out.println();
+        int soma = 0;
+        for (int k = 1; k <= 100; k++) { if (k % 2 == 0) continue; soma += k; }
+        System.out.println(soma);
+        for (int k = 1; k <= 3; k++) { for (int m = 1; m <= k; m++) System.out.print("*"); System.out.println(); }
+    }
+}
+### arrays-basico
+import java.util.Arrays;
+public class Main {
+    public static void main(String[] args) {
+        int[] a = new int[5];
+        double[] d = new double[2];
+        String[] s = new String[2];
+        boolean[] b = new boolean[1];
+        char[] c = new char[2];
+        System.out.println(Arrays.toString(a) + Arrays.toString(d) + Arrays.toString(s) + Arrays.toString(b) + (int) c[0]);
+        int[] v = {5, 3, 9, 1};
+        Arrays.sort(v);
+        System.out.println(Arrays.toString(v) + " " + Arrays.binarySearch(v, 9) + " " + v.length);
+        int[][] m = {{1, 2, 3}, {4, 5, 6}};
+        System.out.println(m.length + " " + m[0].length + " " + m[1][2] + " " + Arrays.deepToString(m));
+        int[][] irregular = new int[3][];
+        irregular[0] = new int[]{1};
+        irregular[1] = new int[]{1, 2};
+        System.out.println(Arrays.deepToString(irregular));
+        int[] copia = Arrays.copyOf(v, 6);
+        int[] parte = Arrays.copyOfRange(v, 1, 3);
+        Arrays.fill(a, 7);
+        System.out.println(Arrays.toString(copia) + Arrays.toString(parte) + Arrays.toString(a) + Arrays.equals(v, new int[]{1, 3, 5, 9}));
+        String[] nomes = {"Carla", "ana", "Bruno"};
+        Arrays.sort(nomes);
+        System.out.println(Arrays.toString(nomes));
+        Integer[] nums = {3, 1, 2};
+        Arrays.sort(nums, java.util.Collections.reverseOrder());
+        System.out.println(Arrays.toString(nums) + " " + Arrays.asList(nums) + " " + Arrays.stream(v).sum());
+        int[] ref = v;
+        ref[0] = 100;
+        System.out.println(v[0] + " " + (ref == v) + " " + v.equals(ref) + " " + Arrays.toString(v.clone()));
+    }
+}
+### array-excecoes
+public class Main {
+    public static void main(String[] args) {
+        int[] a = new int[3];
+        try { a[3] = 1; } catch (ArrayIndexOutOfBoundsException e) { System.out.println(e.getMessage()); }
+        try { a[-1] = 1; } catch (ArrayIndexOutOfBoundsException e) { System.out.println(e); }
+        try { int[] b = new int[-2]; } catch (NegativeArraySizeException e) { System.out.println(e); }
+        Object[] o = new String[1];
+        try { o[0] = 1; } catch (ArrayStoreException e) { System.out.println(e); }
+        String s = "abc";
+        try { s.charAt(5); } catch (StringIndexOutOfBoundsException e) { System.out.println(e.getMessage()); }
+        try { s.substring(2, 1); } catch (StringIndexOutOfBoundsException e) { System.out.println(e.getMessage()); }
+        try { s.substring(4); } catch (StringIndexOutOfBoundsException e) { System.out.println(e.getMessage()); }
+    }
+}
+### metodos-sobrecarga
+public class Main {
+    static int soma(int a, int b) { return a + b; }
+    static double soma(double a, double b) { return a + b; }
+    static int soma(int a, int b, int c) { return a + b + c; }
+    static String soma(String a, String b) { return a + b; }
+    static void f(long x) { System.out.println("long " + x); }
+    static void f(Integer x) { System.out.println("Integer " + x); }
+    static void f(Object x) { System.out.println("Object " + x); }
+    static void g(double x) { System.out.println("double " + x); }
+    static void h(int... xs) { System.out.println("varargs " + xs.length); }
+    static void h(int a, int b) { System.out.println("dois"); }
+    public static void main(String[] args) {
+        System.out.println(soma(1, 2) + " " + soma(1.5, 2) + " " + soma(1, 2, 3) + " " + soma("a", "b"));
+        f(5); f(5L); f("x"); f('c');
+        g(3); g('A');
+        h(); h(1); h(1, 2); h(1, 2, 3);
+        byte bt = 10; f(bt);
+    }
+}
+### recursao
+public class Main {
+    static long fat(int n) { return n <= 1 ? 1 : n * fat(n - 1); }
+    static int fib(int n) { return n < 2 ? n : fib(n - 1) + fib(n - 2); }
+    static int mdc(int a, int b) { return b == 0 ? a : mdc(b, a % b); }
+    static void hanoi(int n, char de, char para, char aux) {
+        if (n == 0) return;
+        hanoi(n - 1, de, aux, para);
+        System.out.print(de + "" + para + " ");
+        hanoi(n - 1, aux, para, de);
+    }
+    public static void main(String[] args) {
+        System.out.println(fat(20) + " " + fat(21) + " " + fib(20) + " " + mdc(84, 36));
+        hanoi(3, 'A', 'C', 'B');
+        System.out.println();
+    }
+}
+### recursao-infinita
+public class Main {
+    static int contar(int n) {
+        return contar(n + 1);
+    }
+    public static void main(String[] args) {
+        System.out.println("início");
+        contar(0);
+    }
+}
+### so-capturado
+public class Main {
+    static int profundidade = 0;
+    static void desce() { profundidade++; desce(); }
+    public static void main(String[] args) {
+        try { desce(); } catch (StackOverflowError e) { System.out.println("estourou: " + (profundidade > 500) + " " + e.getClass().getName()); }
+    }
+}
+### char-tabela
+public class Main {
+    public static void main(String[] args) {
+        for (char c = 'a'; c <= 'e'; c++) System.out.print(c + "=" + (int) c + " ");
+        System.out.println();
+        char c = 'x';
+        c += 1;
+        System.out.println(c + " " + Character.toUpperCase(c) + " " + Character.isDigit('5') + " " + Character.isLetter('5') + " " + Character.isWhitespace(' '));
+        System.out.println((char) ('A' + 2) + " " + (int) 'Z' + " " + ('a' < 'b') + " " + Character.getNumericValue('9') + " " + ('7' - '0'));
+        String s = "Olá 123";
+        int letras = 0, digitos = 0;
+        for (char ch : s.toCharArray()) { if (Character.isLetter(ch)) letras++; else if (Character.isDigit(ch)) digitos++; }
+        System.out.println(letras + " " + digitos + " " + 'A' + " " + "\t|" + "\\" + "\"");
+    }
+}
+### decimais
+public class Main {
+    public static void main(String[] args) {
+        double a = 0.1, b = 0.2;
+        System.out.println(a + b + " " + (a + b == 0.3) + " " + Math.abs(a + b - 0.3) < 1e-9 + "");
+        System.out.println(10 / 4 + " " + 10 / 4.0 + " " + 10.0 / 4 + " " + (double) (10 / 4));
+        float f = 1.1f;
+        System.out.println(f + " " + (double) f + " " + f * 3 + " " + 1.0f / 3);
+        System.out.println(1.0 / 0 + " " + -1.0 / 0 + " " + 0.0 / 0 + " " + Double.isNaN(0.0 / 0));
+        System.out.println(100.0 + " " + 1e3 + " " + 123456789.0 + " " + 0.00001 + " " + 1.5e-5 + " " + 3.0e20);
+        System.out.println((int) 9.99 + " " + Math.round(9.5) + " " + Math.floor(-1.5) + " " + Math.ceil(-1.5) + " " + (long) -2.5);
+        double preco = 19.9;
+        System.out.println(preco * 3 + " " + String.format("%.2f", preco * 3));
+        System.out.println(Double.MAX_VALUE * 2 + " " + Double.MIN_VALUE / 2 + " " + (float) 1e40 + " " + (0.1f + 0.2f));
+    }
+}
+### wrappers
+public class Main {
+    public static void main(String[] args) {
+        Integer a = 127, b = 127, c = 128, d = 128;
+        System.out.println((a == b) + " " + (c == d) + " " + c.equals(d) + " " + (c.intValue() == d));
+        Long l1 = 10L, l2 = 10L;
+        System.out.println((l1 == l2) + " " + l1.equals(10) + " " + l1.equals(10L));
+        Integer n = null;
+        int x = Integer.parseInt("42") + Integer.valueOf(8);
+        Double dd = 2.5;
+        double soma = dd + x;
+        System.out.println(x + " " + soma + " " + Integer.toString(255, 2) + " " + Integer.toHexString(255) + " " + Integer.MAX_VALUE);
+        Character ch = 'a';
+        Boolean bo = true;
+        System.out.println(ch + " " + bo + " " + Character.valueOf('z').compareTo('a') + " " + Boolean.parseBoolean("TRUE"));
+        System.out.println(Integer.compare(5, 3) + " " + Double.compare(1.0, 2.0) + " " + Integer.valueOf(5).hashCode() + " " + Double.valueOf(1.5).hashCode() + " " + "ab".hashCode() + " " + Boolean.TRUE.hashCode());
+        Object o = 5;
+        System.out.println(o.getClass().getName() + " " + (o instanceof Integer) + " " + ((Object) 5.0).getClass().getSimpleName());
+        try { int y = n; } catch (NullPointerException e) { System.out.println("NPE"); }
+    }
+}
+### object-metodos
+public class Main {
+    static class Ponto {
+        int x, y;
+        Ponto(int x, int y) { this.x = x; this.y = y; }
+        @Override public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Ponto)) return false;
+            Ponto p = (Ponto) o;
+            return x == p.x && y == p.y;
+        }
+        @Override public int hashCode() { return java.util.Objects.hash(x, y); }
+        @Override public String toString() { return "(" + x + ", " + y + ")"; }
+    }
+    public static void main(String[] args) {
+        Ponto a = new Ponto(1, 2), b = new Ponto(1, 2);
+        System.out.println(a + " " + a.equals(b) + " " + (a == b) + " " + a.hashCode() + " " + (a.hashCode() == b.hashCode()));
+        System.out.println(a.getClass().getName() + " " + a.getClass().getSimpleName());
+        java.util.Set<Ponto> s = new java.util.HashSet<>();
+        s.add(a); s.add(b); s.add(new Ponto(2, 1));
+        System.out.println(s.size() + " " + s);
+        Object o = a;
+        System.out.println(o.toString() + " " + String.valueOf(o));
+    }
+}
+### texto-bloco
+public class Main {
+    public static void main(String[] args) {
+        String json = """
+            {
+              "nome": "Ana",
+              "idade": 29
+            }
+            """;
+        System.out.print(json);
+        String sql = """
+            SELECT *
+              FROM aluno \
+            WHERE nota > 7""";
+        System.out.println(sql);
+        String poema = """
+            Linha um\tcom tab
+            Linha "dois"
+               recuada
+            fim\s
+            """;
+        System.out.print(poema);
+        System.out.println("""
+            Nota: %.1f""".formatted(9.5));
+    }
+}
+### var-local
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        var nome = "Ana";
+        var idade = 29;
+        var media = 8.5;
+        var lista = new ArrayList<String>();
+        lista.add(nome);
+        var mapa = new HashMap<String, Integer>();
+        mapa.put(nome, idade);
+        for (var e : mapa.entrySet()) System.out.println(e.getKey() + "=" + e.getValue());
+        var c = 'x';
+        var l = 10L;
+        System.out.println(nome + idade + media + lista + c + l);
+        for (var i = 0; i < 2; i++) System.out.print(i);
+        System.out.println();
+    }
+}
+### constantes
+public class Main {
+    static final double PI = 3.14159;
+    static final int MAX;
+    static { MAX = 100; }
+    public static void main(String[] args) {
+        final int x = 10;
+        final int y;
+        y = 20;
+        System.out.println(PI + " " + MAX + " " + (x + y));
+        final int[] arr = {1, 2};
+        arr[0] = 9;
+        System.out.println(arr[0]);
+    }
+}
+### casting
+public class Main {
+    public static void main(String[] args) {
+        double d = 9.78;
+        int i = (int) d;
+        long l = i;
+        float f = l;
+        byte b = (byte) 300;
+        short s = (short) 70000;
+        char c = (char) 66;
+        int fromChar = 'C';
+        System.out.println(i + " " + l + " " + f + " " + b + " " + s + " " + c + " " + fromChar);
+        System.out.println((int) 3.5e10 + " " + (long) 3.5e10 + " " + (int) Double.NaN + " " + (char) 97.9 + " " + (byte) -1.5);
+        int grande = 123456789;
+        float fg = grande;
+        System.out.println(fg + " " + (int) fg + " " + (double) 1 / 3);
+        Object o = "texto";
+        String str = (String) o;
+        System.out.println(str.length());
+        long ll = Long.MAX_VALUE;
+        System.out.println((int) ll + " " + (double) ll + " " + (float) ll);
+    }
+}
+### math2
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.max(Integer.MIN_VALUE, -5) + " " + Math.min(-0.0, 0.0) + " " + Math.pow(0, 0) + " " + Math.sqrt(2) * Math.sqrt(2));
+        System.out.println(Math.round(-0.5) + " " + Math.round(0.49999999999999994) + " " + Math.round(1.5f) + " " + Math.abs(-0.0));
+        System.out.println(Math.floorDiv(7, -2) + " " + Math.floorMod(7, -2) + " " + (7 / -2) + " " + (7 % -2));
+        System.out.println(Math.toDegrees(Math.PI) + " " + Math.sin(0) + " " + Math.cos(Math.PI) + " " + Math.tan(Math.PI / 4));
+        System.out.println(Math.log(1) + " " + Math.exp(0) + " " + Math.log10(0.001) + " " + Math.cbrt(-8) + " " + Math.hypot(5, 12));
+        int dado = (int) (0.999 * 6) + 1;
+        System.out.println(dado + " " + Math.signum(0.0) + " " + Math.ceil(0.000001) + " " + Math.rint(3.5) + " " + Math.rint(4.5));
+    }
+}
+### random-semente
+import java.util.Random;
+public class Main {
+    public static void main(String[] args) {
+        Random r = new Random(42);
+        for (int i = 0; i < 5; i++) System.out.print(r.nextInt(100) + " ");
+        System.out.println();
+        Random r2 = new Random(2026);
+        System.out.println((r2.nextInt(6) + 1) + " " + r2.nextInt(10, 21) + " " + r2.nextInt(10, 21) + " " + r2.nextInt(10, 21));
+        Random r3 = new Random(7);
+        System.out.println(r3.nextInt(6) + " " + r3.nextInt(6) + " " + r3.nextInt(6));
+        Random r4 = new Random(123);
+        System.out.println(r4.nextDouble() + " " + r4.nextBoolean() + " " + r4.nextLong() + " " + r4.nextInt() + " " + r4.nextGaussian() + " " + r4.nextFloat());
+        Random r5 = new Random(0);
+        System.out.println(r5.nextInt(1, 7) + " " + r5.nextInt(16) + " " + r5.nextInt(1000) + " " + r5.nextDouble(5.0));
+        java.util.List<Integer> l = new java.util.ArrayList<>(java.util.List.of(1, 2, 3, 4, 5, 6, 7, 8));
+        java.util.Collections.shuffle(l, new Random(42));
+        System.out.println(l);
+    }
+}
+### printf-mais
+public class Main {
+    public static void main(String[] args) {
+        String[] nomes = {"Ana", "Bruno", "Carla"};
+        double[] notas = {9.5, 7.25, 10};
+        for (int i = 0; i < 3; i++) System.out.printf("%-8s|%6.2f|%3d%%%n", nomes[i], notas[i], (int) (notas[i] * 10));
+        System.out.printf("%s tem %d anos e mede %.2f m%n", "Ana", 29, 1.68);
+        System.out.println(String.format("%05d|%5s|%-5s|%.3e|%,.1f", 42, "ab", "cd", 0.000123456, 9876543.21));
+        System.out.printf("%b %c %x %o %h%n", "x", 'Y', 31, 31, 31);
+        System.out.printf("Total: R$ %.2f%n", 1234.5);
+        System.out.printf("%.0f %.0f %.1f %.1f%n", 2.5, 3.5, 0.05, 0.15);
+        System.out.println(String.format("%10.3f|%-10.1f|%+.2f|% d", Math.E, -1.25, 3.0, 42));
+    }
+}

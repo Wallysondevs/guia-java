@@ -1,0 +1,185 @@
+### lambdas-fi
+import java.util.function.*;
+public class Main {
+    public static void main(String[] args) {
+        Function<Integer, Integer> dobro = x -> x * 2;
+        Function<Integer, Integer> mais1 = x -> x + 1;
+        System.out.println(dobro.apply(5) + " " + dobro.andThen(mais1).apply(5) + " " + dobro.compose(mais1).apply(5) + " " + Function.<Integer>identity().apply(7));
+        Predicate<String> vazio = String::isEmpty;
+        Predicate<String> curto = s -> s.length() < 4;
+        System.out.println(vazio.test("") + " " + vazio.negate().test("") + " " + curto.and(vazio.negate()).test("abc") + " " + curto.or(vazio).test("abcdef") + " " + Predicate.not(vazio).test("x"));
+        Consumer<String> imprime = System.out::println;
+        Consumer<String> grita = s -> System.out.println(s.toUpperCase());
+        imprime.andThen(grita).accept("oi");
+        Supplier<Double> pi = () -> 3.14;
+        BiFunction<Integer, Integer, Integer> soma = Integer::sum;
+        UnaryOperator<String> up = String::toUpperCase;
+        BinaryOperator<Integer> max = BinaryOperator.maxBy(Integer::compare);
+        System.out.println(pi.get() + " " + soma.apply(2, 3) + " " + up.apply("abc") + " " + max.apply(3, 9) + " " + soma.andThen(x -> x * 10).apply(1, 2));
+        IntBinaryOperator mult = (a, b) -> a * b;
+        IntPredicate par = n -> n % 2 == 0;
+        ToIntFunction<String> len = String::length;
+        IntFunction<String> estrelas = n -> "*".repeat(n);
+        System.out.println(mult.applyAsInt(6, 7) + " " + par.test(4) + " " + len.applyAsInt("abcd") + " " + estrelas.apply(3));
+        Runnable r = () -> System.out.println("rodou");
+        r.run();
+        BiConsumer<String, Integer> bc = (k, v) -> System.out.println(k + "->" + v);
+        bc.accept("a", 1);
+    }
+}
+### lambda-captura
+import java.util.*;
+import java.util.function.*;
+public class Main {
+    interface Calculo { int fazer(int a, int b); }
+    static int aplicar(Calculo c, int a, int b) { return c.fazer(a, b); }
+    public static void main(String[] args) {
+        int base = 10;
+        Function<Integer, Integer> soma = x -> x + base;
+        System.out.println(soma.apply(5));
+        List<Supplier<Integer>> sups = new ArrayList<>();
+        for (int i = 0; i < 3; i++) { final int j = i; sups.add(() -> j * j); }
+        for (Supplier<Integer> s : sups) System.out.print(s.get() + " ");
+        System.out.println();
+        System.out.println(aplicar((a, b) -> a - b, 10, 3) + " " + aplicar(Math::max, 4, 9) + " " + aplicar(Integer::sum, 1, 1));
+        Function<Integer, Function<Integer, Integer>> somador = a -> b -> a + b;
+        System.out.println(somador.apply(3).apply(4));
+        Comparator<String> c = (a, b) -> { int r = a.length() - b.length(); return r != 0 ? r : a.compareTo(b); };
+        List<String> l = new ArrayList<>(List.of("ccc", "a", "bb", "aa"));
+        l.sort(c);
+        System.out.println(l);
+    }
+}
+### method-refs
+import java.util.*;
+import java.util.function.*;
+public class Main {
+    record Produto(String nome, double preco) {
+        static Produto barato(String n) { return new Produto(n, 1.0); }
+    }
+    String prefixo = ">> ";
+    String formatar(String s) { return prefixo + s; }
+    public static void main(String[] args) {
+        Function<String, Integer> parse = Integer::parseInt;
+        Function<String, Produto> fab = Produto::barato;
+        BiFunction<String, Double, Produto> ctor = Produto::new;
+        Supplier<List<String>> nova = ArrayList::new;
+        Function<Integer, int[]> arr = int[]::new;
+        Main m = new Main();
+        Function<String, String> fmt = m::formatar;
+        List<String> l = nova.get();
+        l.add("x");
+        System.out.println(parse.apply("42") + 1 + " " + fab.apply("lápis") + " " + ctor.apply("caderno", 12.5) + " " + l + " " + arr.apply(3).length + " " + fmt.apply("oi"));
+        List<String> nomes = Arrays.asList("ana", "bruno");
+        nomes.replaceAll(String::toUpperCase);
+        nomes.forEach(System.out::println);
+        BiPredicate<String, String> eq = String::equalsIgnoreCase;
+        System.out.println(eq.test("A", "a"));
+    }
+}
+### streams-basico
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    public static void main(String[] args) {
+        List<Integer> nums = List.of(5, 3, 8, 1, 9, 2, 8);
+        System.out.println(nums.stream().filter(n -> n % 2 == 0).map(n -> n * n).collect(Collectors.toList()));
+        System.out.println(nums.stream().distinct().sorted().toList());
+        System.out.println(nums.stream().sorted(Comparator.reverseOrder()).limit(3).toList());
+        System.out.println(nums.stream().skip(2).count() + " " + nums.stream().mapToInt(Integer::intValue).sum() + " " + nums.stream().mapToInt(n -> n).average().getAsDouble());
+        System.out.println(nums.stream().max(Integer::compare).get() + " " + nums.stream().min(Comparator.naturalOrder()).orElse(-1) + " " + nums.stream().reduce(0, Integer::sum) + " " + nums.stream().reduce(Integer::max));
+        System.out.println(nums.stream().anyMatch(n -> n > 8) + " " + nums.stream().allMatch(n -> n > 0) + " " + nums.stream().noneMatch(n -> n > 100) + " " + nums.stream().findFirst().get());
+        List<String> palavras = List.of("java", "stream", "lambda", "api", "java");
+        System.out.println(palavras.stream().map(String::toUpperCase).collect(Collectors.joining(", ", "<", ">")));
+        System.out.println(palavras.stream().collect(Collectors.toSet()));
+        System.out.println(palavras.stream().collect(Collectors.groupingBy(String::length)));
+        System.out.println(palavras.stream().collect(Collectors.groupingBy(s -> s.charAt(0), Collectors.counting())));
+        System.out.println(palavras.stream().collect(Collectors.partitioningBy(s -> s.length() > 4)));
+        System.out.println(palavras.stream().distinct().collect(Collectors.toMap(s -> s, String::length)));
+        LinkedList<String> ll = Stream.of("b", "a", "c").sorted().collect(Collectors.toCollection(LinkedList::new));
+        System.out.println(ll);
+        System.out.println(IntStream.range(0, 5).mapToObj(i -> "#" + i).collect(Collectors.joining()));
+        System.out.println(IntStream.rangeClosed(1, 5).reduce(1, (a, b) -> a * b) + " " + IntStream.of(3, 1, 2).sorted().boxed().toList());
+        System.out.println(Stream.iterate(1, x -> x * 2).limit(10).toList());
+        System.out.println(Stream.iterate(1, x -> x < 100, x -> x * 3).toList());
+        System.out.println(Arrays.stream(new int[]{4, 5, 6}).map(x -> x * 10).boxed().collect(Collectors.toList()));
+        System.out.println(Stream.of(List.of(1, 2), List.of(3), List.<Integer>of()).flatMap(List::stream).map(String::valueOf).collect(Collectors.joining("+")));
+        System.out.println(DoubleStream.of(1.5, 2.5, 3.0).sum() + " " + DoubleStream.of(0.1, 0.2, 0.3).sum() + " " + IntStream.of(1, 2).asDoubleStream().average().getAsDouble());
+    }
+}
+### streams-preguicosos
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> r = Stream.of("um", "dois", "três", "quatro")
+            .peek(s -> System.out.println("viu " + s))
+            .filter(s -> s.length() > 3)
+            .peek(s -> System.out.println("passou " + s))
+            .map(String::toUpperCase)
+            .limit(1)
+            .toList();
+        System.out.println(r);
+        Stream<Integer> s = Stream.of(1, 2);
+        s.forEach(x -> {});
+        try { s.count(); } catch (IllegalStateException e) { System.out.println(e.getMessage()); }
+        System.out.println(Stream.generate(() -> "z").limit(3).collect(Collectors.joining()));
+        System.out.println(IntStream.iterate(0, i -> i + 2).takeWhile(i -> i < 10).boxed().toList());
+    }
+}
+### collectors-avancado
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    record Venda(String vendedor, String regiao, double valor) {}
+    public static void main(String[] args) {
+        List<Venda> v = List.of(new Venda("Ana", "Sul", 100), new Venda("Bruno", "Norte", 250.5), new Venda("Ana", "Norte", 80), new Venda("Carla", "Sul", 300), new Venda("Bruno", "Sul", 10));
+        System.out.println(v.stream().collect(Collectors.groupingBy(Venda::vendedor, Collectors.summingDouble(Venda::valor))));
+        Map<String, Set<String>> porRegiao = v.stream().collect(Collectors.groupingBy(Venda::regiao, TreeMap::new, Collectors.mapping(Venda::vendedor, Collectors.toSet())));
+        System.out.println(porRegiao);
+        System.out.println(v.stream().collect(Collectors.groupingBy(Venda::regiao, Collectors.averagingDouble(Venda::valor))));
+        System.out.println(v.stream().collect(Collectors.groupingBy(Venda::vendedor, Collectors.maxBy(Comparator.comparingDouble(Venda::valor)))));
+        System.out.println(v.stream().collect(Collectors.toMap(Venda::vendedor, Venda::valor, Double::sum)));
+        System.out.println(v.stream().map(Venda::valor).collect(Collectors.summarizingDouble(d -> d)));
+        int qtd = v.stream().collect(Collectors.collectingAndThen(Collectors.toList(), List::size));
+        System.out.println(qtd);
+        System.out.println(v.stream().collect(Collectors.counting()) + " " + v.stream().mapToDouble(Venda::valor).max().getAsDouble());
+        System.out.println(v.stream().sorted(Comparator.comparing(Venda::valor).reversed()).map(Venda::vendedor).toList());
+        try { v.stream().collect(Collectors.toMap(Venda::vendedor, Venda::valor)); } catch (IllegalStateException e) { System.out.println(e.getMessage()); }
+        System.out.println(Stream.of("a", "bb", "cc", "ddd").collect(Collectors.groupingBy(String::length, LinkedHashMap::new, Collectors.joining("/"))));
+        IntSummaryStatistics st = IntStream.of(4, 8, 15, 16, 23, 42).summaryStatistics();
+        System.out.println(st.getMin() + " " + st.getMax() + " " + st.getAverage() + " " + st.getSum() + " " + st.getCount());
+    }
+}
+### optional
+import java.util.*;
+public class Main {
+    static Optional<String> buscar(String id) { return id.equals("1") ? Optional.of("Ana") : Optional.empty(); }
+    public static void main(String[] args) {
+        Optional<String> a = buscar("1"), b = buscar("2");
+        System.out.println(a + " " + b + " " + a.isPresent() + " " + b.isEmpty() + " " + a.get() + " " + b.orElse("ninguém"));
+        System.out.println(a.map(String::length).orElse(0) + " " + b.map(String::length).orElse(0) + " " + a.filter(s -> s.startsWith("B")).isPresent());
+        a.ifPresent(s -> System.out.println("achou " + s));
+        b.ifPresentOrElse(s -> System.out.println("achou"), () -> System.out.println("não achou"));
+        System.out.println(b.orElseGet(() -> "gerado") + " " + Optional.ofNullable(null).isPresent());
+        try { b.get(); } catch (NoSuchElementException e) { System.out.println(e.getMessage()); }
+        try { b.orElseThrow(() -> new IllegalStateException("sem valor")); } catch (IllegalStateException e) { System.out.println(e.getMessage()); }
+        OptionalInt oi = OptionalInt.of(5);
+        System.out.println(oi + " " + OptionalDouble.empty() + " " + oi.getAsInt());
+        b.orElseThrow();
+    }
+}
+### streams-texto
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    public static void main(String[] args) {
+        String texto = "o rato roeu a roupa do rei de roma";
+        Map<String, Long> freq = Arrays.stream(texto.split(" ")).collect(Collectors.groupingBy(w -> w, TreeMap::new, Collectors.counting()));
+        System.out.println(freq);
+        System.out.println(texto.chars().filter(c -> c == 'r').count());
+        System.out.println(texto.chars().mapToObj(c -> String.valueOf((char) c)).filter(s -> !s.isBlank()).distinct().sorted().collect(Collectors.joining()));
+        System.out.println(Arrays.stream(texto.split(" ")).map(w -> Character.toUpperCase(w.charAt(0)) + w.substring(1)).collect(Collectors.joining(" ")));
+        System.out.println("linha1\nlinha2\n\nlinha4".lines().filter(l -> !l.isEmpty()).count());
+    }
+}

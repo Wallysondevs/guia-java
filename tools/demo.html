@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demonstração do simulador | Guia Java</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>body { max-width: 900px; margin: 0 auto; padding: 16px; }</style>
+</head>
+<body>
+<h1>Demonstração do simulador de Java</h1>
+<p>Página de teste (fora do menu) com os componentes <code>.tryjava</code> e <code>.tryjshell</code>.</p>
+
+<h2>1. Missão simples</h2>
+<div class="tryjava" data-goal="out:Olá, Ana!">
+<p class="try-task"><strong>Missão:</strong> troque "mundo" por "Ana" e clique em Rodar.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana!");
+    }
+}
+</pre>
+</div>
+
+<h2>2. Entrada pelo teclado (campo na própria saída)</h2>
+<div class="tryjava">
+<p class="try-task">Rode e digite o nome e a idade quando o programa pedir.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Nome: ");
+        String nome = sc.nextLine();
+        System.out.print("Idade: ");
+        int idade = sc.nextInt();
+        System.out.printf("%s terá %d anos em 2027.%n", nome, idade + 1);
+    }
+}
+</pre>
+</div>
+
+<h2>3. Erro de compilação de propósito</h2>
+<div class="tryjava" data-goal="erro-javac:cannot find symbol">
+<p class="try-task"><strong>Missão:</strong> escreva <code>system</code> com minúscula e veja o javac reclamar.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        system.out.println("Olá");
+    }
+}
+</pre>
+</div>
+
+<h2>4. Exceção e código de saída</h2>
+<div class="tryjava" data-goal="excecao:ArithmeticException,exit:1">
+<p class="try-task"><strong>Missão:</strong> divida por zero.</p>
+<pre class="script">public class Main {
+    static int dividir(int a, int b) {
+        return a / b;
+    }
+    public static void main(String[] args) {
+        System.out.println(dividir(10, 2));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static int dividir(int a, int b) {
+        return a / b;
+    }
+    public static void main(String[] args) {
+        System.out.println(dividir(10, 0));
+    }
+}
+</pre>
+</div>
+
+<h2>5. Vários arquivos (abas) e argumentos</h2>
+<div class="tryjava" data-args="Ana 29">
+<pre class="script" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Pessoa p = new Pessoa(args[0], Integer.parseInt(args[1]));
+        System.out.println(p.apresentar());
+    }
+}
+</pre>
+<pre class="script" data-file="Pessoa.java">public class Pessoa {
+    private final String nome;
+    private final int idade;
+
+    public Pessoa(String nome, int idade) {
+        this.nome = nome;
+        this.idade = idade;
+    }
+
+    public String apresentar() {
+        return nome + " tem " + idade + " anos";
+    }
+}
+</pre>
+</div>
+
+<h2>6. Laço infinito (o simulador para sozinho)</h2>
+<div class="tryjava">
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int i = 0;
+        while (true) {
+            i++;
+        }
+    }
+}
+</pre>
+</div>
+
+<h2>7. JShell</h2>
+<div class="tryjshell" data-goal="out:$1 ==> 15">
+<p class="try-task"><strong>Missão:</strong> calcule 7 + 8.</p>
+<pre class="solucao">7 + 8</pre>
+</div>
+
+<script src="../assets/javasim.js"></script>
+</body>
+</html>

@@ -468,11 +468,13 @@
       "Set<Map.Entry<K,V>> entrySet()": function () { return viewOf(this, "entries"); },
       "V merge(K,V,java.util.function.BiFunction<? super V,? super V,? extends V>)": function (k, v, f) {
         if (v === null) npe();
+        if (!this.tab || this.size > this.thr) hmResize(this);
         var e = hmFind(this, k);
         if (e) { var n = e.value === null ? v : apply2(f, e.value, v); if (n === null) hmRemove(this, k); else { e.value = n; if (this.access) touch(this, e); } return n; }
         hmPut(this, k, v, false, true); return v;
       },
       "V computeIfAbsent(K,java.util.function.Function<? super K,? extends V>)": function (k, f) {
+        if (!this.tab || this.size > this.thr) hmResize(this);
         var e = hmFind(this, k);
         if (e && e.value !== null) return e.value;
         var m0 = this.mod;
@@ -484,6 +486,7 @@
       },
       "V computeIfPresent(K,java.util.function.BiFunction<? super K,? super V,? extends V>)": function (k, f) { var e = hmFind(this, k); if (!e || e.value === null) return null; var n = apply2(f, k, e.value); if (n === null) hmRemove(this, k); else e.value = n; return n; },
       "V compute(K,java.util.function.BiFunction<? super K,? super V,? extends V>)": function (k, f) {
+        if (!this.tab || this.size > this.thr) hmResize(this);
         var e = hmFind(this, k), n = apply2(f, k, e ? e.value : null);
         if (e) { if (n === null) hmRemove(this, k); else e.value = n; return n; }
         if (n !== null) hmPut(this, k, n, false, true);
@@ -1610,7 +1613,7 @@
     I.defExc("java.time.temporal.UnsupportedTemporalTypeException", "java.time.DateTimeException");
     function parseIsoDate(s) {
       var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-      if (!m) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed at index 0");
+      if (!m) { var pat = "dddd-dd-dd", ix = 0; while (ix < s.length && ix < pat.length && (pat[ix] === "d" ? /\d/.test(s[ix]) : s[ix] === pat[ix])) ix++; throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed at index " + ix); }
       var y = +m[1], mo = +m[2], d = +m[3];
       if (mo < 1 || mo > 12) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed: Invalid value for MonthOfYear (valid values 1 - 12): " + mo);
       if (d < 1 || d > 31) throwJ("java.time.format.DateTimeParseException", "Text '" + s + "' could not be parsed: Invalid value for DayOfMonth (valid values 1 - 28/31): " + d);
@@ -2183,7 +2186,7 @@
       "void close()": null
     } });
     var poolSeq = 0;
-    function mkPool(n, virt) { var rt = RT(); rt.poolSeq = (rt.poolSeq || 0) + 1; return { $c: L("java.util.concurrent.ExecutorImpl"), n: n || 1, virt: !!virt, id: rt.poolSeq, k: 0, shut: false }; }
+    function mkPool(n, virt) { var rt = RT(); if (!virt) rt.poolSeq = (rt.poolSeq || 0) + 1; return { $c: L("java.util.concurrent.ExecutorImpl"), n: n || 1, virt: !!virt, id: rt.poolSeq, k: 0, shut: false }; }
     function poolThreadName(p) { if (p.virt) return ""; var i = (p.k++ % p.n) + 1; return "pool-" + p.id + "-thread-" + i; }
     function runTask(p, fn) {
       if (p.shut) throwJ("java.util.concurrent.RejectedExecutionException", "Task rejected");

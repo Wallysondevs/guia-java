@@ -1,0 +1,383 @@
+### e-maiuscula
+public class Main {
+    public static void main(String[] args) {
+        system.out.println("x");
+    }
+}
+### e-string-minuscula
+public class Main {
+    public static void main(String[] args) {
+        string nome = "Ana";
+        System.out.Println(nome);
+    }
+}
+### e-main-sem-static-chamada
+public class Main {
+    int idade = 10;
+    void mostrar() { System.out.println(idade); }
+    public static void main(String[] args) {
+        mostrar();
+        idade = 5;
+    }
+}
+### e-inner-sem-instancia
+public class Main {
+    class Ajudante { }
+    public static void main(String[] args) {
+        Ajudante a = new Ajudante();
+    }
+}
+### e-retorno-faltando-if
+public class Main {
+    static String classifica(int n) {
+        if (n > 0) return "positivo";
+        else if (n < 0) return "negativo";
+    }
+    public static void main(String[] args) { }
+}
+### e-var-fora-escopo
+public class Main {
+    public static void main(String[] args) {
+        for (int i = 0; i < 3; i++) {
+            int dobro = i * 2;
+        }
+        System.out.println(i);
+        System.out.println(dobro);
+    }
+}
+### e-tipos-metodo
+public class Main {
+    static int dobro(int x) { return x * 2; }
+    public static void main(String[] args) {
+        String s = dobro(5);
+        int r = dobro("5");
+        double d = dobro(2.5);
+    }
+}
+### e-booleano-numero
+public class Main {
+    public static void main(String[] args) {
+        int x = 5;
+        if (x) System.out.println("a");
+        boolean b = 1;
+        while (x = 0) { }
+    }
+}
+### e-lossy
+public class Main {
+    public static void main(String[] args) {
+        double preco = 9.99;
+        int inteiro = preco;
+        long grande = 10;
+        int i = grande * 2;
+        float f = 2.5;
+        byte b = 200;
+        char c = 'a' + 1;
+        short s = 5;
+        s = s + 1;
+    }
+}
+### e-final-param
+public class Main {
+    static void f(final int x) { x = 2; }
+    public static void main(String[] args) {
+        final String nome = "Ana";
+        nome = "Bia";
+        final int[] v = new int[2];
+        v = new int[3];
+    }
+}
+### e-construtor-tipo-retorno
+public class Main {
+    static class Pessoa {
+        String nome;
+        void Pessoa(String n) { nome = n; }
+    }
+    public static void main(String[] args) {
+        Pessoa p = new Pessoa("Ana");
+    }
+}
+### e-classe-abstrata-interface
+public class Main {
+    interface Voador { void voar(); }
+    static class Pato implements Voador { void voar() { } }
+    public static void main(String[] args) { }
+}
+### e-equals-errado
+public class Main {
+    static class P { int x; @Override public boolean equals(P p) { return true; } }
+    public static void main(String[] args) { }
+}
+### e-sealed-fora
+public class Main {
+    sealed interface Forma permits Circulo {}
+    record Circulo() implements Forma {}
+    record Quadrado() implements Forma {}
+    public static void main(String[] args) { }
+}
+### e-switch-duplicado
+public class Main {
+    public static void main(String[] args) {
+        int x = 1;
+        switch (x) {
+            case 1: break;
+            case 1: break;
+        }
+        String s = switch (x) { case 1 -> "a"; case 2 -> 5; default -> "c"; };
+    }
+}
+### e-enum-switch
+public class Main {
+    enum Cor { VERDE, AZUL }
+    public static void main(String[] args) {
+        Cor c = Cor.VERDE;
+        String n = switch (c) { case VERDE -> "v"; };
+    }
+}
+### e-checked-metodo
+import java.io.*;
+public class Main {
+    static void ler() throws IOException { throw new IOException("x"); }
+    public static void main(String[] args) {
+        ler();
+    }
+}
+### e-checked-lambda
+import java.util.*;
+public class Main {
+    static void ler(String s) throws Exception { }
+    public static void main(String[] args) {
+        List.of("a").forEach(s -> ler(s));
+    }
+}
+### e-instanceof-padrao-escopo
+public class Main {
+    public static void main(String[] args) {
+        Object o = "x";
+        if (o instanceof String s) System.out.println(s);
+        System.out.println(s.length());
+    }
+}
+### e-generic-raw-lista
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>();
+        l.add("a");
+        int n = l.get(0);
+        Map<String, Integer> m = new HashMap<>();
+        m.put(1, "um");
+    }
+}
+### e-metodo-inexistente-objeto
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        ArrayList<String> l = new ArrayList<>();
+        l.push("a");
+        l.length();
+        String[] a = {};
+        System.out.println(a.length());
+        int x = 5;
+        x.toString();
+    }
+}
+### e-ponto-virgula-varios
+public class Main {
+    public static void main(String[] args) {
+        int a = 1
+        int b = 2
+        System.out.println(a + b);
+    }
+}
+### e-chave-sobrando
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("a");
+    }
+    }
+}
+### e-parentese-if
+public class Main {
+    public static void main(String[] args) {
+        int x = 3;
+        if x > 2 {
+            System.out.println("x");
+        }
+    }
+}
+### e-else-sem-if2
+public class Main {
+    public static void main(String[] args) {
+        int x = 3;
+        if (x > 2) {
+            System.out.println("a");
+        }
+        System.out.println("b");
+        else {
+            System.out.println("c");
+        }
+    }
+}
+### e-aspas-simples-texto
+public class Main {
+    public static void main(String[] args) {
+        String s = 'Olá';
+    }
+}
+### e-metodo-dentro-metodo
+public class Main {
+    public static void main(String[] args) {
+        void ajuda() { }
+    }
+}
+### e-return-depois
+public class Main {
+    static int f() {
+        return 1;
+        System.out.println("x");
+    }
+    public static void main(String[] args) { }
+}
+### e-uso-antes-init
+public class Main {
+    public static void main(String[] args) {
+        int total;
+        total++;
+        int soma;
+        soma = soma + 1;
+    }
+}
+### e-new-interface
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new List<>();
+        Runnable r = new Runnable();
+    }
+}
+### e-construtor-privado
+public class Main {
+    public static void main(String[] args) {
+        Math m = new Math();
+    }
+}
+class Util { private Util() {} static void f() {} }
+class Usa { void g() { Util u = new Util(); } }
+### e-acesso-protegido-ok
+public class Main {
+    static class A { protected int x = 1; private int y = 2; }
+    static class B extends A { int soma() { return x + super.x; } }
+    public static void main(String[] args) {
+        System.out.println(new B().soma() + new A().y);
+    }
+}
+### e-incomparavel-enum
+public class Main {
+    enum Cor { A }
+    public static void main(String[] args) {
+        Cor c = Cor.A;
+        if (c == "A") { }
+        Integer i = 5;
+        Long l = 5L;
+        if (i == l) { }
+    }
+}
+### e-generic-metodo-estatico-tipo
+public class Main {
+    static class Caixa<T> {
+        static T valor;
+    }
+    public static void main(String[] args) { }
+}
+### e-ternario-tipos
+public class Main {
+    public static void main(String[] args) {
+        int x = true ? 1 : "a";
+        String s = false ? "a" : 2;
+    }
+}
+### e-array-tipo
+public class Main {
+    public static void main(String[] args) {
+        int[] a = new int[3];
+        a = 5;
+        int b = a;
+        String[] s = {1, 2};
+        int[] c = new String[2];
+    }
+}
+### e-break-fora
+public class Main {
+    public static void main(String[] args) {
+        break;
+    }
+}
+### e-continue-fora
+public class Main {
+    public static void main(String[] args) {
+        int x = 1;
+        if (x > 0) continue;
+    }
+}
+### e-label-inexistente
+public class Main {
+    public static void main(String[] args) {
+        for (int i = 0; i < 2; i++) { break fora; }
+    }
+}
+### e-classe-duplicada
+class A {}
+class A {}
+public class Main { public static void main(String[] args) {} }
+### e-heranca-final
+public class Main {
+    static final class A {}
+    static class B extends A {}
+    static class C extends String {}
+    public static void main(String[] args) {}
+}
+### e-static-metodo-sobrescreve
+public class Main {
+    static class A { static void f() {} void g() {} }
+    static class B extends A { void f() {} static void g() {} }
+    public static void main(String[] args) {}
+}
+### e-tipo-retorno-sobrescrita
+public class Main {
+    static class A { int f() { return 1; } }
+    static class B extends A { String f() { return ""; } }
+    public static void main(String[] args) {}
+}
+### e-excecao-sobrescrita
+public class Main {
+    static class A { void f() {} }
+    static class B extends A { void f() throws Exception {} }
+    public static void main(String[] args) {}
+}
+### e-varargs-meio
+public class Main {
+    static void f(int... a, int b) {}
+    public static void main(String[] args) {}
+}
+### e-yield-fora
+public class Main {
+    public static void main(String[] args) {
+        int x = 2;
+        int y = switch (x) {
+            case 1 -> 10;
+            default -> { System.out.println("x"); }
+        };
+    }
+}
+### e-lambda-sem-alvo
+public class Main {
+    public static void main(String[] args) {
+        var f = x -> x * 2;
+        Object o = () -> {};
+    }
+}
+### e-dois-publicos
+//// Main.java
+public class Main { public static void main(String[] args) {} }
+public class Outra {}

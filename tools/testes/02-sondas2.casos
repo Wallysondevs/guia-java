@@ -32,17 +32,6 @@ public class Main {
     }
     void g(String p) { p.toUpperCase(); }
 }
-### hash-identidade
-public class Main {
-    public static void main(String[] args) {
-        Object o = new Object();
-        System.out.println(o);
-        System.out.println(new Main());
-        System.out.println(new int[3]);
-        System.out.println(new String[0]);
-        System.out.println(o.hashCode());
-    }
-}
 ### main-faltando-ola
 //// Ola.java
 public class Ola {

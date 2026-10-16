@@ -261,14 +261,3 @@ public class Main {
         System.out.println(List.of(1, 2.0, "a", 'c'));
     }
 }
-### jshell1 [jshell]
-7 + 8
-int x = 10
-x * 2
-String s = "oi"
-s.length()
-y + 1
-System.out.println("olá")
-double d = 1 / 3.0
-/vars
-/exit

@@ -1,0 +1,178 @@
+### try-catch-finally
+public class Main {
+    static int f(int x) {
+        try {
+            if (x == 0) throw new IllegalStateException("zero");
+            return 10 / x;
+        } catch (IllegalStateException e) {
+            System.out.println("pegou " + e.getMessage());
+            return -1;
+        } finally {
+            System.out.println("finally " + x);
+        }
+    }
+    public static void main(String[] args) {
+        System.out.println(f(2));
+        System.out.println(f(0));
+        try { f(-0); } finally { System.out.println("fim"); }
+    }
+}
+### multi-catch
+public class Main {
+    public static void main(String[] args) {
+        String[] entradas = {"10", "abc", null, "0"};
+        for (String e : entradas) {
+            try {
+                int n = Integer.parseInt(e.trim());
+                System.out.println(100 / n);
+            } catch (NumberFormatException | ArithmeticException ex) {
+                System.out.println("erro: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+            } catch (NullPointerException ex) {
+                System.out.println("nulo");
+            }
+        }
+    }
+}
+### propria-checked
+public class Main {
+    static class SaldoInsuficienteException extends Exception {
+        private final double falta;
+        SaldoInsuficienteException(String msg, double falta) { super(msg); this.falta = falta; }
+        double getFalta() { return falta; }
+    }
+    static double saldo = 100;
+    static void sacar(double v) throws SaldoInsuficienteException {
+        if (v > saldo) throw new SaldoInsuficienteException("Saldo insuficiente", v - saldo);
+        saldo -= v;
+    }
+    public static void main(String[] args) throws Exception {
+        try { sacar(30); sacar(100); } catch (SaldoInsuficienteException e) { System.out.println(e.getMessage() + " falta " + e.getFalta() + " " + e); }
+        sacar(500);
+    }
+}
+### cadeia-causas
+public class Main {
+    static void nivel3() { throw new IllegalArgumentException("valor ruim"); }
+    static void nivel2() { try { nivel3(); } catch (IllegalArgumentException e) { throw new IllegalStateException("falhou no nível 2", e); } }
+    static void nivel1() { try { nivel2(); } catch (RuntimeException e) { throw new RuntimeException(e); } }
+    public static void main(String[] args) {
+        try { nivel1(); } catch (RuntimeException e) {
+            System.out.println(e.getMessage());
+            System.out.println(e.getCause().getMessage());
+            System.out.println(e.getCause().getCause());
+        }
+        nivel1();
+    }
+}
+### print-stack-trace
+public class Main {
+    static void a() { b(); }
+    static void b() { throw new UnsupportedOperationException("ainda não"); }
+    public static void main(String[] args) {
+        try { a(); } catch (Exception e) { e.printStackTrace(); }
+        System.out.println("continua");
+        System.err.println("aviso no err");
+    }
+}
+### try-with-resources
+public class Main {
+    static class Recurso implements AutoCloseable {
+        String nome;
+        Recurso(String n) { nome = n; System.out.println("abre " + n); }
+        void usar(boolean falha) { System.out.println("usa " + nome); if (falha) throw new IllegalStateException("falha em " + nome); }
+        @Override public void close() { System.out.println("fecha " + nome); }
+    }
+    public static void main(String[] args) {
+        try (Recurso a = new Recurso("A"); Recurso b = new Recurso("B")) {
+            a.usar(false); b.usar(true);
+        } catch (IllegalStateException e) {
+            System.out.println("capturou " + e.getMessage() + " suprimidas=" + e.getSuppressed().length);
+        } finally {
+            System.out.println("finally");
+        }
+    }
+}
+### finally-retorno
+public class Main {
+    @SuppressWarnings("finally")
+    static int f() { try { return 1; } finally { return 2; } }
+    static int g() { int x = 1; try { return x; } finally { x = 5; } }
+    public static void main(String[] args) {
+        System.out.println(f() + " " + g());
+        for (int i = 0; i < 3; i++) {
+            try { if (i == 1) continue; System.out.println("i=" + i); } finally { System.out.println("f" + i); }
+        }
+    }
+}
+### excecao-construtor
+public class Main {
+    static class Pessoa {
+        Pessoa(int idade) {
+            if (idade < 0) throw new IllegalArgumentException("Idade inválida: " + idade);
+        }
+    }
+    public static void main(String[] args) {
+        new Pessoa(10);
+        new Pessoa(-3);
+    }
+}
+### excecao-lambda
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<Integer> l = List.of(1, 2, 0, 4);
+        try {
+            l.forEach(x -> System.out.println(10 / x));
+        } catch (ArithmeticException e) { System.out.println("erro: " + e.getMessage()); }
+    }
+}
+### throw-rethrow
+import java.io.*;
+public class Main {
+    static void ler(String s) throws IOException { if (s.isEmpty()) throw new FileNotFoundException("vazio"); System.out.println("leu " + s); }
+    public static void main(String[] args) {
+        for (String s : new String[]{"a", ""}) {
+            try { ler(s); }
+            catch (FileNotFoundException e) { System.out.println("FNF " + e.getMessage()); }
+            catch (IOException e) { System.out.println("IO"); }
+        }
+        try { throw new Error("grave"); } catch (Throwable t) { System.out.println(t + " " + (t instanceof Exception)); }
+    }
+}
+### exit-codigo
+public class Main {
+    public static void main(String[] args) {
+        try {
+            System.out.println("saindo");
+            System.exit(3);
+        } finally {
+            System.out.println("não aparece");
+        }
+    }
+}
+### npe-mensagens
+public class Main {
+    static class Livro { String titulo; Livro proximo; }
+    public static void main(String[] args) {
+        Livro l = new Livro();
+        l.proximo = new Livro();
+        System.out.println(l.proximo.titulo);
+        System.out.println(l.proximo.proximo.titulo.length());
+    }
+}
+### excecao-static-init
+public class Main {
+    static class Config { static int v = 10 / Integer.parseInt("0"); }
+    public static void main(String[] args) {
+        System.out.println("antes");
+        System.out.println(Config.v);
+    }
+}
+### assert-desligado
+public class Main {
+    public static void main(String[] args) {
+        int x = -1;
+        assert x > 0 : "x deve ser positivo";
+        System.out.println("passou " + x);
+    }
+}
