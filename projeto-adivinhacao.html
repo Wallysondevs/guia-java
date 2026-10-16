@@ -1,0 +1,1432 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Projeto Jogo da Adivinhação — Random, while, enum e recorde | Guia Java</title>
+<meta name="description" content="Projeto passo a passo: o jogo de adivinhar o número em Java, com Random, while, contador de tentativas, limite, validação com hasNextInt, níveis com enum e recorde com do-while. Saídas reais e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Jogo da Adivinhação</span></h1>
+
+<p class="intro">O computador pensa num número e você tenta adivinhar. A cada palpite, ele diz se o número secreto é maior ou menor. É o jogo clássico de quem aprende a programar, porque usa um pouco de tudo: sorteio, repetição, decisões, contagem e, na versão final, níveis de dificuldade feitos com <code>enum</code> e um recorde.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Sortear números com <a href="aleatorios.html">Random</a>.</li>
+  <li>Decidir com <a href="if-else.html">if, else if, else</a> e repetir com <a href="while.html">while e do-while</a>.</li>
+  <li>Contar tentativas e usar <a href="constantes.html">constantes (final)</a>.</li>
+  <li>Validar números inteiros com <code>hasNextInt</code>.</li>
+  <li>Criar um <a href="enums.html">enum</a> com atributos e construtor.</li>
+  <li>Guardar o melhor resultado (recorde) entre partidas.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>O jogo pronto, com três partidas da Ana (ela é boa nisso: sempre chuta o meio do intervalo que sobrou):</p>
+
+<pre class="term" data-cwd="~/java/adivinhacao">$ java Adivinhacao.java
+=== Jogo da Adivinhação ===
+1 = FACIL (1 a 10, 4 tentativas)
+2 = MEDIO (1 a 50, 6 tentativas)
+3 = DIFICIL (1 a 100, 7 tentativas)
+Nível: 3
+Pensei num número de 1 a 100. Você tem 7 tentativas.
+Palpite: 50
+É menor que 50.
+Palpite: 25
+É maior que 25.
+Palpite: 37
+É maior que 37.
+Palpite: 43
+É maior que 43.
+Palpite: 46
+É maior que 46.
+Palpite: 48
+É menor que 48.
+Palpite: 47
+Acertou em 7 tentativa(s)!
+Novo recorde: 7 tentativa(s)!
+Jogar de novo? (s/n): s
+1 = FACIL (1 a 10, 4 tentativas)
+2 = MEDIO (1 a 50, 6 tentativas)
+3 = DIFICIL (1 a 100, 7 tentativas)
+Nível: 1
+Pensei num número de 1 a 10. Você tem 4 tentativas.
+Palpite: 5
+É maior que 5.
+Palpite: 8
+É menor que 8.
+Palpite: 6
+É maior que 6.
+Palpite: 7
+Acertou em 4 tentativa(s)!
+Novo recorde: 4 tentativa(s)!                « melhor que 7: virou o recorde
+Jogar de novo? (s/n): s
+1 = FACIL (1 a 10, 4 tentativas)
+2 = MEDIO (1 a 50, 6 tentativas)
+3 = DIFICIL (1 a 100, 7 tentativas)
+Nível: 2
+Pensei num número de 1 a 50. Você tem 6 tentativas.
+Palpite: 25
+É maior que 25.
+Palpite: 38
+É maior que 38.
+Palpite: 44
+É menor que 44.
+Palpite: 41
+É maior que 41.
+Palpite: 42
+É maior que 42.
+Palpite: 43
+Acertou em 6 tentativa(s)!                  « 6 não bate 4: o recorde fica
+Jogar de novo? (s/n): n
+Seu recorde: 4 tentativa(s). Até a próxima!</pre>
+
+<p>Como o número é sorteado, cada vez que <strong>você</strong> rodar o jogo vai ver números diferentes. As etapas:</p>
+
+<ol class="passo">
+  <li><a href="#etapa1">Sortear e dar um palpite</a> (<code>Random</code>, <code>if/else</code>).</li>
+  <li><a href="#etapa2">Repetir até acertar</a> (<code>while</code>, contador).</li>
+  <li><a href="#etapa3">Limitar as tentativas</a> (constantes, condição composta).</li>
+  <li><a href="#etapa4">Métodos e validação</a> (<code>jogar</code>, <code>lerInteiro</code>, <code>hasNextInt</code>).</li>
+  <li><a href="#etapa5">Níveis de dificuldade</a> (<code>enum</code> com atributos).</li>
+  <li><a href="#etapa6">Jogar de novo e recorde</a> (<code>do-while</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Este projeto usa o que você viu no <a href="projeto-calculadora.html">projeto da Calculadora</a> (Scanner, métodos, validação) e acrescenta <a href="aleatorios.html">Números Aleatórios</a> e <a href="enums.html">Enums</a>. No seu computador:</p>
+
+<pre class="term">$ mkdir -p java/adivinhacao
+$ cd java/adivinhacao</pre>
+
+<div class="tip">
+<strong>Por que as missões usam <code>new Random(7)</code></strong>
+<p>Um jogo de sorteio não pode ser conferido automaticamente: cada execução sorteia outro número. Por isso, nas caixas <em>Experimente</em>, o <code>Random</code> recebe uma <strong>semente</strong> (<em>seed</em>): <code>new Random(7)</code>. Com a mesma semente, o Java sorteia sempre a mesma sequência; com a semente 7, o primeiro <code>nextInt(100) + 1</code> é sempre <strong>37</strong>. No seu computador, use <code>new Random()</code>, sem número, para o jogo ser de verdade. A explicação completa está em <a href="aleatorios.html">Números Aleatórios</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="etapa1">Etapa 1 · Sortear e dar um palpite</h2>
+<p>Primeiro, o mínimo: sortear um número de 1 a 100, ler um palpite e dizer se acertou, se o secreto é maior ou menor. No fim, para conferir, o programa revela o número.</p>
+
+<pre class="file" data-file="Adivinhacao.java">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random();
+
+        int secreto = sorteio.nextInt(100) + 1;
+        System.out.println("Pensei num número de 1 a 100.");
+        System.out.print("Palpite: ");
+        int palpite = entrada.nextInt();
+
+        if (palpite == secreto) {
+            System.out.println("Acertou!");
+        } else if (palpite &lt; secreto) {
+            System.out.println("É maior que " + palpite + ".");
+        } else {
+            System.out.println("É menor que " + palpite + ".");
+        }
+        System.out.println("O número era " + secreto + ".");
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>import java.util.Random;</code></td><td>A classe <code>Random</code> (aleatório) também mora em <code>java.util</code>.</td></tr>
+<tr><td><code>Random sorteio = new Random();</code></td><td>Cria o "sorteador". Sem semente, cada execução dá números diferentes.</td></tr>
+<tr><td><code>sorteio.nextInt(100)</code></td><td>Sorteia um <code>int</code> de <strong>0 a 99</strong>: o número entre parênteses é o limite, que <strong>não</strong> entra.</td></tr>
+<tr><td><code>+ 1</code></td><td>Desloca o intervalo para <strong>1 a 100</strong>.</td></tr>
+<tr><td><code>entrada.nextInt()</code></td><td>Lê um número inteiro digitado.</td></tr>
+<tr><td><code>if … else if … else</code></td><td>Três caminhos: igual, menor, maior. Só um deles roda (<a href="if-else.html">if, else if, else</a>).</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/adivinhacao">$ java Adivinhacao.java
+Pensei num número de 1 a 100.
+Palpite: 50
+É maior que 50.
+O número era 91.
+$ java Adivinhacao.java
+Pensei num número de 1 a 100.
+Palpite: 50
+É menor que 50.
+O número era 22.                « outro sorteio, outro número</pre>
+
+<p>Repare na lógica da dica: se o palpite (50) é <strong>menor</strong> que o secreto (91), a dica é "<strong>É maior</strong> que 50", porque a pessoa precisa subir.</p>
+
+<div class="tryjava" data-file="Adivinhacao.java" data-stdin="50\n" data-goal="out:É menor que 50.,out:O número era 37.">
+<p class="try-task"><strong>Missão (etapa 1):</strong> escreva o <code>if / else if / else</code> que compara <code>palpite</code> com <code>secreto</code> e mostra <code>Acertou!</code>, <code>É maior que 50.</code> ou <code>É menor que 50.</code> (use a variável <code>palpite</code> no texto). Com a semente 7, o secreto é 37 e o palpite da missão é 50.</p>
+<pre class="script">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+
+        int secreto = sorteio.nextInt(100) + 1;
+        System.out.println("Pensei num número de 1 a 100.");
+        System.out.print("Palpite: ");
+        int palpite = entrada.nextInt();
+
+        // compare o palpite com o secreto e mostre a dica
+
+        System.out.println("O número era " + secreto + ".");
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+
+        int secreto = sorteio.nextInt(100) + 1;
+        System.out.println("Pensei num número de 1 a 100.");
+        System.out.print("Palpite: ");
+        int palpite = entrada.nextInt();
+
+        if (palpite == secreto) {
+            System.out.println("Acertou!");
+        } else if (palpite &lt; secreto) {
+            System.out.println("É maior que " + palpite + ".");
+        } else {
+            System.out.println("É menor que " + palpite + ".");
+        }
+        System.out.println("O número era " + secreto + ".");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa2">Etapa 2 · Repetir até acertar</h2>
+<p>Um palpite só não é jogo. Agora o programa repete a pergunta <strong>enquanto</strong> o palpite for diferente do secreto, e conta quantas tentativas a pessoa usou.</p>
+
+<pre class="file" data-file="Adivinhacao.java">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random();
+
+        int secreto = sorteio.nextInt(100) + 1;
+        System.out.println("Pensei num número de 1 a 100.");
+        int tentativas = 0;
+        int palpite = 0;
+
+        while (palpite != secreto) {
+            System.out.print("Palpite: ");
+            palpite = entrada.nextInt();
+            tentativas++;
+
+            if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else if (palpite &gt; secreto) {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>int tentativas = 0;</dt><dd>O <strong>contador</strong>: começa em zero, antes do laço.</dd>
+  <dt>int palpite = 0;</dt><dd>O palpite precisa existir <strong>antes</strong> do <code>while</code>, porque a condição usa ele. Começa em 0, que nunca é o secreto (o sorteio vai de 1 a 100), então o laço roda pelo menos uma vez.</dd>
+  <dt>while (palpite != secreto)</dt><dd>"Enquanto o palpite for diferente do secreto, repita." <code>!=</code> é "diferente" (<a href="operadores-comparacao.html">operadores de comparação</a>).</dd>
+  <dt>tentativas++;</dt><dd>Soma 1 ao contador a cada volta.</dd>
+  <dt>println("Acertou em " …)</dt><dd>Fica <strong>depois</strong> do laço: só chega aqui quem acertou.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/java/adivinhacao">$ java Adivinhacao.java
+Pensei num número de 1 a 100.
+Palpite: 50
+É menor que 50.
+Palpite: 25
+É maior que 25.
+Palpite: 37
+É menor que 37.
+Palpite: 31
+É menor que 31.
+Palpite: 28
+Acertou em 5 tentativa(s)!</pre>
+
+<div class="tip">
+<strong>A estratégia da Ana tem nome: busca binária</strong>
+<p>Chutar sempre o meio do que sobrou corta as possibilidades pela metade a cada palpite: 100 → 50 → 25 → 12 → 6 → 3 → 1. Por isso, de 1 a 100, <strong>7 palpites</strong> sempre bastam. Guarde esse número: ele vai virar o limite da próxima etapa.</p>
+</div>
+
+<div class="tryjava" data-file="Adivinhacao.java" data-stdin="50\n25\n37\n" data-goal="out:Acertou em 3 tentativa(s)!,src:while\s*\(">
+<p class="try-task"><strong>Missão (etapa 2):</strong> transforme o palpite único num laço <code>while</code> que repete até acertar e conte as tentativas. No fim, mostre <code>Acertou em 3 tentativa(s)!</code> (com a semente 7 e os palpites 50, 25, 37 da missão).</p>
+<pre class="script">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+
+        int secreto = sorteio.nextInt(100) + 1;
+        System.out.println("Pensei num número de 1 a 100.");
+        System.out.print("Palpite: ");
+        int palpite = entrada.nextInt();
+
+        if (palpite == secreto) {
+            System.out.println("Acertou!");
+        } else if (palpite &lt; secreto) {
+            System.out.println("É maior que " + palpite + ".");
+        } else {
+            System.out.println("É menor que " + palpite + ".");
+        }
+        System.out.println("O número era " + secreto + ".");
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+
+        int secreto = sorteio.nextInt(100) + 1;
+        System.out.println("Pensei num número de 1 a 100.");
+        int tentativas = 0;
+        int palpite = 0;
+
+        while (palpite != secreto) {
+            System.out.print("Palpite: ");
+            palpite = entrada.nextInt();
+            tentativas++;
+
+            if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else if (palpite &gt; secreto) {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa3">Etapa 3 · Limitar as tentativas</h2>
+<p>Sem limite não há como perder, e jogo sem derrota não tem graça. Vamos dar <strong>7 tentativas</strong>. Os números 100 e 7 viram <strong>constantes</strong>: valores com nome, que não mudam.</p>
+
+<pre class="file" data-file="Adivinhacao.java">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    static final int MAXIMO = 100;
+    static final int MAX_TENTATIVAS = 7;
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random();
+
+        int secreto = sorteio.nextInt(MAXIMO) + 1;
+        System.out.println("Pensei num número de 1 a " + MAXIMO + ". Você tem " + MAX_TENTATIVAS + " tentativas.");
+        int tentativas = 0;
+        boolean acertou = false;
+
+        while (!acertou &amp;&amp; tentativas &lt; MAX_TENTATIVAS) {
+            System.out.print("Palpite: ");
+            int palpite = entrada.nextInt();
+            tentativas++;
+
+            if (palpite == secreto) {
+                acertou = true;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+
+        if (acertou) {
+            System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+        } else {
+            System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        }
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>static final int MAX_TENTATIVAS = 7;</dt><dd><code>final</code> = "final, não muda mais"; <code>static</code> = da classe. Por costume, constantes têm nome em MAIÚSCULAS com <code>_</code> (veja <a href="constantes.html">Constantes</a>). Mudar a dificuldade agora é mudar uma linha só.</dd>
+  <dt>boolean acertou = false;</dt><dd>Uma "bandeira" que diz se a pessoa já acertou.</dd>
+  <dt>while (!acertou &amp;&amp; tentativas &lt; MAX_TENTATIVAS)</dt><dd>Continua enquanto <strong>não</strong> acertou <strong>e</strong> ainda tem tentativas. Basta uma das duas ficar falsa para o laço parar.</dd>
+  <dt>if (acertou) … else …</dt><dd>Depois do laço, a bandeira diz <strong>por que</strong> ele parou: vitória ou fim das tentativas.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/java/adivinhacao">$ java Adivinhacao.java
+Pensei num número de 1 a 100. Você tem 7 tentativas.
+Palpite: 10
+É maior que 10.
+Palpite: 20
+É maior que 20.
+Palpite: 30
+É maior que 30.
+Palpite: 40
+É maior que 40.
+Palpite: 60
+É menor que 60.
+Palpite: 70                       « a dica dizia "menor que 60", mas a Ana se distraiu
+É menor que 70.
+Palpite: 80
+É menor que 80.
+Acabaram as tentativas. O número era 50.</pre>
+
+<div class="tryjava" data-file="Adivinhacao.java" data-stdin="1\n2\n3\n4\n5\n6\n7\n" data-goal="out:Acabaram as tentativas. O número era 37.,src:MAX_TENTATIVAS">
+<p class="try-task"><strong>Missão (etapa 3):</strong> crie a constante <code>MAX_TENTATIVAS</code> com o valor 7 e faça o jogo parar quando ela acabar, mostrando <code>Acabaram as tentativas. O número era 37.</code> A entrada da missão tem sete palpites errados.</p>
+<pre class="script">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+
+        int secreto = sorteio.nextInt(100) + 1;
+        System.out.println("Pensei num número de 1 a 100.");
+        int tentativas = 0;
+        int palpite = 0;
+
+        while (palpite != secreto) {
+            System.out.print("Palpite: ");
+            palpite = entrada.nextInt();
+            tentativas++;
+
+            if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else if (palpite &gt; secreto) {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    static final int MAXIMO = 100;
+    static final int MAX_TENTATIVAS = 7;
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+
+        int secreto = sorteio.nextInt(MAXIMO) + 1;
+        System.out.println("Pensei num número de 1 a " + MAXIMO + ". Você tem " + MAX_TENTATIVAS + " tentativas.");
+        int tentativas = 0;
+        boolean acertou = false;
+
+        while (!acertou &amp;&amp; tentativas &lt; MAX_TENTATIVAS) {
+            System.out.print("Palpite: ");
+            int palpite = entrada.nextInt();
+            tentativas++;
+
+            if (palpite == secreto) {
+                acertou = true;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+
+        if (acertou) {
+            System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+        } else {
+            System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa4">Etapa 4 · Métodos e validação</h2>
+<p>Como na calculadora, o <code>main</code> cresceu. Separamos a partida no método <code>jogar</code> e a leitura no método <code>lerInteiro</code>, que recusa o que não for número inteiro. De quebra, o <code>while</code> com bandeira vira um <code>for</code> com <code>return</code>, que fica mais curto:</p>
+
+<pre class="file" data-file="Adivinhacao.java">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    static final int MAXIMO = 100;
+    static final int MAX_TENTATIVAS = 7;
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random();
+        System.out.println("=== Jogo da Adivinhação ===");
+        int resultado = jogar(entrada, sorteio);
+        if (resultado == 0) {
+            System.out.println("Fica para a próxima!");
+        }
+    }
+
+    static int jogar(Scanner entrada, Random sorteio) {
+        int secreto = sorteio.nextInt(MAXIMO) + 1;
+        System.out.println("Pensei num número de 1 a " + MAXIMO + ". Você tem " + MAX_TENTATIVAS + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= MAX_TENTATIVAS; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mudança</th><th>Por quê</th></tr>
+<tr><td><code>static int jogar(…)</code> devolve um <code>int</code></td><td>Devolve <strong>quantas tentativas</strong> foram usadas para acertar, ou <code>0</code> se a pessoa perdeu. Na etapa 6 esse número vira o recorde.</td></tr>
+<tr><td><code>for (int tentativas = 1; tentativas &lt;= MAX_TENTATIVAS; tentativas++)</code></td><td>Conta de 1 a 7 sozinho (<a href="for.html">for</a>). A variável <code>tentativas</code> já é o número da tentativa atual.</td></tr>
+<tr><td><code>return tentativas;</code> dentro do <code>if</code></td><td>Acertou: sai do método na hora, sem precisar de bandeira nem de <code>break</code>.</td></tr>
+<tr><td>Depois do <code>for</code>: "Acabaram…" e <code>return 0;</code></td><td>Só chega aqui quem usou as 7 tentativas sem acertar.</td></tr>
+<tr><td><code>hasNextInt()</code> em <code>lerInteiro</code></td><td>Confere se há um inteiro esperando; se não, descarta a palavra com <code>next()</code> e pergunta de novo.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/adivinhacao">$ java Adivinhacao.java
+=== Jogo da Adivinhação ===
+Pensei num número de 1 a 100. Você tem 7 tentativas.
+Palpite: cinquenta
+"cinquenta" não é um número inteiro.
+Palpite: 50
+É menor que 50.
+Palpite: 25
+É menor que 25.
+Palpite: 12
+É maior que 12.
+Palpite: 18
+É menor que 18.
+Palpite: 15
+É maior que 15.
+Palpite: 16
+Acertou em 6 tentativa(s)!</pre>
+
+<p>Repare que "cinquenta" <strong>não</strong> gastou uma tentativa: o <code>for</code> só avança depois que <code>lerInteiro</code> devolve um número.</p>
+
+<div class="tryjava" data-file="Adivinhacao.java" data-stdin="cinquenta\n50\n25\n37\n" data-goal="out:&quot;cinquenta&quot; não é um número inteiro.,out:Acertou em 3 tentativa(s)!,src:hasNextInt">
+<p class="try-task"><strong>Missão (etapa 4):</strong> rode como está: com "cinquenta" na entrada, o jogo quebra com <code>InputMismatchException</code>. Conserte o método <code>lerInteiro</code> com <code>hasNextInt()</code> para mostrar <code>"cinquenta" não é um número inteiro.</code> e perguntar de novo.</p>
+<pre class="script">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    static final int MAXIMO = 100;
+    static final int MAX_TENTATIVAS = 7;
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+        System.out.println("=== Jogo da Adivinhação ===");
+        int resultado = jogar(entrada, sorteio);
+        if (resultado == 0) {
+            System.out.println("Fica para a próxima!");
+        }
+    }
+
+    static int jogar(Scanner entrada, Random sorteio) {
+        int secreto = sorteio.nextInt(MAXIMO) + 1;
+        System.out.println("Pensei num número de 1 a " + MAXIMO + ". Você tem " + MAX_TENTATIVAS + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= MAX_TENTATIVAS; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        return entrada.nextInt();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+    static final int MAXIMO = 100;
+    static final int MAX_TENTATIVAS = 7;
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+        System.out.println("=== Jogo da Adivinhação ===");
+        int resultado = jogar(entrada, sorteio);
+        if (resultado == 0) {
+            System.out.println("Fica para a próxima!");
+        }
+    }
+
+    static int jogar(Scanner entrada, Random sorteio) {
+        int secreto = sorteio.nextInt(MAXIMO) + 1;
+        System.out.println("Pensei num número de 1 a " + MAXIMO + ". Você tem " + MAX_TENTATIVAS + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= MAX_TENTATIVAS; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa5">Etapa 5 · Níveis de dificuldade com enum</h2>
+<p>Agora queremos três níveis: fácil (1 a 10), médio (1 a 50) e difícil (1 a 100), cada um com o seu número de tentativas. Poderíamos usar <code>int</code>s soltos (1, 2, 3) e um monte de <code>if</code>, mas o Java tem algo melhor: o <strong>enum</strong> (de <em>enumeration</em>, "enumeração", uma lista fechada de opções). Cada nível vira uma constante que <strong>carrega os seus próprios dados</strong>:</p>
+
+<pre class="file" data-file="Adivinhacao.java">    enum Nivel {
+        FACIL(10, 4),
+        MEDIO(50, 6),
+        DIFICIL(100, 7);
+
+        final int maximo;
+        final int tentativas;
+
+        Nivel(int maximo, int tentativas) {
+            this.maximo = maximo;
+            this.tentativas = tentativas;
+        }
+    }
+</pre>
+
+<dl class="anatomy">
+  <dt>enum Nivel { … }</dt><dd>Um tipo novo, <code>Nivel</code>, que só pode ter os valores listados. Ele fica <strong>dentro</strong> da classe <code>Adivinhacao</code>, como um "enum interno".</dd>
+  <dt>FACIL(10, 4)</dt><dd>Uma constante do enum. Os números entre parênteses vão para o construtor: máximo 10, 4 tentativas.</dd>
+  <dt>final int maximo;</dt><dd>Atributos: cada nível guarda o seu máximo e as suas tentativas.</dd>
+  <dt>Nivel(int maximo, int tentativas)</dt><dd>O <a href="construtores.html">construtor</a>, chamado uma vez para cada constante. <code>this.maximo</code> é o atributo; <code>maximo</code> sozinho é o parâmetro (veja <a href="this.html">this</a>).</dd>
+</dl>
+
+<p>Com o enum, o resto do programa pede o nível e passa ele para o <code>jogar</code>, que troca <code>MAXIMO</code> por <code>nivel.maximo</code> e <code>MAX_TENTATIVAS</code> por <code>nivel.tentativas</code>. O método que mostra o menu e lê a escolha:</p>
+
+<pre class="file" data-file="Adivinhacao.java">    static Nivel escolherNivel(Scanner entrada) {
+        Nivel[] niveis = Nivel.values();
+        for (int i = 0; i &lt; niveis.length; i++) {
+            Nivel n = niveis[i];
+            System.out.println((i + 1) + " = " + n + " (1 a " + n.maximo + ", " + n.tentativas + " tentativas)");
+        }
+        int escolha = lerInteiro(entrada, "Nível: ");
+        while (escolha &lt; 1 || escolha &gt; niveis.length) {
+            System.out.println("Escolha de 1 a " + niveis.length + ".");
+            escolha = lerInteiro(entrada, "Nível: ");
+        }
+        return niveis[escolha - 1];
+    }
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>Nivel.values()</code></td><td>Devolve um <a href="arrays.html">array</a> com todas as constantes, na ordem em que foram escritas: <code>[FACIL, MEDIO, DIFICIL]</code>.</td></tr>
+<tr><td><code>" = " + n</code></td><td>Um enum vira texto com o próprio nome: <code>FACIL</code>.</td></tr>
+<tr><td><code>escolha &lt; 1 || escolha &gt; niveis.length</code></td><td>"Menor que 1 <strong>ou</strong> maior que 3": fora do menu, pergunta de novo.</td></tr>
+<tr><td><code>niveis[escolha - 1]</code></td><td>A pessoa digita 1, 2 ou 3; o array começa no índice 0. Por isso o <code>- 1</code>.</td></tr>
+</table>
+</div>
+
+<p>O programa completo desta etapa está na caixa <em>Experimente</em> logo abaixo.</p>
+
+<pre class="term" data-cwd="~/java/adivinhacao">$ java Adivinhacao.java
+=== Jogo da Adivinhação ===
+1 = FACIL (1 a 10, 4 tentativas)
+2 = MEDIO (1 a 50, 6 tentativas)
+3 = DIFICIL (1 a 100, 7 tentativas)
+Nível: 4
+Escolha de 1 a 3.
+Nível: 1
+Pensei num número de 1 a 10. Você tem 4 tentativas.
+Palpite: 5
+É maior que 5.
+Palpite: 8
+É menor que 8.
+Palpite: 6
+É maior que 6.
+Palpite: 7
+Acertou em 4 tentativa(s)!</pre>
+
+<p>O menu foi montado a partir do enum: se você acrescentar um nível na lista, ele aparece no menu sem mudar mais nada.</p>
+
+<div class="cenario">
+<strong>Quando dá errado: ler o nível pelo nome com <code>valueOf</code></strong>
+<p>Outra forma de escolher o nível é a pessoa digitar o nome, e o programa converter com <code>Nivel.valueOf(texto)</code>. Funciona com <code>MEDIO</code>, mas o nome tem que ser <strong>idêntico</strong>, maiúsculas incluídas:</p>
+<pre class="term" data-cwd="~/java/adivinhacao">$ java Adivinhacao.java
+Nível (FACIL, MEDIO, DIFICIL): MEDIO
+Você escolheu MEDIO
+$ java Adivinhacao.java
+Nível (FACIL, MEDIO, DIFICIL): facil
+Exception in thread "main" java.lang.IllegalArgumentException: No enum constant Adivinhacao.Nivel.facil
+	at java.base/java.lang.Enum.valueOf(Enum.java:293)
+	at Adivinhacao$Nivel.valueOf(Adivinhacao.java:4)
+	at Adivinhacao.main(Adivinhacao.java:9)</pre>
+<p>"Não existe constante <code>facil</code> no enum <code>Adivinhacao.Nivel</code>." O <code>Adivinhacao$Nivel</code> é o nome interno do enum que mora dentro da classe. Para aceitar minúsculas, converta antes: <code>Nivel.valueOf(texto.toUpperCase())</code>. Mesmo assim, "fácil" (com acento) ainda falharia; por isso o menu com números é mais seguro.</p>
+</div>
+
+<div class="tryjava" data-file="Adivinhacao.java" data-stdin="4\n500\n250\n125\n187\n218\n234\n242\n238\n236\n237\n" data-goal="out:4 = IMPOSSIVEL (1 a 1000\, 10 tentativas),out:Pensei num número de 1 a 1000. Você tem 10 tentativas.,out:Acertou em 10 tentativa(s)!">
+<p class="try-task"><strong>Missão (etapa 5):</strong> acrescente o nível <code>IMPOSSIVEL</code>, de 1 a 1000, com 10 tentativas. Só o enum muda: o menu deve mostrar <code>4 = IMPOSSIVEL (1 a 1000, 10 tentativas)</code> sozinho. A entrada da missão escolhe o nível 4.</p>
+<pre class="script">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+
+    enum Nivel {
+        FACIL(10, 4),
+        MEDIO(50, 6),
+        DIFICIL(100, 7);
+
+        final int maximo;
+        final int tentativas;
+
+        Nivel(int maximo, int tentativas) {
+            this.maximo = maximo;
+            this.tentativas = tentativas;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+        System.out.println("=== Jogo da Adivinhação ===");
+        Nivel nivel = escolherNivel(entrada);
+        int resultado = jogar(entrada, sorteio, nivel);
+        if (resultado == 0) {
+            System.out.println("Fica para a próxima!");
+        }
+    }
+
+    static Nivel escolherNivel(Scanner entrada) {
+        Nivel[] niveis = Nivel.values();
+        for (int i = 0; i &lt; niveis.length; i++) {
+            Nivel n = niveis[i];
+            System.out.println((i + 1) + " = " + n + " (1 a " + n.maximo + ", " + n.tentativas + " tentativas)");
+        }
+        int escolha = lerInteiro(entrada, "Nível: ");
+        while (escolha &lt; 1 || escolha &gt; niveis.length) {
+            System.out.println("Escolha de 1 a " + niveis.length + ".");
+            escolha = lerInteiro(entrada, "Nível: ");
+        }
+        return niveis[escolha - 1];
+    }
+
+    static int jogar(Scanner entrada, Random sorteio, Nivel nivel) {
+        int secreto = sorteio.nextInt(nivel.maximo) + 1;
+        System.out.println("Pensei num número de 1 a " + nivel.maximo + ". Você tem " + nivel.tentativas + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= nivel.tentativas; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+
+    enum Nivel {
+        FACIL(10, 4),
+        MEDIO(50, 6),
+        DIFICIL(100, 7),
+        IMPOSSIVEL(1000, 10);
+
+        final int maximo;
+        final int tentativas;
+
+        Nivel(int maximo, int tentativas) {
+            this.maximo = maximo;
+            this.tentativas = tentativas;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+        System.out.println("=== Jogo da Adivinhação ===");
+        Nivel nivel = escolherNivel(entrada);
+        int resultado = jogar(entrada, sorteio, nivel);
+        if (resultado == 0) {
+            System.out.println("Fica para a próxima!");
+        }
+    }
+
+    static Nivel escolherNivel(Scanner entrada) {
+        Nivel[] niveis = Nivel.values();
+        for (int i = 0; i &lt; niveis.length; i++) {
+            Nivel n = niveis[i];
+            System.out.println((i + 1) + " = " + n + " (1 a " + n.maximo + ", " + n.tentativas + " tentativas)");
+        }
+        int escolha = lerInteiro(entrada, "Nível: ");
+        while (escolha &lt; 1 || escolha &gt; niveis.length) {
+            System.out.println("Escolha de 1 a " + niveis.length + ".");
+            escolha = lerInteiro(entrada, "Nível: ");
+        }
+        return niveis[escolha - 1];
+    }
+
+    static int jogar(Scanner entrada, Random sorteio, Nivel nivel) {
+        int secreto = sorteio.nextInt(nivel.maximo) + 1;
+        System.out.println("Pensei num número de 1 a " + nivel.maximo + ". Você tem " + nivel.tentativas + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= nivel.tentativas; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa6">Etapa 6 · Jogar de novo e recorde</h2>
+<p>A última etapa deixa a pessoa jogar várias partidas e guarda o <strong>recorde</strong>: o menor número de tentativas numa vitória. Como queremos jogar <strong>pelo menos uma vez</strong> antes de perguntar "de novo?", o laço certo é o <code>do-while</code>, que testa a condição no fim. Só o <code>main</code> muda:</p>
+
+<pre class="file" data-file="Adivinhacao.java">    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random();
+        int recorde = 0; // 0 = ainda não há recorde
+        System.out.println("=== Jogo da Adivinhação ===");
+
+        String resposta;
+        do {
+            Nivel nivel = escolherNivel(entrada);
+            int resultado = jogar(entrada, sorteio, nivel);
+            if (resultado &gt; 0 &amp;&amp; (recorde == 0 || resultado &lt; recorde)) {
+                recorde = resultado;
+                System.out.println("Novo recorde: " + recorde + " tentativa(s)!");
+            }
+            System.out.print("Jogar de novo? (s/n): ");
+            resposta = entrada.next();
+        } while (resposta.equalsIgnoreCase("s"));
+
+        if (recorde == 0) {
+            System.out.println("Sem recorde desta vez. Até a próxima!");
+        } else {
+            System.out.println("Seu recorde: " + recorde + " tentativa(s). Até a próxima!");
+        }
+    }
+</pre>
+
+<dl class="anatomy">
+  <dt>int recorde = 0;</dt><dd>Fica <strong>fora</strong> do laço, senão seria zerado a cada partida. O 0 quer dizer "ainda não tem recorde".</dd>
+  <dt>String resposta;</dt><dd>Declarada antes do <code>do</code>, porque a condição do <code>while</code>, lá no fim, precisa enxergá-la (<a href="escopo.html">escopo</a>).</dd>
+  <dt>do { … } while (…);</dt><dd>Roda o bloco primeiro e só depois pergunta se repete. Note o <code>;</code> depois do <code>while</code> (<a href="while.html">while e do-while</a>).</dd>
+  <dt>resultado &gt; 0 &amp;&amp; (recorde == 0 || resultado &lt; recorde)</dt><dd>"Ganhou <strong>e</strong> (é a primeira vitória <strong>ou</strong> foi melhor que o recorde)". Os parênteses são obrigatórios: sem eles, o <code>&amp;&amp;</code> seria feito antes do <code>||</code> (<a href="precedencia.html">precedência</a>).</dd>
+  <dt>equalsIgnoreCase("s")</dt><dd>Compara ignorando maiúsculas: <code>s</code> e <code>S</code> valem.</dd>
+</dl>
+
+<p>A sessão completa está em "O que vamos construir", no começo da página.</p>
+
+<div class="tryjava" data-file="Adivinhacao.java" data-stdin="1\n7\ns\n1\n5\nn\n" data-goal="out:Novo recorde: 1 tentativa(s)!,out:Seu recorde: 1 tentativa(s). Até a próxima!,src:do\s*\{">
+<p class="try-task"><strong>Missão (etapa 6):</strong> coloque a escolha do nível e a partida dentro de um <code>do-while</code> que pergunta <code>Jogar de novo? (s/n): </code>, guarde o recorde e mostre <code>Seu recorde: 1 tentativa(s). Até a próxima!</code> no fim. A entrada da missão joga duas partidas no nível fácil, as duas acertadas no primeiro palpite.</p>
+<pre class="script">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+
+    enum Nivel {
+        FACIL(10, 4),
+        MEDIO(50, 6),
+        DIFICIL(100, 7);
+
+        final int maximo;
+        final int tentativas;
+
+        Nivel(int maximo, int tentativas) {
+            this.maximo = maximo;
+            this.tentativas = tentativas;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+        System.out.println("=== Jogo da Adivinhação ===");
+        Nivel nivel = escolherNivel(entrada);
+        int resultado = jogar(entrada, sorteio, nivel);
+        if (resultado == 0) {
+            System.out.println("Fica para a próxima!");
+        }
+    }
+
+    static Nivel escolherNivel(Scanner entrada) {
+        Nivel[] niveis = Nivel.values();
+        for (int i = 0; i &lt; niveis.length; i++) {
+            Nivel n = niveis[i];
+            System.out.println((i + 1) + " = " + n + " (1 a " + n.maximo + ", " + n.tentativas + " tentativas)");
+        }
+        int escolha = lerInteiro(entrada, "Nível: ");
+        while (escolha &lt; 1 || escolha &gt; niveis.length) {
+            System.out.println("Escolha de 1 a " + niveis.length + ".");
+            escolha = lerInteiro(entrada, "Nível: ");
+        }
+        return niveis[escolha - 1];
+    }
+
+    static int jogar(Scanner entrada, Random sorteio, Nivel nivel) {
+        int secreto = sorteio.nextInt(nivel.maximo) + 1;
+        System.out.println("Pensei num número de 1 a " + nivel.maximo + ". Você tem " + nivel.tentativas + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= nivel.tentativas; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+
+    enum Nivel {
+        FACIL(10, 4),
+        MEDIO(50, 6),
+        DIFICIL(100, 7);
+
+        final int maximo;
+        final int tentativas;
+
+        Nivel(int maximo, int tentativas) {
+            this.maximo = maximo;
+            this.tentativas = tentativas;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+        int recorde = 0; // 0 = ainda não há recorde
+        System.out.println("=== Jogo da Adivinhação ===");
+
+        String resposta;
+        do {
+            Nivel nivel = escolherNivel(entrada);
+            int resultado = jogar(entrada, sorteio, nivel);
+            if (resultado &gt; 0 &amp;&amp; (recorde == 0 || resultado &lt; recorde)) {
+                recorde = resultado;
+                System.out.println("Novo recorde: " + recorde + " tentativa(s)!");
+            }
+            System.out.print("Jogar de novo? (s/n): ");
+            resposta = entrada.next();
+        } while (resposta.equalsIgnoreCase("s"));
+
+        if (recorde == 0) {
+            System.out.println("Sem recorde desta vez. Até a próxima!");
+        } else {
+            System.out.println("Seu recorde: " + recorde + " tentativa(s). Até a próxima!");
+        }
+    }
+
+    static Nivel escolherNivel(Scanner entrada) {
+        Nivel[] niveis = Nivel.values();
+        for (int i = 0; i &lt; niveis.length; i++) {
+            Nivel n = niveis[i];
+            System.out.println((i + 1) + " = " + n + " (1 a " + n.maximo + ", " + n.tentativas + " tentativas)");
+        }
+        int escolha = lerInteiro(entrada, "Nível: ");
+        while (escolha &lt; 1 || escolha &gt; niveis.length) {
+            System.out.println("Escolha de 1 a " + niveis.length + ".");
+            escolha = lerInteiro(entrada, "Nível: ");
+        }
+        return niveis[escolha - 1];
+    }
+
+    static int jogar(Scanner entrada, Random sorteio, Nivel nivel) {
+        int secreto = sorteio.nextInt(nivel.maximo) + 1;
+        System.out.println("Pensei num número de 1 a " + nivel.maximo + ". Você tem " + nivel.tentativas + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= nivel.tentativas; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O código completo</h2>
+
+<pre class="file" data-file="Adivinhacao.java">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+
+    enum Nivel {
+        FACIL(10, 4),
+        MEDIO(50, 6),
+        DIFICIL(100, 7);
+
+        final int maximo;
+        final int tentativas;
+
+        Nivel(int maximo, int tentativas) {
+            this.maximo = maximo;
+            this.tentativas = tentativas;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random();
+        int recorde = 0; // 0 = ainda não há recorde
+        System.out.println("=== Jogo da Adivinhação ===");
+
+        String resposta;
+        do {
+            Nivel nivel = escolherNivel(entrada);
+            int resultado = jogar(entrada, sorteio, nivel);
+            if (resultado &gt; 0 &amp;&amp; (recorde == 0 || resultado &lt; recorde)) {
+                recorde = resultado;
+                System.out.println("Novo recorde: " + recorde + " tentativa(s)!");
+            }
+            System.out.print("Jogar de novo? (s/n): ");
+            resposta = entrada.next();
+        } while (resposta.equalsIgnoreCase("s"));
+
+        if (recorde == 0) {
+            System.out.println("Sem recorde desta vez. Até a próxima!");
+        } else {
+            System.out.println("Seu recorde: " + recorde + " tentativa(s). Até a próxima!");
+        }
+    }
+
+    static Nivel escolherNivel(Scanner entrada) {
+        Nivel[] niveis = Nivel.values();
+        for (int i = 0; i &lt; niveis.length; i++) {
+            Nivel n = niveis[i];
+            System.out.println((i + 1) + " = " + n + " (1 a " + n.maximo + ", " + n.tentativas + " tentativas)");
+        }
+        int escolha = lerInteiro(entrada, "Nível: ");
+        while (escolha &lt; 1 || escolha &gt; niveis.length) {
+            System.out.println("Escolha de 1 a " + niveis.length + ".");
+            escolha = lerInteiro(entrada, "Nível: ");
+        }
+        return niveis[escolha - 1];
+    }
+
+    static int jogar(Scanner entrada, Random sorteio, Nivel nivel) {
+        int secreto = sorteio.nextInt(nivel.maximo) + 1;
+        System.out.println("Pensei num número de 1 a " + nivel.maximo + ". Você tem " + nivel.tentativas + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= nivel.tentativas; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+
+<h2>Desafios extras</h2>
+<ol>
+  <li><strong>Recorde por nível.</strong> Guarde um recorde para cada nível. Dica: um array <code>int[] recordes = new int[Nivel.values().length]</code> e o índice <code>nivel.ordinal()</code> (a posição da constante no enum).</li>
+  <li><strong>Recorde que sobrevive.</strong> Salve o recorde num arquivo <code>recorde.txt</code> ao sair e leia ao começar, com <code>Files.writeString</code> e <code>Files.readString</code> (<a href="arquivos.html">Ler e Escrever Arquivos</a>). O <a href="projeto-agenda.html">próximo projeto</a> faz isso com uma lista inteira.</li>
+  <li><strong>Dica quente/frio.</strong> Se o palpite estiver a 5 ou menos do secreto, mostre "Está quente!" (use <code>Math.abs(palpite - secreto)</code>, veja <a href="math.html">Math</a>).</li>
+  <li><strong>Palpite repetido.</strong> Avise se a pessoa repetir um palpite e não conte a tentativa.</li>
+  <li><strong>Inverta os papéis.</strong> Você pensa no número e o computador adivinha com busca binária, perguntando "maior, menor ou acertou?".</li>
+</ol>
+
+<div class="tryjava" data-file="Adivinhacao.java" data-stdin="3\n50\n40\n37\nn\n" data-goal="out:Está quente!,out:Acertou em 3 tentativa(s)!">
+<p class="try-task"><strong>Desafio 3 no editor:</strong> no método <code>jogar</code>, depois da dica "maior/menor", mostre <code>Está quente!</code> quando a diferença entre o palpite e o secreto for 5 ou menos. Com a semente 7 e o nível difícil, o secreto é 37: o palpite 40 deve mostrar a mensagem.</p>
+<pre class="script">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+
+    enum Nivel {
+        FACIL(10, 4),
+        MEDIO(50, 6),
+        DIFICIL(100, 7);
+
+        final int maximo;
+        final int tentativas;
+
+        Nivel(int maximo, int tentativas) {
+            this.maximo = maximo;
+            this.tentativas = tentativas;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+        int recorde = 0; // 0 = ainda não há recorde
+        System.out.println("=== Jogo da Adivinhação ===");
+
+        String resposta;
+        do {
+            Nivel nivel = escolherNivel(entrada);
+            int resultado = jogar(entrada, sorteio, nivel);
+            if (resultado &gt; 0 &amp;&amp; (recorde == 0 || resultado &lt; recorde)) {
+                recorde = resultado;
+                System.out.println("Novo recorde: " + recorde + " tentativa(s)!");
+            }
+            System.out.print("Jogar de novo? (s/n): ");
+            resposta = entrada.next();
+        } while (resposta.equalsIgnoreCase("s"));
+
+        if (recorde == 0) {
+            System.out.println("Sem recorde desta vez. Até a próxima!");
+        } else {
+            System.out.println("Seu recorde: " + recorde + " tentativa(s). Até a próxima!");
+        }
+    }
+
+    static Nivel escolherNivel(Scanner entrada) {
+        Nivel[] niveis = Nivel.values();
+        for (int i = 0; i &lt; niveis.length; i++) {
+            Nivel n = niveis[i];
+            System.out.println((i + 1) + " = " + n + " (1 a " + n.maximo + ", " + n.tentativas + " tentativas)");
+        }
+        int escolha = lerInteiro(entrada, "Nível: ");
+        while (escolha &lt; 1 || escolha &gt; niveis.length) {
+            System.out.println("Escolha de 1 a " + niveis.length + ".");
+            escolha = lerInteiro(entrada, "Nível: ");
+        }
+        return niveis[escolha - 1];
+    }
+
+    static int jogar(Scanner entrada, Random sorteio, Nivel nivel) {
+        int secreto = sorteio.nextInt(nivel.maximo) + 1;
+        System.out.println("Pensei num número de 1 a " + nivel.maximo + ". Você tem " + nivel.tentativas + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= nivel.tentativas; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+import java.util.Scanner;
+
+public class Adivinhacao {
+
+    enum Nivel {
+        FACIL(10, 4),
+        MEDIO(50, 6),
+        DIFICIL(100, 7);
+
+        final int maximo;
+        final int tentativas;
+
+        Nivel(int maximo, int tentativas) {
+            this.maximo = maximo;
+            this.tentativas = tentativas;
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        Random sorteio = new Random(7); // semente 7: sorteia sempre o mesmo número
+        int recorde = 0; // 0 = ainda não há recorde
+        System.out.println("=== Jogo da Adivinhação ===");
+
+        String resposta;
+        do {
+            Nivel nivel = escolherNivel(entrada);
+            int resultado = jogar(entrada, sorteio, nivel);
+            if (resultado &gt; 0 &amp;&amp; (recorde == 0 || resultado &lt; recorde)) {
+                recorde = resultado;
+                System.out.println("Novo recorde: " + recorde + " tentativa(s)!");
+            }
+            System.out.print("Jogar de novo? (s/n): ");
+            resposta = entrada.next();
+        } while (resposta.equalsIgnoreCase("s"));
+
+        if (recorde == 0) {
+            System.out.println("Sem recorde desta vez. Até a próxima!");
+        } else {
+            System.out.println("Seu recorde: " + recorde + " tentativa(s). Até a próxima!");
+        }
+    }
+
+    static Nivel escolherNivel(Scanner entrada) {
+        Nivel[] niveis = Nivel.values();
+        for (int i = 0; i &lt; niveis.length; i++) {
+            Nivel n = niveis[i];
+            System.out.println((i + 1) + " = " + n + " (1 a " + n.maximo + ", " + n.tentativas + " tentativas)");
+        }
+        int escolha = lerInteiro(entrada, "Nível: ");
+        while (escolha &lt; 1 || escolha &gt; niveis.length) {
+            System.out.println("Escolha de 1 a " + niveis.length + ".");
+            escolha = lerInteiro(entrada, "Nível: ");
+        }
+        return niveis[escolha - 1];
+    }
+
+    static int jogar(Scanner entrada, Random sorteio, Nivel nivel) {
+        int secreto = sorteio.nextInt(nivel.maximo) + 1;
+        System.out.println("Pensei num número de 1 a " + nivel.maximo + ". Você tem " + nivel.tentativas + " tentativas.");
+        for (int tentativas = 1; tentativas &lt;= nivel.tentativas; tentativas++) {
+            int palpite = lerInteiro(entrada, "Palpite: ");
+            if (palpite == secreto) {
+                System.out.println("Acertou em " + tentativas + " tentativa(s)!");
+                return tentativas;
+            } else if (palpite &lt; secreto) {
+                System.out.println("É maior que " + palpite + ".");
+            } else {
+                System.out.println("É menor que " + palpite + ".");
+            }
+            if (Math.abs(palpite - secreto) &lt;= 5) {
+                System.out.println("Está quente!");
+            }
+        }
+        System.out.println("Acabaram as tentativas. O número era " + secreto + ".");
+        return 0;
+    }
+
+    static int lerInteiro(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextInt()) {
+            System.out.println("\"" + entrada.next() + "\" não é um número inteiro.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextInt();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. Quais valores <code>sorteio.nextInt(10)</code> pode devolver?</p>
+<label><input type="radio" name="q1"> De 1 a 10.</label>
+<label><input type="radio" name="q1"> De 0 a 9.</label>
+<label><input type="radio" name="q1"> De 0 a 10.</label>
+<label><input type="radio" name="q1"> De 1 a 9.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">2. Por que o jogo usa <code>do-while</code> para "Jogar de novo?" e não <code>while</code>?</p>
+<label><input type="radio" name="q2"> Porque <code>while</code> não aceita <code>String</code>.</label>
+<label><input type="radio" name="q2"> Porque o <code>do-while</code> é mais rápido.</label>
+<label><input type="radio" name="q2"> Porque o <code>while</code> não pode ter <code>Scanner</code> dentro.</label>
+<label><input type="radio" name="q2"> Porque a primeira partida sempre acontece; a pergunta só vem depois dela.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. O que <code>Nivel.values()</code> devolve?</p>
+<label><input type="radio" name="q3"> Um array com todas as constantes do enum, na ordem em que foram escritas.</label>
+<label><input type="radio" name="q3"> O número de constantes.</label>
+<label><input type="radio" name="q3"> Os máximos de cada nível.</label>
+<label><input type="radio" name="q3"> Uma <code>String</code> com os nomes.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com a mesma semente, <code>new Random(7)</code> sorteia…</p>
+<label><input type="radio" name="q4"> sempre o número 7.</label>
+<label><input type="radio" name="q4"> números diferentes a cada execução.</label>
+<label><input type="radio" name="q4"> sempre a mesma sequência de números.</label>
+<label><input type="radio" name="q4"> só números menores que 7.</label>
+</div>
+
+<div class="exercise">
+<p>Complete para sortear um número de 1 a 50:</p>
+<div class="ex-code">int secreto = sorteio.nextInt(<input data-answer="50">) + <input data-answer="1">;</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>nextInt(n)</code> sorteia de 0 a n-1; some 1 para começar em 1. Uma semente fixa repete a sequência.</li>
+  <li><code>while</code> repete enquanto a condição for verdadeira; um contador com <code>++</code> conta as voltas.</li>
+  <li>Constantes <code>static final</code> dão nome aos números mágicos.</li>
+  <li><code>hasNextInt()</code> valida a entrada; um método que devolve "tentativas ou 0" informa vitória e derrota.</li>
+  <li>Um <code>enum</code> pode ter atributos e construtor; <code>values()</code> lista as constantes.</li>
+  <li><code>do-while</code> roda pelo menos uma vez: perfeito para "jogar de novo?".</li>
+</ul>
+<p>Próximo projeto: <a href="projeto-agenda.html">Agenda de Contatos</a>, com records, listas e arquivos.</p>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
