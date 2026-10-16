@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Reflexão — getClass, Class.forName, listar métodos e chamar por nome | Guia Java</title>
+<meta name="description" content="Introdução à reflexão no Java: getClass(), Class.forName, listar campos e métodos de uma classe, chamar um método pelo nome, por que os frameworks usam reflexão e os cuidados, com saídas e exceções reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Reflexão</span></h1>
+
+<p class="intro"><strong>Reflexão</strong> (em inglês <em>reflection</em>) é a capacidade de um programa Java <strong>olhar para si mesmo</strong> enquanto roda: descobrir de que classe é um objeto, quais campos e métodos essa classe tem, e até chamar um método cujo nome só é conhecido na hora, guardado num <code>String</code>. Você raramente vai escrever reflexão no dia a dia, mas ela está por trás de quase todo framework Java.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um objeto <code>Class</code> e como obtê-lo com <code>getClass()</code>, <code>.class</code> e <code>Class.forName</code>.</li>
+  <li>Como listar os campos e os métodos de uma classe (com a saída real).</li>
+  <li>Como chamar um método pelo nome, com <code>getMethod</code> e <code>invoke</code>.</li>
+  <li>Por que JUnit, Spring e companhia usam reflexão.</li>
+  <li>Os cuidados: erros que só aparecem ao rodar, encapsulamento quebrado e as barreiras do próprio Java.</li>
+</ul>
+</div>
+
+<p>Esta aula é <strong>introdutória</strong>. Ela usa <a href="classes-objetos.html">classes e objetos</a>, <a href="modificadores.html">modificadores de acesso</a> e <a href="checked-unchecked.html">exceções checked</a>. Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Normalmente, quem escreve o programa sabe tudo de antemão: "vou criar um <code>Produto</code> e chamar <code>aplicarDesconto</code>". O compilador confere cada nome antes de o programa rodar.</p>
+<p>Agora imagine a Ana montando um sistema de testes: ela quer que o programa <strong>descubra sozinho</strong> todos os métodos cujo nome começa com <code>testar</code> e rode cada um. Quem escreve esse sistema não sabe que métodos vão existir: eles serão escritos depois, por outras pessoas. É como um <strong>raio-x</strong>: o programa examina uma classe que nunca viu e enxerga o que tem dentro.</p>
+<p>O ponto de partida é um objeto especial do tipo <code>Class</code> ("classe"): para cada classe carregada, o Java mantém um objeto que a <strong>descreve</strong>, com nome, campos, métodos, classe mãe… A reflexão é conversar com esse objeto.</p>
+
+<hr>
+
+<h2>1. Descobrir a classe de um objeto: <code>getClass()</code></h2>
+<p>Todo objeto herda de <a href="object.html">Object</a> o método <code>getClass()</code>, que devolve o <code>Class</code> dele:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+        Object[] coisas = { "Ana", 42, 3.5, new ArrayList&lt;String&gt;(), new int[3] };
+        for (Object o : coisas) {
+            Class&lt;?&gt; c = o.getClass();
+            System.out.println(c.getSimpleName() + "  |  " + c.getName());
+        }
+        System.out.println(String.class);
+        System.out.println(int.class);
+        System.out.println(Integer.class.getSuperclass());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+String  |  java.lang.String
+Integer  |  java.lang.Integer
+Double  |  java.lang.Double
+ArrayList  |  java.util.ArrayList
+int[]  |  [I
+class java.lang.String
+int
+class java.lang.Number</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>Class&lt;?&gt; c</code></td><td>Uma variável do tipo <code>Class</code>. O <code>&lt;?&gt;</code> quer dizer "de uma classe qualquer" (veja <a href="generics.html">generics</a>).</td></tr>
+<tr><td><code>o.getClass()</code></td><td>"Qual é a sua classe?" A pergunta é feita ao <strong>objeto</strong>, enquanto o programa roda: a variável é <code>Object</code>, mas a resposta é a classe verdadeira.</td></tr>
+<tr><td><code>getSimpleName()</code></td><td>O nome curto: <code>String</code>.</td></tr>
+<tr><td><code>getName()</code></td><td>O nome completo, com o <a href="pacotes.html">pacote</a>: <code>java.lang.String</code>. Para arrays, o Java usa um código interno: <code>[I</code> é "array de <code>int</code>".</td></tr>
+<tr><td><code>String.class</code></td><td>Outra forma de obter o <code>Class</code>, direto pelo nome da classe, sem precisar de um objeto. Funciona até para tipos primitivos: <code>int.class</code>.</td></tr>
+<tr><td><code>getSuperclass()</code></td><td>A classe mãe: <code>Integer</code> herda de <code>Number</code>.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong><code>getClass()</code> × <code>instanceof</code></strong>
+<p>Para <strong>decidir</strong> o que fazer com um objeto, prefira <code>instanceof</code> e <a href="pattern-matching.html">pattern matching</a>: o compilador ajuda e as subclasses também casam. <code>getClass()</code> é para quando você quer o <strong>nome exato</strong> da classe, por exemplo numa mensagem ou num relatório.</p>
+</div>
+
+<div class="tryjava" data-goal="out:String,out:Integer,out:ArrayList,out:HashMap,src:getSimpleName">
+<p class="try-task"><strong>Missão:</strong> o programa mostra o <strong>conteúdo</strong> de cada objeto. Troque o <code>println</code> para mostrar o <strong>nome curto da classe</strong> de cada um (<code>String</code>, <code>Integer</code>, <code>ArrayList</code>, <code>HashMap</code>), usando <code>getClass().getSimpleName()</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.HashMap;
+
+public class Main {
+    public static void main(String[] args) {
+        Object[] coisas = { "kiwi", 7, new ArrayList&lt;String&gt;(), new HashMap&lt;String, Integer&gt;() };
+        for (Object o : coisas) {
+            System.out.println(o);
+        }
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.HashMap;
+
+public class Main {
+    public static void main(String[] args) {
+        Object[] coisas = { "kiwi", 7, new ArrayList&lt;String&gt;(), new HashMap&lt;String, Integer&gt;() };
+        for (Object o : coisas) {
+            System.out.println(o.getClass().getSimpleName());
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Carregar uma classe pelo nome: <code>Class.forName</code></h2>
+<p>E se o nome da classe estiver num <code>String</code>, lido de um arquivo de configuração, por exemplo? <code>Class.forName</code> ("classe pelo nome") procura e carrega a classe. Depois, dá até para criar um objeto dela:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Class&lt;?&gt; c = Class.forName("java.util.ArrayList");
+        System.out.println("Carreguei: " + c.getName());
+
+        Object lista = c.getDeclaredConstructor().newInstance();
+        @SuppressWarnings("unchecked")
+        List&lt;String&gt; frutas = (List&lt;String&gt;) lista;
+        frutas.add("maçã");
+        frutas.add("uva");
+        System.out.println(frutas);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Carreguei: java.util.ArrayList
+[maçã, uva]</pre>
+
+<dl class="anatomy">
+  <dt>Class.forName("java.util.ArrayList")</dt><dd>Procura a classe pelo nome <strong>completo</strong> (com o pacote).</dd>
+  <dt>.getDeclaredConstructor()</dt><dd>Pega o construtor sem parâmetros.</dd>
+  <dt>.newInstance()</dt><dd>Chama esse construtor: é um <code>new ArrayList()</code> feito "à distância". O resultado vem como <code>Object</code>; por isso o cast para <code>List&lt;String&gt;</code> (e o <a href="anotacoes.html"><code>@SuppressWarnings</code></a> para calar o aviso dessa conversão).</dd>
+</dl>
+
+<p>Repare no <code>throws Exception</code> no <code>main</code>. Quase todo método de reflexão pode lançar exceções <strong>checked</strong> (a classe pode não existir, o método pode não existir…), e o compilador exige que você as declare ou trate. Sem isso:</p>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: unreported exception ClassNotFoundException; must be caught or declared to be thrown
+        Class&lt;?&gt; c = Class.forName("java.util.ArrayList");
+                                  ^
+1 error</pre>
+
+<p>Veja <a href="throw-throws.html">throw e throws</a> para as duas formas de resolver.</p>
+
+<hr>
+
+<h2>3. Listar campos e métodos</h2>
+<p>Com o <code>Class</code> em mãos, você pode pedir a lista de tudo o que a classe declara, inclusive o que é <code>private</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.Comparator;
+
+class Produto {
+    private String nome;
+    private double preco;
+    public int estoque;
+
+    public Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    public String getNome() { return nome; }
+    public double getPreco() { return preco; }
+    public void aplicarDesconto(double porcento) { preco = preco - preco * porcento / 100; }
+    private void registrar() { }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Class&lt;?&gt; c = Produto.class;
+
+        System.out.println("Campos de " + c.getSimpleName() + ":");
+        for (Field f : c.getDeclaredFields()) {
+            System.out.println("  " + Modifier.toString(f.getModifiers()) + " " + f.getType().getSimpleName() + " " + f.getName());
+        }
+
+        System.out.println("Métodos:");
+        Method[] metodos = c.getDeclaredMethods();
+        Arrays.sort(metodos, Comparator.comparing(Method::getName));
+        for (Method m : metodos) {
+            System.out.println("  " + Modifier.toString(m.getModifiers()) + " " + m.getReturnType().getSimpleName() + " " + m.getName() + Arrays.toString(m.getParameterTypes()));
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Campos de Produto:
+  private String nome
+  private double preco
+  public int estoque
+Métodos:
+  public void aplicarDesconto[double]
+  public String getNome[]
+  public double getPreco[]
+  private void registrar[]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th></tr>
+<tr><td><code>c.getDeclaredFields()</code></td><td>Um array de <code>Field</code> ("campo"): os atributos declarados na classe, de qualquer visibilidade.</td></tr>
+<tr><td><code>f.getName()</code>, <code>f.getType()</code></td><td>O nome do campo e o <code>Class</code> do tipo dele.</td></tr>
+<tr><td><code>f.getModifiers()</code> + <code>Modifier.toString(…)</code></td><td>Os modificadores (<code>private</code>, <code>public</code>, <code>static</code>…) como texto.</td></tr>
+<tr><td><code>c.getDeclaredMethods()</code></td><td>Um array de <code>Method</code> ("método"): os métodos declarados na classe.</td></tr>
+<tr><td><code>m.getReturnType()</code>, <code>m.getParameterTypes()</code></td><td>O tipo de retorno e os tipos dos parâmetros.</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>A ordem não é garantida</strong>
+<p>A documentação do Java avisa que <code>getDeclaredMethods()</code> e <code>getDeclaredFields()</code> devolvem os itens "em nenhuma ordem em particular". Por isso o exemplo ordena os métodos pelo nome com <code>Arrays.sort</code>. Se a ordem importa, ordene.</p>
+</div>
+
+<p>Existem duas famílias de métodos: os <code>getDeclared…</code> (tudo o que <strong>esta</strong> classe declara, inclusive <code>private</code>, mas sem os herdados) e os <code>get…</code> sem "Declared" (<code>getMethods()</code>, <code>getFields()</code>: só os <code>public</code>, <strong>incluindo os herdados</strong>, como <code>toString</code> e <code>equals</code> de <code>Object</code>).</p>
+
+<hr>
+
+<h2>4. Chamar um método pelo nome</h2>
+<p>Agora a parte que parece mágica: o nome do método está numa variável <code>String</code>, e o programa o chama mesmo assim:</p>
+
+<pre class="file" data-file="Main.java">import java.lang.reflect.Method;
+
+class Produto {
+    private String nome;
+    private double preco;
+
+    public Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    public double getPreco() { return preco; }
+    public void aplicarDesconto(double porcento) { preco = preco - preco * porcento / 100; }
+}
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Produto cafe = new Produto("Café", 20.0);
+        String acao = "aplicarDesconto";
+
+        Method m = Produto.class.getMethod(acao, double.class);
+        m.invoke(cafe, 10.0);
+
+        Method get = Produto.class.getMethod("getPreco");
+        Object preco = get.invoke(cafe);
+        System.out.println("Preço depois de " + acao + ": " + preco);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Preço depois de aplicarDesconto: 18.0</pre>
+
+<dl class="anatomy">
+  <dt>Produto.class.getMethod(</dt><dd>"Me dê o método público…"</dd>
+  <dt>acao,</dt><dd>"…com este nome…" (o <code>String</code> <code>"aplicarDesconto"</code>)</dd>
+  <dt>double.class)</dt><dd>"…que recebe um <code>double</code>." Como pode haver <a href="sobrecarga.html">sobrecarga</a>, o nome sozinho não basta: é preciso dizer os tipos dos parâmetros.</dd>
+  <dt>m.invoke(cafe, 10.0)</dt><dd>"Invocar": chama o método no objeto <code>cafe</code>, com o argumento <code>10.0</code>. É o mesmo que <code>cafe.aplicarDesconto(10.0)</code>.</dd>
+</dl>
+
+<p>O <code>invoke</code> devolve o resultado como <code>Object</code> (aqui, o <code>18.0</code> do <code>getPreco</code>, embalado num <code>Double</code>). Para um método <code>void</code>, devolve <code>null</code>.</p>
+
+<hr>
+
+<h2>5. Por que os frameworks usam reflexão</h2>
+<p>Juntando tudo, dá para escrever um "mini JUnit": uma classe que roda todos os métodos cujo nome começa com <code>testar</code>, sem saber de antemão quais são.</p>
+
+<pre class="file" data-file="Main.java">import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Comparator;
+
+class TestesDaLoja {
+    void testarSoma() {
+        System.out.println("  2 + 2 = " + (2 + 2));
+    }
+    void testarDesconto() {
+        System.out.println("  20 com 10% = " + (20 - 20 * 10 / 100));
+    }
+    void ajudante() {
+        System.out.println("  (não sou teste)");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Class&lt;?&gt; c = TestesDaLoja.class;
+        Object testes = c.getDeclaredConstructor().newInstance();
+        Method[] metodos = c.getDeclaredMethods();
+        Arrays.sort(metodos, Comparator.comparing(Method::getName));
+        for (Method m : metodos) {
+            if (m.getName().startsWith("testar")) {
+                System.out.println("Rodando " + m.getName() + ":");
+                m.invoke(testes);
+            }
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Rodando testarDesconto:
+  20 com 10% = 18
+Rodando testarSoma:
+  2 + 2 = 4</pre>
+
+<p>O método <code>ajudante</code> não rodou: o nome não começa com <code>testar</code>. O JUnit faz exatamente isso, só que em vez do nome ele procura a <a href="anotacoes.html">anotação</a> <code>@Test</code> (com <code>m.isAnnotationPresent(Test.class)</code>). Outros exemplos do mesmo truque:</p>
+<ul>
+  <li><strong>Spring</strong> lê as anotações das suas classes, cria os objetos com <code>newInstance</code> e liga uns aos outros.</li>
+  <li><strong>Bibliotecas de JSON</strong> (como Jackson e Gson) listam os campos de um objeto para transformá-lo em texto <code>{"nome": "Café", "preco": 18.0}</code>, e o caminho inverso.</li>
+  <li><strong>IDEs e depuradores</strong> mostram os campos de um objeto enquanto o programa está parado (veja <a href="depuracao.html">Depurar</a>).</li>
+</ul>
+
+<hr>
+
+<h2>6. Cuidados</h2>
+<p>Reflexão é poderosa, mas tira de você a principal ajuda do Java: o compilador.</p>
+
+<h3>Erros só aparecem ao rodar</h3>
+<p>Um nome digitado errado no código normal é pego pelo <code>javac</code>. Num <code>String</code>, não: o programa compila e quebra quando roda.</p>
+
+<div class="warning"><strong>Estes códigos têm erros de propósito.</strong></div>
+<pre class="file" data-file="Main.java">        Method m = Produto.class.getMethod("aplicarDescont", double.class);
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.NoSuchMethodException: Produto.aplicarDescont(double)
+	at java.base/java.lang.Class.getMethod(Class.java:2166)
+	at Main.main(Main.java:11)</pre>
+
+<pre class="file" data-file="Main.java">        Class&lt;?&gt; c = Class.forName("java.util.Arraylist");
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.ClassNotFoundException: java.util.Arraylist
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:580)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
+	at java.base/java.lang.Class.forName0(Native Method)
+	at java.base/java.lang.Class.forName(Class.java:467)
+	at java.base/java.lang.Class.forName(Class.java:458)
+	at Main.main(Main.java:3)</pre>
+
+<p><code>NoSuchMethodException</code> = "não existe esse método" (faltou o <code>o</code> de <code>aplicarDesconto</code>). <code>ClassNotFoundException</code> = "classe não encontrada" (<code>Arraylist</code> com <code>l</code> minúsculo). Os dois passaram pelo <code>javac</code> sem problema.</p>
+
+<h3>Furar o <code>private</code></h3>
+<p>Ler um campo <code>private</code> por reflexão é barrado, como no código normal:</p>
+
+<pre class="file" data-file="Main.java">import java.lang.reflect.Field;
+
+class Produto {
+    private double preco = 20.0;
+}
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        Produto cafe = new Produto();
+        Field campo = Produto.class.getDeclaredField("preco");
+        System.out.println(campo.get(cafe));
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.IllegalAccessException: class Main cannot access a member of class Produto with modifiers "private"
+	at java.base/jdk.internal.reflect.Reflection.newIllegalAccessException(Reflection.java:400)
+	at java.base/java.lang.reflect.AccessibleObject.checkAccess(AccessibleObject.java:670)
+	at java.base/java.lang.reflect.Field.checkAccess(Field.java:1152)
+	at java.base/java.lang.reflect.Field.get(Field.java:437)
+	at Main.main(Main.java:11)</pre>
+
+<p>Mas existe uma "chave mestra": <code>campo.setAccessible(true)</code>. Com ela, o programa da Ana mudou o preço de um café para um centavo, passando por cima de todo o <a href="encapsulamento.html">encapsulamento</a>. E aí aparece a segunda barreira: as classes do próprio Java são protegidas pelos <a href="modulos.html">módulos</a>, e a chave mestra não funciona nelas:</p>
+
+<pre class="file" data-file="Main.java">        Field campo = Produto.class.getDeclaredField("preco");
+        campo.setAccessible(true);
+        campo.set(cafe, 0.01);
+        System.out.println("Preço: " + cafe.getPreco());
+
+        Field interno = String.class.getDeclaredField("value");
+        interno.setAccessible(true);
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Preço: 0.01
+Exception in thread "main" java.lang.reflect.InaccessibleObjectException: Unable to make field private final byte[] java.lang.String.value accessible: module java.base does not "opens java.lang" to unnamed module @764c12b6
+	at java.base/java.lang.reflect.AccessibleObject.throwInaccessibleObjectException(AccessibleObject.java:353)
+	at java.base/java.lang.reflect.AccessibleObject.checkCanSetAccessible(AccessibleObject.java:329)
+	at java.base/java.lang.reflect.AccessibleObject.checkCanSetAccessible(AccessibleObject.java:277)
+	at java.base/java.lang.reflect.Field.checkCanSetAccessible(Field.java:179)
+	at java.base/java.lang.reflect.Field.setAccessible(Field.java:173)
+	at Main.main(Main.java:17)</pre>
+
+<p>"Não foi possível tornar acessível o campo privado <code>value</code> de <code>String</code>: o módulo <code>java.base</code> não abre o pacote <code>java.lang</code>." Desde o Java 17, as entranhas do JDK ficam sempre trancadas. (O número depois de <code>@</code> muda a cada execução.)</p>
+
+<h3>Resumo dos cuidados</h3>
+<ul>
+  <li><strong>Sem ajuda do compilador:</strong> nomes errados viram exceções ao rodar.</li>
+  <li><strong>Encapsulamento:</strong> <code>setAccessible(true)</code> ignora o <code>private</code>. Use só em ferramentas, nunca para "consertar" uma classe por fora.</li>
+  <li><strong>Mais lento</strong> e mais difícil de ler do que a chamada direta.</li>
+  <li><strong>Exceções checked</strong> em quase todo método, e as exceções do método chamado chegam embrulhadas numa <code>InvocationTargetException</code>.</li>
+</ul>
+
+<hr>
+
+<h2>Qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>Chamar um método que você conhece</td><td>A chamada normal: <code>cafe.aplicarDesconto(10)</code>. <strong>Sempre</strong> que possível.</td></tr>
+<tr><td>Decidir pelo tipo de um objeto</td><td><code>instanceof</code> / <a href="pattern-matching.html">pattern matching</a></td></tr>
+<tr><td>Escolher entre comportamentos pelo nome</td><td>Um <code>Map&lt;String, Runnable&gt;</code> com <a href="lambdas.html">lambdas</a>: o compilador continua conferindo</td></tr>
+<tr><td>Mostrar o nome da classe de um objeto</td><td><code>getClass().getSimpleName()</code></td></tr>
+<tr><td>Escrever uma ferramenta que examina classes desconhecidas (testes, JSON, injeção)</td><td>Reflexão</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Para quê</th><th>Pode lançar</th></tr>
+<tr><td><code>obj.getClass()</code></td><td><code>Class</code> do objeto</td><td>—</td></tr>
+<tr><td><code>Produto.class</code></td><td><code>Class</code> pelo nome escrito no código</td><td>—</td></tr>
+<tr><td><code>Class.forName("pacote.Classe")</code></td><td><code>Class</code> por um <code>String</code></td><td><code>ClassNotFoundException</code></td></tr>
+<tr><td><code>c.getName()</code> / <code>getSimpleName()</code></td><td>Nome completo / curto</td><td>—</td></tr>
+<tr><td><code>c.getSuperclass()</code></td><td>Classe mãe</td><td>—</td></tr>
+<tr><td><code>c.getDeclaredFields()</code> / <code>getFields()</code></td><td>Campos declarados / públicos (com herdados)</td><td>—</td></tr>
+<tr><td><code>c.getDeclaredMethods()</code> / <code>getMethods()</code></td><td>Métodos declarados / públicos (com herdados)</td><td>—</td></tr>
+<tr><td><code>c.getMethod("nome", tipos…)</code></td><td>Um método público</td><td><code>NoSuchMethodException</code></td></tr>
+<tr><td><code>c.getDeclaredField("nome")</code></td><td>Um campo</td><td><code>NoSuchFieldException</code></td></tr>
+<tr><td><code>c.getDeclaredConstructor().newInstance()</code></td><td>Criar um objeto</td><td>várias</td></tr>
+<tr><td><code>m.invoke(obj, args…)</code></td><td>Chamar o método</td><td><code>IllegalAccessException</code>, <code>InvocationTargetException</code></td></tr>
+<tr><td><code>f.get(obj)</code> / <code>f.set(obj, valor)</code></td><td>Ler / escrever o campo</td><td><code>IllegalAccessException</code></td></tr>
+<tr><td><code>x.setAccessible(true)</code></td><td>Ignorar o <code>private</code></td><td><code>InaccessibleObjectException</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete para mostrar o nome curto da classe do objeto <code>p</code>:</p>
+<div class="ex-code">System.out.println(p.<input data-answer="getClass()">.getSimpleName());</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete para carregar a classe pelo nome completo:</p>
+<div class="ex-code">Class&lt;?&gt; c = Class.<input data-answer="forName">("java.util.HashMap");</div>
+</div>
+
+<div class="exercise">
+<p>3. Complete para chamar o método <code>m</code> no objeto <code>cafe</code>, sem argumentos:</p>
+<div class="ex-code">m.<input data-answer="invoke">(cafe);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. <code>getMethod("aplicarDescont", double.class)</code>, com o nome errado, dá erro quando?</p>
+<label><input type="radio" name="q4"> Na compilação, com <code>cannot find symbol</code>.</label>
+<label><input type="radio" name="q4"> Nunca: o Java procura o nome mais parecido.</label>
+<label><input type="radio" name="q4"> Ao rodar, com <code>NoSuchMethodException</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que o JUnit consegue rodar os seus métodos <code>@Test</code> sem você chamá-los?</p>
+<label><input type="radio" name="q5"> Porque ele usa reflexão para listar os métodos da sua classe, ver quais têm a anotação e chamá-los com <code>invoke</code>.</label>
+<label><input type="radio" name="q5"> Porque o <code>javac</code> transforma <code>@Test</code> em chamadas no <code>main</code>.</label>
+<label><input type="radio" name="q5"> Porque todo método público é chamado automaticamente.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Gato: 3,out:Cachorro: 1,out:Mãe de Gato: Animal">
+<p class="try-task"><strong>Missão final:</strong> conte quantos animais de cada classe há no array, usando o nome da classe (<code>getClass().getSimpleName()</code>) como chave do mapa. Depois mostre o nome da classe mãe de <code>Gato</code> com <code>Gato.class.getSuperclass().getSimpleName()</code>. Saída esperada: <code>Gato: 3</code>, <code>Cachorro: 1</code> e <code>Mãe de Gato: Animal</code>.</p>
+<pre class="script">import java.util.HashMap;
+import java.util.Map;
+
+class Animal { }
+class Gato extends Animal { }
+class Cachorro extends Animal { }
+
+public class Main {
+    public static void main(String[] args) {
+        Animal[] animais = { new Gato(), new Cachorro(), new Gato(), new Gato() };
+        Map&lt;String, Integer&gt; contagem = new HashMap&lt;&gt;();
+        for (Animal a : animais) {
+            // descubra o nome da classe de a e some 1 no mapa
+        }
+        System.out.println("Gato: " + contagem.get("Gato"));
+        System.out.println("Cachorro: " + contagem.get("Cachorro"));
+        // mostre a classe mãe de Gato
+    }
+}
+</pre>
+<pre class="solucao">import java.util.HashMap;
+import java.util.Map;
+
+class Animal { }
+class Gato extends Animal { }
+class Cachorro extends Animal { }
+
+public class Main {
+    public static void main(String[] args) {
+        Animal[] animais = { new Gato(), new Cachorro(), new Gato(), new Gato() };
+        Map&lt;String, Integer&gt; contagem = new HashMap&lt;&gt;();
+        for (Animal a : animais) {
+            String nome = a.getClass().getSimpleName();
+            contagem.put(nome, contagem.getOrDefault(nome, 0) + 1);
+        }
+        System.out.println("Gato: " + contagem.get("Gato"));
+        System.out.println("Cachorro: " + contagem.get("Cachorro"));
+        System.out.println("Mãe de Gato: " + Gato.class.getSuperclass().getSimpleName());
+    }
+}
+</pre>
+</div>
+
+<div class="note">
+<strong>Sobre o editor do guia</strong>
+<p>O simulador do guia não faz reflexão completa (veja <a href="simulador.html">O Editor do Guia</a>): as missões desta aula usam só <code>getClass()</code> e companhia. Para experimentar <code>getDeclaredMethods</code>, <code>invoke</code> e <code>setAccessible</code>, use o JDK no seu computador; as saídas mostradas nesta aula são as do JDK 25 real.</p>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Reflexão é o programa examinar classes enquanto roda, através de objetos <code>Class</code>, <code>Field</code> e <code>Method</code>.</li>
+  <li>Obtenha o <code>Class</code> com <code>obj.getClass()</code>, <code>Produto.class</code> ou <code>Class.forName("…")</code>.</li>
+  <li><code>getDeclaredFields</code>/<code>getDeclaredMethods</code> listam o conteúdo (em ordem não garantida); <code>getMethod</code> + <code>invoke</code> chamam um método pelo nome.</li>
+  <li>Frameworks (JUnit, Spring, JSON) usam reflexão para trabalhar com classes que não conheciam.</li>
+  <li>Cuidados: erros viram exceções ao rodar (<code>NoSuchMethodException</code>, <code>ClassNotFoundException</code>), <code>setAccessible</code> fura o encapsulamento e é barrado nas classes do JDK (<code>InaccessibleObjectException</code>). Prefira o código normal sempre que der.</li>
+</ul>
+
+<p>Próxima aula: <a href="novidades.html">Novidades do Java 17 ao 25</a>.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
