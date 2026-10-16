@@ -1870,8 +1870,9 @@
 
     // ---------- NumberFormat / DecimalFormat ----------
     function fmtNumber(v, minFrac, maxFrac, grouping, loc, mode) {
-      var neg = v < 0 || (v === 0 && 1 / v < 0 && false);
-      var x = J.bdOfDouble(Math.abs(v));
+      var neg, x;
+      if (typeof v === "object") { neg = v.big < 0n; x = { big: neg ? -v.big : v.big, scale: v.scale }; if (x.scale < 0) x = { big: x.big * 10n ** BigInt(-x.scale), scale: 0 }; }
+      else { neg = v < 0; x = J.bdOfDouble(Math.abs(v)); }
       var r = (function () { var b = x; if (b.scale > maxFrac) { var div = 10n ** BigInt(b.scale - maxFrac); var q = b.big / div, rem = b.big % div; var tw = rem * 2n; if (mode === "HALF_UP" ? tw >= div : (tw > div || (tw === div && q % 2n === 1n))) q++; return { big: q, scale: maxFrac }; } return b; })();
       var digits = r.big.toString(), sc = r.scale;
       while (digits.length <= sc) digits = "0" + digits;
@@ -1884,7 +1885,22 @@
       return res;
     }
     function locOf(l) { return l && l.loc ? l.loc : I.LOC_PT; }
-    defLib("java.text.Format", { flags: "public abstract", m: { "String format(Object)": function (o) { return jcall(this, "format", [o]); } } });
+    // BigDecimal/BigInteger/Long viram {big, scale} (formatação exata); os demais números viram double
+    function nfValor(o) {
+      if (o !== null && typeof o === "object") {
+        if (typeof o.big === "bigint") return { big: o.big, scale: o.scale || 0 };
+        if (o instanceof JBox && typeof o.v === "bigint") return { big: o.v, scale: 0 };
+        if (o instanceof JBox && typeof o.v === "number" && /^java\.lang\.(Integer|Short|Byte|Double|Float)$/.test(o.$c.full)) return o.v;
+      }
+      throwJ("java.lang.IllegalArgumentException", "Cannot format given Object as a Number");
+    }
+    function nfNeg(v) { return typeof v === "object" ? v.big < 0n : v < 0; }
+    function nfAbs(v) { return typeof v === "object" ? { big: v.big < 0n ? -v.big : v.big, scale: v.scale } : Math.abs(v); }
+    function nfVezes100(v) { return typeof v === "object" ? { big: v.big, scale: v.scale - 2 } : v * 100; }
+    defLib("java.text.Format", { flags: "public abstract", m: { "String format(Object)": function (o) {
+      if (this.kind === undefined && this.pat === undefined) return jcall(this, "format", [o]);
+      return jstr(nfFormat(this, nfValor(o)));
+    } } });
     defLib("java.text.NumberFormat", { flags: "public abstract", ext: "java.text.Format", m: {
       "static NumberFormat getCurrencyInstance()": function () { return { $c: L("java.text.DecimalFormat"), kind: "cur", l: J.mkLocale("pt", "BR"), min: 2, max: 2, grp: true }; },
       "static NumberFormat getCurrencyInstance(java.util.Locale)": function (l) { return { $c: L("java.text.DecimalFormat"), kind: "cur", l: l, min: 2, max: 2, grp: true }; },
@@ -1896,7 +1912,7 @@
       "static NumberFormat getPercentInstance(java.util.Locale)": function (l) { return { $c: L("java.text.DecimalFormat"), kind: "pct", l: l, min: 0, max: 0, grp: true }; },
       "static NumberFormat getIntegerInstance()": function () { return { $c: L("java.text.DecimalFormat"), kind: "num", l: J.mkLocale("pt", "BR"), min: 0, max: 0, grp: true }; },
       "String format(double)": function (v) { return jstr(nfFormat(this, v)); },
-      "String format(long)": function (v) { return jstr(nfFormat(this, Number(v))); },
+      "String format(long)": function (v) { return jstr(nfFormat(this, { big: BigInt(v), scale: 0 })); },
       "void setMinimumFractionDigits(int)": function (n) { this.min = n; if (this.max < n) this.max = n; },
       "void setMaximumFractionDigits(int)": function (n) { this.max = n; if (this.min > n) this.min = n; },
       "void setGroupingUsed(boolean)": function (b) { this.grp = b; },
@@ -1907,8 +1923,8 @@
       var loc = locOf(f.l);
       if (f.pat) return dfFormat(f, v, loc);
       var us = f.l && f.l.lang === "en";
-      if (f.kind === "cur") { var n = fmtNumber(Math.abs(v), f.min, f.max, f.grp, loc, "HALF_EVEN"); var sym = us ? "$" : "R$ "; return (v < 0 ? "-" : "") + sym + n; }
-      if (f.kind === "pct") return fmtNumber(v * 100, f.min, f.max, f.grp, loc, "HALF_EVEN") + "%";
+      if (f.kind === "cur") { var n = fmtNumber(nfAbs(v), f.min, f.max, f.grp, loc, "HALF_EVEN"); var sym = us ? "$" : "R$ "; return (nfNeg(v) && /[1-9]/.test(n) ? "-" : "") + sym + n; }
+      if (f.kind === "pct") return fmtNumber(nfVezes100(v), f.min, f.max, f.grp, loc, "HALF_EVEN") + "%";
       return fmtNumber(v, f.min, f.max, f.grp, loc, "HALF_EVEN");
     }
     function dfFormat(f, v, loc) {
@@ -1916,17 +1932,17 @@
       var m = /^([^#0,.]*)([#0,]*)(?:\.([0#]*))?(.*)$/.exec(p);
       var pre = m[1].replace(/'/g, ""), intp = m[2], fr = m[3] || "", suf = m[4].replace(/'/g, "");
       var pct = /%/.test(suf);
-      if (pct) v *= 100;
+      if (pct) v = nfVezes100(v);
       var minFrac = (fr.match(/0/g) || []).length, maxFrac = fr.length;
       var minInt = (intp.match(/0/g) || []).length;
       var grp = intp.indexOf(",") >= 0;
-      var s = fmtNumber(Math.abs(v), minFrac, maxFrac, false, loc, f.mode || "HALF_EVEN");
+      var s = fmtNumber(nfAbs(v), minFrac, maxFrac, false, loc, f.mode || "HALF_EVEN");
       var parts = s.split(loc.dec), ip = parts[0];
       if (ip === "0" && minInt === 0 && parts[1]) ip = "";
       while (ip.length < minInt) ip = "0" + ip;
       if (grp) ip = I.groupDigits(ip, loc.grp);
       var res = ip + (parts[1] ? loc.dec + parts[1] : "");
-      return (v < 0 && /[1-9]/.test(res) ? "-" : "") + pre + res + suf;
+      return (nfNeg(v) && /[1-9]/.test(res) ? "-" : "") + pre + res + suf;
     }
     defLib("java.text.DecimalFormat", { ext: "java.text.NumberFormat", m: {
       "<init>(String)": function (p) { this.pat = S(p); this.l = J.mkLocale("pt", "BR"); },

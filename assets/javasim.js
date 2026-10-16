@@ -1528,7 +1528,7 @@
       case "null": return "<null>";
       case "err": return "<any>";
       case "array": return typeStr(t.elem) + "[]";
-      case "tvar": return t.sym.name;
+      case "tvar": return tvName(t.sym);
       case "wild": return t.kind ? "? " + t.kind + " " + typeStr(t.bound) : "?";
       case "inter": return t.types.map(typeStr).join("&");
       case "class": {
@@ -2554,6 +2554,16 @@
   CK.warn = function (env, pos, msg) { (this.prog.warnings = this.prog.warnings || []).push(new CompileError(env.file, pos, msg, "warning")); };
 
   // texto "where T is a type-variable:" (como o javac)
+  // nomes T#1, T#2… quando a mesma mensagem cita variáveis de tipo diferentes com o mesmo nome
+  var TVN = null;
+  function tvName(sym) { return TVN && TVN.has(sym) ? TVN.get(sym) : sym.name; }
+  function comNomesTV(syms, fn) {
+    var porNome = {}, mp = new Map();
+    syms.forEach(function (v) { (porNome[v.name] = porNome[v.name] || []).indexOf(v) < 0 && porNome[v.name].push(v); });
+    Object.keys(porNome).forEach(function (n) { if (porNome[n].length > 1) porNome[n].forEach(function (v, i) { mp.set(v, n + "#" + (i + 1)); }); });
+    var old = TVN; TVN = mp.size ? mp : old;
+    try { return fn(); } finally { TVN = old; }
+  }
   CK.whereFor = function (types) {
     var tvs = [];
     function collect(t) {
@@ -2565,15 +2575,15 @@
     }
     types.forEach(collect);
     if (!tvs.length) return "";
-    var r = "\n  where " + tvs.map(function (v) { return v.name; }).join(",") + (tvs.length > 1 ? " are type-variables:" : " is a type-variable:");
+    var r = "\n  where " + tvs.map(tvName).join(",") + (tvs.length > 1 ? " are type-variables:" : " is a type-variable:");
     tvs.forEach(function (v) {
       var b = v.bounds.length ? v.bounds.map(typeStr).join(",") : "Object";
       var decl;
       if (v.owner instanceof MethodSym) {
         var m = v.owner;
-        decl = (m.name === "<init>" ? "constructor " : "method ") + "<" + m.tparams.map(function (x) { return x.name; }).join(",") + ">" + (m.name === "<init>" ? m.owner.name : m.name) + "(" + paramsStr(m) + ")";
+        decl = (m.name === "<init>" ? "constructor " : "method ") + "<" + m.tparams.map(tvName).join(",") + ">" + (m.name === "<init>" ? m.owner.name : m.name) + "(" + paramsStr(m) + ")";
       } else decl = (v.owner ? v.owner.kindName() + " " + v.owner.name : "class ?");
-      r += "\n    " + v.name + " extends " + b + " declared in " + decl;
+      r += "\n    " + tvName(v) + " extends " + b + " declared in " + decl;
     });
     return r;
   };
@@ -3395,6 +3405,26 @@
       if (ts.every(function (t) { return t.elem.k !== "prim"; })) return new ArrayType(lub(ts.map(function (t) { return t.elem; })));
       return OBJ();
     }
+    // candidatos mínimos (JLS 4.10.4): se sobrarem dois ou mais e um deles for do programa
+    // (ex.: Record & Forma), o resultado é a interseção
+    if (ts.every(function (t) { return t.k === "class"; })) {
+      var IGN = { "java.lang.Object": 1, "java.lang.Comparable": 1, "java.io.Serializable": 1, "java.lang.Cloneable": 1, "java.lang.constant.Constable": 1, "java.lang.constant.ConstantDesc": 1 };
+      var ec = [];
+      (function walk0(t) {
+        if (!t || t.k !== "class" || ec.indexOf(t.sym) >= 0) return;
+        ec.push(t.sym);
+        supertypesOf(t).forEach(walk0);
+      })(first);
+      ec = ec.filter(function (sy) { return !IGN[sy.full] && ts.every(function (t) { return !!asSuper(t, sy); }); });
+      var mec = ec.filter(function (sy) { return !ec.some(function (o) { return o !== sy && isSubClass(o, sy); }); });
+      if (mec.length >= 2 && mec.some(function (sy) { return !!sy.decl; })) {
+        mec.sort(function (x, y) { return (x.isInterface() ? 1 : 0) - (y.isInterface() ? 1 : 0); });
+        return { k: "inter", types: mec.map(function (sy) {
+          var sups0 = ts.map(function (t) { return asSuper(t, sy); });
+          return sups0.every(function (x) { return sameType(x, sups0[0]); }) ? sups0[0] : sy.rawType();
+        }) };
+      }
+    }
     // sobe pela cadeia de superclasses do primeiro
     if (first.k === "class") {
       var cands = [];
@@ -3965,9 +3995,43 @@
       if (!ok && fchk !== fs && phase > 1 && at.k === "prim") ok = looseConv(boxedType(at), fchk);
       if (!ok) { if (inf) inf.finish(); return { ok: false, argIndex: i, formal: fs, actual: at }; }
     }
+    if (inf && m.tparams.length && !argInfos.some(function (x) { return x.poly; })) {
+      var bf = this.checkDeclBounds(inf, fv, m.tparams.length);
+      if (bf) { inf.finish(); return { ok: false, bound: bf }; }
+    }
     if (inf) inf.finish();
     return { ok: true, formals: formals, inf: inf, fv: fv, phase: phase };
   };
+  // limite declarado violado (ex.: <T extends Comparable<? super T>> com T = Aluno)
+  CK.checkDeclBounds = function (inf, fv, nDecl) {
+    var vals = {}, back = {};
+    fv.vars.forEach(function (v) {
+      var b = inf.b[v.id];
+      if (b.eq) vals[v.id] = b.eq; else if (b.lower.length) vals[v.id] = lub(b.lower);
+      back[v.id] = v.orig ? v.orig.type : v.type;
+    });
+    for (var i = 0; i < nDecl; i++) {
+      var v = fv.vars[i], r = vals[v.id];
+      if (!r || isErr(r) || inf.mentions(r)) continue;
+      for (var j = 0; j < v.bounds.length; j++) {
+        var B = subst(v.bounds[j], vals);
+        if (inf.mentions(B) || isObjectType(B)) continue;
+        if (!isSubtype(r, B)) {
+          var b = inf.b[v.id];
+          var ups = b.upper.concat(v.bounds.length ? v.bounds : [OBJ()]).map(function (x) { return subst(x, back); });
+          return { v: v.orig || v, eq: b.eq ? [b.eq] : null, lower: b.eq ? null : b.lower.slice(), upper: ups };
+        }
+      }
+    }
+    return null;
+  };
+  function boundText(bf, ind) {
+    var sp = new Array(ind + 1).join(" ");
+    var t = "inference variable " + tvName(bf.v) + " has incompatible bounds";
+    if (bf.eq) t += "\n" + sp + "equality constraints: " + bf.eq.map(typeStr).join(",") + "\n" + sp + "upper bounds: " + bf.upper.map(typeStr).join(",");
+    else t += "\n" + sp + "upper bounds: " + bf.upper.map(typeStr).join(",") + "\n" + sp + "lower bounds: " + bf.lower.map(typeStr).join(",");
+    return t;
+  }
   // resolve parcialmente (só variáveis com limites conhecidos)
   CK.partialSolve = function (inf) {
     var m = {};
@@ -4172,6 +4236,12 @@
       var c = cands[0], m = c.m;
       var req = m.params.length ? m.params.map(function (p) { return typeStr(c.siteMap ? subst(p, c.siteMap) : memberType(p, c.site, m.owner)); }).join(",") : "no arguments";
       var rr = reasons[0].r;
+      if (rr.bound) {
+        var nm0 = info.ctor ? m.owner.name : m.name;
+        var where0 = info.ctor ? "class " + m.owner.name : (m.owner.kindName() + " " + typeStr(m.owner.thisType()));
+        this.err(env, info.pos, kindWord + " " + nm0 + " in " + where0 + " cannot be applied to given types;\n  required: " + req + "\n  found:    " + found + "\n  reason: " + boundText(rr.bound, 4) + this.whereFor(m.tparams.map(function (t) { return t.type; })));
+        return;
+      }
       var reason = rr.arity ? "actual and formal argument lists differ in length" : mismatchText(rr);
       var nm = info.ctor ? m.owner.name : m.name;
       var where = info.ctor ? "class " + m.owner.name : (m.owner.kindName() + " " + typeStr(m.owner.thisType()));
@@ -4182,12 +4252,23 @@
       }
       return;
     }
-    var txt = "no suitable " + kindWord + " found for " + info.name + "(" + found + ")";
-    reasons.forEach(function (x) {
-      var m = x.cand.m;
-      var desc = info.ctor ? "constructor " + qualName(m.owner) + "." + sigStr(m) : "method " + qualName(m.owner) + "." + (m.tparams.length ? "<" + m.tparams.map(function (t) { return t.name; }).join(",") + ">" : "") + sigStr(m);
-      txt += "\n    " + desc + " is not applicable";
-      txt += "\n      (" + (x.r.arity ? "actual and formal argument lists differ in length" : mismatchText(x.r)) + ")";
+    // com algum candidato genérico, segue o formato do javac: "cannot infer type-variable(s)" e cláusula where
+    var algumGen = reasons.some(function (x) { return x.cand.m.tparams.length; });
+    var tvsAll = [];
+    if (algumGen) reasons.forEach(function (x) { x.cand.m.tparams.forEach(function (t) { tvsAll.push(t); }); });
+    var self2 = this;
+    var txt = comNomesTV(tvsAll, function () {
+      var tx = "no suitable " + kindWord + " found for " + info.name + "(" + found + ")";
+      reasons.forEach(function (x) {
+        var m = x.cand.m;
+        var desc = info.ctor ? "constructor " + qualName(m.owner) + "." + sigStr(m) : "method " + qualName(m.owner) + "." + (m.tparams.length ? "<" + m.tparams.map(tvName).join(",") + ">" : "") + sigStr(m);
+        tx += "\n    " + desc + " is not applicable";
+        if (x.r.bound) tx += "\n      (" + boundText(x.r.bound, 8) + ")";
+        else if (algumGen && m.tparams.length) tx += "\n      (cannot infer type-variable(s) " + m.tparams.map(tvName).join(",") + "\n        (" + (x.r.arity ? "actual and formal argument lists differ in length" : mismatchText(x.r)) + "))";
+        else tx += "\n      (" + (x.r.arity ? "actual and formal argument lists differ in length" : mismatchText(x.r)) + ")";
+      });
+      if (algumGen) tx += self2.whereFor(tvsAll.map(function (t) { return t.type; }));
+      return tx;
     });
     this.err(env, info.pos, txt);
   };
@@ -5251,6 +5332,7 @@
     if (env.slotInfo) env.slotInfo.next = save;
   };
   CK.attribReturn = function (s, env) {
+    if (env.yieldTarget) { this.err(env, s.pos, "attempt to return out of a switch expression"); if (s.expr) this.attribExpr(s.expr, env, null); return; }
     if (env.lambdaNode) {
       var ret = env.ret;
       if (s.expr) {
@@ -8231,7 +8313,8 @@
           body = ex2;
         }
       } else {
-        var lctx2 = Object.assign({}, lctx, { lambdaRet: erasedRet.k === "prim" ? erasedRet : (e.samRet && e.samRet.k === "prim" ? e.samRet : null) });
+        // o return do corpo converte para o retorno (apagado) da interface, nunca para o do método que contém a lambda
+        var lctx2 = Object.assign({}, lctx, { lambdaRet: erasedRet.k === "prim" ? erasedRet : (e.samRet && e.samRet.k === "prim" ? e.samRet : erasedRet) });
         var bl = self.block(e.body, lctx2);
         body = function (f) { var r = bl(f); return r === RET ? f.rv : undefined; };
       }

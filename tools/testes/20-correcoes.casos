@@ -1,0 +1,204 @@
+### numberformat-bigdecimal
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> nomes = List.of("Ana", "Bruno");
+        Stream<String> s = nomes.stream().filter(n -> { return n.length() > 3; }).map(n -> { return n.toUpperCase(); });
+        System.out.println(s.toList());
+    }
+}
+### lambda-bloco-retorno-objeto
+import java.util.function.*;
+import java.util.*;
+public class Main {
+    static int f() {
+        Function<String, String> g = s -> { return s + "!"; };
+        Supplier<Integer> h = () -> { return 5; };
+        Supplier<Object> o = () -> { return 7; };
+        Supplier<Long> l = () -> { return 5L; };
+        Comparator<String> c = (a, b) -> { return a.length() - b.length(); };
+        System.out.println(g.apply("a") + h.get() + o.get() + l.get() + c.compare("aa", "b"));
+        return Optional.of("x").map(v -> { return v + "y"; }).get().length();
+    }
+    public static void main(String[] args) {
+        Function<String, String> g = s -> { return s + "!"; };
+        System.out.println(g.apply("a") + f());
+        System.out.println(Optional.of("x").map(v -> { if (v.isEmpty()) return null; return v.toUpperCase(); }).get());
+        Runnable r = () -> { if (args.length > 5) return; System.out.println("r"); };
+        r.run();
+    }
+}
+### streams-preguicosas-bloco
+import java.util.List;
+import java.util.stream.Stream;
+
+public class Main {
+    public static void main(String[] args) {
+        List<String> nomes = List.of("Ana", "Bruno", "Carla", "Duda");
+
+        System.out.println("1) sem operação terminal:");
+        Stream<String> s = nomes.stream()
+                .filter(n -> {
+                    System.out.println("   filter " + n);
+                    return n.length() > 3;
+                })
+                .map(n -> {
+                    System.out.println("   map " + n);
+                    return n.toUpperCase();
+                });
+        System.out.println("   (nada aconteceu ainda)");
+
+        System.out.println("2) com toList():");
+        List<String> r = s.toList();
+        System.out.println("   resultado: " + r);
+
+        System.out.println("3) com findFirst():");
+        String primeiro = nomes.stream()
+                .filter(n -> {
+                    System.out.println("   filter " + n);
+                    return n.length() > 3;
+                })
+                .findFirst()
+                .get();
+        System.out.println("   primeiro: " + primeiro);
+    }
+}
+### e-return-em-switch-expr
+public class Main {
+    public static void main(String[] args) {
+        String cmd = "sair";
+        int codigo = switch (cmd) {
+            case "novo" -> 1;
+            case "sair" -> {
+                return;
+            }
+            default -> 0;
+        };
+        System.out.println(codigo);
+    }
+}
+### e-return-valor-em-switch-expr
+public class Main {
+    static int f(int x) {
+        int y = switch (x) {
+            case 1: return 5;
+            default: yield 2;
+        };
+        return y;
+    }
+    public static void main(String[] args) { System.out.println(f(1)); }
+}
+### return-em-lambda-dentro-de-switch-expr
+import java.util.function.*;
+public class Main {
+    public static void main(String[] args) {
+        int k = 2;
+        IntUnaryOperator op = switch (k) {
+            case 1 -> x -> { return x + 1; };
+            default -> x -> { if (x < 0) return 0; return x * 2; };
+        };
+        System.out.println(op.applyAsInt(21) + " " + op.applyAsInt(-3));
+    }
+}
+### record-selado-lub
+import java.util.List;
+public class Main {
+    sealed interface Forma permits Circulo, Quadrado { }
+    record Circulo(double raio) implements Forma { }
+    record Quadrado(double lado) implements Forma { }
+    static double area(Forma f) {
+        return switch (f) {
+            case Circulo c when c.raio() == 0 -> 0;
+            case Circulo c -> Math.PI * c.raio() * c.raio();
+            case Quadrado q -> q.lado() * q.lado();
+        };
+    }
+    public static void main(String[] args) {
+        var formas = List.of(new Circulo(1), new Quadrado(2), new Circulo(0));
+        int contador = 0;
+        for (Forma _ : formas) contador++;
+        for (var f : formas) System.out.println(f + " -> " + area(f));
+        var g = args.length > 0 ? new Circulo(3) : new Quadrado(3);
+        System.out.println(area(g) + " " + g.toString() + " " + contador);
+        List<Forma> lf = List.of(new Circulo(1), new Quadrado(2));
+        System.out.println(lf.size());
+    }
+}
+### e-lub-intersecao-metodo
+public class Main {
+    interface Animal { String som(); }
+    static class Cao implements Animal { public String som() { return "au"; } }
+    static class Gato implements Animal { public String som() { return "miau"; } }
+    public static void main(String[] args) {
+        var a = args.length > 0 ? new Cao() : new Gato();
+        System.out.println(a.som());
+        var lista = java.util.List.of(new Cao(), new Gato());
+        for (Animal x : lista) System.out.print(x.som() + " ");
+        System.out.println();
+    }
+}
+### e-sort-nao-comparable
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+class Aluno {
+    String nome;
+    Aluno(String nome) { this.nome = nome; }
+}
+public class Main {
+    public static void main(String[] args) {
+        List<Aluno> turma = new ArrayList<>();
+        turma.add(new Aluno("Carla"));
+        Collections.sort(turma);
+        System.out.println(turma.size());
+    }
+}
+### e-limite-metodo-proprio
+import java.util.*;
+public class Main {
+    static <T extends Comparable<T>> T maior(List<T> l) { return l.get(0); }
+    static class Caixa {}
+    public static void main(String[] args) {
+        List<Caixa> cs = new ArrayList<>();
+        maior(cs);
+    }
+}
+### sort-comparable-ok
+import java.util.*;
+public class Main {
+    static class Aluno implements Comparable<Aluno> {
+        String nome; Aluno(String n) { nome = n; }
+        public int compareTo(Aluno o) { return nome.compareTo(o.nome); }
+        public String toString() { return nome; }
+    }
+    static <T extends Comparable<? super T>> T menor(Collection<? extends T> c) { return Collections.min(c); }
+    public static void main(String[] args) {
+        List<Aluno> t = new ArrayList<>(List.of(new Aluno("Edu"), new Aluno("Ana")));
+        Collections.sort(t);
+        System.out.println(t + " " + Collections.max(t) + " " + menor(t) + " " + menor(List.of(3, 1, 2)));
+        List<java.time.LocalDate> ds = new ArrayList<>(List.of(java.time.LocalDate.of(2026, 1, 2), java.time.LocalDate.of(2025, 5, 1)));
+        Collections.sort(ds);
+        System.out.println(ds);
+    }
+}
+### e-max-nao-comparable
+import java.util.*;
+public class Main {
+    static class Caixa {}
+    public static void main(String[] args) {
+        List<Caixa> cs = new ArrayList<>();
+        Caixa c = Collections.max(cs);
+    }
+}
+### e-sort-nao-comparable-lista-de
+import java.util.*;
+public class Main {
+    record Item(String nome) {}
+    public static void main(String[] args) {
+        List<Item> it = new ArrayList<>(List.of(new Item("b"), new Item("a")));
+        Collections.sort(it);
+        it.sort(null);
+        System.out.println(it);
+    }
+}
