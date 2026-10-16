@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Comparable e Comparator — ordenar seus objetos | Guia Java</title>
+<meta name="description" content="Comparable e Comparator em Java: ordem natural com compareTo, Comparator como classe, classe anônima e lambda, Comparator.comparing, thenComparing e reversed, ordenando os alunos da Ana por nota e nome, com saídas e erros reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Comparable e Comparator</span></h1>
+
+<p class="intro">Ordenar números e textos é fácil: o Java já sabe que 3 vem antes de 10 e "Ana" antes de "Bruno". Mas e uma lista de <strong>alunos</strong>? Por nome? Por nota? Da maior nota para a menor e, no empate, por nome? O Java não adivinha: você precisa ensinar a <strong>comparar</strong>. Há duas formas: <code>Comparable</code> (a ordem "natural", escrita dentro da classe) e <code>Comparator</code> (qualquer outra ordem, escrita fora).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que <code>Collections.sort</code> não compila com uma lista de objetos seus.</li>
+  <li>O que <code>compareTo</code> devolve (negativo, zero, positivo) e como escrevê-lo com <code>Comparable</code>.</li>
+  <li>O <code>Comparator</code> de quatro jeitos: classe, classe anônima, lambda e <code>Comparator.comparing</code>.</li>
+  <li>Combinar critérios com <code>thenComparing</code> e inverter com <code>reversed</code>.</li>
+  <li>Montar o ranking dos alunos da Ana: nota decrescente e, no empate, nome.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="problema">O problema: o Java não sabe comparar alunos</h2>
+<p>A Ana tem uma classe <code>Aluno</code> com nome e nota, e tenta ordenar a turma do jeito que aprendeu na aula de <a href="arraylist.html">ArrayList</a>:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+class Aluno {
+    String nome;
+    double nota;
+
+    Aluno(String nome, double nota) {
+        this.nome = nome;
+        this.nota = nota;
+    }
+
+    public String toString() {
+        return nome + "(" + nota + ")";
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = new ArrayList&lt;&gt;();
+        turma.add(new Aluno("Carla", 9.5));
+        turma.add(new Aluno("Edu", 7.0));
+        turma.add(new Aluno("Ana", 9.5));
+        Collections.sort(turma);
+        System.out.println(turma);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:25: error: no suitable method found for sort(List&lt;Aluno&gt;)
+        Collections.sort(turma);
+                   ^
+    method Collections.&lt;T#1&gt;sort(List&lt;T#1&gt;) is not applicable
+      (inference variable T#1 has incompatible bounds
+        equality constraints: Aluno
+        upper bounds: Comparable&lt;? super T#1&gt;)
+    method Collections.&lt;T#2&gt;sort(List&lt;T#2&gt;,Comparator&lt;? super T#2&gt;) is not applicable
+      (cannot infer type-variable(s) T#2
+        (actual and formal argument lists differ in length))
+  where T#1,T#2 are type-variables:
+    T#1 extends Comparable&lt;? super T#1&gt; declared in method &lt;T#1&gt;sort(List&lt;T#1&gt;)
+    T#2 extends Object declared in method &lt;T#2&gt;sort(List&lt;T#2&gt;,Comparator&lt;? super T#2&gt;)
+1 error</pre>
+
+<p>A mensagem assusta, mas dá para ler em partes:</p>
+<ul>
+  <li><strong>"no suitable method found for sort(List&lt;Aluno&gt;)"</strong>: "nenhum método <code>sort</code> serve para uma lista de Aluno".</li>
+  <li>O <code>javac</code> então explica por que cada versão de <code>sort</code> não serve. A primeira, <code>sort(List)</code>, exige elementos que sejam <strong><code>Comparable</code></strong> (a linha "upper bounds: Comparable"), e <code>Aluno</code> não é.</li>
+  <li>A segunda, <code>sort(List, Comparator)</code>, precisa de <strong>dois</strong> argumentos ("argument lists differ in length": "as listas de argumentos têm tamanhos diferentes"), e só passamos um.</li>
+</ul>
+
+<p>Ou seja, o próprio erro mostra as duas saídas: tornar <code>Aluno</code> <code>Comparable</code>, ou passar um <code>Comparator</code>. Os <code>T#1</code>, <code>T#2</code> são variáveis de tipo de <a href="generics.html">generics</a>; não se preocupe com elas agora.</p>
+
+<hr>
+
+<h2>Como se compara: negativo, zero, positivo</h2>
+<p>Antes de escrever o seu, veja como o Java compara o que ele já conhece. O método <code>compareTo</code> compara <strong>este</strong> objeto com <strong>outro</strong> e devolve um <code>int</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("\"Ana\".compareTo(\"Bruno\") = " + "Ana".compareTo("Bruno"));
+        System.out.println("\"Bruno\".compareTo(\"Ana\") = " + "Bruno".compareTo("Ana"));
+        System.out.println("\"Ana\".compareTo(\"Ana\")   = " + "Ana".compareTo("Ana"));
+        System.out.println("\"Ana\".compareTo(\"Edu\")   = " + "Ana".compareTo("Edu"));
+        System.out.println("Integer.compare(3, 10) = " + Integer.compare(3, 10));
+        System.out.println("Double.compare(9.5, 7.0) = " + Double.compare(9.5, 7.0));
+        System.out.println("Double.compare(7.0, 7.0) = " + Double.compare(7.0, 7.0));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+"Ana".compareTo("Bruno") = -1        « negativo: Ana vem ANTES de Bruno
+"Bruno".compareTo("Ana") = 1         « positivo: Bruno vem DEPOIS de Ana
+"Ana".compareTo("Ana")   = 0         « zero: empatados
+"Ana".compareTo("Edu")   = -4        « o número exato não importa, só o sinal
+Integer.compare(3, 10) = -1
+Double.compare(9.5, 7.0) = 1
+Double.compare(7.0, 7.0) = 0</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>a.compareTo(b)</code> devolve…</th><th>Quer dizer</th></tr>
+<tr><td>um número <strong>negativo</strong></td><td><code>a</code> vem antes de <code>b</code></td></tr>
+<tr><td><strong>zero</strong></td><td><code>a</code> e <code>b</code> empatam (mesma posição na ordem)</td></tr>
+<tr><td>um número <strong>positivo</strong></td><td><code>a</code> vem depois de <code>b</code></td></tr>
+</table>
+</div>
+
+<p>Para comparar números, use sempre <code>Integer.compare(x, y)</code> e <code>Double.compare(x, y)</code>, que devolvem exatamente esse sinal. (Você vai ver em código antigo <code>return a - b;</code> para inteiros: funciona com números pequenos, mas dá resultado errado quando a subtração passa do limite do <code>int</code>; veja <a href="inteiros.html">overflow</a>.)</p>
+
+<hr>
+
+<h2>Comparable: a ordem natural da classe</h2>
+<p>Uma classe que implementa a interface <code>Comparable&lt;T&gt;</code> ("comparável") diz: "meus objetos têm uma ordem natural, e ela é esta". É o que <code>String</code> e <code>Integer</code> fazem. A interface tem um único método, <code>compareTo</code>. Para a Ana, a ordem natural dos alunos é a da chamada: por nome.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+class Aluno implements Comparable&lt;Aluno&gt; {
+    String nome;
+    double nota;
+
+    Aluno(String nome, double nota) {
+        this.nome = nome;
+        this.nota = nota;
+    }
+
+    @Override
+    public int compareTo(Aluno outro) {
+        return this.nome.compareTo(outro.nome);
+    }
+
+    public String toString() {
+        return nome + "(" + nota + ")";
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = new ArrayList&lt;&gt;();
+        turma.add(new Aluno("Carla", 9.5));
+        turma.add(new Aluno("Edu", 7.0));
+        turma.add(new Aluno("Ana", 9.5));
+        turma.add(new Aluno("Duda", 8.0));
+        turma.add(new Aluno("Bruno", 7.0));
+        Collections.sort(turma);
+        System.out.println(turma);
+        System.out.println("Primeiro na chamada: " + Collections.min(turma));
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>implements Comparable&lt;Aluno&gt;</dt><dd>"Aluno é comparável com outros Alunos." O tipo entre <code>&lt; &gt;</code> é com quem ele se compara (veja <a href="interfaces.html">Interfaces</a>).</dd>
+  <dt>@Override public int compareTo(Aluno outro)</dt><dd>O método exigido pela interface. Recebe o <strong>outro</strong> aluno; o "este" é o <code>this</code>.</dd>
+  <dt>return this.nome.compareTo(outro.nome);</dt><dd>Passa a pergunta adiante: comparar dois alunos é comparar os nomes deles, e <code>String</code> já sabe fazer isso.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[Ana(9.5), Bruno(7.0), Carla(9.5), Duda(8.0), Edu(7.0)]
+Primeiro na chamada: Ana(9.5)</pre>
+
+<p>Agora o <code>Collections.sort</code> compila, e tudo o que depende da ordem natural passa a funcionar com <code>Aluno</code>: <code>Collections.min</code>/<code>max</code>, <code>lista.sort(null)</code>, e até ser elemento de um <code>TreeSet</code> ou chave de um <code>TreeMap</code> (lembra da <code>ClassCastException</code> da aula <a href="treemap-treeset.html">TreeMap e TreeSet</a>? É isto que faltava).</p>
+
+<div class="tip">
+<strong>E com um <code>record</code>?</strong>
+<p>Funciona igual: <code>record Aluno(String nome, double nota) implements Comparable&lt;Aluno&gt; { public int compareTo(Aluno o) { return nome.compareTo(o.nome); } }</code>. Nos records, o campo se lê com <code>nome()</code> de fora da classe (veja <a href="records.html">Records</a>).</p>
+</div>
+
+<div class="tryjava" data-goal="out:[pão=0.75\, leite=5.49\, café=18.9],src:implements\s+Comparable">
+<p class="try-task"><strong>Missão:</strong> o <code>Collections.sort</code> não compila. Faça <code>Produto</code> implementar <code>Comparable&lt;Produto&gt;</code>, com a ordem natural pelo <strong>preço</strong> (use <code>Double.compare</code>). A saída deve ser <code>[pão=0.75, leite=5.49, café=18.9]</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+class Produto {
+    String nome;
+    double preco;
+
+    Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    public String toString() {
+        return nome + "=" + preco;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Produto&gt; cesta = new ArrayList&lt;&gt;();
+        cesta.add(new Produto("café", 18.90));
+        cesta.add(new Produto("pão", 0.75));
+        cesta.add(new Produto("leite", 5.49));
+        Collections.sort(cesta);
+        System.out.println(cesta);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+class Produto implements Comparable&lt;Produto&gt; {
+    String nome;
+    double preco;
+
+    Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    @Override
+    public int compareTo(Produto outro) {
+        return Double.compare(this.preco, outro.preco);
+    }
+
+    public String toString() {
+        return nome + "=" + preco;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Produto&gt; cesta = new ArrayList&lt;&gt;();
+        cesta.add(new Produto("café", 18.90));
+        cesta.add(new Produto("pão", 0.75));
+        cesta.add(new Produto("leite", 5.49));
+        Collections.sort(cesta);
+        System.out.println(cesta);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Comparator: qualquer outra ordem</h2>
+<p>Uma classe só tem <strong>uma</strong> ordem natural. Mas a Ana quer ordenar a turma por nome na chamada, por nota no boletim, por idade na festa junina… Para cada ordem extra, ela cria um <strong>comparador</strong>: um objeto separado, da interface <code>Comparator&lt;T&gt;</code>, cujo método <code>compare(a, b)</code> segue a mesma regra do sinal (negativo: <code>a</code> antes; zero: empate; positivo: <code>a</code> depois).</p>
+
+<p>Com isso, nem é preciso mexer na classe <code>Aluno</code>; ela pode ser até de outra pessoa. A partir daqui usamos um <a href="records.html">record</a> para encurtar (com um <code>toString</code> mais curto). Veja o <strong>mesmo</strong> comparador "por nota" escrito de quatro jeitos, do mais longo ao mais curto:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+record Aluno(String nome, double nota) {
+    public String toString() {
+        return nome + "=" + nota;
+    }
+}
+
+class PorNota implements Comparator&lt;Aluno&gt; {
+    @Override
+    public int compare(Aluno a, Aluno b) {
+        return Double.compare(a.nota(), b.nota());
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; chamada = List.of(
+            new Aluno("Carla", 9.5), new Aluno("Edu", 7.0), new Aluno("Ana", 9.5),
+            new Aluno("Duda", 8.0), new Aluno("Bruno", 7.0));
+
+        // 1. classe separada
+        List&lt;Aluno&gt; t1 = new ArrayList&lt;&gt;(chamada);
+        t1.sort(new PorNota());
+        System.out.println("1. classe:    " + t1);
+
+        // 2. classe anônima
+        List&lt;Aluno&gt; t2 = new ArrayList&lt;&gt;(chamada);
+        t2.sort(new Comparator&lt;Aluno&gt;() {
+            @Override
+            public int compare(Aluno a, Aluno b) {
+                return Double.compare(a.nota(), b.nota());
+            }
+        });
+        System.out.println("2. anônima:   " + t2);
+
+        // 3. lambda
+        List&lt;Aluno&gt; t3 = new ArrayList&lt;&gt;(chamada);
+        t3.sort((a, b) -&gt; Double.compare(a.nota(), b.nota()));
+        System.out.println("3. lambda:    " + t3);
+
+        // 4. Comparator.comparing
+        List&lt;Aluno&gt; t4 = new ArrayList&lt;&gt;(chamada);
+        t4.sort(Comparator.comparing(Aluno::nota));
+        System.out.println("4. comparing: " + t4);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+1. classe:    [Edu=7.0, Bruno=7.0, Duda=8.0, Carla=9.5, Ana=9.5]
+2. anônima:   [Edu=7.0, Bruno=7.0, Duda=8.0, Carla=9.5, Ana=9.5]
+3. lambda:    [Edu=7.0, Bruno=7.0, Duda=8.0, Carla=9.5, Ana=9.5]
+4. comparing: [Edu=7.0, Bruno=7.0, Duda=8.0, Carla=9.5, Ana=9.5]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como é</th><th>Quando usar</th></tr>
+<tr><td>1. Classe com nome</td><td><code>class PorNota implements Comparator&lt;Aluno&gt;</code></td><td>Comparadores complicados, usados em vários lugares.</td></tr>
+<tr><td>2. <a href="classes-internas.html">Classe anônima</a></td><td><code>new Comparator&lt;Aluno&gt;() { … }</code></td><td>Código antigo (antes do Java 8). Hoje, prefira a lambda.</td></tr>
+<tr><td>3. <a href="lambdas.html">Lambda</a></td><td><code>(a, b) -&gt; Double.compare(a.nota(), b.nota())</code></td><td>Uma regra curta, escrita na hora.</td></tr>
+<tr><td>4. <code>Comparator.comparing</code></td><td><code>Comparator.comparing(Aluno::nota)</code></td><td>O padrão hoje: "compare por este campo". Lê-se quase como português.</td></tr>
+</table>
+</div>
+
+<p>Repare nos empates: Edu e Bruno têm 7.0, Carla e Ana têm 9.5. Nos quatro resultados eles ficaram na ordem em que já estavam na chamada (Edu antes de Bruno, Carla antes de Ana). Isso acontece porque o <code>sort</code> do Java é <strong>estável</strong>: elementos empatados mantêm a ordem anterior. Se você quer um desempate de verdade, precisa pedir, como na próxima seção.</p>
+
+<p>A forma 4 merece explicação. <code>Comparator.comparing</code> recebe uma função que <strong>extrai a chave</strong> de comparação de cada aluno, e monta o comparador sozinho. <code>Aluno::nota</code> é uma <a href="method-references.html">referência de método</a>: "a nota do aluno". O mesmo que a lambda <code>a -&gt; a.nota()</code>.</p>
+
+<hr>
+
+<h2>Combinar e inverter: <code>thenComparing</code> e <code>reversed</code></h2>
+<p>Comparadores podem ser encadeados como peças de Lego:</p>
+
+<pre class="file" data-file="Main.java">        turma.sort(Comparator.comparing(Aluno::nome));
+        System.out.println("nome:            " + turma);
+
+        turma.sort(Comparator.comparing(Aluno::nome).reversed());
+        System.out.println("nome desc:       " + turma);
+
+        turma.sort(Comparator.comparing(Aluno::nota).reversed().thenComparing(Aluno::nome));
+        System.out.println("nota desc, nome: " + turma);
+
+        turma.sort(Comparator.comparing(Aluno::nota).thenComparing(Aluno::nome).reversed());
+        System.out.println("tudo invertido:  " + turma);
+</pre>
+
+<pre class="term">$ java Main
+nome:            [Ana=9.5, Bruno=7.0, Carla=9.5, Duda=8.0, Edu=7.0]
+nome desc:       [Edu=7.0, Duda=8.0, Carla=9.5, Bruno=7.0, Ana=9.5]
+nota desc, nome: [Ana=9.5, Carla=9.5, Duda=8.0, Bruno=7.0, Edu=7.0]     « o ranking que a Ana queria
+tudo invertido:  [Carla=9.5, Ana=9.5, Duda=8.0, Edu=7.0, Bruno=7.0]     « inverteu o desempate também</pre>
+
+<dl class="anatomy">
+  <dt>.reversed()</dt><dd>"Ao contrário": inverte <strong>tudo o que vem antes dele</strong> na corrente.</dd>
+  <dt>.thenComparing(Aluno::nome)</dt><dd>"E então compare por nome": só é usado quando o critério anterior deu empate (zero).</dd>
+  <dt>comparing(nota).reversed().thenComparing(nome)</dt><dd>Nota decrescente; no empate, nome em ordem crescente. Ana e Carla (9.5) ficam em ordem alfabética.</dd>
+  <dt>comparing(nota).thenComparing(nome).reversed()</dt><dd>O <code>reversed</code> no fim inverte a corrente inteira: nota decrescente <strong>e</strong> nome decrescente (Carla antes de Ana). Cuidado com a posição!</dd>
+</dl>
+
+<h3>Outros atalhos de Comparator</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Ordem</th></tr>
+<tr><td><code>Comparator.naturalOrder()</code></td><td>A ordem natural (<code>compareTo</code>)</td></tr>
+<tr><td><code>Comparator.reverseOrder()</code></td><td>A ordem natural ao contrário</td></tr>
+<tr><td><code>Comparator.comparing(Aluno::nome, String.CASE_INSENSITIVE_ORDER)</code></td><td>Por nome, ignorando maiúsculas</td></tr>
+<tr><td><code>Comparator.comparingInt(String::length)</code></td><td>Por um <code>int</code>, sem embrulhar em <code>Integer</code> (também há <code>comparingDouble</code>, <code>comparingLong</code>)</td></tr>
+<tr><td><code>Comparator.comparing(Aluno::nome).reversed()</code></td><td>Por nome, de Z a A</td></tr>
+<tr><td><code>Comparator.nullsFirst(…)</code> / <code>nullsLast(…)</code></td><td>Põe os <code>null</code> no começo / no fim, em vez de dar <code>NullPointerException</code></td></tr>
+</table>
+</div>
+
+<p>Para ordenar como num dicionário de português (com "Álvaro" junto dos "A"), existe a classe <code>java.text.Collator</code>, um comparador que conhece as regras do idioma do computador (aqui, <code>pt_BR</code>):</p>
+
+<pre class="file" data-file="Main.java">        List&lt;String&gt; l = new ArrayList&lt;&gt;(List.of("Carla", "ana", "Bruno", "Álvaro", "Ana"));
+        l.sort(Collator.getInstance());      // import java.text.Collator;
+        System.out.println(l);
+</pre>
+<pre class="term">$ java Main
+[Álvaro, ana, Ana, Bruno, Carla]        « com Collections.sort seria [Ana, Bruno, Carla, ana, Álvaro]</pre>
+
+<hr>
+
+<h2>Comparable ou Comparator?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>Comparable&lt;T&gt;</code></th><th><code>Comparator&lt;T&gt;</code></th></tr>
+<tr><td>Onde fica</td><td>Dentro da classe (<code>implements</code>)</td><td>Fora: um objeto separado</td></tr>
+<tr><td>Método</td><td><code>compareTo(T outro)</code></td><td><code>compare(T a, T b)</code></td></tr>
+<tr><td>Quantas ordens</td><td>Uma: a ordem natural</td><td>Quantas você quiser</td></tr>
+<tr><td>Usado por</td><td><code>Collections.sort(l)</code>, <code>l.sort(null)</code>, <code>TreeSet</code> sem argumento</td><td><code>l.sort(comp)</code>, <code>new TreeSet&lt;&gt;(comp)</code>, <code>Collections.max(l, comp)</code></td></tr>
+<tr><td>Quando usar</td><td>Existe uma ordem óbvia (data, código, nome)</td><td>Ordens extras, ou classes que você não pode alterar</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"no suitable method found for sort(List&lt;Aluno&gt;)"</strong>
+<p><strong>O que aconteceu:</strong> <code>Collections.sort(lista)</code> numa lista de uma classe que não implementa <code>Comparable</code>. Veja <a href="#problema">o começo da aula</a>.</p>
+<p><strong>Como consertar:</strong> <code>implements Comparable&lt;Aluno&gt;</code> com <code>compareTo</code>, ou passe um comparador: <code>turma.sort(Comparator.comparing(Aluno::nome))</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … location: variable a of type Object" com <code>reversed()</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        turma.sort(Comparator.comparing(a -&gt; a.nota()).reversed());
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:10: error: cannot find symbol
+        turma.sort(Comparator.comparing(a -&gt; a.nota()).reversed());
+                                              ^
+  symbol:   method nota()
+  location: variable a of type Object
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "não achei o método <code>nota()</code> na variável <code>a</code>, do tipo <code>Object</code>". Sem o <code>.reversed()</code>, o Java deduz que <code>a</code> é um <code>Aluno</code> olhando para o <code>sort</code>. Com o <code>.reversed()</code> no meio, a dedução não chega até a lambda, e <code>a</code> vira um <code>Object</code> genérico, que não tem <code>nota()</code>.</p>
+<p><strong>Como consertar:</strong> use a referência de método, que já diz o tipo: <code>Comparator.comparing(Aluno::nota).reversed()</code>; ou dê o tipo na lambda: <code>Comparator.comparing((Aluno a) -&gt; a.nota()).reversed()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A ordem saiu ao contrário do esperado</strong>
+<p><strong>O que aconteceu:</strong> o sinal do <code>compareTo</code>/<code>compare</code> está trocado (por exemplo, <code>Double.compare(b.nota, a.nota)</code>), ou o <code>reversed()</code> está no lugar errado da corrente.</p>
+<p><strong>Como consertar:</strong> lembre: negativo = <code>a</code> vem antes. Escreva sempre na ordem crescente e use <code>reversed()</code> logo depois do critério que deve ser invertido.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>class X implements Comparable&lt;X&gt;</code> + <code>compareTo(X o)</code></td><td>Define a ordem natural</td></tr>
+<tr><td><code>Integer.compare(a, b)</code>, <code>Double.compare(a, b)</code></td><td>Comparar números com o sinal certo</td></tr>
+<tr><td><code>s1.compareTo(s2)</code></td><td>Comparar Strings (ordem dos caracteres)</td></tr>
+<tr><td><code>(a, b) -&gt; …</code></td><td>Comparator como lambda</td></tr>
+<tr><td><code>Comparator.comparing(X::campo)</code></td><td>Comparar por um campo</td></tr>
+<tr><td><code>.thenComparing(X::outro)</code></td><td>Critério de desempate</td></tr>
+<tr><td><code>.reversed()</code></td><td>Inverte o que vem antes</td></tr>
+<tr><td><code>Comparator.naturalOrder()</code> / <code>reverseOrder()</code></td><td>Natural / natural invertida</td></tr>
+<tr><td><code>lista.sort(comp)</code>, <code>Collections.sort(lista, comp)</code></td><td>Ordenar com o comparador</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A interface</h3>
+<p>Complete para dar uma ordem natural à classe <code>Livro</code>:</p>
+<div class="ex-code">class Livro implements <input data-answer="Comparable&lt;Livro&gt;" aria-label="interface"> { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Por título</h3>
+<p>Complete para ordenar a lista <code>livros</code> pelo título (o record tem o campo <code>titulo</code>):</p>
+<div class="ex-code">livros.sort(Comparator.comparing(<input data-answer="Livro::titulo|l -&gt; l.titulo()|(Livro l) -&gt; l.titulo()" aria-label="chave">));</div>
+</div>
+
+<div class="exercise">
+<h3>3. Desempate</h3>
+<p>Complete para, no empate de nota, ordenar por nome:</p>
+<div class="ex-code">Comparator.comparing(Aluno::nota).<input data-answer="thenComparing(Aluno::nome)" aria-label="método">;</div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. <code>a.compareTo(b)</code> devolveu <code>-3</code>. Na ordem natural…</p>
+<label><input type="radio" name="q4"> <code>a</code> vem antes de <code>b</code>.</label>
+<label><input type="radio" name="q4"> <code>a</code> vem depois de <code>b</code>.</label>
+<label><input type="radio" name="q4"> <code>a</code> está 3 posições antes de <code>b</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Quantas ordens naturais (<code>compareTo</code>) uma classe pode ter?</p>
+<label><input type="radio" name="q5"> Quantas quiser.</label>
+<label><input type="radio" name="q5"> Duas: crescente e decrescente.</label>
+<label><input type="radio" name="q5"> Uma. Para outras ordens, use <code>Comparator</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Notas: Ana 9.5, Carla 9.5. Com <code>comparing(Aluno::nota).thenComparing(Aluno::nome).reversed()</code>, quem vem primeiro?</p>
+<label><input type="radio" name="q6"> Ana</label>
+<label><input type="radio" name="q6"> Carla</label>
+<label><input type="radio" name="q6"> Tanto faz: é empate</label>
+</div>
+
+<div class="tryjava" data-goal="out:1º Ana - 9.5,out:2º Carla - 9.5,out:3º Duda - 8.0,out:4º Bruno - 7.0,out:5º Edu - 7.0,src:thenComparing">
+<p class="try-task"><strong>Missão final:</strong> monte o ranking da turma da Ana: nota <strong>decrescente</strong> e, no empate, nome em ordem <strong>alfabética</strong>. A saída deve começar com <code>1º Ana - 9.5</code> e <code>2º Carla - 9.5</code>, e terminar com <code>4º Bruno - 7.0</code> e <code>5º Edu - 7.0</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = new ArrayList&lt;&gt;(List.of(
+            new Aluno("Carla", 9.5), new Aluno("Edu", 7.0), new Aluno("Ana", 9.5),
+            new Aluno("Duda", 8.0), new Aluno("Bruno", 7.0)));
+
+        turma.sort(Comparator.comparing(Aluno::nota));
+        for (int i = 0; i &lt; turma.size(); i++) {
+            Aluno a = turma.get(i);
+            System.out.println((i + 1) + "º " + a.nome() + " - " + a.nota());
+        }
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = new ArrayList&lt;&gt;(List.of(
+            new Aluno("Carla", 9.5), new Aluno("Edu", 7.0), new Aluno("Ana", 9.5),
+            new Aluno("Duda", 8.0), new Aluno("Bruno", 7.0)));
+
+        turma.sort(Comparator.comparing(Aluno::nota).reversed().thenComparing(Aluno::nome));
+        for (int i = 0; i &lt; turma.size(); i++) {
+            Aluno a = turma.get(i);
+            System.out.println((i + 1) + "º " + a.nome() + " - " + a.nota());
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Para ordenar objetos seus, o Java precisa saber comparar: sem isso, <code>Collections.sort</code> não compila.</li>
+  <li><code>compareTo</code>/<code>compare</code> devolvem negativo (antes), zero (empate) ou positivo (depois). Use <code>Integer.compare</code>/<code>Double.compare</code>.</li>
+  <li><code>Comparable</code>: a ordem natural, dentro da classe (uma só).</li>
+  <li><code>Comparator</code>: qualquer outra ordem, fora da classe: classe, anônima, lambda ou <code>Comparator.comparing</code>.</li>
+  <li><code>thenComparing</code> desempata; <code>reversed</code> inverte tudo o que vem antes dele.</li>
+  <li>O <code>sort</code> é estável: empatados mantêm a ordem anterior.</li>
+</ul>
+
+<p>Próxima aula: <a href="generics.html">Generics</a>, o que significam todos esses <code>&lt;T&gt;</code>.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
