@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java throw e throws — lançar e declarar exceções | Guia Java</title>
+<meta name="description" content="Como lançar exceções com throw new IllegalArgumentException, declarar com throws, como a exceção se propaga pela pilha de métodos e como validar parâmetros, com saídas e erros reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">throw e throws</span></h1>
+
+<p class="intro">Até agora, quem lançava as exceções era o Java: o <code>parseInt</code>, a divisão por zero, o array. Nesta aula, <strong>você</strong> lança. Com <code>throw</code>, o seu método recusa um valor inválido e avisa quem o chamou. Com <code>throws</code>, ele declara, na própria assinatura, que pode lançar certo tipo de exceção. E você vai ver a exceção "subindo" de método em método até alguém tratá-la.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Lançar uma exceção com <code>throw new IllegalArgumentException("…")</code>.</li>
+  <li>Validar os parâmetros de um método logo no começo.</li>
+  <li>Como uma exceção se <strong>propaga</strong> pela pilha de chamadas, passo a passo.</li>
+  <li>Declarar exceções com <code>throws</code> e a diferença entre <code>throw</code> e <code>throws</code>.</li>
+  <li>Os erros de compilação mais comuns ao usar <code>throw</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>A Ana trabalha no balcão de uma loja. Um cliente pede para trocar um produto comprado há dois anos. A regra não permite, e ela não tem autoridade para abrir exceção. O que ela faz? Não finge que trocou, nem fica parada: ela <strong>recusa e avisa</strong> ("não posso fazer isso, o prazo acabou") e chama a gerente. Se a gerente também não resolver, chama o dono.</p>
+<p>No Java, um método que recebe um pedido impossível faz o mesmo: <strong>lança</strong> uma exceção (<code>throw</code>, "lançar, arremessar") com uma mensagem explicando o motivo. A exceção vai para quem chamou o método; se ele não tratar, vai para quem chamou <strong>ele</strong>, e assim por diante, até alguém tratar (um <code>catch</code>) ou até chegar ao topo e o programa encerrar.</p>
+
+<hr>
+
+<h2>Lançar uma exceção com <code>throw</code></h2>
+<p>A Ana tem um método que cadastra clientes. Uma idade negativa não faz sentido, e o método não deve aceitar:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void cadastrar(String nome, int idade) {
+        if (idade &lt; 0) {
+            throw new IllegalArgumentException("idade não pode ser negativa: " + idade);
+        }
+        System.out.println("Cadastrado: " + nome + ", " + idade + " anos");
+    }
+
+    public static void main(String[] args) {
+        cadastrar("Ana", 29);
+        cadastrar("Bruno", -3);
+        cadastrar("Carla", 22);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>throw</dt><dd>"Lance". Interrompe o método na hora e envia a exceção para quem o chamou. Nenhuma linha depois dele, no método, roda.</dd>
+  <dt>new</dt><dd>Cria um objeto novo, como em qualquer classe (veja <a href="construtores.html">Construtores</a>). Exceções são objetos: primeiro você cria, depois lança.</dd>
+  <dt>IllegalArgumentException</dt><dd>"Exceção de argumento ilegal": a exceção que o Java usa quando um método recebe um <strong>argumento</strong> (parâmetro) com valor inaceitável. Já existe na biblioteca; não precisa de <code>import</code> (está em <code>java.lang</code>).</dd>
+  <dt>("idade não pode ser negativa: " + idade)</dt><dd>A mensagem, passada ao construtor. É ela que aparece depois dos dois-pontos no stack trace e em <code>getMessage()</code>. Inclua o valor recebido: ajuda muito a achar o problema.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Cadastrado: Ana, 29 anos
+Exception in thread "main" java.lang.IllegalArgumentException: idade não pode ser negativa: -3
+	at Main.cadastrar(Main.java:4)
+	at Main.main(Main.java:11)</pre>
+
+<p>O stack trace tem o mesmo formato das exceções do Java, agora com a <strong>sua</strong> mensagem. A primeira linha <code>at</code> aponta a linha 4, a do <code>throw</code>; a segunda, a linha 11, onde o <code>main</code> chamou <code>cadastrar("Bruno", -3)</code>. A Carla nunca foi cadastrada, porque ninguém tratou a exceção.</p>
+
+<h3>Tratando o que você lançou</h3>
+<p>Uma exceção lançada por você é capturada exatamente como as do Java, com <a href="try-catch.html">try e catch</a>:</p>
+
+<pre class="file" data-file="Main.java (trecho)">    public static void main(String[] args) {
+        String[] nomes = {"Ana", "Bruno", "Carla"};
+        int[] idades = {29, -3, 22};
+        for (int i = 0; i &lt; nomes.length; i++) {
+            try {
+                cadastrar(nomes[i], idades[i]);
+            } catch (IllegalArgumentException e) {
+                System.out.println("Não cadastrei " + nomes[i] + ": " + e.getMessage());
+            }
+        }
+    }
+</pre>
+
+<pre class="term">$ java Main.java
+Cadastrado: Ana, 29 anos
+Não cadastrei Bruno: idade não pode ser negativa: -3
+Cadastrado: Carla, 22 anos</pre>
+
+<p>Repare na divisão de tarefas: o método <code>cadastrar</code> <strong>detecta</strong> o problema e explica; o <code>main</code> <strong>decide</strong> o que fazer (aqui, avisar e seguir para o próximo). Quem detecta nem sempre é quem sabe decidir.</p>
+
+<div class="tryjava" data-goal="out:Nota registrada: 9.5,excecao:IllegalArgumentException,src:throw\s+new\s+IllegalArgumentException">
+<p class="try-task"><strong>Missão:</strong> o método aceita qualquer nota, até <code>11</code>. Faça-o lançar <code>IllegalArgumentException</code> com uma mensagem quando a nota for menor que 0 ou maior que 10. A nota <code>9.5</code> deve ser registrada e a <code>11</code> deve parar o programa com a sua exceção.</p>
+<pre class="script">public class Main {
+    static void registrarNota(double nota) {
+        System.out.println("Nota registrada: " + nota);
+    }
+
+    public static void main(String[] args) {
+        registrarNota(9.5);
+        registrarNota(11);
+        registrarNota(7);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static void registrarNota(double nota) {
+        if (nota &lt; 0 || nota &gt; 10) {
+            throw new IllegalArgumentException("nota fora de 0 a 10: " + nota);
+        }
+        System.out.println("Nota registrada: " + nota);
+    }
+
+    public static void main(String[] args) {
+        registrarNota(9.5);
+        registrarNota(11);
+        registrarNota(7);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Validar parâmetros: a "guarda" no começo do método</h2>
+<p>O padrão que você acabou de usar tem nome: <strong>cláusula de guarda</strong>. Logo na entrada do método, antes de fazer qualquer coisa, você confere os parâmetros e lança uma exceção se algo estiver errado. Assim o método nunca trabalha com dados inválidos, e o problema é apontado no lugar certo, não três métodos depois.</p>
+
+<p>As exceções da biblioteca que mais servem para isso:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção</th><th>Quando lançar</th><th>Exemplo</th></tr>
+<tr><td><code>IllegalArgumentException</code></td><td>Um parâmetro tem valor inaceitável</td><td>Idade negativa, nota 11, quantidade 0</td></tr>
+<tr><td><code>IllegalStateException</code></td><td>O objeto não está num estado que permita a operação</td><td>Sacar de uma conta encerrada, vender com o caixa fechado</td></tr>
+<tr><td><code>NullPointerException</code></td><td>Recebeu <code>null</code> onde não pode (use <code>Objects.requireNonNull</code>)</td><td>Nome do cliente <code>null</code></td></tr>
+<tr><td><code>UnsupportedOperationException</code></td><td>A operação não existe para este objeto</td><td>Alterar uma lista que é só de leitura</td></tr>
+<tr><td><code>IndexOutOfBoundsException</code></td><td>Uma posição fora dos limites</td><td>Pedir o item 10 de uma lista de 3</td></tr>
+</table>
+</div>
+
+<p>Para o <code>null</code>, há um atalho pronto, o <code>Objects.requireNonNull</code> ("exige não nulo"), da classe <code>java.util.Objects</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Objects;
+
+public class Main {
+    static String saudacao(String nome) {
+        Objects.requireNonNull(nome, "nome não pode ser null");
+        return "Olá, " + nome + "!";
+    }
+
+    public static void main(String[] args) {
+        System.out.println(saudacao("Ana"));
+        System.out.println(saudacao(null));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Olá, Ana!
+Exception in thread "main" java.lang.NullPointerException: nome não pode ser null
+	at java.base/java.util.Objects.requireNonNull(Objects.java:246)
+	at Main.saudacao(Main.java:5)
+	at Main.main(Main.java:11)</pre>
+
+<p>Se o valor for <code>null</code>, ele lança <code>NullPointerException</code> com a sua mensagem; se não for, não faz nada. É o mesmo que escrever <code>if (nome == null) throw new NullPointerException("…");</code>, numa linha só.</p>
+
+<hr>
+
+<h2>Propagação: a exceção subindo pela pilha</h2>
+<p>Agora vamos ver de perto o caminho de uma exceção. O pedido da loja passa por três métodos: o <code>main</code> chama <code>fazerPedido</code>, que chama <code>calcularTotal</code>, que chama <code>validarQuantidade</code>. Cada método mostra uma mensagem ao começar e ao terminar (com espaços na frente, para ver a "profundidade"):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void validarQuantidade(int qtd) {
+        System.out.println("  validarQuantidade(" + qtd + ")");
+        if (qtd &lt;= 0) {
+            throw new IllegalArgumentException("quantidade inválida: " + qtd);
+        }
+        System.out.println("  quantidade ok");
+    }
+
+    static double calcularTotal(int qtd, double preco) {
+        System.out.println(" calcularTotal começou");
+        validarQuantidade(qtd);
+        System.out.println(" calcularTotal terminou");
+        return qtd * preco;
+    }
+
+    static void fazerPedido(String produto, int qtd, double preco) {
+        System.out.println("fazerPedido: " + produto);
+        double total = calcularTotal(qtd, preco);
+        System.out.println("Total: " + total);
+    }
+
+    public static void main(String[] args) {
+        fazerPedido("pão", 3, 0.5);
+        fazerPedido("bolo", 0, 25.0);
+        System.out.println("Fim");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+fazerPedido: pão
+ calcularTotal começou
+  validarQuantidade(3)
+  quantidade ok
+ calcularTotal terminou
+Total: 1.5
+fazerPedido: bolo
+ calcularTotal começou
+  validarQuantidade(0)
+Exception in thread "main" java.lang.IllegalArgumentException: quantidade inválida: 0
+	at Main.validarQuantidade(Main.java:5)
+	at Main.calcularTotal(Main.java:12)
+	at Main.fazerPedido(Main.java:19)
+	at Main.main(Main.java:25)</pre>
+
+<p>O pedido de pão percorre tudo: desce até <code>validarQuantidade</code> e volta, terminando cada método. O de bolo desce do mesmo jeito, mas, na linha 5, o <code>throw</code> lança a exceção. A partir daí, acompanhe:</p>
+
+<ol class="passo">
+  <li><code>validarQuantidade</code> é interrompido: <code>quantidade ok</code> não aparece. Não há <code>catch</code> ali, então a exceção sai do método e "cai" em quem o chamou.</li>
+  <li>Ela chega na linha 12 de <code>calcularTotal</code>. Também não há <code>catch</code>: <code>calcularTotal terminou</code> não aparece, e nada é devolvido. A exceção cai mais um nível.</li>
+  <li>Chega na linha 19 de <code>fazerPedido</code>. Sem <code>catch</code>: <code>Total:</code> não aparece.</li>
+  <li>Chega na linha 25 do <code>main</code>. Sem <code>catch</code>, e o <code>main</code> é o fundo da pilha: a exceção sai do programa, o Java mostra o stack trace e encerra. <code>Fim</code> não aparece.</li>
+</ol>
+
+<p>O stack trace é exatamente esse caminho, de cima para baixo: linha 5, 12, 19, 25. Isso se chama <strong>propagação</strong>: a exceção sobe pela pilha de chamadas, abandonando cada método, até achar um <code>catch</code> que combine.</p>
+
+<h3>Tratando no lugar certo</h3>
+<p>Quem deve tratar? Quem sabe <strong>o que fazer</strong>. O <code>validarQuantidade</code> não sabe se deve avisar na tela, pedir de novo ou cancelar o pedido; o <code>main</code>, que conversa com o usuário, sabe. Basta um <code>try</code>/<code>catch</code> lá em cima:</p>
+
+<pre class="file" data-file="Main.java (trecho)">    public static void main(String[] args) {
+        try {
+            fazerPedido("pão", 3, 0.5);
+            fazerPedido("bolo", 0, 25.0);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Pedido recusado: " + e.getMessage());
+        }
+        System.out.println("Fim");
+    }
+</pre>
+
+<pre class="term">$ java Main.java
+fazerPedido: pão
+ calcularTotal começou
+  validarQuantidade(3)
+  quantidade ok
+ calcularTotal terminou
+Total: 1.5
+fazerPedido: bolo
+ calcularTotal começou
+  validarQuantidade(0)
+Pedido recusado: quantidade inválida: 0
+Fim</pre>
+
+<p>A exceção atravessou <code>calcularTotal</code> e <code>fazerPedido</code> sem que eles precisassem de nenhuma linha a mais, e foi parar no <code>catch</code> do <code>main</code>. Os métodos do meio continuam simples: só cuidam do caso normal.</p>
+
+<hr>
+
+<h2>Declarar com <code>throws</code></h2>
+<p><code>throws</code> (com <strong>s</strong>, "lança", na terceira pessoa) não lança nada: é um <strong>aviso na assinatura</strong> do método dizendo "este método pode lançar tal exceção; quem me chamar, fique atento". Ele fica entre os parênteses dos parâmetros e a chave de abertura:</p>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    static String lerArquivo(String arquivo) throws IOException {
+        return Files.readString(Path.of(arquivo));
+    }
+
+    public static void main(String[] args) {
+        try {
+            System.out.print(lerArquivo("Documentos/notas.txt"));
+            System.out.print(lerArquivo("Documentos/notas2.txt"));
+        } catch (IOException e) {
+            System.out.println("Não consegui ler: " + e);
+        }
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>static String lerArquivo(String arquivo)</dt><dd>A assinatura de sempre: devolve uma <code>String</code>, recebe o nome do arquivo.</dd>
+  <dt>throws IOException</dt><dd>A declaração: "posso lançar <code>IOException</code>" (exceção de entrada e saída, <em>input/output</em>). <code>Files.readString</code> lança essa exceção quando não consegue ler o arquivo, e o <code>lerArquivo</code> não a trata: deixa passar para quem chamou.</dd>
+  <dt>catch (IOException e)</dt><dd>Quem chamou trata.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Comprar café
+Ligar para o João
+Estudar Bash
+Fazer backup das fotos
+Não consegui ler: java.nio.file.NoSuchFileException: Documentos/notas2.txt</pre>
+
+<p>O primeiro arquivo existe (é a lista de lembretes da Ana) e foi mostrado; o segundo não, e a <code>NoSuchFileException</code> ("não existe tal arquivo", uma filha de <code>IOException</code>) foi parar no <code>catch</code>. Ler e escrever arquivos tem aula própria: <a href="arquivos.html">Ler e Escrever Arquivos</a>.</p>
+
+<h3>Por que o <code>throws</code> aqui é obrigatório</h3>
+<p>Tire o <code>throws IOException</code> do <code>lerArquivo</code> e veja o <code>javac</code> recusar:</p>
+
+<pre class="term">$ java Main.java
+Main.java:7: error: unreported exception IOException; must be caught or declared to be thrown
+        return Files.readString(Path.of(arquivo));
+                               ^
+Main.java:14: error: exception IOException is never thrown in body of corresponding try statement
+        } catch (IOException e) {
+          ^
+2 errors
+error: compilation failed</pre>
+
+<p>O primeiro erro diz: "exceção <code>IOException</code> não informada; precisa ser capturada ou declarada para ser lançada". O segundo é consequência do primeiro: agora, para o <code>javac</code>, nada dentro do <code>try</code> do <code>main</code> lança <code>IOException</code>, então aquele <code>catch</code> seria inútil. A <code>IOException</code> é uma exceção <strong>checked</strong> ("verificada"): o compilador obriga você a tratar ou declarar. Já a <code>IllegalArgumentException</code> que você lançou antes é <strong>unchecked</strong>, e o <code>javac</code> não exige nada. Essa diferença é o assunto inteiro da próxima aula, <a href="checked-unchecked.html">Checked × Unchecked</a>.</p>
+
+<h3>Até o <code>main</code> pode ter <code>throws</code></h3>
+<p>Se ninguém tratar, a declaração sobe até o <code>main</code>: <code>public static void main(String[] args) throws IOException</code>. É comum em programas pequenos e exemplos. Se o arquivo não existir, a exceção sai do <code>main</code> e o programa encerra com o stack trace, como qualquer exceção não tratada:</p>
+
+<pre class="term">$ java Main.java
+Exception in thread "main" java.nio.file.NoSuchFileException: Documentos/notas2.txt
+	at java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:106)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111)
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newFileChannel(UnixFileSystemProvider.java:213)
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:244)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:357)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:399)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:2973)
+	at java.base/java.nio.file.Files.readString(Files.java:3043)
+	at java.base/java.nio.file.Files.readString(Files.java:3006)
+	at Main.lerArquivo(Main.java:7)
+	at Main.main(Main.java:11)</pre>
+
+<p>Dez linhas da biblioteca (o Java chegou até o sistema de arquivos do Linux, <code>UnixFileSystemProvider</code>) e, no fim, as duas suas: <code>lerArquivo</code>, linha 7, chamado pelo <code>main</code>, linha 11.</p>
+
+<h3><code>throws</code> com várias exceções e com unchecked</h3>
+<ul>
+  <li>Várias, separadas por vírgula: <code>void importar() throws IOException, InterruptedException</code>.</li>
+  <li>Exceções unchecked também podem aparecer no <code>throws</code>, como documentação: <code>void cadastrar(int idade) throws IllegalArgumentException</code>. O <code>javac</code> aceita, mas não exige, e quem chama não é obrigado a tratar.</li>
+</ul>
+
+<hr>
+
+<h2><code>throw</code> × <code>throws</code></h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>throw</code></th><th><code>throws</code></th></tr>
+<tr><td>O que é</td><td>Um comando: <strong>lança</strong> agora</td><td>Uma declaração: <strong>pode lançar</strong></td></tr>
+<tr><td>Onde fica</td><td>Dentro do corpo do método</td><td>Na assinatura, depois dos parênteses</td></tr>
+<tr><td>Seguido de</td><td>Um objeto: <code>throw new X("…")</code></td><td>Nomes de classes: <code>throws X, Y</code></td></tr>
+<tr><td>Quantas</td><td>Uma exceção por vez</td><td>Uma lista</td></tr>
+<tr><td>Obrigatório?</td><td>Você usa quando quer lançar</td><td>Obrigatório para exceções checked que o método não trata</td></tr>
+<tr><td>Exemplo</td><td><code>throw new IllegalArgumentException("idade negativa");</code></td><td><code>static String ler() throws IOException</code></td></tr>
+</table>
+</div>
+
+<p>Um truque para lembrar: <strong>throw</strong> é o verbo no imperativo, "lance!"; <strong>throws</strong> é o verbo descrevendo o método, "ele lança".</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"String cannot be converted to Throwable"</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        throw "deu ruim";
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:3: error: incompatible types: String cannot be converted to Throwable
+        throw "deu ruim";
+        ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> o <code>throw</code> só aceita objetos da família <code>Throwable</code>. Um texto não é uma exceção.</p>
+<p><strong>Como resolver:</strong> coloque o texto dentro de uma exceção: <code>throw new IllegalStateException("deu ruim");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … method IllegalArgumentException(String)"</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        throw IllegalArgumentException("deu ruim");
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:3: error: cannot find symbol
+        throw IllegalArgumentException("deu ruim");
+              ^
+  symbol:   method IllegalArgumentException(String)
+  location: class Main
+1 error
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> faltou o <code>new</code>. Sem ele, o Java acha que <code>IllegalArgumentException(…)</code> é a chamada de um <strong>método</strong> com esse nome, e não encontra nenhum.</p>
+<p><strong>Como resolver:</strong> <code>throw new IllegalArgumentException("deu ruim");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"unreachable statement" depois do throw</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    static int dobro(int x) {
+        if (x &lt; 0) {
+            throw new IllegalArgumentException("negativo: " + x);
+            System.out.println("nunca roda");
+        }
+        return x * 2;
+    }
+    public static void main(String[] args) {
+        System.out.println(dobro(4));
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:5: error: unreachable statement
+            System.out.println("nunca roda");
+            ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> "comando inalcançável". Depois de um <code>throw</code>, o bloco termina, como depois de um <code>return</code>. O <code>javac</code> não aceita código que nunca vai rodar.</p>
+<p><strong>Como resolver:</strong> coloque o que precisa rodar <strong>antes</strong> do <code>throw</code>, ou apague a linha.</p>
+</div>
+
+<div class="cenario">
+<strong>"unreported exception …; must be caught or declared to be thrown"</strong>
+<p><strong>O que aconteceu:</strong> você chamou um método que lança uma exceção checked (como <code>Files.readString</code>, que lança <code>IOException</code>) sem tratar nem declarar.</p>
+<p><strong>Como resolver:</strong> envolva a chamada num <code>try</code>/<code>catch</code> ou acrescente <code>throws</code> ao seu método. Veja todos os detalhes em <a href="checked-unchecked.html">Checked × Unchecked</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintaxe</th><th>O que faz</th></tr>
+<tr><td><code>throw new Tipo("mensagem");</code></td><td>Cria e lança a exceção; o método para ali</td></tr>
+<tr><td><code>if (x &lt; 0) throw new IllegalArgumentException("…");</code></td><td>Cláusula de guarda: valida o parâmetro</td></tr>
+<tr><td><code>Objects.requireNonNull(x, "msg")</code></td><td>Lança <code>NullPointerException("msg")</code> se <code>x</code> for <code>null</code></td></tr>
+<tr><td><code>tipo metodo(…) throws A, B { … }</code></td><td>Declara que o método pode lançar A e B</td></tr>
+<tr><td><code>main(String[] args) throws IOException</code></td><td>Deixa a exceção sair do programa</td></tr>
+<tr><td>Propagação</td><td>Sem <code>catch</code>, a exceção sai do método e vai para quem chamou, até o <code>main</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Lançar</h3>
+<p>Complete para lançar a exceção:</p>
+<div class="ex-code"><input data-answer="throw new" aria-label="duas palavras"> IllegalArgumentException("valor negativo");</div>
+</div>
+
+<div class="exercise">
+<h3>2. Declarar</h3>
+<p>Complete a assinatura para declarar que o método pode lançar <code>IOException</code>:</p>
+<div class="ex-code">static String ler() <input data-answer="throws IOException" aria-label="declaração"> { … }</div>
+</div>
+
+<div class="exercise">
+<h3>3. A exceção certa</h3>
+<p>Um método <code>sacar(double valor)</code> recebeu <code>-50</code>. Qual exceção da biblioteca combina? (só o nome da classe)</p>
+<div class="ex-code"><input data-answer="IllegalArgumentException" aria-label="exceção"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O <code>main</code> chama <code>a()</code>, que chama <code>b()</code>, que lança uma exceção. Só o <code>main</code> tem <code>try</code>/<code>catch</code>. O que acontece com as linhas de <code>a()</code> que vinham depois da chamada a <code>b()</code>?</p>
+<label><input type="radio" name="q4"> Rodam normalmente.</label>
+<label><input type="radio" name="q4"> Rodam depois do <code>catch</code> do <code>main</code>.</label>
+<label><input type="radio" name="q4"> Não rodam: a exceção abandona <code>a()</code> a caminho do <code>main</code>.</label>
+<label><input type="radio" name="q4"> O <code>javac</code> não compila sem <code>catch</code> em <code>a()</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual frase está certa?</p>
+<label><input type="radio" name="q5"> <code>throw</code> lança um objeto; <code>throws</code> declara tipos na assinatura.</label>
+<label><input type="radio" name="q5"> <code>throws</code> lança várias exceções de uma vez.</label>
+<label><input type="radio" name="q5"> <code>throw</code> só funciona dentro de <code>catch</code>.</label>
+<label><input type="radio" name="q5"> São sinônimos.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Onde é melhor validar a idade recebida por <code>cadastrar(String nome, int idade)</code>?</p>
+<label><input type="radio" name="q6"> No fim do método, depois de cadastrar.</label>
+<label><input type="radio" name="q6"> Logo no começo do método, antes de fazer qualquer coisa.</label>
+<label><input type="radio" name="q6"> Só no <code>main</code>.</label>
+<label><input type="radio" name="q6"> Não precisa validar.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Pedido recusado: quantidade inválida: 0,out:Fim,src:catch\s*\(">
+<p class="try-task"><strong>Missão final:</strong> a exceção lançada em <code>validarQuantidade</code> sobe até o <code>main</code> e derruba o programa. <strong>Sem mexer nos outros métodos</strong>, trate-a no <code>main</code>: mostre <code>Pedido recusado: </code> seguido da mensagem, e faça o <code>Fim</code> aparecer.</p>
+<pre class="script">public class Main {
+    static void validarQuantidade(int qtd) {
+        System.out.println("  validarQuantidade(" + qtd + ")");
+        if (qtd &lt;= 0) {
+            throw new IllegalArgumentException("quantidade inválida: " + qtd);
+        }
+        System.out.println("  quantidade ok");
+    }
+
+    static double calcularTotal(int qtd, double preco) {
+        System.out.println(" calcularTotal começou");
+        validarQuantidade(qtd);
+        System.out.println(" calcularTotal terminou");
+        return qtd * preco;
+    }
+
+    static void fazerPedido(String produto, int qtd, double preco) {
+        System.out.println("fazerPedido: " + produto);
+        double total = calcularTotal(qtd, preco);
+        System.out.println("Total: " + total);
+    }
+
+    public static void main(String[] args) {
+        fazerPedido("pão", 3, 0.5);
+        fazerPedido("bolo", 0, 25.0);
+        System.out.println("Fim");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static void validarQuantidade(int qtd) {
+        System.out.println("  validarQuantidade(" + qtd + ")");
+        if (qtd &lt;= 0) {
+            throw new IllegalArgumentException("quantidade inválida: " + qtd);
+        }
+        System.out.println("  quantidade ok");
+    }
+
+    static double calcularTotal(int qtd, double preco) {
+        System.out.println(" calcularTotal começou");
+        validarQuantidade(qtd);
+        System.out.println(" calcularTotal terminou");
+        return qtd * preco;
+    }
+
+    static void fazerPedido(String produto, int qtd, double preco) {
+        System.out.println("fazerPedido: " + produto);
+        double total = calcularTotal(qtd, preco);
+        System.out.println("Total: " + total);
+    }
+
+    public static void main(String[] args) {
+        try {
+            fazerPedido("pão", 3, 0.5);
+            fazerPedido("bolo", 0, 25.0);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Pedido recusado: " + e.getMessage());
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>throw new Tipo("mensagem")</code> cria e lança uma exceção; o método para naquela linha.</li>
+  <li>Valide os parâmetros no começo do método (cláusula de guarda) com <code>IllegalArgumentException</code>, <code>IllegalStateException</code> ou <code>Objects.requireNonNull</code>. Coloque o valor recebido na mensagem.</li>
+  <li>Sem <code>catch</code>, a exceção se <strong>propaga</strong>: abandona o método e cai em quem chamou, nível por nível, até um <code>catch</code> ou até sair do <code>main</code>. O stack trace mostra esse caminho.</li>
+  <li>Trate a exceção onde se sabe o que fazer com ela; os métodos do meio não precisam de código extra.</li>
+  <li><code>throws</code> na assinatura declara que o método pode lançar; é obrigatório para exceções checked como <code>IOException</code> (<a href="checked-unchecked.html">próxima aula</a>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
