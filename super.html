@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java super — super(...) no construtor e super.metodo() | Guia Java</title>
+<meta name="description" content="A palavra super em Java: chamar o construtor da superclasse com super(...), a ordem em que os construtores rodam, o super() automático, as regras do Java 25 (flexible constructor bodies) e super.metodo() para reaproveitar o método da superclasse. Com erros reais do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">super</span></h1>
+
+<p class="intro">Na aula de <a href="heranca.html">Herança</a>, a subclasse recebia tudo da superclasse sem esforço. Mas há dois momentos em que ela precisa <strong>falar</strong> com a superclasse: na hora de nascer (o construtor da mãe tem que rodar) e quando quer usar a versão da mãe de um método que ela mesma trocou. Para os dois casos existe a palavra <code>super</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que construtores não são herdados e como chamar o da superclasse com <code>super(…)</code>.</li>
+  <li>O erro <code>constructor … cannot be applied to given types</code> e como resolvê-lo.</li>
+  <li>A ordem em que os construtores rodam (com uma demonstração).</li>
+  <li>O <code>super()</code> que o compilador escreve sozinho.</li>
+  <li>Onde o <code>super(…)</code> pode ficar: a regra antiga ("primeira linha") e a do Java 25.</li>
+  <li>Como chamar a versão da superclasse de um método com <code>super.metodo()</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: "super" = a parte de cima</h2>
+<p>Um objeto <code>Cachorro</code> é, ao mesmo tempo, um <code>Animal</code>. Pense nele como um bolo de duas camadas: embaixo, a camada <code>Animal</code> (o nome); em cima, a camada <code>Cachorro</code> (a raça). A palavra <code>super</code> é o jeito de a camada de cima se referir à de baixo, a da <strong>super</strong>classe. Ela aparece de duas formas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Onde</th><th>O que faz</th></tr>
+<tr><td><code>super(…)</code></td><td>Dentro de um construtor</td><td>Chama um construtor da superclasse, para montar a camada de baixo</td></tr>
+<tr><td><code>super.metodo(…)</code></td><td>Dentro de um método</td><td>Chama a versão da superclasse de um método</td></tr>
+</table>
+</div>
+
+<p>Ela é prima do <a href="this.html"><code>this</code></a>: <code>this(…)</code> chama outro construtor da <strong>mesma</strong> classe, <code>this.x</code> fala do objeto atual. <code>super</code> faz o mesmo, olhando um degrau acima.</p>
+
+<hr>
+
+<h2><code>super(…)</code>: chamando o construtor da superclasse</h2>
+<p>A Ana deu um construtor ao <code>Animal</code>, para que todo animal nasça com nome. Agora o <code>Cachorro</code> precisa de um construtor que receba nome e raça:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro("Rex", "vira-lata");
+        System.out.println(rex.nome + " é um " + rex.raca);
+    }
+}
+
+class Animal {
+    String nome;
+
+    Animal(String nome) {
+        this.nome = nome;
+    }
+}
+
+class Cachorro extends Animal {
+    String raca;
+
+    Cachorro(String nome, String raca) {
+        super(nome);
+        this.raca = raca;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Cachorro(String nome, String raca)</dt><dd>O construtor do <code>Cachorro</code> recebe tudo o que é preciso para montar as duas camadas.</dd>
+  <dt>super(nome);</dt><dd>Chama o construtor <code>Animal(String nome)</code>, passando o nome. Quem cuida do nome é o <code>Animal</code>; o cachorro só repassa.</dd>
+  <dt>this.raca = raca;</dt><dd>Depois, o <code>Cachorro</code> cuida da parte dele.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Rex é um vira-lata</pre>
+
+<h3>Por que não basta escrever <code>this.nome = nome</code>?</h3>
+<p>Os <strong>construtores não são herdados</strong>. O <code>Animal</code> disse "para criar um animal, me dê um nome". Todo cachorro é um animal; então, ao criar um cachorro, alguém <strong>tem</strong> que chamar o construtor do <code>Animal</code> com um nome. Se você não chamar, o compilador tenta chamar <code>Animal()</code> sem argumentos, que não existe:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Cachorro rex = new Cachorro("Rex", "vira-lata");
+    }
+}
+
+class Animal {
+    String nome;
+
+    Animal(String nome) {
+        this.nome = nome;
+    }
+}
+
+class Cachorro extends Animal {
+    String raca;
+
+    Cachorro(String nome, String raca) {
+        this.nome = nome;
+        this.raca = raca;
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:18: error: constructor Animal in class Animal cannot be applied to given types;
+    Cachorro(String nome, String raca) {
+                                       ^
+  required: String
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+
+<p>Leia devagar, linha por linha:</p>
+<ul>
+  <li><em>constructor Animal in class Animal cannot be applied to given types</em>: "o construtor <code>Animal</code> não pode ser usado com os tipos dados".</li>
+  <li><em>required: String</em>: ele exige uma <code>String</code>.</li>
+  <li><em>found: no arguments</em>: "encontrado: nenhum argumento".</li>
+  <li><em>reason: actual and formal argument lists differ in length</em>: "as listas de argumentos têm tamanhos diferentes".</li>
+</ul>
+<p>Repare que o erro aponta a <strong>chave que abre</strong> o construtor do <code>Cachorro</code>, onde não há nenhuma chamada visível. É ali que o compilador colocou um <code>super()</code> invisível, como você vai ver a seguir. O conserto é chamar <code>super(nome)</code> você mesmo.</p>
+
+<div class="tryjava" data-goal="out:Mimi tem 5 anos,compila,src:super\s*\(">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Gato</code> não compila. Rode e leia o erro. Depois, no construtor do <code>Gato</code>, troque a linha <code>this.nome = nome;</code> por uma chamada ao construtor do <code>Animal</code> com <code>super</code>. A saída deve ser <code>Mimi tem 5 anos</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Gato mimi = new Gato("Mimi", 5);
+        System.out.println(mimi.nome + " tem " + mimi.idade + " anos");
+    }
+}
+
+class Animal {
+    String nome;
+
+    Animal(String nome) {
+        this.nome = nome;
+    }
+}
+
+class Gato extends Animal {
+    int idade;
+
+    Gato(String nome, int idade) {
+        this.nome = nome;
+        this.idade = idade;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Gato mimi = new Gato("Mimi", 5);
+        System.out.println(mimi.nome + " tem " + mimi.idade + " anos");
+    }
+}
+
+class Animal {
+    String nome;
+
+    Animal(String nome) {
+        this.nome = nome;
+    }
+}
+
+class Gato extends Animal {
+    int idade;
+
+    Gato(String nome, int idade) {
+        super(nome);
+        this.idade = idade;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O construtor da superclasse é chamado sozinho</h2>
+<p>Se todo objeto tem uma camada de cada classe da família, todos os construtores precisam rodar. Quem garante isso é o compilador: <strong>se um construtor não começa chamando <code>super(…)</code> ou <code>this(…)</code>, ele acrescenta <code>super();</code> (sem argumentos) por você</strong>. Para ver isso acontecendo, a Ana colocou um <code>println</code> em cada construtor de uma família de três gerações:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Criando o Rex...");
+        Cachorro rex = new Cachorro();
+        System.out.println("Pronto!");
+    }
+}
+
+class Animal {
+    Animal() {
+        System.out.println("1. construtor de Animal");
+    }
+}
+
+class Mamifero extends Animal {
+    Mamifero() {
+        System.out.println("2. construtor de Mamifero");
+    }
+}
+
+class Cachorro extends Mamifero {
+    Cachorro() {
+        System.out.println("3. construtor de Cachorro");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Criando o Rex...
+1. construtor de Animal         « rodou primeiro, sem ninguém pedir
+2. construtor de Mamifero
+3. construtor de Cachorro       « o que o new pediu termina por último
+Pronto!</pre>
+
+<p>Nenhum construtor escreveu <code>super()</code>, mas os três rodaram, <strong>de cima para baixo</strong>. O que aconteceu foi:</p>
+
+<ol>
+  <li><code>new Cachorro()</code> chama o construtor de <code>Cachorro</code>.</li>
+  <li>A primeira coisa que ele faz é o <code>super()</code> invisível: chama <code>Mamifero()</code>.</li>
+  <li>O de <code>Mamifero</code> também começa com <code>super()</code>: chama <code>Animal()</code>.</li>
+  <li>O de <code>Animal</code> chama o de <code>Object</code> (que não faz nada) e depois imprime a linha 1.</li>
+  <li>Volta para <code>Mamifero</code>, que imprime a linha 2; volta para <code>Cachorro</code>, que imprime a linha 3.</li>
+</ol>
+
+<p>Faz sentido: como no bolo, a camada de baixo tem que estar pronta antes da de cima. Quando o construtor do <code>Cachorro</code> roda o código dele, o <code>nome</code> do <code>Animal</code> já está arrumado.</p>
+
+<div class="tip">
+<strong>O construtor padrão também chama <code>super()</code></strong>
+<p>Uma classe sem nenhum construtor ganha um vazio, o <em>construtor padrão</em> (veja <a href="construtores.html">Construtores</a>). Ele também contém o <code>super()</code> invisível. Por isso, se o <code>Animal</code> só tiver <code>Animal(String nome)</code>, até um <code>class Gato extends Animal { }</code> vazio dá o erro <code>constructor Animal in class Animal cannot be applied to given types</code>.</p>
+</div>
+
+<hr>
+
+<h2>Onde o <code>super(…)</code> pode ficar</h2>
+
+<h3>A regra clássica: primeira linha</h3>
+<p>Do Java 1.0 ao Java 24, a regra era rígida: <code>super(…)</code> (ou <code>this(…)</code>) tinha que ser a <strong>primeira instrução</strong> do construtor. Nada antes, nem um <code>println</code>. Quase todo código Java que você vai ler segue essa regra. Compilando como Java 21 (a opção <code>--release 21</code> faz o <code>javac</code> se comportar como o de 21), dá para ver o erro:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito (até o Java 24)</strong>
+<pre class="file" data-file="Main.java">class Cachorro extends Animal {
+    String raca;
+
+    Cachorro(String nome, String raca) {
+        this.raca = raca;
+        super(nome);
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac --release 21 Main.java
+Main.java:20: error: flexible constructors is not supported in -source 21
+        this.raca = raca;
+        ^
+  (use -source 25 or higher to enable flexible constructors)
+1 error</pre>
+
+<p>O arquivo é o do começo da aula, com as duas linhas do construtor trocadas de lugar (por isso o erro fala da linha 20). A mensagem já denuncia a novidade: "construtores flexíveis não são suportados no Java 21; use 25 ou mais".</p>
+
+<h3>A regra do Java 25: o "prólogo"</h3>
+<p><span class="versao">Java 25+</span> O Java 25 trouxe os <strong>construtores flexíveis</strong> (<em>flexible constructor bodies</em>): agora pode haver código <strong>antes</strong> do <code>super(…)</code>. Esse trecho se chama <strong>prólogo</strong>. O uso mais útil é validar os argumentos antes de montar o objeto:</p>
+
+<pre class="file" data-file="Main.java">class Cachorro extends Animal {
+    String raca;
+
+    Cachorro(String nome, String raca) {
+        if (nome.isBlank()) {
+            throw new IllegalArgumentException("nome vazio");
+        }
+        super(nome);
+        this.raca = raca;
+    }
+}
+</pre>
+
+<p>Com o JDK 25 da Ana, isso compila e roda (<code>Rex é um vira-lata</code>). Mas o prólogo tem uma restrição importante: como a camada de baixo ainda não foi montada, ali <strong>não se pode usar o objeto</strong>. Nada de ler atributos ou chamar métodos dele:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:17: error: cannot reference this before supertype constructor has been called
+        System.out.println("Criando " + this.nome);
+                                        ^
+1 error
+$ javac Main.java
+Main.java:21: error: cannot reference apresentar() before supertype constructor has been called
+        apresentar();
+        ^
+1 error</pre>
+
+<p>"Não é possível usar <code>this</code> (ou o método <code>apresentar()</code>) antes de o construtor da superclasse ter sido chamado." A única coisa permitida com o próprio objeto no prólogo é <strong>dar valor</strong> a atributos da própria classe (como o <code>this.raca = raca;</code> do exemplo anterior, que compila no Java 25).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Antes do <code>super(…)</code>…</th><th>Java 24 ou anterior</th><th>Java 25+</th></tr>
+<tr><td>Validar parâmetros, fazer contas com eles</td><td>Erro</td><td>Pode</td></tr>
+<tr><td>Dar valor a um atributo da própria classe</td><td>Erro</td><td>Pode</td></tr>
+<tr><td>Ler um atributo, usar <code>this</code>, chamar um método do objeto</td><td>Erro</td><td><strong>Erro</strong> (<code>cannot reference … before supertype constructor has been called</code>)</td></tr>
+<tr><td>Chamar <code>super(…)</code> duas vezes, ou <code>super(…)</code> e <code>this(…)</code></td><td>Erro</td><td><strong>Erro</strong></td></tr>
+</table>
+</div>
+
+<p>Sobre a última linha: um construtor só pode ter <strong>uma</strong> chamada explícita de construtor. Duas dão:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:18: error: redundant explicit constructor invocation
+        super(nome);
+             ^
+1 error</pre>
+
+<p><em>Redundant explicit constructor invocation</em> = "chamada explícita de construtor redundante". Na dúvida, siga o estilo que funciona em todas as versões: <code>super(…)</code> na primeira linha.</p>
+
+<hr>
+
+<h2><code>super.metodo()</code>: a versão da superclasse</h2>
+<p>A segunda forma de <code>super</code> aparece quando a subclasse <strong>sobrescreve</strong> um método, isto é, escreve a sua própria versão de um método que herdou. A <a href="sobrescrita.html">próxima aula</a> trata disso em detalhe; aqui basta a ideia. O <code>Animal</code> sabe se descrever. O <code>Cachorro</code> quer a mesma descrição, <strong>mais</strong> a raça. Em vez de copiar o código do <code>Animal</code>, ele chama a versão da mãe e acrescenta:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Animal bicho = new Animal("Totó");
+        Cachorro rex = new Cachorro("Rex", "vira-lata");
+        System.out.println(bicho.descrever());
+        System.out.println(rex.descrever());
+    }
+}
+
+class Animal {
+    String nome;
+
+    Animal(String nome) {
+        this.nome = nome;
+    }
+
+    String descrever() {
+        return "Animal chamado " + nome;
+    }
+}
+
+class Cachorro extends Animal {
+    String raca;
+
+    Cachorro(String nome, String raca) {
+        super(nome);
+        this.raca = raca;
+    }
+
+    @Override
+    String descrever() {
+        return super.descrever() + ", da raça " + raca;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>@Override</dt><dd>Uma anotação que avisa "este método substitui um herdado". Ela é explicada em <a href="sobrescrita.html">Sobrescrita</a>.</dd>
+  <dt>String descrever()</dt><dd>A versão do <code>Cachorro</code>, com o mesmo nome e os mesmos parâmetros da do <code>Animal</code>.</dd>
+  <dt>super.descrever()</dt><dd>Chama a versão do <code>Animal</code>, que devolve <code>"Animal chamado Rex"</code>.</dd>
+  <dt>+ ", da raça " + raca</dt><dd>O que o <code>Cachorro</code> acrescenta.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Animal chamado Totó                      « versão do Animal
+Animal chamado Rex, da raça vira-lata    « versão do Cachorro, usando a do Animal</pre>
+
+<p>Se um dia a Ana mudar a descrição do <code>Animal</code>, a do <code>Cachorro</code> muda junto. Diferente do <code>super(…)</code>, o <code>super.metodo()</code> pode aparecer em qualquer linha de qualquer método (não <code>static</code>) da subclasse.</p>
+
+<h3>O que acontece se esquecer o <code>super.</code></h3>
+<p>Parece um detalhe, mas sem o <code>super.</code> o método chama <strong>a si mesmo</strong>: <code>descrever()</code> dentro de <code>descrever()</code> do <code>Cachorro</code> é o próprio <code>descrever()</code> do <code>Cachorro</code>, que chama de novo, e de novo… (é uma <a href="recursao.html">recursão</a> sem fim). Trocando <code>super.descrever()</code> por <code>descrever()</code>:</p>
+
+<pre class="term">$ java Main.java 2&gt;&amp;1 | head -8
+Animal chamado Totó
+Exception in thread "main" java.lang.StackOverflowError
+	at Cachorro.descrever(Main.java:32)
+	at Cachorro.descrever(Main.java:32)
+	at Cachorro.descrever(Main.java:32)
+	at Cachorro.descrever(Main.java:32)
+	at Cachorro.descrever(Main.java:32)
+	at Cachorro.descrever(Main.java:32)
+$ java Main.java 2&gt;&amp;1 | wc -l
+1021</pre>
+
+<p>A saída tem 1.021 linhas, quase todas iguais (o <code>head -8</code> mostra só as 8 primeiras; o <code>wc -l</code> conta). <em>StackOverflowError</em> = "erro de estouro da pilha": cada chamada ocupa um espaço na memória (a pilha), e chamadas sem fim a esgotam. A JVM corta o rastro depois de umas mil linhas. A linha <code>Main.java:32</code> é a do <code>return descrever() + …</code>: quando o rastro repete a mesma linha, procure uma chamada que deveria ter <code>super.</code>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"constructor … in class … cannot be applied to given types"</strong>
+<pre class="term">$ javac Main.java
+Main.java:18: error: constructor Animal in class Animal cannot be applied to given types;
+    Cachorro(String nome, String raca) {
+                                       ^
+  required: String
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+<p><strong>O que aconteceu:</strong> a superclasse não tem construtor sem parâmetros, e o construtor da subclasse não chamou <code>super(…)</code>. O compilador pôs <code>super()</code> e não achou o construtor certo.</p>
+<p><strong>Como resolver:</strong> comece o construtor da subclasse com <code>super(argumentos)</code>, com os tipos que o <code>required:</code> pede. Outra opção, se fizer sentido, é criar um construtor sem parâmetros na superclasse.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot reference this before supertype constructor has been called"</strong>
+<p><strong>O que aconteceu:</strong> no Java 25, o código antes do <code>super(…)</code> usou o objeto (leu um atributo, chamou um método).</p>
+<p><strong>Como resolver:</strong> mova essa linha para depois do <code>super(…)</code>. Antes dele, use só os parâmetros.</p>
+</div>
+
+<div class="cenario">
+<strong>"flexible constructors is not supported in -source …"</strong>
+<p><strong>O que aconteceu:</strong> há código antes do <code>super(…)</code> e o projeto compila para Java 24 ou anterior (por <code>--release</code>, pelo Maven ou porque o JDK é antigo).</p>
+<p><strong>Como resolver:</strong> coloque o <code>super(…)</code> na primeira linha. Para validar antes, a forma clássica é um método <code>static</code> que valida e devolve o valor: <code>super(validar(nome));</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>StackOverflowError</code> com a mesma linha repetida</strong>
+<p><strong>O que aconteceu:</strong> um método sobrescrito chamou a si mesmo quando queria chamar a versão da superclasse.</p>
+<p><strong>Como resolver:</strong> acrescente <code>super.</code> na chamada: <code>super.descrever()</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Onde</th><th>O que faz</th></tr>
+<tr><td><code>super(a, b);</code></td><td>Construtor</td><td>Chama o construtor da superclasse que recebe esses argumentos</td></tr>
+<tr><td><code>super();</code></td><td>Construtor</td><td>Chama o construtor sem parâmetros (o compilador escreve sozinho se você não chamar nenhum)</td></tr>
+<tr><td><code>this(a, b);</code></td><td>Construtor</td><td>Chama outro construtor da mesma classe (que por sua vez chama o <code>super</code>)</td></tr>
+<tr><td><code>super.metodo()</code></td><td>Método de instância</td><td>Chama a versão da superclasse do método</td></tr>
+<tr><td><code>super.atributo</code></td><td>Método de instância</td><td>O atributo da superclasse (só útil se a subclasse tiver um atributo com o mesmo nome, o que é melhor evitar)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Repassar o nome</h3>
+<p>O construtor <code>Gato(String nome)</code> precisa passar o nome para <code>Animal(String nome)</code>. Complete a primeira linha:</p>
+<div class="ex-code"><input data-answer="super(nome);|super(nome)" aria-label="chamada"></div>
+</div>
+
+<div class="exercise">
+<h3>2. A versão da mãe</h3>
+<p>Dentro do <code>toString()</code> de <code>Gerente</code>, complete para usar o <code>toString()</code> de <code>Funcionario</code>:</p>
+<div class="ex-code">return <input data-answer="super.toString()" aria-label="chamada"> + " (gerente)";</div>
+</div>
+
+<div class="exercise">
+<h3>3. A instrução invisível</h3>
+<p>Que instrução o compilador acrescenta no começo de um construtor que não chama nem <code>super(…)</code> nem <code>this(…)</code>?</p>
+<div class="ex-code"><input data-answer="super();|super()" aria-label="instrução"></div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. <code>C extends B</code> e <code>B extends A</code>, cada um com um construtor que imprime a própria letra. O que <code>new C()</code> mostra?</p>
+<label><input type="radio" name="q4"> A, B, C</label>
+<label><input type="radio" name="q4"> C, B, A</label>
+<label><input type="radio" name="q4"> Só C</label>
+<label><input type="radio" name="q4"> C, A</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. No Java 25, o que <strong>não</strong> pode vir antes do <code>super(nome)</code> num construtor?</p>
+<label><input type="radio" name="q5"> <code>if (nome == null) throw new IllegalArgumentException();</code></label>
+<label><input type="radio" name="q5"> <code>this.raca = raca;</code></label>
+<label><input type="radio" name="q5"> <code>System.out.println(this.nome);</code></label>
+<label><input type="radio" name="q5"> <code>String limpo = nome.trim();</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Um método sobrescrito chama <code>descrever()</code> em vez de <code>super.descrever()</code>. O que acontece?</p>
+<label><input type="radio" name="q6"> Chama a versão da superclasse do mesmo jeito</label>
+<label><input type="radio" name="q6"> Chama a si mesmo sem parar: <code>StackOverflowError</code></label>
+<label><input type="radio" name="q6"> Erro de compilação</label>
+<label><input type="radio" name="q6"> Devolve <code>null</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Bia - salário 7000.0 - bônus 2000.0,src:super\s*\(\s*nome,src:super\.descrever\(\)">
+<p class="try-task"><strong>Missão final:</strong> complete a classe <code>Gerente</code>. (1) No construtor, chame o construtor de <code>Funcionario</code> com <code>super(nome, salario)</code> antes de guardar o bônus. (2) No método <code>descrever()</code>, use <code>super.descrever()</code> e acrescente <code>" - bônus "</code> e o valor do bônus. A saída deve ser <code>Bia - salário 7000.0 - bônus 2000.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Gerente bia = new Gerente("Bia", 7000, 2000);
+        System.out.println(bia.descrever());
+    }
+}
+
+class Funcionario {
+    String nome;
+    double salario;
+
+    Funcionario(String nome, double salario) {
+        this.nome = nome;
+        this.salario = salario;
+    }
+
+    String descrever() {
+        return nome + " - salário " + salario;
+    }
+}
+
+class Gerente extends Funcionario {
+    double bonus;
+
+    Gerente(String nome, double salario, double bonus) {
+        // 1. chame o construtor de Funcionario aqui
+        this.bonus = bonus;
+    }
+
+    @Override
+    String descrever() {
+        return ""; // 2. use super.descrever() aqui
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Gerente bia = new Gerente("Bia", 7000, 2000);
+        System.out.println(bia.descrever());
+    }
+}
+
+class Funcionario {
+    String nome;
+    double salario;
+
+    Funcionario(String nome, double salario) {
+        this.nome = nome;
+        this.salario = salario;
+    }
+
+    String descrever() {
+        return nome + " - salário " + salario;
+    }
+}
+
+class Gerente extends Funcionario {
+    double bonus;
+
+    Gerente(String nome, double salario, double bonus) {
+        super(nome, salario);
+        this.bonus = bonus;
+    }
+
+    @Override
+    String descrever() {
+        return super.descrever() + " - bônus " + bonus;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>super</code> fala com a superclasse: <code>super(…)</code> chama o construtor dela; <code>super.metodo()</code> chama a versão dela de um método.</li>
+  <li>Construtores não são herdados. Se a superclasse só tem construtor com parâmetros, a subclasse precisa chamar <code>super(…)</code>; senão: <code>constructor … cannot be applied to given types</code>.</li>
+  <li>Sem <code>super(…)</code> nem <code>this(…)</code>, o compilador põe <code>super();</code>. Os construtores rodam de cima para baixo: <code>Object</code>, <code>Animal</code>, <code>Mamifero</code>, <code>Cachorro</code>.</li>
+  <li>Até o Java 24, <code>super(…)</code> tinha que ser a primeira linha. No Java 25, pode haver um prólogo antes, desde que não use o objeto (<code>cannot reference this before supertype constructor has been called</code>).</li>
+  <li>Esquecer o <code>super.</code> num método sobrescrito faz o método chamar a si mesmo: <code>StackOverflowError</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
