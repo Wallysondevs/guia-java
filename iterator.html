@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Iterator — hasNext, next, remove e ConcurrentModificationException | Guia Java</title>
+<meta name="description" content="Iterator em Java: o cursor que percorre qualquer coleção com hasNext, next e remove, a ConcurrentModificationException real ao remover dentro de um for-each e as soluções corretas (Iterator.remove, removeIf, laço de trás para a frente), com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Iterator</span></h1>
+
+<p class="intro">Toda coleção do Java pode ser percorrida, um elemento por vez, por um <strong>Iterator</strong> (iterador): um "cursor" que sabe onde está e qual é o próximo. Você já usa iteradores sem saber, porque o <a href="for-each.html">for-each</a> é feito com eles. Nesta aula você vai usá-los diretamente, e vai descobrir por que remover elementos dentro de um for-each quebra o programa com <code>ConcurrentModificationException</code>, e como fazer isso do jeito certo.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um <code>Iterator</code> e os seus três métodos: <code>hasNext</code>, <code>next</code> e <code>remove</code>.</li>
+  <li>Como o for-each usa um iterador por baixo dos panos.</li>
+  <li>Por que remover dentro de um for-each dá <code>ConcurrentModificationException</code> (e às vezes, pior, não dá).</li>
+  <li>As três formas certas de remover enquanto percorre: <code>Iterator.remove</code>, <code>removeIf</code> e o laço de trás para a frente.</li>
+  <li>O mesmo problema (e as mesmas soluções) em mapas.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: o dedo na lista de chamada</h2>
+<p>Quando a Ana faz a chamada, ela põe o dedo <strong>antes</strong> do primeiro nome e repete: "tem mais alguém?"; se tem, desce o dedo e lê o nome. Um iterador é exatamente esse dedo:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Tradução</th><th>Na chamada</th></tr>
+<tr><td><code>hasNext()</code></td><td>"tem próximo?"</td><td>"Tem mais alguém abaixo do meu dedo?" Devolve <code>true</code> ou <code>false</code>, sem mexer o dedo.</td></tr>
+<tr><td><code>next()</code></td><td>"próximo"</td><td>Desce o dedo um nome e devolve esse nome.</td></tr>
+<tr><td><code>remove()</code></td><td>"remover"</td><td>Risca da lista o nome que o dedo acabou de ler.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Percorrer com um Iterator</h2>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Carla"));
+
+        Iterator&lt;String&gt; it = alunos.iterator();
+        while (it.hasNext()) {
+            String aluno = it.next();
+            System.out.println("Chamando " + aluno);
+        }
+        System.out.println("Ainda tem? " + it.hasNext());
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import java.util.Iterator;</dt><dd>O <code>Iterator</code> também mora em <code>java.util</code>.</dd>
+  <dt>Iterator&lt;String&gt; it = alunos.iterator();</dt><dd>Pede à lista um iterador novo. O dedo começa <strong>antes</strong> do primeiro elemento. O <code>&lt;String&gt;</code> diz que o <code>next()</code> vai devolver <code>String</code>.</dd>
+  <dt>while (it.hasNext())</dt><dd>"Enquanto houver um próximo…" (veja <a href="while.html">while</a>).</dd>
+  <dt>String aluno = it.next();</dt><dd>Avança e pega o elemento. Chame <code>next()</code> <strong>uma vez</strong> por volta: cada chamada avança o dedo.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Chamando Ana
+Chamando Bruno
+Chamando Carla
+Ainda tem? false                « o dedo chegou ao fim</pre>
+
+<p>Esse mesmo código funciona com <strong>qualquer</strong> coleção: troque a lista por um <code>HashSet</code> ou um <code>TreeSet</code> e nada mais muda. É por isso que o iterador existe: um jeito único de percorrer coleções que guardam os dados de formas muito diferentes (um array, nós encadeados, uma árvore…). Conjuntos não têm <code>get(i)</code>, mas todos têm <code>iterator()</code>.</p>
+
+<p>Um iterador só anda <strong>para a frente</strong> e só serve <strong>uma vez</strong>. Para percorrer de novo, peça outro com <code>alunos.iterator()</code>.</p>
+
+<h3>O for-each é um iterador disfarçado</h3>
+<p>Quando você escreve um for-each numa coleção, o compilador o transforma no <code>while</code> com iterador acima. Estes dois trechos são equivalentes:</p>
+
+<pre class="syntax">for (String aluno : alunos) {            Iterator&lt;String&gt; it = alunos.iterator();
+    System.out.println(aluno);           while (it.hasNext()) {
+}                                            String aluno = it.next();
+                                             System.out.println(aluno);
+                                         }</pre>
+
+<p>Qualquer classe que tenha o método <code>iterator()</code> (ou seja, que implemente a interface <code>Iterable</code>) pode ser usada num for-each. Guarde esse detalhe: ele explica o erro da próxima seção.</p>
+
+<div class="cenario">
+<strong>Pediu um <code>next()</code> a mais: <code>NoSuchElementException</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        List&lt;String&gt; alunos = new ArrayList&lt;&gt;(List.of("Ana", "Bruno"));
+        Iterator&lt;String&gt; it = alunos.iterator();
+        System.out.println(it.next());
+        System.out.println(it.next());
+        System.out.println(it.next());
+</pre>
+<pre class="term">$ java Main
+Ana
+Bruno
+Exception in thread "main" java.util.NoSuchElementException
+	at java.base/java.util.ArrayList$Itr.next(ArrayList.java:1053)
+	at Main.main(Main.java:11)</pre>
+<p><strong>O que quer dizer:</strong> "não há tal elemento": o terceiro <code>next()</code> passou do fim. (<code>ArrayList$Itr</code> é o nome da classe do iterador da <code>ArrayList</code>: <code>Itr</code> é uma classe interna dela.)</p>
+<p><strong>Como consertar:</strong> sempre pergunte <code>hasNext()</code> antes de cada <code>next()</code>.</p>
+</div>
+
+<hr>
+
+<h2>O problema: remover dentro de um for-each</h2>
+<p>A Ana quer tirar da lista as notas abaixo de 5. O jeito que parece óbvio:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(8, 3, 9, 4, 7));
+        for (Integer n : notas) {
+            if (n &lt; 5) {
+                notas.remove(n);
+            }
+        }
+        System.out.println(notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Exception in thread "main" java.util.ConcurrentModificationException
+	at java.base/java.util.ArrayList$Itr.checkForComodification(ArrayList.java:1096)
+	at java.base/java.util.ArrayList$Itr.next(ArrayList.java:1050)
+	at Main.main(Main.java:7)</pre>
+
+<p><code>ConcurrentModificationException</code> quer dizer "exceção de modificação concorrente": a lista foi modificada <strong>ao mesmo tempo</strong> em que era percorrida. Leia a pilha de baixo para cima:</p>
+
+<ol>
+  <li><code>Main.main(Main.java:7)</code>: a linha 7 é a do <code>for</code>. O erro não aconteceu no <code>remove</code> (linha 9), mas na volta seguinte do laço.</li>
+  <li><code>ArrayList$Itr.next</code>: o for-each chamou o <code>next()</code> do iterador escondido.</li>
+  <li><code>checkForComodification</code>: "verificar se houve modificação". O iterador percebeu que a lista mudou sem ele saber, e parou.</li>
+</ol>
+
+<p>Por que o iterador reclama? Lembre do dedo na lista de chamada. Se alguém risca um nome <strong>pelas costas</strong> da Ana, os nomes de baixo sobem uma linha e o dedo dela fica apontando para o lugar errado: ela pularia alguém sem perceber. Para evitar esse bug silencioso, a <code>ArrayList</code> conta quantas vezes foi modificada, e o iterador confere essa contagem a cada <code>next()</code>. Se mudou por fora, ele lança a exceção (o nome técnico desse comportamento é <em>fail-fast</em>, "falhar rápido").</p>
+
+<p>Repare: <code>notas.remove(n)</code> aqui remove pelo <strong>valor</strong>, porque <code>n</code> é um <code>Integer</code> (e não um <code>int</code>); veja <a href="arraylist.html#pegadinha">a pegadinha do remove</a>. O problema não está no <code>remove</code>, e sim em <strong>quem</strong> remove: a lista, e não o iterador.</p>
+
+<div class="warning">
+<strong>Pior que a exceção: quando ela <em>não</em> acontece</strong>
+<p>Com outros dados, o mesmo código pode terminar sem erro, e errado. Com a lista <code>[8, 9, 3, 4]</code>:</p>
+<pre class="term">$ java Main
+[8, 9, 4]                « o 4 deveria ter saído!</pre>
+<p>O 3 era o <strong>penúltimo</strong>. Ao removê-lo, a lista ficou com 3 elementos, e o for-each, que já tinha passado por 3, achou que tinha terminado: nem chegou a chamar o <code>next()</code> que faria a verificação. O 4 nunca foi examinado. Por isso a regra é absoluta: <strong>nunca altere uma coleção dentro de um for-each sobre ela</strong>, nem quando "funciona".</p>
+</div>
+
+<hr>
+
+<h2>Solução 1: remover pelo próprio iterador</h2>
+<p>Se é o <strong>dedo</strong> que risca o nome, ele sabe o que aconteceu e se ajusta. Para isso, escreva o laço com o iterador explícito e chame <code>it.remove()</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(8, 3, 9, 4, 7));
+        Iterator&lt;Integer&gt; it = notas.iterator();
+        while (it.hasNext()) {
+            int n = it.next();
+            if (n &lt; 5) {
+                it.remove();
+            }
+        }
+        System.out.println(notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[8, 9, 7]</pre>
+
+<dl class="anatomy">
+  <dt>int n = it.next();</dt><dd>Lê o próximo. Aqui guardamos num <code>int</code> (o Java desembrulha o <code>Integer</code>).</dd>
+  <dt>it.remove();</dt><dd>Remove <strong>o último elemento que o <code>next()</code> devolveu</strong>. Não recebe argumento: o iterador já sabe qual é.</dd>
+</dl>
+
+<div class="tip">
+<strong>Regras do <code>it.remove()</code></strong>
+<p>Ele só pode ser chamado <strong>depois</strong> de um <code>next()</code>, e <strong>uma vez</strong> por <code>next()</code>. Chamar antes de qualquer <code>next()</code>, ou duas vezes seguidas, dá <code>IllegalStateException</code> (veja <a href="#erros">Quando dá errado</a>).</p>
+</div>
+
+<div class="tryjava" data-goal="out:[Ana\, Carla],src:\.iterator\(\),src:\.remove\(\)">
+<p class="try-task"><strong>Missão:</strong> o programa quer tirar da turma quem tem nome começando com "B", mas quebra com <code>ConcurrentModificationException</code>. Reescreva o laço com um <code>Iterator</code> e <code>it.remove()</code>. A saída deve ser <code>[Ana, Carla]</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Beatriz", "Carla"));
+        for (String a : alunos) {
+            if (a.startsWith("B")) {
+                alunos.remove(a);
+            }
+        }
+        System.out.println(alunos);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Beatriz", "Carla"));
+        Iterator&lt;String&gt; it = alunos.iterator();
+        while (it.hasNext()) {
+            String a = it.next();
+            if (a.startsWith("B")) {
+                it.remove();
+            }
+        }
+        System.out.println(alunos);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Solução 2: <code>removeIf</code></h2>
+<p>Desde o Java 8, toda coleção tem <code>removeIf</code> ("remover se"): você diz a <strong>condição</strong>, e a coleção remove todos os elementos que a satisfazem, do jeito seguro. Na prática, é a forma mais usada hoje:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(8, 3, 9, 4, 7));
+        boolean mudou = notas.removeIf(n -&gt; n &lt; 5);
+        System.out.println(mudou + " " + notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+true [8, 9, 7]           « true = alguma coisa foi removida</pre>
+
+<dl class="anatomy">
+  <dt>n -&gt; n &lt; 5</dt><dd>Uma <a href="lambdas.html">lambda</a>: uma pequena função que recebe cada elemento (<code>n</code>) e responde <code>true</code> ("remova") ou <code>false</code> ("mantenha"). Lê-se "dado n, n menor que 5".</dd>
+  <dt>boolean mudou</dt><dd><code>removeIf</code> devolve <code>true</code> se removeu pelo menos um.</dd>
+</dl>
+
+<p>Uma linha só, impossível de errar o índice e, por dentro, mais rápido que remover um por um numa <code>ArrayList</code>. Use o iterador explícito quando, além de remover, você precisa fazer outras coisas no mesmo laço (mostrar quem saiu, contar, etc.).</p>
+
+<hr>
+
+<h2>Solução 3: laço com índice, de trás para a frente</h2>
+<p>Em listas, dá para usar um <code>for</code> com índice. Mas atenção à direção. Para a frente, ele erra sem avisar:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(8, 3, 4, 9));
+        for (int i = 0; i &lt; notas.size(); i++) {
+            if (notas.get(i) &lt; 5) {
+                notas.remove(i);
+            }
+        }
+        System.out.println("para a frente: " + notas);
+
+        List&lt;Integer&gt; notas2 = new ArrayList&lt;&gt;(List.of(8, 3, 4, 9));
+        for (int i = notas2.size() - 1; i &gt;= 0; i--) {
+            if (notas2.get(i) &lt; 5) {
+                notas2.remove(i);
+            }
+        }
+        System.out.println("de trás para a frente: " + notas2);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+para a frente: [8, 4, 9]              « o 4 escapou
+de trás para a frente: [8, 9]         « certo</pre>
+
+<p>Para a frente: com <code>i = 1</code>, o 3 sai e o 4 <strong>sobe</strong> para a posição 1. Aí o <code>i++</code> pula para 2, e o 4 nunca é examinado. De trás para a frente, os elementos que se movem são os que <strong>já foram</strong> examinados, então ninguém escapa. (Aqui <code>notas.remove(i)</code> é por posição, porque <code>i</code> é <code>int</code>.)</p>
+
+<h3>Qual usar?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>colecao.removeIf(x -&gt; condição)</code></td><td>O padrão: só remover quem satisfaz uma condição. Funciona em listas, conjuntos e nas visões de mapas.</td></tr>
+<tr><td><code>Iterator</code> + <code>it.remove()</code></td><td>Remover e fazer outras coisas no mesmo laço (mostrar, contar, decidir com várias regras).</td></tr>
+<tr><td><code>for</code> com índice, de trás para a frente</td><td>Listas, quando você precisa da posição. Nunca para a frente.</td></tr>
+<tr><td>Criar uma coleção nova só com quem fica</td><td>Quando a original não pode mudar (por exemplo, com <a href="streams.html">streams</a>: <code>filter</code>).</td></tr>
+<tr><td>for-each + <code>colecao.remove</code></td><td><strong>Nunca.</strong></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>O mesmo problema em mapas</h2>
+<p>Mapas também são percorridos por iteradores (das visões <code>keySet</code>, <code>values</code> e <code>entrySet</code>), e o problema se repete. A Ana quer tirar do estoque os produtos zerados:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+import java.util.Map;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Integer&gt; estoque = new HashMap&lt;&gt;();
+        estoque.put("maçã", 12);
+        estoque.put("uva", 0);
+        estoque.put("banana", 30);
+        estoque.put("kiwi", 0);
+        for (String produto : estoque.keySet()) {
+            if (estoque.get(produto) == 0) {
+                estoque.remove(produto);
+            }
+        }
+        System.out.println(estoque);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Exception in thread "main" java.util.ConcurrentModificationException
+	at java.base/java.util.HashMap$HashIterator.nextNode(HashMap.java:1606)
+	at java.base/java.util.HashMap$KeyIterator.next(HashMap.java:1629)
+	at Main.main(Main.java:11)</pre>
+
+<p>O erro é o mesmo, agora vindo do iterador de chaves do <code>HashMap</code> (<code>KeyIterator</code>). A solução mais curta é o <code>removeIf</code> numa das visões. Remover da visão remove do mapa:</p>
+
+<pre class="file" data-file="Main.java">        estoque.values().removeIf(qtd -&gt; qtd == 0);                  // pelo valor
+        estoque.keySet().removeIf(produto -&gt; produto.startsWith("k")); // pela chave
+        estoque.entrySet().removeIf(par -&gt; par.getValue() == 0);      // pelos dois
+</pre>
+
+<p>Com a primeira linha, num <code>TreeMap</code> (para a saída sair em ordem):</p>
+
+<pre class="term">$ java Main
+{banana=30, maçã=12}</pre>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>ConcurrentModificationException</code></strong>
+<pre class="term">Exception in thread "main" java.util.ConcurrentModificationException
+	at java.base/java.util.ArrayList$Itr.checkForComodification(ArrayList.java:1096)
+	at java.base/java.util.ArrayList$Itr.next(ArrayList.java:1050)
+	at Main.main(Main.java:7)</pre>
+<p><strong>O que quer dizer:</strong> a coleção foi alterada (com <code>add</code> ou <code>remove</code> dela mesma) enquanto um iterador, quase sempre o de um for-each, a percorria. A linha apontada é a do <code>for</code>, não a do <code>remove</code>.</p>
+<p><strong>Como consertar:</strong> <code>removeIf</code>, <code>it.remove()</code> ou laço de trás para a frente. Para <strong>acrescentar</strong> durante o percurso, junte os novos numa lista separada e faça <code>addAll</code> depois do laço.</p>
+<p>Apesar do nome "concorrente", isso não tem nada a ver com <a href="threads.html">threads</a>: acontece com um programa de uma linha de execução só.</p>
+</div>
+
+<div class="cenario">
+<strong><code>IllegalStateException</code>: <code>remove()</code> antes do <code>next()</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        List&lt;String&gt; alunos = new ArrayList&lt;&gt;(List.of("Ana", "Bruno"));
+        Iterator&lt;String&gt; it = alunos.iterator();
+        it.remove();
+</pre>
+<pre class="term">$ java Main
+Exception in thread "main" java.lang.IllegalStateException
+	at java.base/java.util.ArrayList$Itr.remove(ArrayList.java:1063)
+	at Main.main(Main.java:9)</pre>
+<p><strong>O que quer dizer:</strong> "estado ilegal": o iterador ainda não leu ninguém, então não sabe o que remover. O mesmo acontece se você chamar <code>it.remove()</code> duas vezes depois do mesmo <code>next()</code>.</p>
+<p><strong>Como consertar:</strong> um <code>it.remove()</code> por <code>it.next()</code>, sempre depois dele.</p>
+</div>
+
+<div class="cenario">
+<strong>Não deu erro, mas sobrou um elemento que devia ter saído</strong>
+<p><strong>O que aconteceu:</strong> ou você removeu dentro de um for-each e o elemento removido era o penúltimo, ou usou um <code>for</code> com índice <strong>para a frente</strong>. Nos dois casos, um elemento foi pulado.</p>
+<p><strong>Como consertar:</strong> troque por <code>removeIf</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>Iterator&lt;T&gt; it = colecao.iterator();</code></td><td>Cria um iterador, antes do primeiro elemento</td></tr>
+<tr><td><code>it.hasNext()</code></td><td>Tem próximo? (não avança)</td></tr>
+<tr><td><code>it.next()</code></td><td>Avança e devolve; passou do fim: <code>NoSuchElementException</code></td></tr>
+<tr><td><code>it.remove()</code></td><td>Remove o último devolvido por <code>next()</code>; fora de hora: <code>IllegalStateException</code></td></tr>
+<tr><td><code>colecao.removeIf(x -&gt; cond)</code></td><td>Remove todos que satisfazem <code>cond</code>; devolve <code>true</code> se removeu</td></tr>
+<tr><td><code>mapa.values().removeIf(…)</code>, <code>keySet()</code>, <code>entrySet()</code></td><td>Remove pares do mapa pelo valor, pela chave ou pelos dois</td></tr>
+<tr><td><code>list.listIterator()</code></td><td>Iterador de lista: também anda para trás (<code>hasPrevious</code>/<code>previous</code>) e troca (<code>set</code>)</td></tr>
+<tr><td><code>Iterable&lt;T&gt;</code></td><td>Interface de quem tem <code>iterator()</code>: pode ir num for-each</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Tem mais?</h3>
+<p>Complete a condição do laço:</p>
+<div class="ex-code">while (it.<input data-answer="hasNext()" aria-label="método">) { String s = it.next(); … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Remover com segurança</h3>
+<p>Complete para remover da lista <code>nomes</code> todos os nomes vazios:</p>
+<div class="ex-code">nomes.<input data-answer="removeIf(n -&gt; n.isEmpty())|removeIf(String::isEmpty)|removeIf(s -&gt; s.isEmpty())|removeIf(x -&gt; x.isEmpty())" aria-label="chamada">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Em que linha a <code>ConcurrentModificationException</code> de um for-each é apontada?</p>
+<label><input type="radio" name="q3"> Na linha do <code>remove</code>.</label>
+<label><input type="radio" name="q3"> Na linha do <code>System.out.println</code> final.</label>
+<label><input type="radio" name="q3"> Na linha do <code>for</code>, quando o próximo elemento é pedido.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>it.remove()</code> remove?</p>
+<label><input type="radio" name="q4"> O próximo elemento.</label>
+<label><input type="radio" name="q4"> O último elemento devolvido por <code>next()</code>.</label>
+<label><input type="radio" name="q4"> O último elemento da coleção.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Num <code>for (int i = 0; i &lt; l.size(); i++)</code> que remove com <code>l.remove(i)</code>, o que pode acontecer?</p>
+<label><input type="radio" name="q5"> Um elemento é pulado, sem erro.</label>
+<label><input type="radio" name="q5"> Sempre dá <code>ConcurrentModificationException</code>.</label>
+<label><input type="radio" name="q5"> Funciona sempre.</label>
+</div>
+
+<div class="tryjava" data-goal="out:{banana=30\, maçã=12},src:removeIf">
+<p class="try-task"><strong>Missão final:</strong> tire do estoque os produtos com quantidade <code>0</code>, usando <code>removeIf</code> numa das visões do mapa (<code>values()</code> ou <code>entrySet()</code>). A saída deve ser <code>{banana=30, maçã=12}</code>.</p>
+<pre class="script">import java.util.Map;
+import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Integer&gt; estoque = new TreeMap&lt;&gt;();
+        estoque.put("maçã", 12);
+        estoque.put("uva", 0);
+        estoque.put("banana", 30);
+        estoque.put("kiwi", 0);
+
+        // remova os zerados
+
+        System.out.println(estoque);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Map;
+import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        Map&lt;String, Integer&gt; estoque = new TreeMap&lt;&gt;();
+        estoque.put("maçã", 12);
+        estoque.put("uva", 0);
+        estoque.put("banana", 30);
+        estoque.put("kiwi", 0);
+
+        estoque.values().removeIf(qtd -&gt; qtd == 0);
+
+        System.out.println(estoque);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Iterator</code> percorre qualquer coleção: <code>hasNext()</code> pergunta, <code>next()</code> avança e devolve, <code>remove()</code> tira o último lido.</li>
+  <li>O for-each usa um iterador escondido.</li>
+  <li>Alterar a coleção dentro do for-each dá <code>ConcurrentModificationException</code>, ou, pior, pula elementos sem avisar.</li>
+  <li>Para remover enquanto percorre: <code>removeIf(condição)</code> (o padrão), <code>it.remove()</code>, ou <code>for</code> com índice de trás para a frente.</li>
+  <li>Em mapas: <code>values().removeIf</code>, <code>keySet().removeIf</code>, <code>entrySet().removeIf</code>.</li>
+  <li><code>next()</code> além do fim: <code>NoSuchElementException</code>; <code>remove()</code> fora de hora: <code>IllegalStateException</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="collections.html">A Classe Collections</a>, a caixa de ferramentas com <code>sort</code>, <code>shuffle</code>, <code>max</code> e companhia.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
