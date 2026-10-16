@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Wrappers e Autoboxing — Integer, Double, Character | Guia Java</title>
+<meta name="description" content="As classes wrapper do Java (Integer, Double, Character, Boolean…), autoboxing e unboxing, Integer.parseInt e valueOf, o cache de -128 a 127 que faz 128 == 128 dar false, o NullPointerException ao desembrulhar null e por que as coleções usam wrappers. Com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Wrappers e Autoboxing</span></h1>
+
+<p class="intro">Os <a href="tipos-primitivos.html">tipos primitivos</a> (<code>int</code>, <code>double</code>, <code>char</code>, <code>boolean</code>…) são simples e rápidos, mas não são objetos: não têm métodos, não podem ser <code>null</code> e não entram nas coleções do Java. Para cada um deles existe uma classe "embrulho", um <strong>wrapper</strong>. Nesta aula você conhece essas classes, os métodos úteis que elas trazem e duas armadilhas famosas: o <code>==</code> que funciona até 127 e o <code>null</code> que vira <code>NullPointerException</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Quais são os wrappers (<code>Integer</code>, <code>Double</code>, <code>Character</code>, <code>Boolean</code>…) e para que servem.</li>
+  <li>O que o Java faz sozinho no <strong>autoboxing</strong> e no <strong>unboxing</strong>.</li>
+  <li>Converter texto em número com <code>Integer.parseInt</code>, <code>Integer.valueOf</code>, <code>Double.parseDouble</code>.</li>
+  <li>Métodos e constantes úteis: <code>Integer.MAX_VALUE</code>, <code>Character.isDigit</code>, <code>Integer.toBinaryString</code>…</li>
+  <li>Por que <code>Integer a = 128, b = 128; a == b</code> dá <code>false</code> (o cache de -128 a 127).</li>
+  <li>O <code>NullPointerException</code> ao desembrulhar <code>null</code>.</li>
+  <li>Por que as coleções, como <code>ArrayList</code>, usam wrappers.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Imagine um presente. O <strong>presente</strong> em si (o valor <code>29</code>) é a coisa que importa. Mas, para mandar pelo correio, ele precisa estar numa <strong>caixa</strong>, com etiqueta e espaço para o endereço. A caixa é o wrapper ("embrulho", em inglês): um objeto que guarda um valor primitivo dentro e acrescenta o que objetos têm, como métodos e a possibilidade de "não ter nada dentro" (<code>null</code>).</p>
+<p>Colocar o valor na caixa se chama <strong>boxing</strong> ("encaixotar"); tirar se chama <strong>unboxing</strong> ("desencaixotar"). O Java faz as duas coisas sozinho na maioria das vezes, e por isso o nome <strong>auto</strong>boxing.</p>
+
+<h2>Os oito wrappers</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Primitivo</th><th>Wrapper</th><th>Repare</th></tr>
+<tr><td><code>byte</code></td><td><code>Byte</code></td><td></td></tr>
+<tr><td><code>short</code></td><td><code>Short</code></td><td></td></tr>
+<tr><td><code>int</code></td><td><code>Integer</code></td><td>Nome completo, não <code>Int</code></td></tr>
+<tr><td><code>long</code></td><td><code>Long</code></td><td></td></tr>
+<tr><td><code>float</code></td><td><code>Float</code></td><td></td></tr>
+<tr><td><code>double</code></td><td><code>Double</code></td><td></td></tr>
+<tr><td><code>char</code></td><td><code>Character</code></td><td>Nome completo, não <code>Char</code></td></tr>
+<tr><td><code>boolean</code></td><td><code>Boolean</code></td><td></td></tr>
+</table>
+</div>
+<p>Regra para lembrar: o wrapper é o nome do primitivo com letra maiúscula, menos dois, que têm o nome por extenso: <code>Integer</code> e <code>Character</code>. Todos ficam em <code>java.lang</code>, então não precisam de <code>import</code>.</p>
+
+<hr>
+
+<h2>Autoboxing e unboxing</h2>
+<p>Veja no <a href="jshell.html">JShell</a> o Java colocando e tirando o valor da caixa sem você pedir:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell> Integer idade = 29;
+idade ==> 29
+
+jshell> int copia = idade;
+copia ==> 29
+
+jshell> /exit
+|  Goodbye</pre>
+
+<dl class="anatomy">
+  <dt>Integer idade = 29;</dt><dd><strong>Autoboxing</strong>: <code>29</code> é um <code>int</code>, mas a variável é <code>Integer</code>. O Java embrulha sozinho, como se você tivesse escrito <code>Integer.valueOf(29)</code>.</dd>
+  <dt>int copia = idade;</dt><dd><strong>Unboxing</strong>: <code>idade</code> é um objeto <code>Integer</code>, e a variável é <code>int</code>. O Java desembrulha sozinho, como se fosse <code>idade.intValue()</code>.</dd>
+</dl>
+
+<p>Isso acontece em atribuições, ao passar argumentos para métodos, ao devolver valores e em contas: <code>idade + 1</code> desembrulha <code>idade</code>, soma como <code>int</code> e, se o resultado for para uma variável <code>Integer</code>, embrulha de novo. Na maior parte do tempo você nem percebe. As armadilhas aparecem quando você <strong>compara</strong> caixas ou quando a caixa está <strong>vazia</strong>; elas estão mais adiante.</p>
+
+<hr>
+
+<h2>Por que as coleções usam wrappers</h2>
+<p>As <a href="colecoes.html">coleções</a> do Java (listas, conjuntos, mapas) guardam <strong>objetos</strong>. Um <code>int</code> não é objeto, então isto não compila:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+        ArrayList&lt;int&gt; notas = new ArrayList&lt;&gt;();
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Main.java:5: error: unexpected type
+        ArrayList&lt;int&gt; notas = new ArrayList&lt;&gt;();
+                  ^
+  required: reference
+  found:    int
+1 error
+error: compilation failed</pre>
+
+<p>"Tipo inesperado: exigido uma <strong>referência</strong> (um tipo de objeto), encontrado <code>int</code>". Entre os <code>&lt; &gt;</code> só cabem classes. Com o wrapper, funciona, e o autoboxing deixa o resto natural:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+        ArrayList&lt;Integer&gt; notas = new ArrayList&lt;&gt;();
+        notas.add(7);
+        notas.add(9);
+        notas.add(10);
+        int soma = 0;
+        for (int n : notas) {
+            soma += n;
+        }
+        System.out.println("Notas: " + notas);
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Notas: [7, 9, 10]
+Soma: 26</pre>
+
+<p><code>notas.add(7)</code> embrulha o <code>7</code> num <code>Integer</code>; o <code>for (int n : notas)</code> desembrulha cada um de volta para <code>int</code>. Você vai estudar o <code>ArrayList</code> a fundo em <a href="arraylist.html">ArrayList</a>; por enquanto, guarde a regra: <strong>nas coleções, use o wrapper</strong> (<code>ArrayList&lt;Integer&gt;</code>, <code>ArrayList&lt;Double&gt;</code>, <code>HashMap&lt;String, Integer&gt;</code>).</p>
+
+<hr>
+
+<h2>Texto para número (e de volta)</h2>
+<p>O uso mais comum dos wrappers no dia a dia são os métodos <a href="static.html">estáticos</a> de conversão. Texto vem de todo lugar: do teclado, de arquivos, de argumentos do programa.</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell> Integer.parseInt("42")
+$1 ==> 42
+
+jshell> Integer.valueOf("42")
+$2 ==> 42
+
+jshell> Double.parseDouble("9.5")
+$3 ==> 9.5
+
+jshell> Double.parseDouble("9,5")
+|  Exception java.lang.NumberFormatException: For input string: "9,5"
+|        at FloatingDecimal.check (FloatingDecimal.java:2324)
+|        at FloatingDecimal.readJavaFormatString (FloatingDecimal.java:1969)
+|        at FloatingDecimal.parseDouble (FloatingDecimal.java:110)
+|        at Double.parseDouble (Double.java:971)
+|        at (#4:1)
+
+jshell> Boolean.parseBoolean("true")
+$5 ==> true
+
+jshell> Boolean.parseBoolean("sim")
+$6 ==> false
+
+jshell> String.valueOf(42)
+$7 ==> "42"
+
+jshell> Integer.toString(42)
+$8 ==> "42"
+
+jshell> /exit
+|  Goodbye</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Recebe</th><th>Devolve</th><th>Observação</th></tr>
+<tr><td><code>Integer.parseInt(texto)</code></td><td><code>String</code></td><td><code>int</code> (primitivo)</td><td>O mais usado. Texto inválido: <code>NumberFormatException</code></td></tr>
+<tr><td><code>Integer.valueOf(texto)</code></td><td><code>String</code> (ou <code>int</code>)</td><td><code>Integer</code> (objeto)</td><td>Use quando precisa do objeto; aproveita o cache (veja abaixo)</td></tr>
+<tr><td><code>Double.parseDouble(texto)</code></td><td><code>String</code></td><td><code>double</code></td><td>Exige <strong>ponto</strong> decimal: <code>"9,5"</code> falha</td></tr>
+<tr><td><code>Long.parseLong</code>, <code>Short.parseShort</code>…</td><td><code>String</code></td><td>o primitivo</td><td>Um para cada tipo</td></tr>
+<tr><td><code>Boolean.parseBoolean(texto)</code></td><td><code>String</code></td><td><code>boolean</code></td><td><code>true</code> só para <code>"true"</code> (sem diferenciar maiúsculas); qualquer outra coisa dá <code>false</code>, sem exceção</td></tr>
+<tr><td><code>String.valueOf(x)</code> ou <code>Integer.toString(x)</code></td><td>número</td><td><code>String</code></td><td>O caminho de volta. <code>"" + x</code> também funciona</td></tr>
+</table>
+</div>
+
+<p>Dois detalhes que derrubam muita gente: o <code>parseDouble</code> não entende a vírgula brasileira (para isso, veja <a href="formatacao.html">Formatar Texto</a>), e o <code>parseBoolean</code> nunca reclama: <code>"sim"</code>, <code>"1"</code> e <code>"verdadeiro"</code> viram <code>false</code> em silêncio. Para tratar texto inválido no <code>parseInt</code>, use <a href="try-catch.html">try e catch</a>.</p>
+
+<div class="tryjava" data-goal="out:Soma: 85,src:Integer\.parseInt">
+<p class="try-task"><strong>Missão:</strong> as idades chegaram como texto. Do jeito que está, o <code>+</code> cola os textos em vez de somar. Use <code>Integer.parseInt</code> dentro do laço para que a soma dê <code>85</code> (troque também o tipo de <code>soma</code>).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] idades = {"29", "34", "22"};
+        String soma = "";
+        for (String texto : idades) {
+            soma += texto;
+        }
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] idades = {"29", "34", "22"};
+        int soma = 0;
+        for (String texto : idades) {
+            soma += Integer.parseInt(texto);
+        }
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Constantes e métodos úteis</h2>
+<p>As classes wrapper também são "caixas de ferramentas" para o tipo delas:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell> Integer.MAX_VALUE
+$1 ==> 2147483647
+
+jshell> Integer.MIN_VALUE
+$2 ==> -2147483648
+
+jshell> Long.MAX_VALUE
+$3 ==> 9223372036854775807
+
+jshell> Integer.parseInt("ff", 16)
+$4 ==> 255
+
+jshell> Integer.toBinaryString(10)
+$5 ==> "1010"
+
+jshell> Integer.compare(3, 7)
+$6 ==> -1
+
+jshell> Integer.max(3, 7)
+$7 ==> 7
+
+jshell> Character.isDigit('7')
+$8 ==> true
+
+jshell> Character.isLetter('7')
+$9 ==> false
+
+jshell> Character.isLetter('a')
+$10 ==> true
+
+jshell> Character.toUpperCase('a')
+$11 ==> 'A'
+
+jshell> Character.isWhitespace(' ')
+$12 ==> true
+
+jshell> Character.getNumericValue('7')
+$13 ==> 7
+
+jshell> /exit
+|  Goodbye</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Membro</th><th>O que faz</th></tr>
+<tr><td><code>Integer.MAX_VALUE</code> / <code>MIN_VALUE</code></td><td>O maior e o menor <code>int</code> (veja <a href="inteiros.html">int, long, short, byte</a>). Existem em todos os wrappers numéricos</td></tr>
+<tr><td><code>Integer.parseInt(texto, base)</code></td><td>Lê um número em outra base: 16 (hexadecimal), 2 (binário)…</td></tr>
+<tr><td><code>Integer.toBinaryString(n)</code>, <code>toHexString(n)</code></td><td>Escreve o número em binário ou hexadecimal</td></tr>
+<tr><td><code>Integer.compare(a, b)</code></td><td>Negativo se a &lt; b, zero se iguais, positivo se a &gt; b (usado para ordenar, veja <a href="comparable-comparator.html">Comparable e Comparator</a>)</td></tr>
+<tr><td><code>Integer.max</code>, <code>min</code>, <code>sum</code></td><td>Maior, menor, soma (iguais aos do <a href="math.html">Math</a>)</td></tr>
+<tr><td><code>Character.isDigit(c)</code>, <code>isLetter(c)</code>, <code>isLetterOrDigit(c)</code></td><td>Testa o tipo de caractere</td></tr>
+<tr><td><code>Character.isUpperCase(c)</code>, <code>toUpperCase(c)</code>, <code>toLowerCase(c)</code></td><td>Maiúsculas e minúsculas</td></tr>
+<tr><td><code>Character.isWhitespace(c)</code></td><td>Espaço, tab, quebra de linha</td></tr>
+<tr><td><code>Character.getNumericValue('7')</code></td><td>O valor do dígito (<code>7</code>), e não o código do caractere (<code>55</code>)</td></tr>
+<tr><td><code>Double.isNaN(x)</code></td><td>Testa se é o "não é um número" (veja <a href="decimais.html">double e float</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Armadilha 1: <code>==</code> entre wrappers e o cache de -128 a 127</h2>
+<p>Este é um dos comportamentos mais estranhos do Java, e cai em entrevista de emprego. Rode e compare:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Integer a = 127, b = 127;
+        System.out.println("127 == 127? " + (a == b));
+        Integer c = 128, d = 128;
+        System.out.println("128 == 128? " + (c == d));
+        System.out.println("128 equals 128? " + c.equals(d));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+127 == 127? true
+128 == 128? false
+128 equals 128? true</pre>
+
+<p><code>127 == 127</code> dá <code>true</code>, mas <code>128 == 128</code> dá <code>false</code>. Por quê?</p>
+<ol>
+  <li>Com objetos, <code>==</code> não compara o <strong>conteúdo</strong>; compara se são <strong>a mesma caixa</strong> (o mesmo objeto na memória). É a mesma história das Strings (veja <a href="operadores-comparacao.html">Operadores de Comparação</a> e <a href="object.html">A Classe Object</a>).</li>
+  <li>O autoboxing usa <code>Integer.valueOf</code>, que mantém um <strong>cache</strong>: caixas prontas para os números de <strong>-128 a 127</strong>, os mais usados. Pediu 127? Recebe sempre a mesma caixa do cache. Então <code>a</code> e <code>b</code> são o <strong>mesmo objeto</strong>, e <code>==</code> dá <code>true</code>.</li>
+  <li>128 está fora do cache. Cada autoboxing cria uma caixa <strong>nova</strong>. <code>c</code> e <code>d</code> têm o mesmo valor, mas são duas caixas diferentes, e <code>==</code> dá <code>false</code>.</li>
+  <li><code>equals</code> compara o <strong>valor</strong> dentro da caixa: <code>true</code> nos dois casos.</li>
+</ol>
+
+<p>O perigo é que o programa funciona em todos os testes com números pequenos (códigos 1, 2, 3…) e quebra em produção quando os códigos passam de 127. A regra é simples: <strong>para comparar wrappers, use <code>equals</code></strong> (ou desembrulhe para primitivo antes de usar <code>==</code>).</p>
+
+<div class="tryjshell" data-goal="out:true,src:equals">
+<p class="try-task"><strong>Missão:</strong> crie <code>Integer a = 500, b = 500;</code>, veja que <code>a == b</code> dá <code>false</code> e depois compare do jeito certo, para dar <code>true</code>.</p>
+<pre class="solucao">Integer a = 500, b = 500;
+a == b
+a.equals(b)</pre>
+</div>
+
+<p>No JShell real, essa sessão fica assim:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell> Integer a = 500, b = 500;
+a ==> 500
+b ==> 500
+
+jshell> a == b
+$3 ==> false
+
+jshell> a.equals(b)
+$4 ==> true
+
+jshell> /exit
+|  Goodbye</pre>
+
+<hr>
+
+<h2>Armadilha 2: desembrulhar <code>null</code></h2>
+<p>Uma variável <code>Integer</code> pode valer <code>null</code>, "caixa nenhuma". Um <code>int</code> não pode. Quando o Java tenta desembrulhar <code>null</code> para <code>int</code>, não há valor nenhum para tirar:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Integer nota = null;
+        System.out.println("Nota: " + nota);
+        int n = nota;
+        System.out.println("Dobro: " + n * 2);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Nota: null
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "java.lang.Integer.intValue()" because "&lt;local1&gt;" is null
+	at Main.main(Main.java:5)</pre>
+
+<p>A mensagem entrega o que o Java faz por baixo dos panos: o unboxing <code>int n = nota;</code> é, na verdade, <code>nota.intValue()</code>, e chamar um método em <code>null</code> é <code>NullPointerException</code>. Repare que a linha 5 nem tem um "ponto" visível: o método chamado foi escrito pelo compilador. (O <code>&lt;local1&gt;</code> é a variável <code>nota</code>; veja <a href="excecoes.html">O que são Exceções</a>.) Mostrar o <code>null</code>, na linha 4, não deu problema: o <code>+</code> com texto escreve <code>null</code>.</p>
+
+<p>O caso mais comum no mundo real é um <a href="hashmap.html">HashMap</a> que não tem a chave pedida: o <code>get</code> devolve <code>null</code>.</p>
+
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+
+public class Main {
+    public static void main(String[] args) {
+        HashMap&lt;String, Integer&gt; estoque = new HashMap&lt;&gt;();
+        estoque.put("maçã", 12);
+        int macas = estoque.get("maçã");
+        System.out.println("Maçãs: " + macas);
+        int kiwis = estoque.get("kiwi");
+        System.out.println("Kiwis: " + kiwis);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Maçãs: 12
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "java.lang.Integer.intValue()" because the return value of "java.util.HashMap.get(Object)" is null
+	at Main.main(Main.java:9)</pre>
+
+<p>"…porque o valor devolvido por <code>HashMap.get(Object)</code> é null". Para evitar: guarde o resultado num <code>Integer</code> e teste <code>if (kiwis != null)</code>, ou use <code>estoque.getOrDefault("kiwi", 0)</code>, que devolve 0 quando a chave não existe.</p>
+
+<hr>
+
+<h2>Primitivo ou wrapper: qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Contas, contadores, variáveis locais, atributos comuns</td><td><strong>Primitivo</strong> (<code>int</code>, <code>double</code>): mais rápido, nunca é <code>null</code></td></tr>
+<tr><td>Dentro de coleções e generics</td><td><strong>Wrapper</strong> (obrigatório): <code>ArrayList&lt;Integer&gt;</code></td></tr>
+<tr><td>O valor pode "não existir" (nota ainda não lançada)</td><td>Wrapper, aceitando <code>null</code> (com cuidado), ou <a href="optional.html">Optional</a></td></tr>
+<tr><td>Converter texto</td><td>Métodos estáticos do wrapper: <code>Integer.parseInt</code></td></tr>
+<tr><td>Comparar dois wrappers</td><td><code>equals</code>, nunca <code>==</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"int cannot be converted to Long" e "double cannot be converted to Integer"</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Long populacao = 5;
+        Integer preco = 3.5;
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:3: error: incompatible types: int cannot be converted to Long
+        Long populacao = 5;
+                         ^
+Main.java:4: error: incompatible types: double cannot be converted to Integer
+        Integer preco = 3.5;
+                        ^
+2 errors
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> o autoboxing só embrulha um valor na caixa <strong>do próprio tipo</strong>: <code>int</code> vai para <code>Integer</code>, <code>long</code> para <code>Long</code>. Ele não converte e embrulha ao mesmo tempo. Com primitivos, <code>long x = 5;</code> funciona (o <code>int</code> é alargado), mas <code>Long x = 5;</code> não.</p>
+<p><strong>Como resolver:</strong> use um literal do tipo certo: <code>Long populacao = 5L;</code> (o <code>L</code> faz o número ser <code>long</code>). Para o preço, use <code>Double preco = 3.5;</code> (ou, sendo dinheiro, <a href="bigdecimal.html">BigDecimal</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>"unexpected type … required: reference found: int"</strong>
+<p><strong>O que aconteceu:</strong> um primitivo foi usado entre <code>&lt; &gt;</code>, como em <code>ArrayList&lt;int&gt;</code>.</p>
+<p><strong>Como resolver:</strong> troque pelo wrapper: <code>ArrayList&lt;Integer&gt;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException</code> com <code>intValue()</code>, <code>doubleValue()</code>, <code>booleanValue()</code></strong>
+<p><strong>O que aconteceu:</strong> um wrapper <code>null</code> foi desembrulhado, numa atribuição a primitivo, numa conta ou num <code>if</code> com <code>Boolean</code>.</p>
+<p><strong>Como resolver:</strong> descubra de onde veio o <code>null</code> (a mensagem costuma dizer: uma variável, o retorno de um método) e teste antes de usar, ou use um valor padrão.</p>
+</div>
+
+<div class="cenario">
+<strong>Comparação que funcionava e parou de funcionar</strong>
+<p><strong>O que aconteceu:</strong> dois <code>Integer</code> (ou <code>Long</code>) comparados com <code>==</code>. Funciona até 127 por causa do cache e falha com valores maiores.</p>
+<p><strong>Como resolver:</strong> <code>a.equals(b)</code>, ou <code>Objects.equals(a, b)</code> se algum deles puder ser <code>null</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Item</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td>Autoboxing</td><td><code>Integer x = 29;</code></td><td><code>Integer.valueOf(29)</code></td></tr>
+<tr><td>Unboxing</td><td><code>int y = x;</code></td><td><code>x.intValue()</code> (NPE se <code>x</code> for <code>null</code>)</td></tr>
+<tr><td>Texto → <code>int</code></td><td><code>Integer.parseInt("42")</code></td><td><code>42</code></td></tr>
+<tr><td>Texto → <code>Integer</code></td><td><code>Integer.valueOf("42")</code></td><td><code>42</code> (objeto)</td></tr>
+<tr><td>Texto → <code>double</code></td><td><code>Double.parseDouble("9.5")</code></td><td><code>9.5</code></td></tr>
+<tr><td>Número → texto</td><td><code>String.valueOf(42)</code></td><td><code>"42"</code></td></tr>
+<tr><td>Limites</td><td><code>Integer.MAX_VALUE</code></td><td><code>2147483647</code></td></tr>
+<tr><td>Cache</td><td><code>Integer.valueOf</code>, de -128 a 127</td><td>Mesma caixa: <code>==</code> dá <code>true</code> só nessa faixa</td></tr>
+<tr><td>Comparar</td><td><code>a.equals(b)</code></td><td>Compara os valores</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O wrapper do char</h3>
+<p>Qual é a classe wrapper do tipo <code>char</code>?</p>
+<div class="ex-code"><input data-answer="Character" aria-label="wrapper"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Texto para int</h3>
+<p>Complete para transformar o texto em <code>int</code>:</p>
+<div class="ex-code">int qtd = Integer.<input data-answer="parseInt" aria-label="método">("12");</div>
+</div>
+
+<div class="exercise">
+<h3>3. Lista de decimais</h3>
+<p>Complete o tipo da lista de preços:</p>
+<div class="ex-code">ArrayList&lt;<input data-answer="Double" aria-label="tipo">&gt; precos = new ArrayList&lt;&gt;();</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>Integer x = 1000, y = 1000; System.out.println(x == y);</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> <code>false</code></label>
+<label><input type="radio" name="q4"> Não compila.</label>
+<label><input type="radio" name="q4"> <code>NullPointerException</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que acontece em <code>Integer n = null; int m = n + 1;</code>?</p>
+<label><input type="radio" name="q5"> <code>m</code> vale 1.</label>
+<label><input type="radio" name="q5"> <code>m</code> vale <code>null</code>.</label>
+<label><input type="radio" name="q5"> Erro de compilação.</label>
+<label><input type="radio" name="q5"> <code>NullPointerException</code> ao desembrulhar <code>n</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Quanto vale <code>Boolean.parseBoolean("sim")</code>?</p>
+<label><input type="radio" name="q6"> <code>true</code></label>
+<label><input type="radio" name="q6"> Lança <code>IllegalArgumentException</code>.</label>
+<label><input type="radio" name="q6"> <code>false</code></label>
+<label><input type="radio" name="q6"> <code>null</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Códigos iguais,src:equals">
+<p class="try-task"><strong>Missão final:</strong> os dois códigos são <code>1500</code>, mas o programa diz que são diferentes. Corrija a comparação.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Integer codigoPedido = 1500;
+        Integer codigoNota = 1500;
+        if (codigoPedido == codigoNota) {
+            System.out.println("Códigos iguais");
+        } else {
+            System.out.println("Códigos diferentes");
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Integer codigoPedido = 1500;
+        Integer codigoNota = 1500;
+        if (codigoPedido.equals(codigoNota)) {
+            System.out.println("Códigos iguais");
+        } else {
+            System.out.println("Códigos diferentes");
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Cada primitivo tem um wrapper: <code>Byte</code>, <code>Short</code>, <code>Integer</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>, <code>Character</code>, <code>Boolean</code>.</li>
+  <li>Autoboxing (primitivo → wrapper) e unboxing (wrapper → primitivo) são automáticos, mas só entre um tipo e o seu próprio wrapper (<code>Long x = 5;</code> não compila).</li>
+  <li>Coleções só guardam objetos: <code>ArrayList&lt;Integer&gt;</code>, nunca <code>ArrayList&lt;int&gt;</code>.</li>
+  <li><code>Integer.parseInt</code>, <code>Double.parseDouble</code> e companhia convertem texto; <code>String.valueOf</code> faz o caminho de volta.</li>
+  <li><code>==</code> entre wrappers compara caixas, não valores; funciona de -128 a 127 só por causa do cache. Use <code>equals</code>.</li>
+  <li>Desembrulhar <code>null</code> lança <code>NullPointerException</code> (<code>Cannot invoke "java.lang.Integer.intValue()"</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
