@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Módulos (JPMS) — module-info, requires, exports e jlink | Guia Java</title>
+<meta name="description" content="O sistema de módulos do Java 9 (JPMS): module-info.java, requires e exports, compilar e rodar com --module-path (sessão real), os erros &quot;is not visible&quot;, jdeps, jlink para criar um Java de 56 MB e quando vale a pena usar módulos.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Módulos (JPMS)</span></h1>
+
+<p class="intro">Desde o Java 9, além de classes e <a href="pacotes.html">pacotes</a>, o Java tem um nível acima: o <strong>módulo</strong>. Um módulo é um grupo de pacotes com um "contrato" que diz de quais outros módulos ele precisa e quais dos seus pacotes os outros podem usar. O próprio JDK foi dividido em módulos, e é isso que permite ao <code>jlink</code> montar um Java enxuto, só com o que o seu programa usa.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que problema os módulos resolvem.</li>
+  <li>Escrever um <code>module-info.java</code> com <code>requires</code> e <code>exports</code>.</li>
+  <li>Compilar e rodar com <code>--module-path</code> e <code>--module</code>.</li>
+  <li>Entender os erros <code>is not visible</code>.</li>
+  <li>Descobrir dependências com <code>jdeps</code>.</li>
+  <li>Criar um Java sob medida com <code>jlink</code> (e ver o tamanho).</li>
+  <li>Quando vale a pena usar módulos (spoiler: na maioria dos projetos, não).</li>
+</ul>
+</div>
+
+<p><strong>JPMS</strong> = <em>Java Platform Module System</em>, "sistema de módulos da plataforma Java". Pré-requisitos: <a href="pacotes.html">Pacotes e import</a>, <a href="modificadores.html">Modificadores de Acesso</a> e a aula de <a href="jar.html">JAR</a> (classpath).</p>
+
+<hr>
+
+<h2>A ideia: o prédio com portaria</h2>
+<p>Pense num prédio comercial. Cada empresa (um <strong>pacote</strong>) tem as suas salas. Antes dos módulos, o Java era um prédio sem portaria: quem entrasse no classpath andava por <strong>todas</strong> as salas <code>public</code> de todas as empresas, inclusive as que eram só para uso interno. Os <strong>módulos</strong> acrescentam uma portaria em cada andar:</p>
+<ul>
+  <li><code>exports</code>: "estas salas recebem visitas" (pacotes que outros módulos podem usar);</li>
+  <li><code>requires</code>: "este andar precisa visitar aquele outro" (de quais módulos eu dependo).</li>
+</ul>
+<p>Tudo o que não é exportado fica <strong>escondido</strong>, mesmo que as classes sejam <code>public</code>. E as dependências ficam escritas: o Java confere, antes de rodar, se tudo de que o programa precisa está presente (em vez de quebrar no meio com um <code>NoClassDefFoundError</code>, como você viu na <a href="jar.html">aula de JAR</a>).</p>
+
+<h3>O JDK é feito de módulos</h3>
+<pre class="term">$ java --list-modules | wc -l
+69
+$ java --list-modules | head -12
+java.base@25.0.4.1
+java.compiler@25.0.4.1
+java.datatransfer@25.0.4.1
+java.desktop@25.0.4.1
+java.instrument@25.0.4.1
+java.logging@25.0.4.1
+java.management@25.0.4.1
+java.management.rmi@25.0.4.1
+java.naming@25.0.4.1
+java.net.http@25.0.4.1
+java.prefs@25.0.4.1
+java.rmi@25.0.4.1</pre>
+<p>São 69 módulos. O mais importante é o <code>java.base</code>, com o essencial (<code>java.lang</code>, <code>java.util</code>, <code>java.io</code>…). Outros são especializados: <code>java.logging</code> (logs), <code>java.desktop</code> (janelas), <code>java.sql</code> (bancos de dados). Para ver o que um módulo exporta:</p>
+<pre class="term">$ java --describe-module java.base | head -5
+java.base@25.0.4.1
+exports java.io
+exports java.lang
+exports java.lang.annotation
+exports java.lang.classfile</pre>
+
+<hr>
+
+<h2>1. Um projeto com dois módulos</h2>
+<p>A Ana reorganizou o caixa da aula de JAR em dois módulos:</p>
+<ul>
+  <li><code>br.com.ana.util</code>: utilidades. Tem o pacote <code>br.com.ana.util</code> (a classe <code>Moeda</code>, para todo mundo usar) e o pacote <code>br.com.ana.util.interno</code> (a classe <code>Arredonda</code>, um detalhe interno que ela não quer que ninguém use diretamente).</li>
+  <li><code>br.com.ana.loja</code>: o programa, com a classe <code>Caixa</code>.</li>
+</ul>
+
+<p>A convenção é uma pasta por módulo, com o nome do módulo, e o <code>module-info.java</code> na raiz dela:</p>
+<pre class="term">$ find src -type f | sort
+src/br.com.ana.loja/br/com/ana/loja/Caixa.java
+src/br.com.ana.loja/module-info.java
+src/br.com.ana.util/br/com/ana/util/interno/Arredonda.java
+src/br.com.ana.util/br/com/ana/util/Moeda.java
+src/br.com.ana.util/module-info.java</pre>
+
+<h3>O módulo <code>br.com.ana.util</code></h3>
+<pre class="file" data-file="src/br.com.ana.util/module-info.java">module br.com.ana.util {
+    exports br.com.ana.util;
+}
+</pre>
+<dl class="anatomy">
+  <dt>module br.com.ana.util</dt><dd>Declara um módulo e dá o nome dele. O costume é usar o nome do pacote principal (domínio ao contrário). O arquivo se chama sempre <code>module-info.java</code>.</dd>
+  <dt>exports br.com.ana.util;</dt><dd>"O pacote <code>br.com.ana.util</code> pode ser usado por outros módulos." O pacote <code>br.com.ana.util.interno</code> <strong>não</strong> está na lista: fica escondido.</dd>
+</dl>
+
+<pre class="file" data-file="src/br.com.ana.util/br/com/ana/util/Moeda.java">package br.com.ana.util;
+
+import br.com.ana.util.interno.Arredonda;
+
+public class Moeda {
+    public static String formatar(double valor) {
+        return String.format("R$ %.2f", Arredonda.centavos(valor));
+    }
+}
+</pre>
+<pre class="file" data-file="src/br.com.ana.util/br/com/ana/util/interno/Arredonda.java">package br.com.ana.util.interno;
+
+public class Arredonda {
+    public static double centavos(double valor) {
+        return Math.round(valor * 100) / 100.0;
+    }
+}
+</pre>
+<p>Dentro do mesmo módulo, a <code>Moeda</code> usa a <code>Arredonda</code> normalmente. O <code>exports</code> só vale para quem está <strong>fora</strong>.</p>
+
+<h3>O módulo <code>br.com.ana.loja</code></h3>
+<pre class="file" data-file="src/br.com.ana.loja/module-info.java">module br.com.ana.loja {
+    requires br.com.ana.util;
+    requires java.logging;
+}
+</pre>
+<dl class="anatomy">
+  <dt>requires br.com.ana.util;</dt><dd>"Este módulo usa o módulo <code>br.com.ana.util</code>." Sem isso, nem os pacotes exportados dele ficam visíveis.</dd>
+  <dt>requires java.logging;</dt><dd>O <code>Caixa</code> usa <code>java.util.logging.Logger</code> (veja <a href="depuracao.html">Depurar</a>), que fica no módulo <code>java.logging</code> do JDK.</dd>
+  <dt>(sem <code>requires java.base</code>)</dt><dd>O <code>java.base</code> é exigido automaticamente por todo módulo.</dd>
+</dl>
+
+<pre class="file" data-file="src/br.com.ana.loja/br/com/ana/loja/Caixa.java">package br.com.ana.loja;
+
+import br.com.ana.util.Moeda;
+import java.util.logging.Logger;
+
+public class Caixa {
+    private static final Logger LOG = Logger.getLogger("caixa");
+
+    public static void main(String[] args) {
+        double total = 0;
+        for (String a : args) {
+            total += Double.parseDouble(a);
+        }
+        System.out.println("Itens: " + args.length);
+        System.out.println("Total: " + Moeda.formatar(total));
+        LOG.info("Venda registrada");
+    }
+}
+</pre>
+
+<p>Repare: o código das classes é Java comum. Os módulos mexem só na "portaria"; o que acontece dentro das salas não muda.</p>
+
+<div class="tryjava" data-args="4.50 10 2.25" data-goal="out:Total: R$ 16\,75,src:Moeda\.formatar">
+<p class="try-task"><strong>Missão:</strong> o editor do guia não tem módulos, mas o código de dentro deles é o mesmo. Aqui as três classes estão num arquivo só (sem <code>package</code>). Complete o <code>main</code> do caixa: some os preços recebidos nos argumentos e mostre o total com <code>Moeda.formatar</code>, como na classe <code>Caixa</code> acima.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double total = 0;
+        // some os argumentos aqui
+
+        System.out.println("Itens: " + args.length);
+        // mostre "Total: " + o total formatado
+    }
+}
+
+class Moeda {
+    static String formatar(double valor) {
+        return String.format("R$ %.2f", Arredonda.centavos(valor));
+    }
+}
+
+class Arredonda {
+    static double centavos(double valor) {
+        return Math.round(valor * 100) / 100.0;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double total = 0;
+        for (String a : args) {
+            total += Double.parseDouble(a);
+        }
+        System.out.println("Itens: " + args.length);
+        System.out.println("Total: " + Moeda.formatar(total));
+    }
+}
+
+class Moeda {
+    static String formatar(double valor) {
+        return String.format("R$ %.2f", Arredonda.centavos(valor));
+    }
+}
+
+class Arredonda {
+    static double centavos(double valor) {
+        return Math.round(valor * 100) / 100.0;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Compilar com <code>--module-path</code></h2>
+<p>O <strong>module path</strong> ("caminho dos módulos") é o equivalente do classpath para módulos: a lista de pastas ou JARs onde o Java procura módulos. Primeiro a Ana compila o <code>util</code> (que não depende de ninguém), depois o <code>loja</code>, apontando o module path para onde o <code>util</code> compilado ficou:</p>
+
+<pre class="term">$ javac -d out/br.com.ana.util $(find src/br.com.ana.util -name "*.java")
+$ javac -p out -d out/br.com.ana.loja $(find src/br.com.ana.loja -name "*.java")
+$ find out -type f | sort
+out/br.com.ana.loja/br/com/ana/loja/Caixa.class
+out/br.com.ana.loja/module-info.class
+out/br.com.ana.util/br/com/ana/util/interno/Arredonda.class
+out/br.com.ana.util/br/com/ana/util/Moeda.class
+out/br.com.ana.util/module-info.class</pre>
+
+<dl class="anatomy">
+  <dt>$(find src/br.com.ana.util -name "*.java")</dt><dd>Um truque do Bash: o <code>find</code> lista todos os <code>.java</code> do módulo, e a lista vira os argumentos do <code>javac</code>. Inclui o <code>module-info.java</code>.</dd>
+  <dt>-d out/br.com.ana.util</dt><dd>Os <code>.class</code> de cada módulo vão para uma pasta com o nome do módulo.</dd>
+  <dt>-p out</dt><dd>Abreviação de <code>--module-path out</code>: "procure módulos já compilados na pasta <code>out</code>". É assim que o <code>javac</code> acha o <code>br.com.ana.util</code>.</dd>
+</dl>
+
+<p>O <code>module-info.java</code> também é compilado: vira <code>module-info.class</code>. Também dá para compilar todos os módulos de uma vez, com <code>javac -d out --module-source-path src --module br.com.ana.loja,br.com.ana.util</code>.</p>
+
+<h3>Rodar com <code>--module</code></h3>
+<pre class="term">$ java -p out -m br.com.ana.loja/br.com.ana.loja.Caixa 4.50 10 2.25
+Itens: 3
+Total: R$ 16,75
+out. 16, 2026 6:57:14 PM br.com.ana.loja.Caixa main
+INFORMAÇÕES: Venda registrada</pre>
+<dl class="anatomy">
+  <dt>-p out</dt><dd><code>--module-path</code>: onde estão os módulos.</dd>
+  <dt>-m br.com.ana.loja/br.com.ana.loja.Caixa</dt><dd><code>--module</code>: o módulo inicial, uma barra, e a classe com o <code>main</code>.</dd>
+  <dt>4.50 10 2.25</dt><dd>Os argumentos do programa, como sempre.</dd>
+</dl>
+
+<h3>JARs modulares</h3>
+<p>Um JAR com um <code>module-info.class</code> na raiz é um <strong>JAR modular</strong>. Com <code>--main-class</code>, a classe principal fica anotada no módulo, e basta dar o nome do módulo:</p>
+<pre class="term">$ mkdir mods
+$ jar --create --file mods/util.jar -C out/br.com.ana.util .
+$ jar --create --file mods/loja.jar --main-class br.com.ana.loja.Caixa -C out/br.com.ana.loja .
+$ java -p mods -m br.com.ana.loja 2.50 2.50
+Itens: 2
+Total: R$ 5,00
+out. 16, 2026 6:58:04 PM br.com.ana.loja.Caixa main
+INFORMAÇÕES: Venda registrada
+$ jar --describe-module --file mods/loja.jar
+br.com.ana.loja jar:file:///home/ana/modulos/mods/loja.jar!/module-info.class
+requires br.com.ana.util
+requires java.base mandated
+requires java.logging
+contains br.com.ana.loja
+main-class br.com.ana.loja.Caixa
+</pre>
+<p>(<code>mandated</code> = "obrigatório": o <code>java.base</code> que todo módulo recebe.) E um detalhe que facilita a vida: um JAR modular também funciona no <strong>classpath</strong>, como um JAR comum; aí o <code>module-info</code> é simplesmente ignorado:</p>
+<pre class="term">$ java -cp mods/loja.jar:mods/util.jar br.com.ana.loja.Caixa 3
+Itens: 1
+Total: R$ 3,00
+out. 16, 2026 6:58:04 PM br.com.ana.loja.Caixa main
+INFORMAÇÕES: Venda registrada</pre>
+<p>Tudo o que roda pelo classpath fica num módulo "sem nome" (o <em>unnamed module</em>), que enxerga tudo. É assim que todos os programas das aulas anteriores rodaram, sem que você precisasse saber de módulos.</p>
+
+<hr>
+
+<h2>3. A portaria funcionando: os erros <code>is not visible</code></h2>
+
+<h3>Usar um pacote que não foi exportado</h3>
+<p>A Ana tentou usar a <code>Arredonda</code> direto no <code>Caixa</code> (acrescentou <code>import br.com.ana.util.interno.Arredonda;</code>):</p>
+<div class="warning"><strong>Este código não compila de propósito</strong></div>
+<pre class="term">$ javac -p out -d out/br.com.ana.loja $(find src/br.com.ana.loja -name "*.java")
+src/br.com.ana.loja/br/com/ana/loja/Caixa.java:4: error: package br.com.ana.util.interno is not visible
+import br.com.ana.util.interno.Arredonda;
+                      ^
+  (package br.com.ana.util.interno is declared in module br.com.ana.util, which does not export it)
+1 error</pre>
+<p>A classe <code>Arredonda</code> é <code>public</code>, mas o pacote dela não foi exportado: <code>is not visible</code> ("não é visível"), e a linha de baixo explica: <code>declared in module br.com.ana.util, which does not export it</code>. Isso é o que os módulos acrescentam ao <code>public</code>: <strong>público dentro do módulo</strong> não é o mesmo que <strong>público para o mundo</strong>.</p>
+
+<h3>Esquecer o <code>requires</code></h3>
+<p>Com o <code>module-info.java</code> do <code>loja</code> vazio (<code>module br.com.ana.loja { }</code>, sem nenhum <code>requires</code>):</p>
+<pre class="term">$ javac -p out -d out/br.com.ana.loja $(find src/br.com.ana.loja -name "*.java")
+src/br.com.ana.loja/br/com/ana/loja/Caixa.java:3: error: package br.com.ana.util is not visible
+import br.com.ana.util.Moeda;
+                 ^
+  (package br.com.ana.util is declared in module br.com.ana.util, but module br.com.ana.loja does not read it)
+src/br.com.ana.loja/br/com/ana/loja/Caixa.java:4: error: package java.util.logging is not visible
+import java.util.logging.Logger;
+                ^
+  (package java.util.logging is declared in module java.logging, but module br.com.ana.loja does not read it)
+2 errors</pre>
+<p><code>does not read it</code> = "o módulo <code>br.com.ana.loja</code> não lê (não declarou que usa) aquele módulo". São dois: o <code>br.com.ana.util</code>, da Ana, e o <code>java.logging</code>, do próprio JDK. Conserto: um <code>requires</code> para cada.</p>
+
+<h3>Esquecer só o módulo do JDK</h3>
+<p>Com <code>requires br.com.ana.util;</code>, mas sem o <code>requires java.logging;</code>:</p>
+<pre class="term">$ javac -p out -d out/br.com.ana.loja $(find src/br.com.ana.loja -name "*.java")
+src/br.com.ana.loja/br/com/ana/loja/Caixa.java:4: error: package java.util.logging is not visible
+import java.util.logging.Logger;
+                ^
+  (package java.util.logging is declared in module java.logging, but module br.com.ana.loja does not read it)
+1 error</pre>
+<p>Mesmo erro, agora com um módulo do próprio JDK. Programas no classpath enxergam todos os módulos do JDK; um módulo nomeado só enxerga o <code>java.base</code> e o que declarar. A mensagem já diz qual <code>requires</code> falta: <code>declared in module java.logging</code>.</p>
+
+<hr>
+
+<h2>4. <code>jdeps</code>: de que o código depende?</h2>
+<p>O <code>jdeps</code> (<em>Java dependencies</em>) analisa classes ou JARs compilados e lista de quais módulos eles dependem:</p>
+<pre class="term">$ jdeps -s --module-path out out/br.com.ana.loja
+br.com.ana.loja -&gt; br.com.ana.util
+br.com.ana.loja -&gt; java.base
+br.com.ana.loja -&gt; java.logging
+$ jdeps -s --module-path out out/br.com.ana.util
+br.com.ana.util -&gt; java.base</pre>
+<p>(<code>-s</code> = <em>summary</em>, resumo.) Ele também funciona com JARs comuns, sem módulos, como os da aula de JAR. É útil para saber quais módulos do JDK um programa antigo usa, antes de usar o <code>jlink</code>:</p>
+<pre class="term">$ jdeps --print-module-deps ~/jar-loja/caixa.jar ~/jar-loja/util.jar
+java.base
+$ jdeps -summary ~/jar-loja/caixa.jar
+caixa.jar -&gt; java.base
+caixa.jar -&gt; not found</pre>
+<p>O <code>not found</code> aparece porque, analisando o <code>caixa.jar</code> sozinho, o <code>jdeps</code> não achou a <code>Moeda</code> (ela está no <code>util.jar</code>). Passando os dois JARs, a resposta é: só o <code>java.base</code>.</p>
+
+<hr>
+
+<h2>5. <code>jlink</code>: um Java sob medida</h2>
+<p>Para rodar o caixa, a pessoa precisa de um Java instalado. O JDK inteiro do laboratório ocupa 303 MB, com 69 módulos, compilador, ferramentas… mas o caixa usa só 2 módulos do JDK. O <code>jlink</code> (<em>Java linker</em>, "montador") cria uma pasta com um Java <strong>só com os módulos necessários</strong>, junto com os seus:</p>
+
+<pre class="term">$ jlink --module-path out --add-modules br.com.ana.loja --output caixa-java --strip-debug --no-header-files --no-man-pages --launcher caixa=br.com.ana.loja/br.com.ana.loja.Caixa
+$ du -sh caixa-java /opt/jdk-25
+56M	caixa-java
+303M	/opt/jdk-25
+$ ls caixa-java caixa-java/bin
+caixa-java:
+bin
+conf
+legal
+lib
+release
+
+caixa-java/bin:
+caixa
+java
+keytool
+$ caixa-java/bin/java --list-modules
+br.com.ana.loja
+br.com.ana.util
+java.base@25.0.4.1
+java.logging@25.0.4.1</pre>
+
+<dl class="anatomy">
+  <dt>--module-path out</dt><dd>Onde estão os seus módulos (os do JDK o <code>jlink</code> já conhece).</dd>
+  <dt>--add-modules br.com.ana.loja</dt><dd>O módulo raiz. O <code>jlink</code> segue os <code>requires</code> e inclui sozinho o <code>br.com.ana.util</code>, o <code>java.logging</code> e o <code>java.base</code>. Por isso o programa <strong>precisa</strong> ser modular: o <code>jlink</code> usa os <code>module-info</code> para saber o que levar.</dd>
+  <dt>--output caixa-java</dt><dd>A pasta que será criada.</dd>
+  <dt>--strip-debug, --no-header-files, --no-man-pages</dt><dd>Deixam de fora informações de depuração, arquivos para programar em C e manuais: tudo o que não faz falta para rodar.</dd>
+  <dt>--launcher caixa=módulo/classe</dt><dd>Cria um script <code>bin/caixa</code> que já chama o programa.</dd>
+</dl>
+
+<p>De 303 MB para <strong>56 MB</strong>, com 4 módulos em vez de 69. Essa pasta pode ser copiada (ou compactada) para outro computador Linux da mesma arquitetura e roda sem Java instalado. Ela é a base do <code>jpackage</code>, citado na <a href="jar.html">aula de JAR</a>. O lançador:</p>
+
+<pre class="term">$ cat caixa-java/bin/caixa
+#!/bin/sh
+JLINK_VM_OPTIONS=
+DIR=`dirname $0`
+$DIR/java $JLINK_VM_OPTIONS -m br.com.ana.loja/br.com.ana.loja.Caixa "$@"
+$ caixa-java/bin/caixa 4.50 10 2.25
+Itens: 3
+Total: R$ 16.75
+Oct 16, 2026 6:57:33 PM br.com.ana.loja.Caixa main
+INFORMAÇÕES: Venda registrada</pre>
+
+<p>Funcionou, mas olhe com atenção: <code>R$ 16.75</code> com <strong>ponto</strong>, e a data em inglês (<code>Oct</code>). Com o JDK completo, era <code>16,75</code> e <code>out.</code>. O que sumiu? Os dados de idioma e formato de cada país ficam num módulo separado, o <code>jdk.localedata</code>, que nenhum <code>requires</code> pede, então o <code>jlink</code> não o incluiu. Sem ele, o Java só sabe formatar no padrão inglês. (O <code>INFORMAÇÕES</code> continua em português porque a tradução das mensagens de log mora no próprio <code>java.logging</code>.) Conserto: incluir o módulo à mão, só com os idiomas português (<code>pt-*</code>):</p>
+
+<pre class="term">$ jlink --module-path out --add-modules br.com.ana.loja,jdk.localedata --include-locales='pt-*' --output caixa-java-br --strip-debug --no-header-files --no-man-pages --launcher caixa=br.com.ana.loja/br.com.ana.loja.Caixa
+$ du -sh caixa-java-br
+56M	caixa-java-br
+$ caixa-java-br/bin/caixa 4.50 10 2.25
+Itens: 3
+Total: R$ 16,75
+out. 16, 2026 6:57:49 PM br.com.ana.loja.Caixa main
+INFORMAÇÕES: Venda registrada</pre>
+
+<p>A lição vale para qualquer <code>jlink</code>: o Java sob medida tem <strong>só</strong> o que foi pedido. Teste o programa com ele antes de entregar.</p>
+
+<div class="tryjava" data-goal="out:2.5,out:3.14,out:10.0">
+<p class="try-task"><strong>Missão:</strong> reescreva o método interno <code>centavos</code> (o da <code>Arredonda</code>, que o módulo esconde) para arredondar a duas casas: multiplique por 100, arredonde com <code>Math.round</code> e divida por <code>100.0</code>. A saída deve ser <code>2.5</code>, <code>3.14</code> e <code>10.0</code>.</p>
+<pre class="script">public class Main {
+    static double centavos(double valor) {
+        return valor;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(centavos(2.499));
+        System.out.println(centavos(3.14159));
+        System.out.println(centavos(10.0));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static double centavos(double valor) {
+        return Math.round(valor * 100) / 100.0;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(centavos(2.499));
+        System.out.println(centavos(3.14159));
+        System.out.println(centavos(10.0));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>6. Quando vale a pena usar módulos?</h2>
+<p>Com franqueza: <strong>a maioria dos projetos Java não usa módulos</strong>. Aplicações web, sistemas de empresas e projetos com <a href="maven.html">Maven</a> ou <a href="gradle.html">Gradle</a> continuam no classpath, e funcionam muito bem. Muitas bibliotecas populares ainda não trazem <code>module-info</code>, e misturar as duas coisas exige cuidado. Você não precisa de módulos para escrever bons programas.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Módulos?</th></tr>
+<tr><td>Aprendendo Java, programas pequenos, exercícios</td><td>Não</td></tr>
+<tr><td>Aplicação comum com Maven/Gradle e várias bibliotecas</td><td>Geralmente não</td></tr>
+<tr><td>Você escreve uma <strong>biblioteca</strong> para outras pessoas e quer esconder os pacotes internos</td><td>Sim, vale a pena</td></tr>
+<tr><td>Você quer entregar um programa com um Java enxuto (<code>jlink</code>/<code>jpackage</code>), por exemplo um aplicativo de desktop</td><td>Sim</td></tr>
+<tr><td>Um sistema grande, com equipes diferentes, em que as fronteiras entre as partes precisam ser respeitadas</td><td>Pode valer</td></tr>
+</table>
+</div>
+<p>Mesmo sem escrever <code>module-info</code>, é bom saber que os módulos existem: eles explicam mensagens como <code>is not visible</code>, o <code>java.base</code> que aparece nos stack traces (<code>at java.base/java.util…</code>) e a organização da <a href="javadoc.html">documentação oficial</a>, que é dividida por módulo.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>package … is not visible</code></strong>
+<p><strong>O que aconteceu:</strong> leia a linha entre parênteses. <code>which does not export it</code>: o pacote não está nos <code>exports</code> do outro módulo (ele é interno; use outra classe, ou exporte o pacote se o módulo for seu). <code>does not read it</code>: falta o <code>requires</code> no seu <code>module-info.java</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>No matching locales found for "pt-BR"</code></strong>
+<pre class="term">$ jlink --module-path out --add-modules br.com.ana.loja,jdk.localedata --include-locales=pt-BR --output caixa-java-br --strip-debug --no-header-files --no-man-pages --launcher caixa=br.com.ana.loja/br.com.ana.loja.Caixa
+Error: No matching locales found for "pt-BR". Check the specified pattern.</pre>
+<p><strong>O que aconteceu:</strong> neste JDK, o <code>jlink</code> não achou o padrão <code>pt-BR</code> escrito assim. <strong>Como resolver:</strong> use <code>--include-locales='pt-*'</code> (todo o português), como na seção 5.</p>
+</div>
+
+<div class="cenario">
+<strong>Números e datas em inglês no Java do <code>jlink</code></strong>
+<p><strong>O que aconteceu:</strong> faltou o módulo <code>jdk.localedata</code>. <strong>Como resolver:</strong> <code>--add-modules …,jdk.localedata</code> (de preferência com <code>--include-locales</code> para não levar todos os idiomas). Use <code>caixa-java/bin/java --list-modules</code> para conferir o que foi incluído.</p>
+</div>
+
+<div class="cenario">
+<strong><code>Module … not found</code> ao rodar</strong>
+<pre class="term">$ java -p mods/loja.jar -m br.com.ana.loja 1
+Error occurred during initialization of boot layer
+java.lang.module.FindException: Module br.com.ana.util not found, required by br.com.ana.loja</pre>
+<p><strong>O que aconteceu:</strong> o module path (<code>-p</code>) tem só o <code>loja.jar</code>; o <code>br.com.ana.util</code>, que ele exige, não está lá. Ao contrário do classpath, o Java confere <strong>antes</strong> de começar (<code>during initialization</code>) e se recusa a rodar sem todos os <code>requires</code>. <strong>Como resolver:</strong> aponte o <code>-p</code> para a pasta com todos os módulos (<code>-p mods</code>).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Item</th><th>O que faz</th></tr>
+<tr><td><code>module nome { … }</code></td><td>Declara o módulo (<code>module-info.java</code>, na raiz dos fontes)</td></tr>
+<tr><td><code>requires modulo;</code></td><td>Este módulo usa aquele</td></tr>
+<tr><td><code>exports pacote;</code></td><td>Este pacote pode ser usado por outros módulos</td></tr>
+<tr><td><code>javac -p out -d out/mod $(find src/mod -name "*.java")</code></td><td>Compila um módulo usando outros já compilados</td></tr>
+<tr><td><code>javac -d out --module-source-path src --module a,b</code></td><td>Compila vários módulos de uma vez</td></tr>
+<tr><td><code>java -p out -m modulo/pacote.Classe</code></td><td>Roda pelo module path</td></tr>
+<tr><td><code>jar --create --file x.jar --main-class … -C pasta .</code></td><td>Cria um JAR modular</td></tr>
+<tr><td><code>java --list-modules</code> / <code>--describe-module m</code></td><td>Lista os módulos / mostra um</td></tr>
+<tr><td><code>jdeps -s …</code> / <code>jdeps --print-module-deps …</code></td><td>Dependências de classes ou JARs</td></tr>
+<tr><td><code>jlink --module-path … --add-modules … --output …</code></td><td>Cria um Java sob medida</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Exportar um pacote</h3>
+<p>Complete o <code>module-info.java</code> do módulo <code>br.com.ana.agenda</code> para que outros módulos usem o pacote <code>br.com.ana.agenda.modelo</code>:</p>
+<div class="ex-code">module br.com.ana.agenda {<br>&nbsp;&nbsp;&nbsp;&nbsp;<input data-answer="exports br.com.ana.agenda.modelo;" aria-label="linha"><br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Usar um módulo do JDK</h3>
+<p>O seu módulo usa <code>java.sql.Connection</code>, do módulo <code>java.sql</code>. Complete:</p>
+<div class="ex-code"><input data-answer="requires java.sql;" aria-label="linha"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Rodar</h3>
+<p>Complete para rodar a classe <code>br.com.ana.agenda.App</code> do módulo <code>br.com.ana.agenda</code>, com os módulos na pasta <code>mods</code>:</p>
+<div class="ex-code">java -p mods -m <input data-answer="br.com.ana.agenda/br.com.ana.agenda.App" aria-label="módulo e classe"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. A classe <code>Arredonda</code> é <code>public</code>, mas o pacote dela não está nos <code>exports</code>. Outro módulo consegue usá-la?</p>
+<label><input type="radio" name="q4"> Sim, porque ela é <code>public</code>.</label>
+<label><input type="radio" name="q4"> Não: o pacote não é visível fora do módulo.</label>
+<label><input type="radio" name="q4"> Só se estiver no mesmo JAR.</label>
+<label><input type="radio" name="q4"> Só com <code>-ea</code>.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Para que serve o <code>jlink</code>?</p>
+<label><input type="radio" name="q5"> Para compilar módulos.</label>
+<label><input type="radio" name="q5"> Para baixar bibliotecas do Maven Central.</label>
+<label><input type="radio" name="q5"> Para criar um JAR executável.</label>
+<label><input type="radio" name="q5"> Para criar um Java com só os módulos que o programa usa.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual módulo todo módulo recebe sem precisar de <code>requires</code>?</p>
+<label><input type="radio" name="q6"> <code>java.base</code></label>
+<label><input type="radio" name="q6"> <code>java.logging</code></label>
+<label><input type="radio" name="q6"> <code>java.desktop</code></label>
+<label><input type="radio" name="q6"> <code>jdk.localedata</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um módulo agrupa pacotes e declara, no <code>module-info.java</code>, o que usa (<code>requires</code>) e o que mostra (<code>exports</code>). O <code>java.base</code> vem sempre.</li>
+  <li>Pacote não exportado fica invisível fora do módulo, mesmo com classes <code>public</code>.</li>
+  <li>Compilar e rodar: <code>javac -p … -d …</code> e <code>java -p … -m modulo/classe</code>.</li>
+  <li>Erros <code>is not visible</code>: <code>does not export it</code> (falta <code>exports</code> no outro) ou <code>does not read it</code> (falta <code>requires</code> no seu).</li>
+  <li><code>jdeps</code> mostra as dependências; <code>jlink</code> cria um Java sob medida (aqui, 56 MB contra 303 MB). Inclua <code>jdk.localedata</code> se precisar de formatos do Brasil.</li>
+  <li>O classpath continua funcionando; a maioria dos projetos não usa módulos. Eles valem a pena em bibliotecas e em programas entregues com <code>jlink</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
