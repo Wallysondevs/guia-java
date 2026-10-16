@@ -4648,6 +4648,7 @@
     } else {
       if (ret === T["void"]) {
         this.attribExpr(e.body, lenv, null);
+        if (!isStatementExpr(e.body) && !isErr(e.body.type || T_ERR)) this.err(env, e.body.pos, "incompatible types: lambda body is not compatible with a void functional interface\n    (consider using a block lambda body, or use a statement expression instead)");
       } else {
         var tgt = inf && inf.mentions(ret) ? null : ret;
         var bt = this.attribExpr(e.body, lenv, tgt);
@@ -4804,6 +4805,7 @@
       selKind = "primPreview";
     } else selKind = "pattern";
     e.selKind = selKind; e.selType = st;
+    var saveSlot0 = env.slotInfo ? env.slotInfo.next : 0;
     if (selKind === "string" && env.slotInfo) { e.strTmp = env.slotInfo.alloc(T["int"]); env.slotInfo.alloc(T["int"]); }
     var swEnv = env.dup({ scope: new Scope(env.scope), inSwitch: (env.inSwitch || 0) + 1 });
     if (isExpr) swEnv.yieldTarget = { pt: pt && !isErr(pt) ? pt : null, types: [], node: e, env: env };
@@ -4901,7 +4903,7 @@
         });
       }
     });
-    if (env.slotInfo) env.slotInfo.next = saveSlot;
+    if (env.slotInfo) env.slotInfo.next = saveSlot0;
     e.hasDefault = hasDefault; e.hasPattern = hasPattern; e.hasNull = hasNull;
     // exaustividade
     var needExhaustive = isExpr || hasPattern || hasNull;
@@ -5950,12 +5952,45 @@
   FL.assign = function (sym, base) {
     var self = this;
     this.reportedUninit = this.reportedUninit || {};
+    this.blankFinals(sym, base);
     eachBody(sym, function (b) {
       var st = base ? base.copy() : new DA();
       if (b.method && b.method.paramSyms) b.method.paramSyms.forEach(function (p) { uidOf(p); st.add(p); });
       if (b.expr) { self.daExpr(b.expr, st); return; }
       self.daStat(b.block, st);
     });
+  };
+  // campos final sem valor inicial precisam ser atribuídos em todo construtor
+  FL.blankFinals = function (sym, base) {
+    var self = this, d = sym.decl;
+    if (!d) return;
+    d.members.forEach(function (m) { if (m.k === "Class" && m.sym) self.blankFinals(m.sym, base); });
+    if (sym.isInterface() || sym.isRecord()) return;
+    var blanks = sym.fieldList.filter(function (f) { return f.flags["final"] && !f.flags["static"] && f.decl && f.decl.k === "Field" && !f.decl.init; });
+    if (!blanks.length) return;
+    blanks.forEach(uidOf);
+    var st0 = new DA();
+    this.daFields = blanks;
+    d.members.forEach(function (m) { if (m.k === "Init" && !m.isStatic) self.daStat(m.body, st0); });
+    var ctors = d.members.filter(function (m) { return m.k === "Method" && m.isCtor && m.body; });
+    if (!ctors.length) {
+      blanks.forEach(function (f) { if (!st0.has(f)) self.err(sym.file, d.pos, "variable " + f.name + " not initialized in the default constructor"); });
+      this.daFields = null;
+      return;
+    }
+    ctors.forEach(function (c) {
+      var stats = c.body.stats;
+      if (stats.length && stats[0].k === "ExprStmt" && stats[0].expr.k === "CtorCall" && stats[0].expr.kind === "this") return;
+      var st = st0.copy();
+      if (c.sym && c.sym.paramSyms) c.sym.paramSyms.forEach(function (p) { uidOf(p); st.add(p); });
+      self.reportedUninit = {};
+      var errs0 = self.ck.errs.length;
+      self.daStat(c.body, st);
+      self.ck.errs.length = errs0;
+      if (st.dead) return;
+      blanks.forEach(function (f) { if (!st.has(f)) self.err(sym.file, c.body.endPos, "variable " + f.name + " might not have been initialized"); });
+    });
+    this.daFields = null;
   };
   // devolve {t, f} para condições
   FL.daCond = function (e, st) {
@@ -6013,6 +6048,7 @@
         if (tg.k === "Index") { this.daExpr(tg.arr, st); this.daExpr(tg.index, st); }
         else if (tg.k === "Select") this.daExpr(tg.target, st);
         this.daExpr(e.value, st);
+        if (this.daFields && tg.ref && tg.ref.kind === "field" && this.daFields.indexOf(tg.ref.sym) >= 0 && (tg.k === "Ident" || (tg.k === "Select" && tg.target.k === "This"))) st.add(tg.ref.sym);
         return;
       }
       case "Binary":

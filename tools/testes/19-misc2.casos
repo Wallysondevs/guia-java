@@ -1,0 +1,215 @@
+### locais-record-enum-interface
+public class Main {
+    public static void main(String[] args) {
+        record Ponto(int x, int y) { Ponto mover(int dx) { return new Ponto(x + dx, y); } }
+        enum Nivel { BAIXO, ALTO }
+        interface Saudavel { String oi(); }
+        Ponto p = new Ponto(1, 2).mover(3);
+        Saudavel s = () -> "oi " + Nivel.ALTO;
+        System.out.println(p + " " + s.oi() + " " + Nivel.valueOf("BAIXO").ordinal());
+    }
+}
+### constantes-case
+public class Main {
+    static final int SEG = 1, TER = 2;
+    public static void main(String[] args) {
+        final int QUA = 3;
+        for (int d = 1; d <= 4; d++) {
+            switch (d) {
+                case SEG -> System.out.println("seg");
+                case TER -> System.out.println("ter");
+                case QUA -> System.out.println("qua");
+                default -> System.out.println("outro");
+            }
+        }
+        final String A = "a";
+        switch ("a") { case A: System.out.println("A"); }
+        char c = 'b';
+        switch (c) { case 'a', 'b' -> System.out.println("ab"); default -> {} }
+    }
+}
+### interface-constantes-estaticos
+public class Main {
+    interface Config { int MAX = 3; String NOME = "app"; static String desc() { return NOME + ":" + MAX; } }
+    static class A { static String quem() { return "A"; } }
+    static class B extends A { static String quem() { return "B"; } }
+    public static void main(String[] args) {
+        System.out.println(Config.MAX + " " + Config.desc());
+        A a = new B();
+        System.out.println(A.quem() + B.quem());
+    }
+}
+### string-acumulador
+public class Main {
+    public static void main(String[] args) {
+        String s = "";
+        for (int i = 0; i < 5; i++) s += i;
+        s += 'x';
+        s += 1.5;
+        s += true;
+        s += null;
+        System.out.println(s + " " + s.length());
+        int total = 0;
+        for (int i = 0; i < 100000; i++) total += i * i;
+        System.out.println(total);
+        long t2 = 0;
+        for (int i = 0; i < 100000; i++) t2 += (long) i * i;
+        System.out.println(t2);
+    }
+}
+### ternario-aninhado-lambda
+import java.util.function.*;
+public class Main {
+    public static void main(String[] args) {
+        boolean dobrar = args.length == 0;
+        IntUnaryOperator op = dobrar ? x -> x * 2 : x -> x + 1;
+        System.out.println(op.applyAsInt(21));
+        int n = 15;
+        String r = n % 15 == 0 ? "FizzBuzz" : n % 3 == 0 ? "Fizz" : n % 5 == 0 ? "Buzz" : String.valueOf(n);
+        System.out.println(r);
+        Supplier<String> s = n > 10 ? () -> "grande" : () -> "pequeno";
+        System.out.println(s.get());
+    }
+}
+### heranca-abstrata-generica
+import java.util.*;
+public class Main {
+    static abstract class Repositorio<T, ID> {
+        protected final Map<ID, T> dados = new LinkedHashMap<>();
+        abstract ID idDe(T t);
+        void salvar(T t) { dados.put(idDe(t), t); }
+        Optional<T> buscar(ID id) { return Optional.ofNullable(dados.get(id)); }
+        List<T> todos() { return new ArrayList<>(dados.values()); }
+    }
+    record Livro(String isbn, String titulo) {}
+    static class LivroRepo extends Repositorio<Livro, String> {
+        String idDe(Livro l) { return l.isbn(); }
+    }
+    public static void main(String[] args) {
+        LivroRepo r = new LivroRepo();
+        r.salvar(new Livro("1", "Dom Casmurro"));
+        r.salvar(new Livro("2", "Iracema"));
+        r.salvar(new Livro("1", "Memórias Póstumas"));
+        System.out.println(r.todos());
+        System.out.println(r.buscar("2").map(Livro::titulo).orElse("?") + " " + r.buscar("9").isPresent());
+    }
+}
+### excecao-generica-propria
+public class Main {
+    static class ValidacaoException extends RuntimeException {
+        private final String campo;
+        ValidacaoException(String campo, String msg) { super(campo + ": " + msg); this.campo = campo; }
+        String getCampo() { return campo; }
+    }
+    static void validar(String nome, int idade) {
+        if (nome == null || nome.isBlank()) throw new ValidacaoException("nome", "obrigatório");
+        if (idade < 0) throw new ValidacaoException("idade", "negativa");
+    }
+    public static void main(String[] args) {
+        String[][] casos = {{"Ana", "29"}, {"", "10"}, {"Bia", "-1"}};
+        for (String[] c : casos) {
+            try { validar(c[0], Integer.parseInt(c[1])); System.out.println("ok " + c[0]); }
+            catch (ValidacaoException e) { System.out.println("campo " + e.getCampo() + " -> " + e.getMessage()); }
+        }
+        validar(null, 0);
+    }
+}
+### switch-null-string
+public class Main {
+    public static void main(String[] args) {
+        String s = null;
+        String r = switch (s) {
+            case null -> "nulo!";
+            case "a" -> "A";
+            default -> "outro";
+        };
+        System.out.println(r);
+        String t = null;
+        switch (t) { case "x": break; }
+    }
+}
+### overflow-laco
+public class Main {
+    public static void main(String[] args) {
+        int fat = 1;
+        for (int i = 1; i <= 15; i++) { fat *= i; System.out.print(fat + " "); }
+        System.out.println();
+        long fl = 1;
+        for (int i = 1; i <= 25; i++) fl *= i;
+        System.out.println(fl);
+        byte b = 0;
+        for (int i = 0; i < 200; i++) b++;
+        System.out.println(b);
+        short s = Short.MAX_VALUE;
+        s++;
+        System.out.println(s + " " + (Integer.MIN_VALUE - 1) + " " + Math.abs(Integer.MIN_VALUE) + " " + (-Integer.MIN_VALUE));
+    }
+}
+### char-switch-contagem
+public class Main {
+    public static void main(String[] args) {
+        String frase = "Programar em Java é divertido!";
+        int vog = 0, cons = 0, esp = 0, outros = 0;
+        for (char c : frase.toLowerCase().toCharArray()) {
+            switch (c) {
+                case 'a', 'e', 'i', 'o', 'u', 'é' -> vog++;
+                case ' ' -> esp++;
+                default -> { if (Character.isLetter(c)) cons++; else outros++; }
+            }
+        }
+        System.out.printf("vogais=%d consoantes=%d espaços=%d outros=%d%n", vog, cons, esp, outros);
+    }
+}
+### e-generic-array
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String>[] arr = new List<String>[3];
+    }
+}
+### e-ambiguidade-null
+public class Main {
+    static void f(String s) {}
+    static void f(Integer i) {}
+    public static void main(String[] args) {
+        f(null);
+    }
+}
+### e-println-null
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(null);
+    }
+}
+### e-retorno-lambda
+import java.util.function.*;
+public class Main {
+    public static void main(String[] args) {
+        Function<String, Integer> f = s -> s.toUpperCase();
+        Supplier<Integer> g = () -> "x";
+        Runnable r = () -> 5;
+    }
+}
+### e-metodo-generico-limite
+import java.util.*;
+public class Main {
+    static <T extends Comparable<T>> T maior(List<T> l) { return l.get(0); }
+    static class Caixa {}
+    public static void main(String[] args) {
+        maior(List.of(new Caixa()));
+    }
+}
+### e-interface-metodo-sem-public
+public class Main {
+    interface Forma { double area(); }
+    static class Q implements Forma { double area() { return 1; } }
+    public static void main(String[] args) {}
+}
+### e-campo-nao-inicializado-final
+public class Main {
+    static class Conta {
+        private final String titular;
+        Conta() { }
+    }
+    public static void main(String[] args) {}
+}
