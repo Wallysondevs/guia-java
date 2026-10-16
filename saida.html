@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Saída — System.out.println, print e System.err | Guia Java</title>
+<meta name="description" content="Escrever na tela em Java: println e print, linhas em branco, números e textos, a diferença entre println(3 + 4) e println(&quot;3&quot; + 4), quebras de linha com \n, a saída de erro System.err, IO.println do Java 25 e uma primeira olhada no printf.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Saída: print e println</span></h1>
+
+<p class="intro">Escrever na tela é a forma mais simples de um programa mostrar o que fez. Você já usou o <code>System.out.println</code>; nesta aula você conhece o irmão dele, o <code>print</code>, aprende a mostrar números e contas (e a não cair na armadilha do <code>"3" + 4</code>), a pular linhas, a separar mensagens de erro com o <code>System.err</code> e a reconhecer o <code>IO.println</code> e o <code>printf</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <code>println</code> e <code>print</code>, e como fazer uma linha em branco.</li>
+  <li>Como imprimir números, contas e textos juntos.</li>
+  <li>Por que <code>println(3 + 4)</code> mostra <code>7</code> e <code>println("3" + 4)</code> mostra <code>34</code>.</li>
+  <li>Quebras de linha e tabulação com <code>\n</code> e <code>\t</code>.</li>
+  <li>A saída de erro, <code>System.err</code>, e por que ela existe.</li>
+  <li><code>IO.println</code> <span class="versao">Java 25+</span> e o <code>printf</code>, só para conhecer.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma máquina de escrever</h2>
+<p>Imagine uma máquina de escrever antiga. Você datilografa letras numa linha. Quando quer passar para a linha de baixo, puxa a alavanca que faz o papel subir e o carro voltar ao começo. Escrever na tela do terminal é igual: o texto vai entrando da esquerda para a direita, e só passa para a próxima linha quando alguém manda.</p>
+
+<ul>
+  <li><code>System.out.print</code> só <strong>datilografa</strong>: escreve e deixa o "carro" parado logo depois do texto.</li>
+  <li><code>System.out.println</code> datilografa e <strong>puxa a alavanca</strong>: escreve e pula para o começo da próxima linha. O <code>ln</code> do nome é de <em>line</em>, "linha".</li>
+</ul>
+
+<hr>
+
+<h2><code>println</code>: escrever e pular linha</h2>
+<pre class="file" data-file="trecho">System.out.println("Loja da Ana");</pre>
+
+<dl class="anatomy">
+  <dt>System.out</dt><dd>A <strong>saída padrão</strong> do programa: normalmente, a janela do terminal (ou a área de saída do editor do guia).</dd>
+  <dt>.println</dt><dd>O método que escreve e pula linha.</dd>
+  <dt>("Loja da Ana")</dt><dd>O que escrever: um texto entre aspas, um número, uma conta, uma variável.</dd>
+</dl>
+
+<p>Cada <code>println</code> ocupa uma linha da saída. Três <code>println</code>, três linhas. E um <code>println()</code> <strong>vazio</strong>, sem nada entre os parênteses, só pula linha: é o jeito de fazer uma linha em branco.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Loja da Ana");
+        System.out.println();
+        System.out.println("Maçã: 3 reais");
+        System.out.println("Banana: 2 reais");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Loja da Ana
+                                « a linha em branco do println()
+Maçã: 3 reais
+Banana: 2 reais</pre>
+
+<h2><code>print</code>: escrever sem pular</h2>
+<p>O <code>print</code> escreve e fica na mesma linha. O próximo texto continua colado:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.print("Maçã");
+        System.out.print("Banana");
+        System.out.println("Uva");
+        System.out.println("Fim da lista");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+MaçãBananaUva                   « três textos colados: print, print, println
+Fim da lista</pre>
+
+<p>O <code>print</code> não põe espaço nenhum entre os textos: se você quer separação, ela tem de estar no texto (<code>"Maçã, "</code>). Só o <code>println("Uva")</code> pulou a linha, por isso <code>Fim da lista</code> foi para baixo.</p>
+
+<p>Se o programa termina com um <code>print</code>, a última linha fica sem quebra, e o prompt do terminal aparece colado a ela:</p>
+
+<pre class="term">$ java Main.java
+sem enter no fimana@notebook:~$  « o prompt veio colado no texto</pre>
+
+<p>Por isso, a última escrita de um programa costuma ser um <code>println</code>. O <code>print</code> é ótimo para montar uma linha aos poucos e para perguntas, em que a resposta é digitada na mesma linha (<code>System.out.print("Seu nome: ");</code>, veja <a href="scanner.html">Ler do Teclado</a>).</p>
+
+<div class="tryjava" data-goal="out:Frutas: maçã\, banana\, uva,src:\bprint\(">
+<p class="try-task"><strong>Missão:</strong> faça o programa mostrar <code>Frutas: maçã, banana, uva</code> numa linha só. Use <code>print</code> nas primeiras linhas e <code>println</code> só na última. Atenção às vírgulas e aos espaços dentro das aspas.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Frutas: ");
+        System.out.println("maçã");
+        System.out.println("banana");
+        System.out.println("uva");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.print("Frutas: ");
+        System.out.print("maçã, ");
+        System.out.print("banana, ");
+        System.out.println("uva");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Imprimir números e contas</h2>
+<p>O <code>println</code> aceita mais do que texto. Sem aspas, o Java <strong>calcula</strong> antes de escrever:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(3 + 4);
+        System.out.println("3 + 4");
+        System.out.println(7 / 2);
+        System.out.println(7.0 / 2);
+        System.out.println(10 * 1.5);
+        System.out.println(true);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+7                               « 3 + 4 sem aspas: uma conta
+3 + 4                           « com aspas: um texto, escrito do jeito que está
+3                               « inteiro dividido por inteiro: a parte decimal some
+3.5                             « com um decimal na conta, o resultado é decimal
+15.0                            « decimal sempre aparece com ponto e pelo menos uma casa
+true                            « um valor lógico (verdadeiro)</pre>
+
+<p>Três lições aparecem aqui e têm aulas próprias: a divisão de inteiros (<a href="operadores-aritmeticos.html">Operadores Aritméticos</a>), os números com parte decimal, escritos com <strong>ponto</strong> (<a href="decimais.html">double e float</a>), e os valores <code>true</code>/<code>false</code> (<a href="char-boolean.html">char e boolean</a>).</p>
+
+<hr>
+
+<h2>Texto + número: a armadilha do <code>"3" + 4</code></h2>
+<p>O sinal <code>+</code> tem dois trabalhos em Java. Entre dois números, <strong>soma</strong>. Se um dos lados é um texto, ele <strong>emenda</strong> (o nome técnico é <strong>concatenar</strong>): transforma o outro lado em texto e cola os dois. E o Java faz as operações <strong>da esquerda para a direita</strong>, uma de cada vez. Veja:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("3" + 4);
+        System.out.println("Total: " + 3 + 4);
+        System.out.println("Total: " + (3 + 4));
+        System.out.println(3 + 4 + " reais");
+        System.out.println(1 + 2 + "3" + 4 + 5);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+34                              « texto "3" emendado com 4
+Total: 34                       « ("Total: " + 3) virou texto; depois + 4 emendou
+Total: 7                        « os parênteses fazem a soma primeiro
+7 reais                         « 3 + 4 = 7 (números), depois emenda " reais"
+3345                            « 1+2=3; "3"+"3"="33"; depois só emendas: "334", "3345"</pre>
+
+<p>Acompanhe a segunda linha passo a passo, como o Java faz:</p>
+
+<ol>
+  <li><code>"Total: " + 3</code>: texto + número = emenda. Resultado: o texto <code>"Total: 3"</code>.</li>
+  <li><code>"Total: 3" + 4</code>: texto + número = emenda de novo. Resultado: <code>"Total: 34"</code>.</li>
+</ol>
+
+<p>A soma que você queria nunca aconteceu. A solução é a terceira linha: <strong>parênteses</strong> em volta da conta, que é feita primeiro. Regra prática: <strong>sempre que misturar texto e conta, ponha a conta entre parênteses</strong>. A aula <a href="concatenacao.html">Concatenação</a> aprofunda o assunto.</p>
+
+<div class="tryjava" data-goal="out:Total do pedido: 15 reais">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou 10 reais em frutas e pagou 5 de entrega, mas o programa mostra <code>Total do pedido: 105 reais</code>. Conserte para mostrar <code>Total do pedido: 15 reais</code>, sem trocar os números.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Total do pedido: " + 10 + 5 + " reais");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Total do pedido: " + (10 + 5) + " reais");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quebras de linha e tabulação dentro do texto</h2>
+<p>Dentro das aspas, a barra invertida <code>\</code> começa um <strong>código de escape</strong>, que representa um caractere especial. Os mais usados na saída:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Vira</th><th>Exemplo</th><th>Saída</th></tr>
+<tr><td><code>\n</code></td><td>Quebra de linha (<em>new line</em>)</td><td><code>print("Linha 1\nLinha 2\n")</code></td><td>Duas linhas</td></tr>
+<tr><td><code>\t</code></td><td>Tabulação (<em>tab</em>), um espaço largo para alinhar</td><td><code>println("Nome:\tAna")</code></td><td><code>Nome:	Ana</code></td></tr>
+<tr><td><code>\"</code></td><td>Uma aspa dupla dentro do texto</td><td><code>println("Ela disse \"oi\"")</code></td><td><code>Ela disse "oi"</code></td></tr>
+<tr><td><code>\\</code></td><td>Uma barra invertida</td><td><code>println("C:\\java")</code></td><td><code>C:\java</code></td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.print("Linha 1\nLinha 2\n");
+        System.out.println("Nome:\tAna");
+        System.out.println("Ela disse \"oi\"");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Linha 1
+Linha 2                         « o \n quebrou a linha no meio do texto
+Nome:	Ana                       « o \t abriu um espaço de tabulação
+Ela disse "oi"</pre>
+
+<p>Um <code>print("…\n")</code> faz o mesmo que um <code>println("…")</code>. A lista completa de códigos está em <a href="escapes.html">Caracteres Especiais</a>.</p>
+
+<hr>
+
+<h2>A saída de erro: <code>System.err</code></h2>
+<p>Todo programa tem <strong>duas</strong> saídas de texto: a <strong>saída padrão</strong> (<code>System.out</code>, de <em>output</em>) e a <strong>saída de erro</strong> (<code>System.err</code>, de <em>error</em>). As duas aparecem na mesma tela do terminal, mas são canais separados, como duas mangueiras que desembocam no mesmo balde. Os métodos são os mesmos: <code>println</code>, <code>print</code>.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Começando...");
+        System.err.println("Aviso: estoque de maçãs baixo");
+        System.out.println("Fim.");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main
+Começando...
+Aviso: estoque de maçãs baixo
+Fim.</pre>
+
+<p>Na tela, as três linhas parecem iguais. A diferença aparece quando a saída é <strong>separada</strong>. No terminal, <code>2&gt;/dev/null</code> joga fora a saída de erro, e <code>&gt;/dev/null</code> joga fora a saída padrão:</p>
+
+<pre class="term">$ java Main 2&gt;/dev/null
+Começando...                    « só a saída padrão (System.out)
+Fim.
+$ java Main &gt;/dev/null
+Aviso: estoque de maçãs baixo   « só a saída de erro (System.err)</pre>
+
+<p>Para que isso serve? Quando a saída de um programa é gravada num arquivo ou passada a outro programa (por exemplo, <code>java Relatorio &gt; relatorio.txt</code>), as mensagens de erro e avisos continuam aparecendo na tela, em vez de se misturarem com o resultado. Regra: <strong>resultados no <code>System.out</code>; erros e avisos no <code>System.err</code></strong>. As mensagens de exceção do próprio Java (<code>Exception in thread "main"…</code>) também vão para a saída de erro. No editor do guia, a saída de erro aparece destacada.</p>
+
+<div class="warning">
+<strong>A ordem pode embaralhar</strong>
+<p>Como são dois canais, quando os dois escrevem muito ao mesmo tempo, as linhas de <code>out</code> e <code>err</code> podem aparecer fora da ordem do código em alguns terminais e IDEs. Não use <code>System.err</code> para texto normal só porque aparece em vermelho na IDE.</p>
+</div>
+
+<div class="tryjava" data-goal="err:Erro: produto não encontrado,out:Buscando produto...">
+<p class="try-task"><strong>Missão:</strong> a mensagem de erro está saindo pela saída normal. Faça a linha <code>Erro: produto não encontrado</code> sair pela <strong>saída de erro</strong>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Buscando produto...");
+        System.out.println("Erro: produto não encontrado");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Buscando produto...");
+        System.err.println("Erro: produto não encontrado");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Outras formas de escrever</h2>
+
+<h3><code>IO.println</code> <span class="versao">Java 25+</span></h3>
+<p>O Java 25 trouxe a classe <code>IO</code>, com métodos curtos para entrada e saída: <code>IO.println(…)</code> e <code>IO.print(…)</code> fazem o mesmo que <code>System.out.println</code> e <code>System.out.print</code>. Ela aparece principalmente na forma simplificada do <code>main</code> (veja <a href="primeiro-programa.html#simples">Olá, Mundo</a>), mas funciona em qualquer programa Java 25:</p>
+
+<pre class="file" data-file="trecho">IO.println("Olá do IO");
+IO.print("sem quebra");
+IO.println();</pre>
+
+<pre class="term">$ java Main.java
+Olá do IO
+sem quebra</pre>
+
+<p>Em versões anteriores ao 25, <code>IO</code> não existe e o <code>javac</code> responde <code>cannot find symbol</code>. Por isso o guia usa <code>System.out.println</code>.</p>
+
+<h3><code>printf</code>: escrever com formato</h3>
+<p>Para controlar casas decimais e alinhar colunas, existe o <code>printf</code> (de <em>print formatted</em>, "imprimir formatado"). Um exemplo, só para você reconhecer:</p>
+
+<pre class="file" data-file="trecho">System.out.printf("Média: %.2f%n", 7.456);</pre>
+
+<pre class="term">$ java Main.java
+Média: 7,46                     « duas casas decimais; com VÍRGULA, porque o sistema está em português</pre>
+
+<p>O <code>%.2f</code> quer dizer "um número decimal com 2 casas", e o <code>%n</code> pula linha. Repare na vírgula: o <code>printf</code> segue o idioma do sistema (aqui, português do Brasil), enquanto o <code>println(7.456)</code> sempre usa ponto. Tudo sobre o <code>printf</code> está em <a href="formatacao.html">Formatar Texto</a>.</p>
+
+<h3>Qual usar?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Use</th></tr>
+<tr><td>Escrever uma linha completa</td><td><code>System.out.println(…)</code></td></tr>
+<tr><td>Escrever e continuar na mesma linha (perguntas, listas montadas aos poucos)</td><td><code>System.out.print(…)</code></td></tr>
+<tr><td>Uma linha em branco</td><td><code>System.out.println()</code></td></tr>
+<tr><td>Várias linhas num texto só</td><td><code>\n</code> dentro das aspas (ou um <a href="text-blocks.html">text block</a>)</td></tr>
+<tr><td>Mensagens de erro e avisos</td><td><code>System.err.println(…)</code></td></tr>
+<tr><td>Casas decimais e colunas alinhadas</td><td><code>System.out.printf(…)</code></td></tr>
+<tr><td>Programa curto no Java 25</td><td><code>IO.println(…)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>bad operand types for binary operator '-'</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: bad operand types for binary operator '-'
+        System.out.println("Total: " + 10 - 3);
+                                          ^
+  first type:  String
+  second type: int
+1 error</pre>
+<p><strong>O que aconteceu:</strong> a mesma armadilha do <code>"3" + 4</code>, agora com subtração. Da esquerda para a direita: <code>"Total: " + 10</code> virou o texto <code>"Total: 10"</code>; depois, <code>"Total: 10" - 3</code>: não existe "texto menos número". A mensagem diz "tipos de operandos inválidos para o operador <code>-</code>: o primeiro é <code>String</code>, o segundo é <code>int</code>". <strong>Como resolver:</strong> parênteses: <code>"Total: " + (10 - 3)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Texto sem aspas: <code>cannot find symbol</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        System.out.println(Olá);
+                           ^
+  symbol:   variable Olá
+  location: class Main
+1 error</pre>
+<p><strong>O que aconteceu:</strong> sem aspas, <code>Olá</code> não é um texto: o Java acha que é o nome de uma variável e não encontra nenhuma com esse nome. <strong>Como resolver:</strong> <code>System.out.println("Olá");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Duas coisas separadas por vírgula: <code>no suitable method found</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: no suitable method found for println(String,String)
+        System.out.println("Ana", "Bruno");
+                  ^
+    method PrintStream.println() is not applicable
+      (actual and formal argument lists differ in length)
+    method PrintStream.println(boolean) is not applicable
+      (actual and formal argument lists differ in length)
+…                               « o javac lista as 10 versões do println, uma por uma
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o <code>println</code> recebe <strong>uma</strong> coisa só. Com vírgula, você passou duas, e o <code>javac</code> diz "nenhum método adequado para <code>println(String,String)</code>", listando todas as versões de <code>println</code> que existem (com nada, com um <code>boolean</code>, com um <code>int</code>…) e explicando que em todas "as listas de argumentos têm tamanhos diferentes". <strong>Como resolver:</strong> emende com <code>+</code>: <code>System.out.println("Ana" + " e " + "Bruno");</code>.</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Linha em branco</h3>
+<p>Complete para escrever uma linha em branco:</p>
+<div class="ex-code">System.out.<input data-answer="println();|println()" aria-label="método"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O que <code>System.out.println("5" + 5);</code> mostra?</p>
+<div class="ex-code"><input data-answer="55" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. E este?</h3>
+<p>O que <code>System.out.println(5 + 5 + "5");</code> mostra?</p>
+<div class="ex-code"><input data-answer="105" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual a diferença entre <code>print</code> e <code>println</code>?</p>
+<label><input type="radio" name="q4"> <code>print</code> escreve na impressora.</label>
+<label><input type="radio" name="q4"> <code>println</code> pula para a próxima linha depois de escrever; <code>print</code> não.</label>
+<label><input type="radio" name="q4"> <code>print</code> só aceita números.</label>
+<label><input type="radio" name="q4"> Nenhuma.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual linha mostra <code>Total: 7</code>?</p>
+<label><input type="radio" name="q5"> <code>System.out.println("Total: " + 3 + 4);</code></label>
+<label><input type="radio" name="q5"> <code>System.out.println("Total: 3 + 4");</code></label>
+<label><input type="radio" name="q5"> <code>System.out.println("Total: " + (3 + 4));</code></label>
+<label><input type="radio" name="q5"> <code>System.out.println(Total: 3 + 4);</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Para onde devem ir as mensagens de erro de um programa?</p>
+<label><input type="radio" name="q6"> Para <code>System.out</code>, com a palavra "Erro" na frente.</label>
+<label><input type="radio" name="q6"> Para lugar nenhum.</label>
+<label><input type="radio" name="q6"> Para o <code>printf</code>.</label>
+<label><input type="radio" name="q6"> Para <code>System.err</code>, a saída de erro.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>System.out.println(x)</code> escreve e pula linha; <code>System.out.print(x)</code> escreve e fica na linha; <code>println()</code> faz uma linha em branco.</li>
+  <li>Sem aspas, o Java calcula: <code>println(3 + 4)</code> mostra <code>7</code>. Com aspas, é texto: <code>"3 + 4"</code>.</li>
+  <li><code>+</code> com texto emenda, da esquerda para a direita: <code>"Total: " + 3 + 4</code> dá <code>Total: 34</code>. Ponha contas entre parênteses.</li>
+  <li><code>\n</code> quebra a linha e <code>\t</code> tabula dentro do texto.</li>
+  <li><code>System.err</code> é a saída de erro: separada da saída normal, para avisos e erros.</li>
+  <li><code>IO.println</code> <span class="versao">Java 25+</span> faz o mesmo que <code>System.out.println</code>; <code>printf</code> formata números (com vírgula em português).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
