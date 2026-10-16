@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Operadores de Atribuição — = += -= *= /= %= | Guia Java</title>
+<meta name="description" content="Os operadores de atribuição do Java: = e os compostos +=, -=, *=, /= e %=, com String, a atribuição em cadeia e o casting escondido do += (byte b += 1 compila, b = b + 1 não), além das armadilhas =+ e if (x = 5), com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Operadores de Atribuição</span></h1>
+
+<p class="intro">O operador de atribuição <code>=</code> guarda um valor numa variável; você o usa desde a aula de <a href="variaveis.html">Variáveis</a>. Mas muitas vezes queremos <strong>atualizar</strong> o valor que já está lá: somar ao saldo, descontar do estoque, dobrar a pontuação. Para isso o Java tem os operadores <strong>compostos</strong>, como <code>+=</code>. Eles são atalhos, mas escondem um detalhe importante que esta aula mostra com cuidado.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>=</code> funciona por dentro (direita primeiro, depois guarda).</li>
+  <li>Os operadores <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code> e <code>%=</code>, inclusive com <code>String</code>.</li>
+  <li>O <strong>casting escondido</strong> dos compostos: por que <code>b += 1</code> compila com <code>byte</code> e <code>b = b + 1</code> não.</li>
+  <li>As armadilhas <code>=+</code> e <code>if (x = 5)</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>Relembrando o <code>=</code></h2>
+<p>O <code>=</code> é uma ordem: "calcule o lado direito e guarde o resultado na variável do lado esquerdo". Leia sempre como "<strong>recebe</strong>".</p>
+
+<dl class="anatomy">
+  <dt>saldo</dt><dd>A variável que vai receber o valor. Precisa ser uma <strong>variável</strong>: não dá para escrever <code>10 = saldo</code>.</dd>
+  <dt>=</dt><dd>Recebe.</dd>
+  <dt>saldo + 50</dt><dd>A expressão, calculada <strong>primeiro</strong>, com o valor atual de <code>saldo</code>.</dd>
+  <dt>;</dt><dd>Fim da instrução.</dd>
+</dl>
+
+<p>Em <code>saldo = saldo + 50;</code>, o Java lê o saldo atual, soma 50 e guarda o resultado de volta em <code>saldo</code>. O valor antigo é substituído. Esse padrão, "pegar o valor atual, fazer uma conta e guardar de volta", é tão comum que ganhou atalhos.</p>
+
+<hr>
+
+<h2>Os operadores compostos</h2>
+<p>Um operador composto junta uma operação aritmética com o <code>=</code>. <code>saldo += 50</code> quer dizer exatamente "saldo recebe saldo mais 50". Imagine a conta bancária da Ana ao longo de um dia:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double saldo = 100.0;
+        System.out.println(saldo);
+        saldo += 50;
+        System.out.println(saldo);
+        saldo -= 30;
+        System.out.println(saldo);
+        saldo *= 2;
+        System.out.println(saldo);
+        saldo /= 4;
+        System.out.println(saldo);
+        int pontos = 17;
+        pontos %= 5;
+        System.out.println(pontos);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+100.0
+150.0              « += 50: depósito
+120.0              « -= 30: saque
+240.0              « *= 2: dobrou
+60.0               « /= 4: dividiu por 4
+2                  « 17 %= 5: ficou o resto, 2</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Exemplo</th><th>Equivale a</th><th>Lê-se</th></tr>
+<tr><td><code>=</code></td><td><code>x = 5</code></td><td>—</td><td>x recebe 5</td></tr>
+<tr><td><code>+=</code></td><td><code>x += 5</code></td><td><code>x = x + 5</code></td><td>some 5 a x</td></tr>
+<tr><td><code>-=</code></td><td><code>x -= 5</code></td><td><code>x = x - 5</code></td><td>subtraia 5 de x</td></tr>
+<tr><td><code>*=</code></td><td><code>x *= 5</code></td><td><code>x = x * 5</code></td><td>multiplique x por 5</td></tr>
+<tr><td><code>/=</code></td><td><code>x /= 5</code></td><td><code>x = x / 5</code></td><td>divida x por 5</td></tr>
+<tr><td><code>%=</code></td><td><code>x %= 5</code></td><td><code>x = x % 5</code></td><td>x fica com o resto da divisão por 5</td></tr>
+</table>
+</div>
+
+<p>As mesmas regras dos <a href="operadores-aritmeticos.html">Operadores Aritméticos</a> valem aqui: com <code>int</code>, <code>n /= 4</code> faz divisão inteira (<code>6 /= 4</code> deixa <code>1</code>), e <code>/= 0</code> lança <code>ArithmeticException</code>. Para somar ou subtrair exatamente 1, prefira <code>x++</code> e <code>x--</code>.</p>
+
+<h3>O lado direito é calculado inteiro, antes</h3>
+<p>Em <code>x *= 2 + 3</code>, o Java calcula <strong>todo</strong> o lado direito (<code>2 + 3 = 5</code>) e só depois multiplica: o resultado é <code>x = x * (2 + 3)</code>, e não <code>x = x * 2 + 3</code>. Com <code>x</code> valendo 10, dá <code>50</code>, como mostra o próximo programa.</p>
+
+<h3>Com <code>String</code>: <code>+=</code> acrescenta texto</h3>
+<p>Como o <code>+</code> cola textos, o <code>+=</code> acrescenta texto ao final de uma <code>String</code>. Os outros compostos não funcionam com texto.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String mensagem = "Olá";
+        mensagem += ", Ana";
+        mensagem += "!";
+        System.out.println(mensagem);
+        int total = 10;
+        total += 2 * 3;
+        System.out.println(total);
+        int x = 10;
+        x *= 2 + 3;
+        System.out.println(x);
+        int a, b, c;
+        a = b = c = 7;
+        System.out.println(a + " " + b + " " + c);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Olá, Ana!
+16                 « total += 2 * 3: 10 + 6
+50                 « x *= 2 + 3: 10 * 5, não 10 * 2 + 3
+7 7 7              « atribuição em cadeia</pre>
+
+<p>A última linha mostra a <strong>atribuição em cadeia</strong>: <code>a = b = c = 7</code> é resolvido da <strong>direita para a esquerda</strong>. Primeiro <code>c</code> recebe 7; o resultado dessa atribuição (o próprio 7) vai para <code>b</code>, e depois para <code>a</code>. Isso funciona porque, em Java, uma atribuição também <strong>produz um valor</strong>: o valor guardado. É por isso que <code>System.out.println(x += 5);</code> compila e mostra o novo valor de <code>x</code>. Funciona, mas evite: atribuir e usar na mesma linha confunde quem lê.</p>
+
+<div class="tryjava" data-goal="out:Total: 37.5,src:\+=">
+<p class="try-task"><strong>Missão:</strong> o carrinho da Ana tem três produtos. Use <code>+=</code> para somar cada preço ao <code>total</code> (uma linha por produto), até o programa mostrar <code>Total: 37.5</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double total = 0;
+        double arroz = 22.90;
+        double feijao = 8.60;
+        double cafe = 6.00;
+        // some os três preços ao total com +=
+
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double total = 0;
+        double arroz = 22.90;
+        double feijao = 8.60;
+        double cafe = 6.00;
+        total += arroz;
+        total += feijao;
+        total += cafe;
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O casting escondido do <code>+=</code></h2>
+<p>Até aqui, <code>x += 5</code> e <code>x = x + 5</code> pareceram idênticos. <strong>Quase</strong>. Veja com uma variável <code>byte</code>:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        byte b = 10;
+        b += 1;
+        System.out.println(b);
+        b = b + 1;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:6: error: incompatible types: possible lossy conversion from int to byte
+        b = b + 1;
+              ^
+1 error</pre>
+
+<p>A linha 4 (<code>b += 1</code>) passou; a linha 6 (<code>b = b + 1</code>) não. Por quê?</p>
+
+<ul>
+  <li><code>b + 1</code> é uma conta, e contas com <code>byte</code> são feitas em <code>int</code> (a <strong>promoção</strong> de <a href="conversao-tipos.html">Conversão de Tipos</a>). Guardar um <code>int</code> num <code>byte</code> exige casting. Daí o erro.</li>
+  <li>Os operadores compostos têm um <strong>casting embutido</strong>. Pela especificação do Java, <code>b += 1</code> equivale a <code>b = (byte) (b + 1)</code>: o resultado é convertido de volta para o tipo da variável, sem você pedir.</li>
+</ul>
+
+<p>Isso é conveniente com <code>byte</code>, <code>short</code> e <code>char</code> (você já viu <code>letra += 2</code> avançar letras em <a href="char-boolean.html">char e boolean</a>). Mas o mesmo casting escondido também <strong>corta</strong> valores sem avisar:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int estoque = 10;
+        estoque += 3.7;
+        System.out.println(estoque);
+        int preco = 10;
+        preco *= 1.5;
+        System.out.println(preco);
+        byte b = 120;
+        b += 10;
+        System.out.println(b);
+        char letra = 'A';
+        letra += 2;
+        System.out.println(letra);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+13                 « 10 + 3.7 = 13.7, cortado para 13 sem erro nenhum!
+15                 « 10 * 1.5 = 15.0, que vira 15
+-126               « 120 + 10 = 130 não cabe num byte: deu a volta
+C                  « 'A' + 2 continua char</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Compila?</th><th>Por quê</th></tr>
+<tr><td><code>estoque = estoque + 3.7;</code> (<code>int</code>)</td><td>Não: <code>possible lossy conversion from double to int</code></td><td>Sem casting automático</td></tr>
+<tr><td><code>estoque += 3.7;</code> (<code>int</code>)</td><td>Sim, e guarda <code>13</code></td><td>Equivale a <code>estoque = (int) (estoque + 3.7)</code></td></tr>
+<tr><td><code>b = b + 1;</code> (<code>byte</code>)</td><td>Não: <code>possible lossy conversion from int to byte</code></td><td><code>b + 1</code> é <code>int</code></td></tr>
+<tr><td><code>b += 1;</code> (<code>byte</code>)</td><td>Sim</td><td>Equivale a <code>b = (byte) (b + 1)</code></td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>O <code>+=</code> não protege você</strong>
+<p>Com <code>=</code>, o <code>javac</code> recusa conversões com perda. Com <code>+=</code>, <code>*=</code> e companhia, ele aceita e corta em silêncio. Se o valor da direita pode ter casas decimais, a variável provavelmente deveria ser <code>double</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="compila,out:Nível 6,src:nivel\s*\+=">
+<p class="try-task"><strong>Missão:</strong> o nível do jogador é um <code>byte</code> e a linha que sobe de nível não compila. Troque-a por um operador composto, sem casting, para o programa mostrar <code>Nível 6</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        byte nivel = 5;
+        nivel = nivel + 1;
+        System.out.println("Nível " + nivel);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        byte nivel = 5;
+        nivel += 1;
+        System.out.println("Nível " + nivel);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>=+</code> no lugar de <code>+=</code>: compila e faz outra coisa</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int pontos = 10;
+        pontos =+ 5;
+        System.out.println(pontos);
+        pontos =- 3;
+        System.out.println(pontos);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+5                  « esperava 15
+-3                 « esperava 2</pre>
+<p><strong>O que aconteceu:</strong> o Java leu <code>pontos =+ 5</code> como <code>pontos = +5</code>: atribuição comum de "mais cinco" (o <code>+</code> unário). E <code>=- 3</code> virou <code>= -3</code>. Nenhum erro, nenhum aviso: só o valor errado.</p>
+<p><strong>Como consertar:</strong> nos compostos, o sinal da operação vem <strong>antes</strong> do <code>=</code>: <code>+=</code>, <code>-=</code>. Lembre: "mais-igual".</p>
+</div>
+
+<div class="cenario">
+<strong><code>if (idade = 18)</code>: "int cannot be converted to boolean"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int idade = 18;
+        if (idade = 18) {
+            System.out.println("Maior de idade");
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: int cannot be converted to boolean
+        if (idade = 18) {
+                  ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>=</code> atribui; não compara. <code>idade = 18</code> guarda 18 e produz o valor <code>18</code>, um <code>int</code>, e o <code>if</code> precisa de um <code>boolean</code>. Em C, esse erro compila e o programa faz a coisa errada; em Java, o tipo <code>boolean</code> pega o erro na hora (veja <a href="char-boolean.html">char e boolean</a>).</p>
+<p><strong>Como consertar:</strong> para comparar, use dois sinais: <code>if (idade == 18)</code>. Veja <a href="operadores-comparacao.html">Operadores de Comparação</a>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>+=</code> numa variável sem valor: "might not have been initialized"</strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: variable total might not have been initialized
+        total += 5;
+        ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>total += 5</code> precisa ler o valor atual de <code>total</code>, e ela foi só declarada (<code>int total;</code>).</p>
+<p><strong>Como consertar:</strong> comece de um valor: <code>int total = 0;</code>. Todo acumulador começa em zero (ou em <code>""</code>, para texto).</p>
+</div>
+
+<div class="cenario">
+<strong>Espaço no meio: <code>x + = 2</code> dá "illegal start of expression"</strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: illegal start of expression
+        x + = 2;
+            ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>+=</code> é <strong>um</strong> operador de dois caracteres; com espaço no meio, viram dois símbolos soltos (<code>+</code> e <code>=</code>) e o Java não entende.</p>
+<p><strong>Como consertar:</strong> escreva junto: <code>x += 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Lados trocados: <code>10 = estoque</code> dá "unexpected type"</strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: unexpected type
+        10 = estoque;
+        ^
+  required: variable
+  found:    value
+1 error</pre>
+<p><strong>O que quer dizer:</strong> à esquerda do <code>=</code> precisa haver uma variável (<code>required: variable</code>), e foi encontrado um valor (<code>found: value</code>). Não dá para guardar algo "dentro do 10".</p>
+<p><strong>Como consertar:</strong> a variável que recebe fica sempre à esquerda: <code>estoque = 10;</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Equivale a</th><th>Exemplo (x = 10) → x</th></tr>
+<tr><td><code>x = v</code></td><td>—</td><td><code>x = 3</code> → <code>3</code></td></tr>
+<tr><td><code>x += v</code></td><td><code>x = (tipo de x) (x + v)</code></td><td><code>x += 3</code> → <code>13</code></td></tr>
+<tr><td><code>x -= v</code></td><td><code>x = (tipo de x) (x - v)</code></td><td><code>x -= 3</code> → <code>7</code></td></tr>
+<tr><td><code>x *= v</code></td><td><code>x = (tipo de x) (x * v)</code></td><td><code>x *= 3</code> → <code>30</code></td></tr>
+<tr><td><code>x /= v</code></td><td><code>x = (tipo de x) (x / v)</code></td><td><code>x /= 3</code> → <code>3</code> (inteiro)</td></tr>
+<tr><td><code>x %= v</code></td><td><code>x = (tipo de x) (x % v)</code></td><td><code>x %= 3</code> → <code>1</code></td></tr>
+<tr><td><code>s += "txt"</code></td><td><code>s = s + "txt"</code></td><td>Acrescenta texto a uma <code>String</code></td></tr>
+<tr><td><code>a = b = v</code></td><td><code>b = v; a = b;</code></td><td>Da direita para a esquerda</td></tr>
+</table>
+</div>
+
+<p>Existem ainda os compostos de operadores de bits: <code>&amp;=</code>, <code>|=</code>, <code>^=</code>, <code>&lt;&lt;=</code>, <code>&gt;&gt;=</code> e <code>&gt;&gt;&gt;=</code>. Eles seguem a mesma lógica (<code>x &amp;= y</code> é <code>x = x &amp; y</code>); o <code>&amp;=</code> e o <code>|=</code> com <code>boolean</code> aparecem em <a href="operadores-logicos.html">Operadores Lógicos</a>.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Depósito</h3>
+<p>Complete com o operador composto que soma 200 ao saldo:</p>
+<div class="ex-code">saldo <input data-answer="+=" aria-label="operador"> 200;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Metade</h3>
+<p>Complete para dividir <code>bolo</code> por 2, guardando o resultado nela mesma:</p>
+<div class="ex-code">bolo <input data-answer="/=" aria-label="operador"> 2;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quanto vale?</h3>
+<p>Depois de <code>int x = 4; x *= 3 + 1;</code>, quanto vale <code>x</code>?</p>
+<div class="ex-code"><input data-answer="16" aria-label="valor"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com <code>byte b = 5;</code>, qual linha compila?</p>
+<label><input type="radio" name="q4"> <code>b = b + 1;</code></label>
+<label><input type="radio" name="q4"> <code>b = b * 2;</code></label>
+<label><input type="radio" name="q4"> <code>b += 1;</code></label>
+<label><input type="radio" name="q4"> Nenhuma.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Depois de <code>int n = 10; n =+ 3;</code>, quanto vale <code>n</code>?</p>
+<label><input type="radio" name="q5"> <code>3</code></label>
+<label><input type="radio" name="q5"> <code>13</code></label>
+<label><input type="radio" name="q5"> <code>7</code></label>
+<label><input type="radio" name="q5"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Depois de <code>int estoque = 10; estoque += 2.9;</code>, quanto vale <code>estoque</code>?</p>
+<label><input type="radio" name="q6"> <code>12.9</code></label>
+<label><input type="radio" name="q6"> <code>12</code></label>
+<label><input type="radio" name="q6"> <code>13</code></label>
+<label><input type="radio" name="q6"> Não compila.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>=</code> calcula a direita e guarda na esquerda; a esquerda precisa ser uma variável.</li>
+  <li><code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code> e <code>%=</code> atualizam a variável usando o valor atual: <code>saldo += 50</code> é <code>saldo = saldo + 50</code>. Todo o lado direito é calculado antes.</li>
+  <li>Com <code>String</code>, <code>+=</code> acrescenta texto.</li>
+  <li>Os compostos têm casting embutido: <code>byte b += 1</code> compila (e <code>b = b + 1</code> não), mas <code>int x += 3.7</code> corta para inteiro sem avisar.</li>
+  <li>Cuidado com <code>=+</code> (vira "recebe mais") e com <code>=</code> no lugar de <code>==</code> num <code>if</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
