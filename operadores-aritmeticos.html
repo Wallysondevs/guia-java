@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Operadores Aritméticos — + - * / % ++ -- | Guia Java</title>
+<meta name="description" content="Os operadores aritméticos do Java: soma, subtração, multiplicação, divisão inteira e decimal, resto (%) inclusive com negativos, incremento e decremento pré e pós (++ e --) e divisão por zero (ArithmeticException × Infinity), com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Operadores Aritméticos</span></h1>
+
+<p class="intro">Programas fazem contas o tempo todo: o total de uma compra, a média da turma, quantas caixas cabem num caminhão. Os <strong>operadores aritméticos</strong> são os símbolos dessas contas. Quatro deles você conhece da escola; os outros (<code>%</code>, <code>++</code> e <code>--</code>) são novidade e muito usados. Nesta aula você vai ver cada um, com atenção especial à divisão, que tem as maiores surpresas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os operadores <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code> e <code>%</code>.</li>
+  <li>A diferença entre divisão <strong>inteira</strong> e <strong>decimal</strong>.</li>
+  <li>Para que serve o resto da divisão (<code>%</code>), inclusive com negativos.</li>
+  <li>O incremento e o decremento (<code>++</code> e <code>--</code>), nas formas "pré" e "pós".</li>
+  <li>O que acontece ao dividir por zero.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>Os cinco operadores</h2>
+<p>Um <strong>operador</strong> é um símbolo que faz uma operação com valores; os valores são os <strong>operandos</strong>. Em <code>17 + 5</code>, o operador é <code>+</code> e os operandos são <code>17</code> e <code>5</code>. A Ana tem 17 maçãs para dividir entre 5 pessoas:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int macas = 17;
+        int pessoas = 5;
+        System.out.println(macas + pessoas);
+        System.out.println(macas - pessoas);
+        System.out.println(macas * pessoas);
+        System.out.println(macas / pessoas);
+        System.out.println(macas % pessoas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+22
+12
+85
+3                  « 17 / 5: cada pessoa recebe 3 maçãs inteiras
+2                  « 17 % 5: sobram 2 maçãs</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Nome</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>+</code></td><td>Soma (adição)</td><td><code>17 + 5</code></td><td><code>22</code></td></tr>
+<tr><td><code>-</code></td><td>Subtração</td><td><code>17 - 5</code></td><td><code>12</code></td></tr>
+<tr><td><code>*</code></td><td>Multiplicação (asterisco, não <code>x</code>)</td><td><code>17 * 5</code></td><td><code>85</code></td></tr>
+<tr><td><code>/</code></td><td>Divisão (barra, não <code>÷</code>)</td><td><code>17 / 5</code></td><td><code>3</code> (inteiros!)</td></tr>
+<tr><td><code>%</code></td><td>Resto da divisão (módulo)</td><td><code>17 % 5</code></td><td><code>2</code></td></tr>
+</table>
+</div>
+
+<p>Com <code>String</code>, o <code>+</code> tem outro papel: <strong>colar</strong> textos (<a href="concatenacao.html">Concatenação</a>). Os outros operadores aritméticos não funcionam com texto. E não existe operador de potência: <code>2 ^ 3</code> compila, mas é outra coisa (dá <code>1</code>); para 2³, use <code>Math.pow(2, 3)</code>, que dá <code>8.0</code> (<a href="math.html">Math</a>).</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> mude a quantidade de maçãs e de pessoas. Tente valores em que a divisão é exata (20 e 5) e valores em que sobra muito (19 e 5).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int macas = 17;
+        int pessoas = 5;
+        System.out.println("Cada pessoa recebe: " + macas / pessoas);
+        System.out.println("Sobram: " + macas % pessoas);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Divisão inteira × divisão decimal</h2>
+<p>A regra mais importante desta aula: <strong>quando os dois operandos são inteiros, a divisão é inteira</strong>. O resultado é um inteiro e a parte decimal é <strong>jogada fora</strong> (não é arredondada). Basta um dos dois ser decimal para a divisão ser decimal:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(7 / 2);
+        System.out.println(7.0 / 2);
+        System.out.println(7 / 2.0);
+        System.out.println(7.0 / 2.0);
+        System.out.println(1 / 3);
+        System.out.println(2 / 3);
+        System.out.println(-7 / 2);
+        int soma = 15;
+        int n = 2;
+        System.out.println(soma / n);
+        System.out.println((double) soma / n);
+        System.out.println(soma / (double) n);
+        System.out.println((double) (soma / n));
+        System.out.println(soma * 1.0 / n);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+3                  « 7 / 2: inteiros, o .5 some
+3.5
+3.5
+3.5
+0                  « 1 / 3 = 0,333... → 0
+0                  « 2 / 3 = 0,666... → 0 (cortou, não arredondou para 1)
+-3                 « corta em direção ao zero: -3,5 → -3
+7                  « soma / n com duas variáveis int
+7.5                « (double) soma / n
+7.5                « soma / (double) n
+7.0                « (double) (soma / n): tarde demais, a divisão já foi inteira
+7.5                « soma * 1.0 / n: o truque de multiplicar por 1.0</pre>
+
+<p>Por que o Java faz assim? Porque é o que a divisão inteira significa: "quantas vezes o 2 cabe inteiro no 7?" Três vezes. Isso é útil (distribuir maçãs, calcular páginas, converter segundos em minutos), mas é a causa número um de médias erradas.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para fazer uma divisão decimal com variáveis <code>int</code></th><th>Resultado</th></tr>
+<tr><td><code>(double) soma / n</code></td><td>Recomendado: o casting converte <code>soma</code> antes de dividir.</td></tr>
+<tr><td><code>soma / (double) n</code></td><td>Também funciona.</td></tr>
+<tr><td><code>soma * 1.0 / n</code></td><td>Funciona; é um truque comum, mas menos claro.</td></tr>
+<tr><td><code>(double) (soma / n)</code></td><td><strong>Errado</strong>: divide primeiro (inteiro) e converte depois.</td></tr>
+</table>
+</div>
+
+<p>Os detalhes do casting e da "promoção" de tipos estão em <a href="conversao-tipos.html">Conversão de Tipos</a>.</p>
+
+<hr>
+
+<h2>O resto da divisão: <code>%</code></h2>
+<p>O <code>%</code> não tem nada a ver com porcentagem: ele dá o <strong>resto</strong> da divisão inteira, aquele número que sobrava na "conta de dividir" da escola. Em inglês o nome é <em>modulo</em>, e por isso muita gente o chama de "módulo".</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(10 % 3);
+        System.out.println(9 % 3);
+        System.out.println(2 % 5);
+        System.out.println(-7 % 3);
+        System.out.println(7 % -3);
+        System.out.println(-7 % -3);
+        System.out.println(Math.floorMod(-7, 3));
+        System.out.println(7.5 % 2);
+        System.out.println(14 % 2);
+        System.out.println(15 % 2);
+        int segundos = 125;
+        System.out.println(segundos / 60 + " min e " + segundos % 60 + " s");
+        int numero = 4827;
+        System.out.println(numero % 10);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+1                  « 10 = 3 × 3 + 1
+0                  « 9 é divisível por 3: resto zero
+2                  « 2 = 5 × 0 + 2 (o menor dividido pelo maior sobra inteiro)
+-1                 « o sinal do resto é o sinal do PRIMEIRO número
+1
+-1
+2                  « Math.floorMod: resto sempre com o sinal do divisor
+1.5                « também funciona com double
+0                  « 14 é par
+1                  « 15 é ímpar
+2 min e 5 s
+7                  « o último dígito</pre>
+
+<h3>Para que serve o resto</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Uso</th><th>Como</th><th>Exemplo</th></tr>
+<tr><td>Saber se é par ou ímpar</td><td><code>n % 2</code> dá <code>0</code> (par) ou não (ímpar)</td><td><code>14 % 2</code> → <code>0</code></td></tr>
+<tr><td>Saber se é divisível</td><td><code>n % d == 0</code></td><td><code>9 % 3</code> → <code>0</code></td></tr>
+<tr><td>Converter unidades</td><td><code>/</code> para a parte inteira, <code>%</code> para o que sobra</td><td>125 s → <code>2 min e 5 s</code></td></tr>
+<tr><td>Pegar o último dígito</td><td><code>n % 10</code></td><td><code>4827 % 10</code> → <code>7</code></td></tr>
+<tr><td>Dar a volta num ciclo (dias da semana, relógio)</td><td><code>(hora + 5) % 24</code></td><td>22h + 5h → <code>3</code></td></tr>
+</table>
+</div>
+
+<h3>Resto com números negativos</h3>
+<p>Em Java, o resultado de <code>%</code> tem sempre o <strong>sinal do primeiro operando</strong>: <code>-7 % 3</code> dá <code>-1</code>, não <code>2</code>. Isso vem da divisão inteira, que corta em direção ao zero (<code>-7 / 3</code> = <code>-2</code>, e <code>-2 × 3 + (-1) = -7</code>). Se você precisa de um resto sempre positivo (por exemplo, para "voltar" dias da semana), use <code>Math.floorMod(-7, 3)</code>, que dá <code>2</code>.</p>
+
+<div class="warning">
+<strong>Teste de ímpar com negativos</strong>
+<p><code>n % 2 == 1</code> falha para ímpares negativos, porque <code>-3 % 2</code> dá <code>-1</code>. O teste seguro é <code>n % 2 != 0</code> ("o resto não é zero"). O <code>==</code> e o <code>!=</code> estão em <a href="operadores-comparacao.html">Operadores de Comparação</a>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:3 min e 20 s,src:%">
+<p class="try-task"><strong>Missão:</strong> a música tem 200 segundos. Complete a linha para mostrar <code>3 min e 20 s</code>, usando <code>/</code> para os minutos e <code>%</code> para os segundos que sobram.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int duracao = 200;
+        int minutos = 0;
+        int segundos = 0;
+        System.out.println(minutos + " min e " + segundos + " s");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int duracao = 200;
+        int minutos = duracao / 60;
+        int segundos = duracao % 60;
+        System.out.println(minutos + " min e " + segundos + " s");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Incremento e decremento: <code>++</code> e <code>--</code></h2>
+<p>Somar 1 ou subtrair 1 de uma variável é tão comum (contar alunos, avançar uma senha na fila, contar voltas de um <a href="for.html">for</a>) que o Java tem operadores só para isso:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Nome</th><th>Equivale a</th></tr>
+<tr><td><code>a++</code> ou <code>++a</code></td><td>Incremento ("aumentar")</td><td><code>a = a + 1</code></td></tr>
+<tr><td><code>a--</code> ou <code>--a</code></td><td>Decremento ("diminuir")</td><td><code>a = a - 1</code></td></tr>
+</table>
+</div>
+
+<p>Numa linha sozinha, <code>a++;</code> e <code>++a;</code> fazem exatamente a mesma coisa. A diferença só aparece quando o operador é usado <strong>dentro de outra expressão</strong> (numa atribuição, num <code>println</code>):</p>
+
+<ul>
+  <li><strong>Pós-incremento</strong> <code>x++</code> (o <code>++</code> depois): <strong>usa</strong> o valor atual e <strong>depois</strong> soma 1.</li>
+  <li><strong>Pré-incremento</strong> <code>++x</code> (o <code>++</code> antes): <strong>primeiro</strong> soma 1 e depois usa o valor novo.</li>
+</ul>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int a = 5;
+        a++;
+        System.out.println(a);
+        a--;
+        System.out.println(a);
+        ++a;
+        System.out.println(a);
+        int x = 5;
+        int y = x++;
+        System.out.println("x = " + x + ", y = " + y);
+        int p = 5;
+        int q = ++p;
+        System.out.println("p = " + p + ", q = " + q);
+        int c = 10;
+        System.out.println(c++);
+        System.out.println(c);
+        System.out.println(++c);
+        System.out.println(c--);
+        System.out.println(c);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+6                  « a++ sozinho: 5 → 6
+5                  « a--: 6 → 5
+6                  « ++a sozinho: igual ao a++
+x = 6, y = 5       « y = x++: y recebeu o valor ANTIGO (5), depois x virou 6
+p = 6, q = 6       « q = ++p: p virou 6 ANTES, e q recebeu 6
+10                 « println(c++): mostra 10, depois c vira 11
+11
+12                 « println(++c): c vira 12, depois mostra
+12                 « println(c--): mostra 12, depois c vira 11
+11</pre>
+
+<p>Uma forma de lembrar: leia da esquerda para a direita. Em <code>x++</code>, você "vê" o <code>x</code> primeiro (usa o valor) e o <code>++</code> depois (soma). Em <code>++x</code>, o <code>++</code> vem primeiro.</p>
+
+<div class="tip">
+<strong>Deixe o <code>++</code> sozinho na linha</strong>
+<p>Misturar <code>++</code> com outras contas (<code>y = x++ + ++x</code>) é um ótimo exercício de prova e um péssimo código: ninguém entende de primeira. No dia a dia, escreva <code>contador++;</code> numa linha própria e use o valor na linha seguinte. A armadilha mais famosa: <code>x = x++;</code> não muda <code>x</code> (o <code>x</code> recebe o valor antigo de volta); um programa com <code>int x = 5; x = x++;</code> mostra <code>5</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Próxima senha: 1,src:\+\+fila">
+<p class="try-task"><strong>Missão:</strong> na fila do banco, a primeira senha chamada deve ser a 1. Mas o programa mostra <code>Próxima senha: 0</code>, porque usa o pós-incremento. Troque para o <strong>pré-incremento</strong> para que ele mostre <code>Próxima senha: 1</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int fila = 0;
+        System.out.println("Próxima senha: " + fila++);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int fila = 0;
+        System.out.println("Próxima senha: " + ++fila);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Sinal: <code>-x</code> e <code>+x</code></h2>
+<p>O <code>-</code> também funciona com um único operando, para trocar o sinal: se <code>temperatura</code> vale <code>5</code>, <code>-temperatura</code> vale <code>-5</code>. O <code>+</code> unário existe, mas não faz nada. Esses operadores de um operando só se chamam <strong>unários</strong> (o <code>++</code> e o <code>--</code> também são). <code>3 - -2</code> dá <code>5</code>: menos com menos.</p>
+
+<hr>
+
+<h2>Divisão por zero</h2>
+<p>O que acontece se a Ana dividir 10 bolos entre 0 convidados? Depende do tipo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int bolos = 10;
+        int convidados = 0;
+        System.out.println(10.0 / 0);
+        System.out.println(bolos / convidados);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Infinity
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.main(Main.java:6)</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Conta</th><th>O que acontece</th></tr>
+<tr><td>Inteiro <code>/</code> 0 ou inteiro <code>%</code> 0</td><td>O programa <strong>para</strong> com <code>ArithmeticException: / by zero</code> ("exceção aritmética: divisão por zero"), apontando a linha (<code>Main.java:6</code>).</td></tr>
+<tr><td><code>double</code> <code>/</code> 0</td><td>Não para: o resultado é <code>Infinity</code>, <code>-Infinity</code> ou <code>NaN</code> (<code>0.0 / 0</code>). Veja <a href="decimais.html">double e float</a>.</td></tr>
+</table>
+</div>
+
+<p>Repare que o programa compilou: o <code>javac</code> não tem como saber que <code>convidados</code> vai valer zero. Mesmo <code>System.out.println(10 / 0);</code>, com o zero escrito no código, compila e só falha ao rodar. Divisões cujo divisor pode ser zero devem ser protegidas com um <a href="if-else.html">if</a> (<code>if (convidados != 0)</code>) ou tratadas com <a href="try-catch.html">try e catch</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"ArithmeticException: / by zero"</strong>
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.main(Main.java:3)</pre>
+<p><strong>O que quer dizer:</strong> uma divisão (ou resto) de inteiros teve divisor zero na linha indicada. A mesma mensagem aparece para <code>%</code>: <code>10 % 0</code> também diz <code>/ by zero</code>.</p>
+<p><strong>Como consertar:</strong> descubra por que o divisor chegou a zero (uma lista vazia? um valor que o usuário digitou?) e confira antes de dividir.</p>
+</div>
+
+<div class="cenario">
+<strong>A média saiu sem casas decimais</strong>
+<p><strong>O que aconteceu:</strong> divisão inteira. <code>soma / quantidade</code> com duas variáveis <code>int</code> descarta a parte decimal, mesmo guardando num <code>double</code>.</p>
+<p><strong>Como consertar:</strong> <code>(double) soma / quantidade</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>++</code> num valor: "unexpected type … required: variable, found: value"</strong>
+<pre class="term">$ javac Main.java
+Main.java:5: error: unexpected type
+        5++;
+        ^
+  required: variable
+  found:    value
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "tipo inesperado: era preciso uma variável, foi encontrado um valor". O <code>++</code> guarda o resultado de volta, então só funciona em variáveis; não dá para "incrementar o 5". O mesmo vale para <code>(a + b)++</code>.</p>
+<p><strong>Como consertar:</strong> use <code>++</code> só em variáveis. Para obter o valor seguinte sem guardar, escreva <code>5 + 1</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"bad operand types for binary operator '-'"</strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: bad operand types for binary operator '-'
+        String b = a - "a";
+                     ^
+  first type:  String
+  second type: String
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "tipos de operando inválidos para o operador binário '-'". Com <code>String</code>, só o <code>+</code> funciona (para colar). <code>first type</code> e <code>second type</code> dizem os tipos dos dois lados.</p>
+<p><strong>Como consertar:</strong> se os textos guardam números, converta antes com <code>Integer.parseInt</code> (<a href="conversao-tipos.html">Conversão de Tipos</a>). Para manipular texto, use os <a href="metodos-string.html">Métodos de String</a>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>"Total: " + 3 + 2</code> mostrou <code>Total: 32</code></strong>
+<p><strong>O que aconteceu:</strong> depois de um texto, o <code>+</code> cola em vez de somar: primeiro <code>"Total: " + 3</code> vira <code>"Total: 3"</code>, depois cola o <code>2</code>.</p>
+<p><strong>Como consertar:</strong> parênteses em volta da conta: <code>"Total: " + (3 + 2)</code> mostra <code>Total: 5</code>. Veja <a href="precedencia.html">Precedência</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Faz</th><th>Exemplo → resultado</th><th>Cuidado</th></tr>
+<tr><td><code>+</code></td><td>Soma (ou cola texto)</td><td><code>7 + 2</code> → <code>9</code></td><td>Com <code>String</code>, cola</td></tr>
+<tr><td><code>-</code></td><td>Subtração / troca de sinal</td><td><code>7 - 2</code> → <code>5</code>; <code>-x</code></td><td></td></tr>
+<tr><td><code>*</code></td><td>Multiplicação</td><td><code>7 * 2</code> → <code>14</code></td><td><a href="inteiros.html">Overflow</a> com números grandes</td></tr>
+<tr><td><code>/</code></td><td>Divisão</td><td><code>7 / 2</code> → <code>3</code>; <code>7.0 / 2</code> → <code>3.5</code></td><td>Inteiros: corta; <code>/ 0</code>: exceção</td></tr>
+<tr><td><code>%</code></td><td>Resto</td><td><code>7 % 2</code> → <code>1</code></td><td>Sinal do primeiro operando</td></tr>
+<tr><td><code>x++</code></td><td>Usa, depois soma 1</td><td><code>y = x++</code></td><td>Só em variáveis</td></tr>
+<tr><td><code>++x</code></td><td>Soma 1, depois usa</td><td><code>y = ++x</code></td><td>Só em variáveis</td></tr>
+<tr><td><code>x--</code> / <code>--x</code></td><td>O mesmo, subtraindo 1</td><td><code>vidas--</code></td><td></td></tr>
+<tr><td><code>Math.pow(a, b)</code></td><td>Potência (não é operador)</td><td><code>Math.pow(2, 3)</code> → <code>8.0</code></td><td><code>2 ^ 3</code> não é potência</td></tr>
+<tr><td><code>Math.floorMod(a, b)</code></td><td>Resto com o sinal do divisor</td><td><code>Math.floorMod(-7, 3)</code> → <code>2</code></td><td></td></tr>
+</table>
+</div>
+
+<p>Atalhos como <code>total += preco</code> estão em <a href="operadores-atribuicao.html">Operadores de Atribuição</a>; a ordem em que as contas são feitas (<code>2 + 3 * 4</code>) está em <a href="precedencia.html">Precedência</a>.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Divisão inteira</h3>
+<p>Quanto vale <code>19 / 4</code> em Java?</p>
+<div class="ex-code"><input data-answer="4" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O resto</h3>
+<p>Quanto vale <code>19 % 4</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Par ou ímpar</h3>
+<p>Complete a expressão que dá <code>0</code> quando <code>n</code> é par:</p>
+<div class="ex-code">n <input data-answer="% 2|%2" aria-label="operação"></div>
+</div>
+
+<div class="exercise">
+<h3>4. Média decimal</h3>
+<p>Complete o casting para a média de <code>soma</code> e <code>n</code> (ambos <code>int</code>) ter casas decimais:</p>
+<div class="ex-code">double media = <input data-answer="(double)" aria-label="casting"> soma / n;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Depois de <code>int x = 3; int y = x++;</code>, quanto valem <code>x</code> e <code>y</code>?</p>
+<label><input type="radio" name="q5"> <code>x = 4</code>, <code>y = 4</code></label>
+<label><input type="radio" name="q5"> <code>x = 4</code>, <code>y = 3</code></label>
+<label><input type="radio" name="q5"> <code>x = 3</code>, <code>y = 4</code></label>
+<label><input type="radio" name="q5"> <code>x = 3</code>, <code>y = 3</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. O que acontece ao executar <code>int r = 10 / 0;</code>?</p>
+<label><input type="radio" name="q6"> <code>r</code> vale <code>0</code>.</label>
+<label><input type="radio" name="q6"> <code>r</code> vale <code>Infinity</code>.</label>
+<label><input type="radio" name="q6"> Não compila.</label>
+<label><input type="radio" name="q6"> Compila, mas o programa para com <code>ArithmeticException: / by zero</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Quanto vale <code>-7 % 3</code> em Java?</p>
+<label><input type="radio" name="q7"> <code>-1</code></label>
+<label><input type="radio" name="q7"> <code>2</code></label>
+<label><input type="radio" name="q7"> <code>1</code></label>
+<label><input type="radio" name="q7"> <code>-2</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>+ - * /</code> são as quatro operações; <code>%</code> é o resto da divisão inteira.</li>
+  <li>Dois inteiros dão divisão inteira: <code>7 / 2</code> = <code>3</code>, cortando a parte decimal. Para decimais, um dos lados deve ser <code>double</code>: <code>(double) soma / n</code>.</li>
+  <li><code>%</code> serve para par/ímpar, divisibilidade, converter unidades e pegar o último dígito. O sinal do resto é o do primeiro número; <code>Math.floorMod</code> dá resto positivo.</li>
+  <li><code>x++</code> usa e depois soma; <code>++x</code> soma e depois usa. Sozinhos na linha, são iguais.</li>
+  <li>Inteiro dividido por zero: <code>ArithmeticException: / by zero</code>. <code>double</code> dividido por zero: <code>Infinity</code> ou <code>NaN</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
