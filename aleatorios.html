@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Números Aleatórios — Math.random, Random e sementes | Guia Java</title>
+<meta name="description" content="Como sortear números em Java: Math.random(), a classe Random com nextInt, sortear numa faixa de min a max, a semente (new Random(42) repete a sequência), ThreadLocalRandom e RandomGenerator (Java 17+), com dado, sorteio de nomes e saídas reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Números Aleatórios</span></h1>
+
+<p class="intro">Jogar um dado, sortear quem apresenta o trabalho, embaralhar perguntas, criar o número secreto de um jogo de adivinhação: tudo isso precisa de números <strong>aleatórios</strong>, que o programa "tira da cartola" e que mudam a cada execução. O Java tem várias formas de fazer isso; nesta aula você vai aprender as principais e quando usar cada uma.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como transformar o <code>Math.random()</code> num dado de 1 a 6.</li>
+  <li>A classe <code>Random</code>: <code>nextInt</code>, <code>nextDouble</code>, <code>nextBoolean</code>.</li>
+  <li>A fórmula para sortear em qualquer faixa, de <code>min</code> a <code>max</code>.</li>
+  <li>O que é a <strong>semente</strong>, e por que <code>new Random(42)</code> sempre dá a mesma sequência.</li>
+  <li><code>ThreadLocalRandom</code> e <code>RandomGenerator</code> <span class="versao">Java 17+</span>.</li>
+  <li>Os erros comuns: <code>import</code> esquecido, <code>bound must be positive</code>, o <code>(int)</code> no lugar errado.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma máquina de sortear</h2>
+<p>O computador não joga dados de verdade. Ele usa uma <strong>fórmula</strong> que, a partir de um número inicial, produz uma sequência que <strong>parece</strong> aleatória: sem padrão visível, com todos os valores aparecendo com a mesma frequência. Por isso o nome técnico é <strong>pseudoaleatório</strong> ("falso aleatório"). Para jogos, sorteios e simulações, é perfeito.</p>
+
+<p>Pense num baralho enorme, já embaralhado, de onde você vai tirando cartas pela ordem. Quem olha não consegue prever a próxima carta; mas, se alguém embaralhar <strong>exatamente do mesmo jeito</strong>, a ordem será a mesma. Esse "jeito de embaralhar" é a <strong>semente</strong>, que você vai ver mais adiante.</p>
+
+<hr>
+
+<h2>O jeito mais simples: <code>Math.random()</code></h2>
+<p>Você conheceu o <code>Math.random()</code> na aula <a href="math.html">Math</a>: ele devolve um <code>double</code> entre <code>0.0</code> (pode sair) e <code>1.0</code> (nunca sai). Para virar um dado, são três passos:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double sorteio = Math.random();
+        System.out.println(sorteio);
+        System.out.println(sorteio * 6);
+        System.out.println((int) (sorteio * 6));
+        int dado = (int) (Math.random() * 6) + 1;
+        System.out.println("Dado: " + dado);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+0.8942632483583696     « um número entre 0 e 1
+5.365579490150218      « vezes 6: entre 0 e 5,999…
+5                      « (int) corta a parte decimal: 0, 1, 2, 3, 4 ou 5
+Dado: 4                « mais 1: entre 1 e 6 (outro sorteio, por isso outro valor)
+$ java Main.java
+0.10267241060837118
+0.6160344636502271
+0
+Dado: 3                « cada execução, números diferentes</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>Expressão</th><th>Valores possíveis</th></tr>
+<tr><td>1. Sortear</td><td><code>Math.random()</code></td><td>0.0 até 0.999…</td></tr>
+<tr><td>2. Esticar</td><td><code>Math.random() * 6</code></td><td>0.0 até 5.999…</td></tr>
+<tr><td>3. Cortar</td><td><code>(int) (Math.random() * 6)</code></td><td>0, 1, 2, 3, 4, 5</td></tr>
+<tr><td>4. Deslocar</td><td><code>(int) (Math.random() * 6) + 1</code></td><td>1, 2, 3, 4, 5, 6</td></tr>
+</table>
+</div>
+
+<p>Os <strong>parênteses</strong> em volta de <code>Math.random() * 6</code> são essenciais: o <code>(int)</code> tem de cortar o resultado <strong>da multiplicação</strong>. Sem eles, o dado sempre dá 1 (veja "Quando dá errado").</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> clique em <strong>Rodar</strong> várias vezes e veja o dado mudar. Depois transforme-o num dado de 20 faces (de 1 a 20).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int dado = (int) (Math.random() * 6) + 1;
+        System.out.println("Dado: " + dado);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>A classe <code>Random</code></h2>
+<p>O <code>Math.random()</code> só dá <code>double</code>, e a conta para virar inteiro é chata. A classe <code>Random</code> ("aleatório") é uma máquina de sortear mais completa, com métodos prontos para cada tipo.</p>
+
+<pre class="file" data-file="Main.java">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        Random r = new Random();
+        System.out.println(r.nextInt(6) + 1);
+        System.out.println(r.nextInt(1, 7));
+        System.out.println(r.nextInt());
+        System.out.println(r.nextDouble());
+        System.out.println(r.nextBoolean());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+3
+3
+78269670
+0.6057460381527114
+false</pre>
+
+<dl class="anatomy">
+  <dt>import java.util.Random;</dt><dd><code>Random</code> mora no pacote <code>java.util</code> ("utilidades"), que não é carregado automaticamente como o <code>java.lang</code> do <code>Math</code>. A linha <code>import</code> ("importar"), no topo do arquivo, diz ao <code>javac</code> onde achar a classe. Mais em <a href="pacotes.html">Pacotes e import</a>.</dd>
+  <dt>Random r = new Random();</dt><dd>Cria a máquina de sortear e guarda na variável <code>r</code>. O <code>new</code> ("novo") cria um <strong>objeto</strong>; você vai entender objetos a fundo em <a href="classes-objetos.html">Classes e Objetos</a>. Por enquanto: crie <strong>uma</strong> máquina e use-a para todos os sorteios.</dd>
+  <dt>r.nextInt(6)</dt><dd>"O próximo inteiro" de <code>0</code> até <code>5</code>: o número entre parênteses (o <em>bound</em>, "limite") <strong>nunca sai</strong>. Por isso o <code>+ 1</code>, para o dado ir de 1 a 6.</dd>
+  <dt>r.nextInt(1, 7)</dt><dd>Inteiro de <code>1</code> (incluído) até <code>7</code> (excluído), ou seja, de 1 a 6, sem conta extra. Esta forma com dois números existe desde o <span class="versao">Java 17</span>.</dd>
+  <dt>r.nextInt()</dt><dd>Sem limite: qualquer <code>int</code>, inclusive negativo. Raramente é o que você quer.</dd>
+  <dt>r.nextDouble()</dt><dd>Um <code>double</code> entre 0.0 e 1.0, como o <code>Math.random()</code>.</dd>
+  <dt>r.nextBoolean()</dt><dd><code>true</code> ou <code>false</code>, meio a meio: cara ou coroa.</dd>
+</dl>
+
+<div class="warning">
+<strong>O limite de cima não entra</strong>
+<p>Em <code>nextInt(6)</code> e <code>nextInt(1, 7)</code>, o último número fica <strong>de fora</strong>, a mesma regra do <code>substring</code> (veja <a href="metodos-string.html">Métodos de String</a>). Esquecer isso gera o erro mais comum com aleatórios: um dado que nunca tira 6.</p>
+</div>
+
+<hr>
+
+<h2>Sortear numa faixa: de <code>min</code> a <code>max</code></h2>
+<p>Para sortear um inteiro de <code>min</code> a <code>max</code>, <strong>incluindo os dois</strong>, use uma destas formas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Desde</th></tr>
+<tr><td><code>r.nextInt(max - min + 1) + min</code></td><td>Sempre (funciona em qualquer versão)</td></tr>
+<tr><td><code>r.nextInt(min, max + 1)</code></td><td>Java 17</td></tr>
+<tr><td><code>(int) (Math.random() * (max - min + 1)) + min</code></td><td>Sempre, sem <code>Random</code></td></tr>
+</table>
+</div>
+
+<p>Por que <code>max - min + 1</code>? Porque é a <strong>quantidade</strong> de números da faixa. De 10 a 20 há 11 números (10, 11, …, 20): <code>20 - 10 + 1 = 11</code>. <code>nextInt(11)</code> sorteia de 0 a 10; somando 10, fica de 10 a 20.</p>
+
+<pre class="file" data-file="Main.java">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        Random r = new Random();
+        int min = 10;
+        int max = 20;
+        for (int i = 0; i &lt; 8; i++) {
+            int n = r.nextInt(max - min + 1) + min;
+            System.out.print(n + " ");
+        }
+        System.out.println();
+        for (int i = 0; i &lt; 8; i++) {
+            System.out.print(r.nextInt(min, max + 1) + " ");
+        }
+        System.out.println();
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+20 16 20 16 20 17 15 10       « o 10 e o 20 aparecem: os dois extremos entram
+11 12 15 20 11 16 16 17</pre>
+
+<p>O <code>for</code> repete o sorteio 8 vezes; você vai estudá-lo em <a href="for.html">for</a>. Repare que o <code>10</code> e o <code>20</code> apareceram: a faixa inclui as duas pontas.</p>
+
+<hr>
+
+<h2>A semente: a mesma sequência sempre</h2>
+<p>Quando você cria um <code>new Random()</code> sem nada entre os parênteses, o Java escolhe uma <strong>semente</strong> (<em>seed</em>) diferente a cada vez, baseada no relógio e em outros detalhes. Por isso cada execução dá números diferentes. Mas você pode <strong>escolher</strong> a semente:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        Random r = new Random(42);
+        System.out.println(r.nextInt(100));
+        System.out.println(r.nextInt(100));
+        System.out.println(r.nextInt(100));
+        System.out.println(r.nextInt(100));
+        System.out.println(r.nextInt(100));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+30
+63
+48
+84
+70
+$ java Main.java
+30          « exatamente a mesma sequência
+63
+48
+84
+70</pre>
+
+<p>Com a semente <code>42</code>, a sequência é <strong>sempre</strong> 30, 63, 48, 84, 70, em qualquer execução e em qualquer computador com Java (a fórmula do <code>Random</code> é fixa na especificação). Dentro do mesmo programa também: duas máquinas com a mesma semente "andam juntas".</p>
+
+<pre class="file" data-file="Main.java">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        Random a = new Random(42);
+        Random b = new Random(42);
+        Random c = new Random(7);
+        System.out.println("a: " + (a.nextInt(6) + 1) + " " + (a.nextInt(6) + 1) + " " + (a.nextInt(6) + 1));
+        System.out.println("b: " + (b.nextInt(6) + 1) + " " + (b.nextInt(6) + 1) + " " + (b.nextInt(6) + 1));
+        System.out.println("c: " + (c.nextInt(6) + 1) + " " + (c.nextInt(6) + 1) + " " + (c.nextInt(6) + 1));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+a: 3 4 1     « semente 42
+b: 3 4 1     « semente 42 de novo: os mesmos dados
+c: 5 3 4     « outra semente, outra sequência</pre>
+
+<p>Para que serve um sorteio que sempre dá o mesmo resultado?</p>
+<ul>
+  <li><strong>Testar</strong>: se o seu jogo tem um erro que só aparece com certos dados, a semente fixa permite repetir a partida exata até achar o problema.</li>
+  <li><strong>Reproduzir</strong>: simulações científicas e geradores de mapas de jogos (o "seed" do Minecraft é isso) usam sementes para recriar o mesmo resultado.</li>
+  <li><strong>Ensinar</strong>: é por isso que as missões abaixo usam sementes; assim o editor do guia sabe que resposta esperar.</li>
+</ul>
+
+<div class="warning">
+<strong>Não use <code>Random</code> para segurança</strong>
+<p>Como a sequência pode ser prevista por quem descobre a semente, <code>Random</code> não serve para senhas, códigos de verificação ou tokens. Para isso existe <code>java.security.SecureRandom</code>, que é usado do mesmo jeito (<code>new SecureRandom().nextInt(10)</code>), mas é imprevisível.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Dado: 6,src:new Random\(2026\)">
+<p class="try-task"><strong>Missão:</strong> crie um <code>Random</code> com a semente <code>2026</code> e role um dado de 1 a 6 com <code>nextInt</code>. Com essa semente, o primeiro dado é sempre <code>6</code>: a saída deve ser <code>Dado: 6</code>.</p>
+<pre class="script">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        // crie o Random com semente 2026 e role o dado
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        Random r = new Random(2026);
+        int dado = r.nextInt(6) + 1;
+        System.out.println("Dado: " + dado);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Sortear um item: nomes, cara ou coroa</h2>
+<p>Para sortear um elemento de uma lista, sorteie a <strong>posição</strong>. Num <a href="arrays.html">array</a> de 5 nomes, as posições vão de 0 a 4, e <code>r.nextInt(alunos.length)</code> sorteia exatamente nessa faixa:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla", "Diego", "Elisa"};
+        Random r = new Random();
+        int posicao = r.nextInt(alunos.length);
+        System.out.println("Quem apresenta hoje: " + alunos[posicao]);
+        String moeda = r.nextBoolean() ? "cara" : "coroa";
+        System.out.println("Moeda: " + moeda);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Quem apresenta hoje: Ana
+Moeda: cara
+$ java Main.java
+Quem apresenta hoje: Elisa
+Moeda: coroa</pre>
+
+<dl class="anatomy">
+  <dt>String[] alunos = {…}</dt><dd>Um array com 5 nomes, nas posições 0 a 4.</dd>
+  <dt>r.nextInt(alunos.length)</dt><dd><code>alunos.length</code> é 5, então sorteia de 0 a 4: sempre uma posição válida, mesmo que você acrescente nomes.</dd>
+  <dt>r.nextBoolean() ? "cara" : "coroa"</dt><dd>O <strong>operador ternário</strong>: "se o sorteio deu <code>true</code>, cara; senão, coroa". Ele tem aula própria: <a href="ternario.html">Operador Ternário</a>.</dd>
+</dl>
+
+<p>Para <strong>embaralhar</strong> uma lista inteira (a ordem das perguntas de uma prova, por exemplo), existe <code>Collections.shuffle</code>, visto em <a href="collections.html">A Classe Collections</a>.</p>
+
+<hr>
+
+<h2><code>ThreadLocalRandom</code> e <code>RandomGenerator</code></h2>
+<p>Você vai encontrar mais duas formas em código moderno:</p>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.ThreadLocalRandom;
+import java.util.random.RandomGenerator;
+
+public class Main {
+    public static void main(String[] args) {
+        int dado = ThreadLocalRandom.current().nextInt(1, 7);
+        System.out.println("ThreadLocalRandom: " + dado);
+        RandomGenerator gerador = RandomGenerator.getDefault();
+        System.out.println("RandomGenerator: " + gerador.nextInt(1, 7));
+        RandomGenerator outro = RandomGenerator.of("L64X128MixRandom");
+        System.out.println("L64X128MixRandom: " + outro.nextInt(1, 7));
+        System.out.println(gerador.getClass().getSimpleName());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+ThreadLocalRandom: 5
+RandomGenerator: 1
+L64X128MixRandom: 6
+L32X64MixRandom          « o algoritmo que o getDefault() escolheu</pre>
+
+<dl class="anatomy">
+  <dt>ThreadLocalRandom.current()</dt><dd>Uma máquina de sortear que o Java já deixa pronta, sem <code>new</code>. Foi feita para programas que fazem várias coisas ao mesmo tempo (<a href="threads.html">threads</a>), onde cada parte do programa ganha a sua própria máquina e ninguém espera ninguém. Também é prática em programas simples: uma linha só. Não aceita semente.</dd>
+  <dt>RandomGenerator</dt><dd><span class="versao">Java 17+</span> Uma "família" de geradores com a mesma cara (<code>nextInt</code>, <code>nextDouble</code>…). O próprio <code>Random</code> faz parte dela. <code>getDefault()</code> entrega um bom gerador moderno (no JDK 25, o <code>L32X64MixRandom</code>); <code>of("nome")</code> escolhe um algoritmo pelo nome.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>Um sorteio rápido, sem <code>import</code></td><td><code>Math.random()</code></td></tr>
+<tr><td>Vários sorteios de inteiros, booleanos, decimais</td><td><code>Random</code></td></tr>
+<tr><td>Repetir a mesma sequência (testes, missões)</td><td><code>new Random(semente)</code></td></tr>
+<tr><td>Uma linha só, ou um programa com threads</td><td><code>ThreadLocalRandom.current()</code></td></tr>
+<tr><td>Escolher o algoritmo, código novo (Java 17+)</td><td><code>RandomGenerator</code></td></tr>
+<tr><td>Senhas, códigos de segurança</td><td><code>SecureRandom</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: cannot find symbol … symbol: class Random</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Random r = new Random();
+        System.out.println(r.nextInt(6));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        Random r = new Random();
+        ^
+  symbol:   class Random
+  location: class Main
+Main.java:3: error: cannot find symbol
+        Random r = new Random();
+                       ^
+  symbol:   class Random
+  location: class Main
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> faltou o <code>import</code>. Sem ele, o <code>javac</code> não sabe que <code>Random</code> está em <code>java.util</code>. Os dois erros apontam os dois lugares onde o nome aparece.</p>
+<p><strong>Como resolver:</strong> coloque <code>import java.util.Random;</code> na primeira linha do arquivo, antes de <code>public class</code>. (Ou escreva o nome completo: <code>java.util.Random r = new java.util.Random();</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong><code>IllegalArgumentException: bound must be positive</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        Random r = new Random();
+        int quantidade = 0;
+        System.out.println(r.nextInt(quantidade));
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.IllegalArgumentException: bound must be positive
+	at java.base/java.util.Random.nextInt(Random.java:551)
+	at Main.main(Main.java:7)</pre>
+<p><strong>O que aconteceu:</strong> o limite do <code>nextInt</code> tem de ser <strong>positivo</strong> ("o limite deve ser positivo"); não dá para sortear entre zero números. Acontece quando a lista está vazia (<code>nextInt(alunos.length)</code> com nenhum aluno) ou quando <code>min</code> e <code>max</code> estão trocados na fórmula.</p>
+<p><strong>Como resolver:</strong> confira a conta do limite e, se a lista pode estar vazia, teste antes com um <a href="if-else.html">if</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>O dado sempre dá 1</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dado = (int) Math.random() * 6 + 1;
+        System.out.println(dado);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+1
+$ java Main.java
+1</pre>
+<p><strong>O que aconteceu:</strong> o <code>(int)</code> vale só para o que está <strong>logo depois</strong> dele: <code>Math.random()</code>. Um número entre 0 e 0,999…, cortado, é sempre <code>0</code>; <code>0 * 6 + 1</code> é sempre <code>1</code>. Não há erro de compilação: o programa simplesmente não sorteia nada.</p>
+<p><strong>Como resolver:</strong> parênteses em volta da multiplicação: <code>(int) (Math.random() * 6) + 1</code>. Ou use <code>Random</code> e <code>nextInt(1, 7)</code>, que não tem essa armadilha.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: incompatible types: possible lossy conversion from double to int</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dado = Math.random() * 6 + 1;
+        System.out.println(dado);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from double to int
+        int dado = Math.random() * 6 + 1;
+                                     ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> a conta inteira é <code>double</code> (por causa do <code>Math.random()</code>) e não cabe num <code>int</code> sem perder a parte decimal.</p>
+<p><strong>Como resolver:</strong> <code>(int) (Math.random() * 6) + 1</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O dado nunca tira 6</strong>
+<p><strong>O que aconteceu:</strong> foi usado <code>r.nextInt(1, 6)</code> ou <code>r.nextInt(6)</code> sem o <code>+ 1</code>. O limite de cima não entra.</p>
+<p><strong>Como resolver:</strong> <code>r.nextInt(1, 7)</code> ou <code>r.nextInt(6) + 1</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Sorteia</th></tr>
+<tr><td><code>Math.random()</code></td><td><code>double</code> em [0.0, 1.0)</td></tr>
+<tr><td><code>(int) (Math.random() * n)</code></td><td><code>int</code> de 0 a n-1</td></tr>
+<tr><td><code>new Random()</code></td><td>Cria um gerador (semente diferente a cada vez)</td></tr>
+<tr><td><code>new Random(42)</code></td><td>Cria um gerador com semente fixa (sequência repetível)</td></tr>
+<tr><td><code>r.nextInt(n)</code></td><td><code>int</code> de 0 a n-1</td></tr>
+<tr><td><code>r.nextInt(a, b)</code></td><td><code>int</code> de a a b-1 (Java 17+)</td></tr>
+<tr><td><code>r.nextInt(max - min + 1) + min</code></td><td><code>int</code> de min a max</td></tr>
+<tr><td><code>r.nextDouble()</code></td><td><code>double</code> em [0.0, 1.0)</td></tr>
+<tr><td><code>r.nextBoolean()</code></td><td><code>true</code> ou <code>false</code></td></tr>
+<tr><td><code>ThreadLocalRandom.current().nextInt(a, b)</code></td><td><code>int</code> de a a b-1</td></tr>
+<tr><td><code>RandomGenerator.getDefault()</code></td><td>Um gerador moderno (Java 17+)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:17 18 14,src:new Random\(2026\)">
+<p class="try-task"><strong>Missão final:</strong> com <code>new Random(2026)</code>, sorteie <strong>três</strong> números de <code>10</code> a <code>20</code> (incluindo os dois) e mostre-os numa linha, separados por espaço. Com essa semente, a saída é sempre <code>17 18 14</code>.</p>
+<pre class="script">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        int min = 10;
+        int max = 20;
+        // crie o Random e sorteie três números
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        Random r = new Random(2026);
+        int min = 10;
+        int max = 20;
+        int a = r.nextInt(max - min + 1) + min;
+        int b = r.nextInt(max - min + 1) + min;
+        int c = r.nextInt(max - min + 1) + min;
+        System.out.println(a + " " + b + " " + c);
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. Dado de 12 faces</h3>
+<p>Complete para sortear de 1 a 12:</p>
+<div class="ex-code">int d = r.nextInt(<input data-answer="12" aria-label="limite">) + 1;</div>
+</div>
+
+<div class="exercise">
+<h3>2. A faixa</h3>
+<p>Complete para sortear de 50 a 100 (incluindo os dois) com <code>nextInt(a, b)</code>:</p>
+<div class="ex-code">int n = r.nextInt(50, <input data-answer="101" aria-label="limite superior">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. O import</h3>
+<p>Complete a linha que permite usar <code>Random</code>:</p>
+<div class="ex-code">import <input data-answer="java.util.Random" aria-label="classe">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>new Random(42)</code> garante?</p>
+<label><input type="radio" name="q4"> Que o primeiro número sorteado é 42.</label>
+<label><input type="radio" name="q4"> Que a sequência de números é sempre a mesma, em toda execução.</label>
+<label><input type="radio" name="q4"> Que os números vão até 42.</label>
+<label><input type="radio" name="q4"> Que os números são mais aleatórios.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Quais valores <code>r.nextInt(5)</code> pode devolver?</p>
+<label><input type="radio" name="q5"> De 1 a 5</label>
+<label><input type="radio" name="q5"> De 0 a 5</label>
+<label><input type="radio" name="q5"> De 1 a 4</label>
+<label><input type="radio" name="q5"> De 0 a 4</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Para gerar o código de recuperação de senha de um site, use…</p>
+<label><input type="radio" name="q6"> <code>SecureRandom</code></label>
+<label><input type="radio" name="q6"> <code>new Random(42)</code></label>
+<label><input type="radio" name="q6"> <code>Math.random()</code></label>
+<label><input type="radio" name="q6"> Qualquer um, todos são iguais</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Os números são <strong>pseudoaleatórios</strong>: vêm de uma fórmula que parte de uma semente.</li>
+  <li><code>Math.random()</code> dá um <code>double</code> em [0, 1); para um dado: <code>(int) (Math.random() * 6) + 1</code>, com os parênteses.</li>
+  <li><code>Random</code> (com <code>import java.util.Random;</code>): <code>nextInt(n)</code> dá de 0 a n-1; <code>nextInt(a, b)</code> dá de a a b-1; o limite de cima nunca entra.</li>
+  <li>De <code>min</code> a <code>max</code>: <code>r.nextInt(max - min + 1) + min</code>.</li>
+  <li><code>new Random(semente)</code> repete sempre a mesma sequência: ótimo para testes, péssimo para segurança (use <code>SecureRandom</code>).</li>
+  <li><code>ThreadLocalRandom.current()</code> e <code>RandomGenerator</code> (Java 17+) são as opções modernas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
