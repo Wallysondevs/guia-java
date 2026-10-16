@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java HashSet — conjuntos sem repetição: add, contains, retainAll | Guia Java</title>
+<meta name="description" content="HashSet em Java: conjunto sem elementos repetidos, add que devolve false, contains, remover duplicatas, união, interseção e diferença com addAll, retainAll e removeAll, a ordem real, LinkedHashSet, Set.of e por que equals e hashCode importam, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">HashSet</span></h1>
+
+<p class="intro">Um <strong>conjunto</strong> (<code>Set</code>) é uma coleção que <strong>não aceita repetidos</strong>: cada elemento está lá uma vez, ou não está. É a ferramenta certa para perguntas como "quais cidades diferentes aparecem?", "esse e-mail já foi cadastrado?" ou "quem faz as duas matérias?". O <code>HashSet</code> é a implementação mais usada, e responde a "está aqui?" quase instantaneamente.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Criar um <code>HashSet</code>; por que o <code>add</code> devolve <code>true</code> ou <code>false</code>.</li>
+  <li><code>contains</code>, <code>remove</code>, <code>size</code>, e por que não existe <code>get(i)</code>.</li>
+  <li>Tirar os repetidos de uma lista numa linha.</li>
+  <li>Operações de conjunto: união (<code>addAll</code>), interseção (<code>retainAll</code>) e diferença (<code>removeAll</code>).</li>
+  <li>A ordem (real) de um <code>HashSet</code>, o <code>LinkedHashSet</code> e o <code>Set.of</code>.</li>
+  <li>Por que, com objetos seus, o conjunto precisa de <code>equals</code> e <code>hashCode</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: um álbum de figurinhas</h2>
+<p>Quem já completou um álbum de figurinhas sabe: a figurinha 27 ou está colada, ou não está. Tirar outra 27 do pacote não muda nada no álbum: ela vai para o monte das repetidas. Um conjunto funciona igual:</p>
+<ul>
+  <li>Colocar um elemento que <strong>já está</strong> lá não faz nada.</li>
+  <li>A pergunta mais importante é "<strong>tem</strong> a 27?", e não "qual é a 5ª figurinha?". Conjuntos não têm posições.</li>
+</ul>
+
+<p>O <code>HashSet</code> é, por dentro, um <a href="hashmap.html">HashMap</a> que só usa as chaves. Por isso ele herda as duas características do <code>HashMap</code>: é muito rápido para achar um elemento e <strong>não guarda ordem</strong>.</p>
+
+<hr>
+
+<h2>Criar, acrescentar e perguntar</h2>
+
+<pre class="file" data-file="Main.java">import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        Set&lt;String&gt; cidades = new HashSet&lt;&gt;();
+        System.out.println("add Recife: " + cidades.add("Recife"));
+        System.out.println("add Natal:  " + cidades.add("Natal"));
+        System.out.println("add Recife: " + cidades.add("Recife"));
+        System.out.println(cidades + " tamanho " + cidades.size());
+
+        System.out.println("contains(\"Natal\"): " + cidades.contains("Natal"));
+        System.out.println("contains(\"natal\"): " + cidades.contains("natal"));
+        System.out.println("remove(\"Natal\"): " + cidades.remove("Natal"));
+        System.out.println("remove(\"Olinda\"): " + cidades.remove("Olinda"));
+        System.out.println(cidades);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Set&lt;String&gt; cidades = new HashSet&lt;&gt;();</dt><dd>Variável do tipo da interface <code>Set</code> ("conjunto"), objeto <code>HashSet</code>.</dd>
+  <dt>cidades.add("Recife")</dt><dd>Tenta colocar. Devolve <code>true</code> se o elemento <strong>entrou</strong> e <code>false</code> se ele já estava lá (e então nada muda).</dd>
+  <dt>cidades.contains("Natal")</dt><dd>"Contém Natal?" Esta é a especialidade do <code>HashSet</code>: a resposta é rápida mesmo com milhões de elementos.</dd>
+  <dt>cidades.remove("Natal")</dt><dd>Tira e devolve <code>true</code>; se não estava lá, devolve <code>false</code>.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+add Recife: true
+add Natal:  true
+add Recife: false                « já estava: recusado, sem erro
+[Recife, Natal] tamanho 2
+contains("Natal"): true
+contains("natal"): false         « maiúscula faz diferença
+remove("Natal"): true
+remove("Olinda"): false
+[Recife]</pre>
+
+<p>O <code>false</code> do terceiro <code>add</code> não é um erro: é uma <strong>informação</strong>. Ele permite fazer, numa linha só, "coloque e me diga se era novo". Isso resolve um problema clássico: achar repetidos.</p>
+
+<pre class="file" data-file="Main.java">import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] emails = {"ana@escola.com", "bruno@escola.com", "ana@escola.com", "carla@escola.com"};
+        Set&lt;String&gt; vistos = new HashSet&lt;&gt;();
+        for (String e : emails) {
+            if (!vistos.add(e)) {
+                System.out.println("Repetido: " + e);
+            }
+        }
+        System.out.println("E-mails diferentes: " + vistos.size());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Repetido: ana@escola.com
+E-mails diferentes: 3</pre>
+
+<p><code>if (!vistos.add(e))</code> se lê: "se <strong>não</strong> conseguiu acrescentar (porque já tinha visto), avise". Um único método faz a pergunta e guarda o e-mail.</p>
+
+<div class="tryjava" data-goal="out:Repetido: 27,out:Repetido: 5,out:Figurinhas diferentes: 4,src:\.add\(">
+<p class="try-task"><strong>Missão:</strong> a Ana abriu um pacote de figurinhas. Usando um <code>Set&lt;Integer&gt;</code> e o resultado do <code>add</code>, mostre <code>Repetido: N</code> para cada figurinha repetida e, no fim, <code>Figurinhas diferentes: 4</code>.</p>
+<pre class="script">import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] pacote = {27, 5, 13, 27, 42, 5};
+        Set&lt;Integer&gt; album = new HashSet&lt;&gt;();
+
+        // para cada figurinha do pacote...
+
+        System.out.println("Figurinhas diferentes: " + album.size());
+    }
+}
+</pre>
+<pre class="solucao">import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] pacote = {27, 5, 13, 27, 42, 5};
+        Set&lt;Integer&gt; album = new HashSet&lt;&gt;();
+
+        for (int f : pacote) {
+            if (!album.add(f)) {
+                System.out.println("Repetido: " + f);
+            }
+        }
+
+        System.out.println("Figurinhas diferentes: " + album.size());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Tirar os repetidos de uma lista</h2>
+<p>Todo conjunto tem um construtor que recebe outra coleção. Os repetidos ficam pelo caminho. Veja com os três tipos de conjunto do Java, e repare na ordem de cada um:</p>
+
+<pre class="file" data-file="Main.java">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; inscricoes = List.of("Carla", "Ana", "Bruno", "Ana", "Duda", "Carla", "Ana");
+        System.out.println("Inscrições: " + inscricoes);
+
+        Set&lt;String&gt; hash = new HashSet&lt;&gt;(inscricoes);
+        Set&lt;String&gt; linked = new LinkedHashSet&lt;&gt;(inscricoes);
+        Set&lt;String&gt; tree = new TreeSet&lt;&gt;(inscricoes);
+        System.out.println("HashSet:       " + hash);
+        System.out.println("LinkedHashSet: " + linked);
+        System.out.println("TreeSet:       " + tree);
+        System.out.println("Pessoas diferentes: " + hash.size());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Inscrições: [Carla, Ana, Bruno, Ana, Duda, Carla, Ana]
+HashSet:       [Bruno, Carla, Ana, Duda]          « sem repetidos, ordem das "gavetas"
+LinkedHashSet: [Carla, Ana, Bruno, Duda]          « sem repetidos, ordem da 1ª aparição
+TreeSet:       [Ana, Bruno, Carla, Duda]          « sem repetidos, em ordem alfabética
+Pessoas diferentes: 4</pre>
+
+<p>Se depois você precisar de uma lista de novo (para usar <code>get(i)</code>, por exemplo), é o caminho inverso: <code>new ArrayList&lt;&gt;(conjunto)</code>.</p>
+
+<h3 id="ordem">A ordem de um HashSet</h3>
+<p>Como no <code>HashMap</code>, o <code>HashSet</code> espalha os elementos em "gavetas" pelo <em>hash code</em> de cada um, e os devolve na ordem das gavetas. As mesmas sete frutas, inseridas na mesma ordem:</p>
+
+<pre class="file" data-file="Main.java">        String[] frutas = {"uva", "banana", "maçã", "kiwi", "abacaxi", "laranja", "pera"};
+        Set&lt;String&gt; hash = new HashSet&lt;&gt;();
+        Set&lt;String&gt; linked = new LinkedHashSet&lt;&gt;();
+        for (String f : frutas) {
+            hash.add(f);
+            linked.add(f);
+        }
+        System.out.println("HashSet:       " + hash);
+        System.out.println("LinkedHashSet: " + linked);
+        for (String f : hash) {
+            System.out.print(f + " ");
+        }
+        System.out.println();
+</pre>
+
+<pre class="term">$ java Main
+HashSet:       [banana, pera, uva, kiwi, maçã, abacaxi, laranja]
+LinkedHashSet: [uva, banana, maçã, kiwi, abacaxi, laranja, pera]
+banana pera uva kiwi maçã abacaxi laranja           « o for-each segue a mesma ordem embaralhada</pre>
+
+<p>A ordem do <code>HashSet</code> é a mesma do <code>HashMap</code> da aula anterior, com as mesmas frutas: os dois usam o mesmo mecanismo. E vale o mesmo aviso: <strong>nunca dependa dela</strong>. Quer a ordem de inserção? <code>LinkedHashSet</code>. Quer ordem alfabética? <code>TreeSet</code> (veja <a href="treemap-treeset.html">TreeMap e TreeSet</a>).</p>
+
+<hr>
+
+<h2>Operações de conjunto</h2>
+<p>A Ana tem duas turmas de reforço: Matemática e Física. Ela quer saber quem está em pelo menos uma, quem está nas duas e quem está só em Matemática. Na escola isso se chama <strong>união</strong>, <strong>interseção</strong> e <strong>diferença</strong> de conjuntos, e cada uma é um método:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Set;
+import java.util.TreeSet;
+
+public class Main {
+    public static void main(String[] args) {
+        Set&lt;String&gt; matematica = new TreeSet&lt;&gt;(Set.of("Ana", "Bruno", "Carla", "Duda"));
+        Set&lt;String&gt; fisica = new TreeSet&lt;&gt;(Set.of("Bruno", "Carla", "Edu"));
+
+        Set&lt;String&gt; uniao = new TreeSet&lt;&gt;(matematica);
+        uniao.addAll(fisica);
+
+        Set&lt;String&gt; intersecao = new TreeSet&lt;&gt;(matematica);
+        intersecao.retainAll(fisica);
+
+        Set&lt;String&gt; diferenca = new TreeSet&lt;&gt;(matematica);
+        diferenca.removeAll(fisica);
+
+        System.out.println("Matemática: " + matematica);
+        System.out.println("Física:     " + fisica);
+        System.out.println("Pelo menos uma (addAll):  " + uniao);
+        System.out.println("As duas (retainAll):      " + intersecao);
+        System.out.println("Só Matemática (removeAll): " + diferenca);
+        System.out.println("Física dentro de Matemática? " + matematica.containsAll(fisica));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Matemática: [Ana, Bruno, Carla, Duda]
+Física:     [Bruno, Carla, Edu]
+Pelo menos uma (addAll):  [Ana, Bruno, Carla, Duda, Edu]
+As duas (retainAll):      [Bruno, Carla]
+Só Matemática (removeAll): [Ana, Duda]
+Física dentro de Matemática? false             « o Edu não faz Matemática</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operação</th><th>Método</th><th>Em palavras</th><th>Resultado</th></tr>
+<tr><td>União (A ∪ B)</td><td><code>a.addAll(b)</code></td><td>"Junte em A tudo o que está em B."</td><td>quem faz pelo menos uma</td></tr>
+<tr><td>Interseção (A ∩ B)</td><td><code>a.retainAll(b)</code></td><td><em>retain</em> = reter. "Mantenha em A só o que também está em B."</td><td>quem faz as duas</td></tr>
+<tr><td>Diferença (A − B)</td><td><code>a.removeAll(b)</code></td><td>"Tire de A tudo o que está em B."</td><td>quem faz só a primeira</td></tr>
+<tr><td>Subconjunto (B ⊂ A)</td><td><code>a.containsAll(b)</code></td><td>"A tem todos os de B?"</td><td><code>true</code>/<code>false</code></td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Esses métodos alteram o conjunto que os chama</strong>
+<p><code>matematica.retainAll(fisica)</code> apagaria a Ana e a Duda da própria turma de Matemática. Por isso o programa faz uma <strong>cópia</strong> antes (<code>new TreeSet&lt;&gt;(matematica)</code>) e opera na cópia. Usamos <code>TreeSet</code> aqui só para a saída sair em ordem alfabética; com <code>HashSet</code> o resultado é o mesmo, em outra ordem. Esses métodos também existem em listas (são de <code>Collection</code>).</p>
+</div>
+
+<hr>
+
+<h2>Conjuntos prontos: <code>Set.of</code></h2>
+<p><code>Set.of(…)</code> cria um conjunto imutável. Ele é rigoroso: elemento repetido na criação é erro.</p>
+
+<pre class="file" data-file="Main.java">import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        Set&lt;String&gt; vogais = Set.of("a", "e", "i", "o", "u");
+        System.out.println(vogais.contains("e") + " " + vogais.size());
+        Set&lt;String&gt; erro = Set.of("a", "e", "a");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+true 5
+Exception in thread "main" java.lang.IllegalArgumentException: duplicate element: a
+	at java.base/java.util.ImmutableCollections$SetN.&lt;init&gt;(ImmutableCollections.java:1164)
+	at java.base/java.util.Set.of(Set.java:505)
+	at Main.main(Main.java:7)</pre>
+
+<p>Como no <code>Map.of</code>, a ordem de um <code>Set.of</code> é embaralhada e pode mudar a cada execução, e <code>add</code>/<code>remove</code> dão <code>UnsupportedOperationException</code>. Quer tirar repetidos de dados que podem ter repetição? Use <code>new HashSet&lt;&gt;(List.of(…))</code>, que aceita repetidos na entrada.</p>
+
+<hr>
+
+<h2 id="equals">Conjuntos de objetos seus: <code>equals</code> e <code>hashCode</code></h2>
+<p>Com <code>String</code> e <code>Integer</code>, o conjunto sabe que <code>"Ana"</code> e <code>"Ana"</code> são iguais. E com uma classe criada por você? A Ana cria a classe <code>Aluno</code> e põe o mesmo aluno duas vezes:</p>
+
+<pre class="file" data-file="Main.java">import java.util.HashSet;
+import java.util.Set;
+
+class Aluno {
+    String nome;
+    int matricula;
+
+    Aluno(String nome, int matricula) {
+        this.nome = nome;
+        this.matricula = matricula;
+    }
+
+    public String toString() {
+        return nome + "#" + matricula;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Set&lt;Aluno&gt; turma = new HashSet&lt;&gt;();
+        turma.add(new Aluno("Ana", 101));
+        turma.add(new Aluno("Ana", 101));
+        System.out.println(turma + " tamanho " + turma.size());
+        System.out.println(turma.contains(new Aluno("Ana", 101)));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[Ana#101, Ana#101] tamanho 2       « a "mesma" aluna entrou duas vezes!
+false                              « e o contains não a encontra</pre>
+
+<p>Para o Java, são <strong>dois objetos diferentes</strong>, criados por dois <code>new</code>, que por acaso têm os mesmos dados. Sem instrução sua, "igual" quer dizer "o mesmo objeto na memória". Para o conjunto entender que dois alunos com o mesmo nome e matrícula são iguais, a classe precisa de dois métodos herdados de <code>Object</code>:</p>
+
+<ul>
+  <li><strong><code>equals</code></strong>: diz quando dois objetos são iguais.</li>
+  <li><strong><code>hashCode</code></strong>: o número que escolhe a "gaveta". Objetos iguais <strong>precisam</strong> ter o mesmo <code>hashCode</code>, senão vão para gavetas diferentes e o conjunto nem chega a compará-los com <code>equals</code>.</li>
+</ul>
+
+<pre class="file" data-file="Main.java">import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
+class Aluno {
+    String nome;
+    int matricula;
+
+    Aluno(String nome, int matricula) {
+        this.nome = nome;
+        this.matricula = matricula;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Aluno outro)) return false;
+        return matricula == outro.matricula &amp;&amp; nome.equals(outro.nome);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nome, matricula);
+    }
+
+    public String toString() {
+        return nome + "#" + matricula;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[Ana#101] tamanho 1
+true</pre>
+
+<p>Agora funciona. A explicação completa de <code>equals</code>, <code>hashCode</code> e do contrato entre os dois está na aula <a href="object.html">A Classe Object</a>. Um atalho: um <a href="records.html">record</a> já vem com <code>equals</code> e <code>hashCode</code> prontos, baseados nos seus campos:</p>
+
+<pre class="file" data-file="Main.java">record Aluno(String nome, int matricula) { }
+</pre>
+
+<pre class="term">$ java Main
+[Aluno[nome=Ana, matricula=101]] tamanho 1</pre>
+
+<hr>
+
+<h2>Qual conjunto usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Conjunto</th><th>Ordem</th><th>Velocidade</th><th>Quando usar</th></tr>
+<tr><td><code>HashSet</code></td><td>Nenhuma garantida</td><td>A mais rápida</td><td>O padrão: "tem ou não tem?", tirar repetidos.</td></tr>
+<tr><td><code>LinkedHashSet</code></td><td>A de inserção</td><td>Quase igual</td><td>Tirar repetidos mantendo a ordem original.</td></tr>
+<tr><td><code>TreeSet</code></td><td>Crescente (A→Z, 1→9)</td><td>Um pouco mais lenta</td><td>Precisa dos elementos sempre ordenados.</td></tr>
+<tr><td><code>Set.of(…)</code></td><td>Embaralhada</td><td>Rápida</td><td>Conjunto fixo, que não muda.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … method get(int)": conjunto não tem posição</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.HashSet;
+import java.util.Set;
+
+public class Main {
+    public static void main(String[] args) {
+        Set&lt;String&gt; cidades = new HashSet&lt;&gt;();
+        cidades.add("Recife");
+        System.out.println(cidades.get(0));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:8: error: cannot find symbol
+        System.out.println(cidades.get(0));
+                                  ^
+  symbol:   method get(int)
+  location: variable cidades of type Set&lt;String&gt;
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "não encontrei o método <code>get(int)</code> na variável <code>cidades</code>, do tipo <code>Set&lt;String&gt;</code>". Conjuntos não têm "primeiro", "segundo"…</p>
+<p><strong>Como consertar:</strong> percorra com for-each, pergunte com <code>contains</code>, ou, se precisa mesmo de posições, copie para uma lista: <code>new ArrayList&lt;&gt;(cidades).get(0)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O mesmo objeto aparece duas vezes no conjunto</strong>
+<p><strong>O que aconteceu:</strong> a sua classe não tem <code>equals</code> e <code>hashCode</code> (ou tem só um dos dois). Veja <a href="#equals">a seção sobre equals e hashCode</a> e <a href="object.html">A Classe Object</a>.</p>
+<p><strong>Como consertar:</strong> escreva os dois métodos, ou transforme a classe num <code>record</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>IllegalArgumentException: duplicate element</code></strong>
+<p><strong>O que aconteceu:</strong> o <code>Set.of</code> recebeu o mesmo elemento duas vezes.</p>
+<p><strong>Como consertar:</strong> tire o repetido, ou use <code>new HashSet&lt;&gt;(List.of(…))</code> se os dados podem ter repetição.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>add(x)</code></td><td>Coloca, se ainda não estiver</td><td><code>true</code> se entrou, <code>false</code> se já estava</td></tr>
+<tr><td><code>contains(x)</code></td><td>Está no conjunto?</td><td><code>boolean</code></td></tr>
+<tr><td><code>remove(x)</code></td><td>Tira</td><td><code>true</code> se estava</td></tr>
+<tr><td><code>size()</code>, <code>isEmpty()</code>, <code>clear()</code></td><td>Quantidade, vazio?, apagar tudo</td><td>—</td></tr>
+<tr><td><code>addAll(c)</code></td><td>União</td><td><code>true</code> se mudou</td></tr>
+<tr><td><code>retainAll(c)</code></td><td>Interseção</td><td><code>true</code> se mudou</td></tr>
+<tr><td><code>removeAll(c)</code></td><td>Diferença</td><td><code>true</code> se mudou</td></tr>
+<tr><td><code>containsAll(c)</code></td><td>Contém todos de <code>c</code>?</td><td><code>boolean</code></td></tr>
+<tr><td><code>new HashSet&lt;&gt;(colecao)</code></td><td>Conjunto a partir de outra coleção (tira repetidos)</td><td>—</td></tr>
+<tr><td><code>Set.of(…)</code></td><td>Conjunto pronto e imutável</td><td>—</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que o add devolve</h3>
+<p>O conjunto já tem "Recife". O que <code>cidades.add("Recife")</code> devolve?</p>
+<div class="ex-code"><input data-answer="false" aria-label="resposta"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Sem repetidos, na ordem</h3>
+<p>Complete para criar um conjunto, sem repetidos e <strong>na ordem original</strong>, a partir da lista <code>nomes</code>:</p>
+<div class="ex-code">Set&lt;String&gt; unicos = new <input data-answer="LinkedHashSet&lt;&gt;(nomes)" aria-label="construtor">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quem está nas duas</h3>
+<p>Complete para deixar em <code>a</code> só os elementos que também estão em <code>b</code>:</p>
+<div class="ex-code">a.<input data-answer="retainAll(b)" aria-label="método">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>new HashSet&lt;&gt;(List.of(3, 1, 3, 2, 1)).size()</code> vale:</p>
+<label><input type="radio" name="q4"> 5</label>
+<label><input type="radio" name="q4"> 3</label>
+<label><input type="radio" name="q4"> 2</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. A classe <code>Produto</code> não tem <code>equals</code> nem <code>hashCode</code>. Num <code>HashSet</code>, dois <code>new Produto("café")</code>…</p>
+<label><input type="radio" name="q5"> viram um elemento só.</label>
+<label><input type="radio" name="q5"> dão erro de compilação.</label>
+<label><input type="radio" name="q5"> viram dois elementos.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Fazem as duas: [Bruno\, Carla],out:Matemática continua: [Ana\, Bruno\, Carla\, Duda],src:retainAll">
+<p class="try-task"><strong>Missão final:</strong> descubra quem faz Matemática <strong>e</strong> Física, com <code>retainAll</code>, sem estragar a turma de Matemática (faça uma cópia). A saída deve ser <code>Fazem as duas: [Bruno, Carla]</code> e <code>Matemática continua: [Ana, Bruno, Carla, Duda]</code>.</p>
+<pre class="script">import java.util.Set;
+import java.util.TreeSet;
+
+public class Main {
+    public static void main(String[] args) {
+        Set&lt;String&gt; matematica = new TreeSet&lt;&gt;(Set.of("Ana", "Bruno", "Carla", "Duda"));
+        Set&lt;String&gt; fisica = new TreeSet&lt;&gt;(Set.of("Bruno", "Carla", "Edu"));
+
+        Set&lt;String&gt; asDuas = matematica;
+        asDuas.retainAll(fisica);
+        System.out.println("Fazem as duas: " + asDuas);
+        System.out.println("Matemática continua: " + matematica);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Set;
+import java.util.TreeSet;
+
+public class Main {
+    public static void main(String[] args) {
+        Set&lt;String&gt; matematica = new TreeSet&lt;&gt;(Set.of("Ana", "Bruno", "Carla", "Duda"));
+        Set&lt;String&gt; fisica = new TreeSet&lt;&gt;(Set.of("Bruno", "Carla", "Edu"));
+
+        Set&lt;String&gt; asDuas = new TreeSet&lt;&gt;(matematica);
+        asDuas.retainAll(fisica);
+        System.out.println("Fazem as duas: " + asDuas);
+        System.out.println("Matemática continua: " + matematica);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Set</code> não tem repetidos nem posições. <code>HashSet</code> é o padrão.</li>
+  <li><code>add</code> devolve <code>false</code> quando o elemento já estava: ótimo para achar repetidos.</li>
+  <li><code>contains</code> é a especialidade do <code>HashSet</code>: muito rápido.</li>
+  <li><code>new HashSet&lt;&gt;(lista)</code> tira os repetidos; <code>LinkedHashSet</code> mantém a ordem; <code>TreeSet</code> ordena.</li>
+  <li>União <code>addAll</code>, interseção <code>retainAll</code>, diferença <code>removeAll</code>: alteram quem chama, então trabalhe numa cópia.</li>
+  <li>A ordem de um <code>HashSet</code> não é garantida; <code>Set.of</code> embaralha e recusa repetidos.</li>
+  <li>Objetos seus num conjunto precisam de <code>equals</code> e <code>hashCode</code> (ou ser um <code>record</code>).</li>
+</ul>
+
+<p>Próxima aula: <a href="treemap-treeset.html">TreeMap e TreeSet</a>, as coleções que se mantêm sempre ordenadas.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
