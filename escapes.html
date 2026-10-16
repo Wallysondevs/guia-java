@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Caracteres Especiais — \", \\, \n, \t e Unicode | Guia Java</title>
+<meta name="description" content="Sequências de escape em Java: aspas dentro de texto (\&quot;), barra invertida (\\), quebra de linha (\n), tab (\t), aspa simples (\'), Unicode (\u00e9) e os erros reais illegal escape character, illegal unicode escape e unclosed string literal.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Caracteres Especiais</span></h1>
+
+<p class="intro">Como colocar uma aspa dupla <strong>dentro</strong> de um texto, se a aspa dupla é justamente o que marca onde o texto termina? E como escrever uma quebra de linha, um tab ou uma letra que não existe no seu teclado? A resposta é a <strong>barra invertida</strong> <code>\</code>, que avisa ao Java: "o próximo caractere é especial".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma <strong>sequência de escape</strong> e por que ela existe.</li>
+  <li><code>\"</code> (aspa dupla), <code>\\</code> (barra invertida), <code>\'</code> (aspa simples).</li>
+  <li><code>\n</code> (quebra de linha) e <code>\t</code> (tab), para organizar a saída.</li>
+  <li>Os escapes Unicode, como <code>\u00e9</code> (é), e a pegadinha deles em comentários.</li>
+  <li>Os erros reais: <code>illegal escape character</code>, <code>illegal unicode escape</code>, <code>unclosed string literal</code> e <code>empty character literal</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O problema: a aspa que fecha cedo demais</h2>
+<p>A Ana quer mostrar a frase <code>Ela disse "oi" e foi embora.</code>. A primeira tentativa:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Ela disse "oi" e foi embora.");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: ')' or ',' expected
+        System.out.println("Ela disse "oi" e foi embora.");
+                                       ^
+Main.java:3: error: ';' expected
+        System.out.println("Ela disse "oi" e foi embora.");
+                                         ^
+2 errors</pre>
+
+<p>Para o <code>javac</code>, o texto acabou na segunda aspa: <code>"Ela disse "</code>. Depois veio <code>oi</code>, que ele não sabe o que é, e outro texto <code>" e foi embora."</code>. O <code>^</code> aponta exatamente onde a confusão começou.</p>
+
+<p>A saída é avisar ao Java que <strong>aquela</strong> aspa é parte do texto, e não o fim dele. É isso que a barra invertida faz.</p>
+
+<hr>
+
+<h2>A barra invertida: sequências de escape</h2>
+<p>Dentro de um texto entre aspas, a barra invertida <code>\</code> (<em>backslash</em>) junta-se ao caractere seguinte e os dois formam <strong>um único caractere especial</strong>. O par se chama <strong>sequência de escape</strong>: a barra "escapa" do significado normal do caractere. É como o "entre aspas" que fazemos com os dedos ao falar: muda o sentido do que vem a seguir.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Ela disse \"oi\" e foi embora.");
+        System.out.println("Pasta: C:\\Users\\Ana");
+        System.out.println("Linha 1\nLinha 2\nLinha 3");
+        System.out.println("Nome\tNota");
+        System.out.println("Ana\t9.5");
+        System.out.println("Bruno\t7.0");
+        System.out.println("copo d'água");
+        System.out.println("copo d\'água");
+        char aspa = '\'';
+        System.out.println(aspa);
+        System.out.println("a\nb".length());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Ela disse "oi" e foi embora.
+Pasta: C:\Users\Ana
+Linha 1
+Linha 2
+Linha 3
+Nome	Nota
+Ana	9.5
+Bruno	7.0
+copo d'água
+copo d'água
+'
+3</pre>
+
+<p>Vamos um por um.</p>
+
+<h3><code>\"</code>: aspa dupla dentro do texto</h3>
+<p><code>\"</code> vira uma aspa dupla comum, que <strong>não</strong> fecha o texto. Em <code>"Ela disse \"oi\" e foi embora."</code>, as únicas aspas "de verdade" são a primeira e a última.</p>
+
+<h3><code>\\</code>: a própria barra</h3>
+<p>Se a barra é o "sinal de escape", como escrever uma barra de verdade (num caminho do Windows, por exemplo)? Escapando a própria barra: <code>\\</code> vira <strong>uma</strong> barra. Por isso <code>"C:\\Users\\Ana"</code> mostra <code>C:\Users\Ana</code>.</p>
+
+<h3><code>\n</code>: quebra de linha</h3>
+<p><code>\n</code> (de <em>new line</em>, "nova linha") pula para a linha de baixo no meio do texto. Um único <code>println</code> mostrou três linhas. Repare na última linha da saída: <code>"a\nb".length()</code> é <code>3</code>. A sequência <code>\n</code> ocupa duas teclas no código, mas é <strong>um caractere só</strong> dentro da String (o caractere "quebra de linha").</p>
+
+<h3><code>\t</code>: tab</h3>
+<p><code>\t</code> (de <em>tab</em>, tabulação) avança até a próxima "coluna" do terminal, como a tecla <kbd>Tab</kbd> num editor de texto. Serve para alinhar colunas, como a tabela de notas acima: os nomes têm tamanhos diferentes, mas as notas ficaram alinhadas.</p>
+
+<h3><code>\'</code>: aspa simples</h3>
+<p>Dentro de uma String (aspas duplas), a aspa simples é um caractere comum: <code>"copo d'água"</code> funciona sem barra, e <code>"copo d\'água"</code> também (a barra é aceita, mas desnecessária). Já num <code>char</code>, que é delimitado por aspas simples, a barra é obrigatória: <code>'\''</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer</th><th>Dentro de <code>"…"</code> (String)</th><th>Dentro de <code>'…'</code> (char)</th></tr>
+<tr><td>Aspa dupla</td><td><code>\"</code> (obrigatório)</td><td><code>'"'</code> ou <code>'\"'</code></td></tr>
+<tr><td>Aspa simples</td><td><code>'</code> ou <code>\'</code></td><td><code>'\''</code> (obrigatório)</td></tr>
+<tr><td>Barra invertida</td><td><code>\\</code></td><td><code>'\\'</code></td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:Ela disse: &quot;Java é legal!&quot;,out:C:\java\aulas">
+<p class="try-task"><strong>Missão:</strong> mostre exatamente estas duas linhas, com as aspas e as barras:<br><code>Ela disse: "Java é legal!"</code><br><code>C:\java\aulas</code></p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Ela disse: Java é legal!");
+        System.out.println("C:");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Ela disse: \"Java é legal!\"");
+        System.out.println("C:\\java\\aulas");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Todas as sequências de escape</h2>
+<p>O Java tem poucas sequências, e você vai usar de verdade só as quatro primeiras:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escape</th><th>Vira</th><th>Origem do nome</th><th>Uso</th></tr>
+<tr><td><code>\n</code></td><td>Quebra de linha</td><td><em>new line</em></td><td>Muito comum</td></tr>
+<tr><td><code>\t</code></td><td>Tab</td><td><em>tab</em></td><td>Alinhar colunas</td></tr>
+<tr><td><code>\"</code></td><td>Aspa dupla</td><td></td><td>Aspas dentro de String</td></tr>
+<tr><td><code>\\</code></td><td>Barra invertida</td><td></td><td>Caminhos do Windows, expressões regulares</td></tr>
+<tr><td><code>\'</code></td><td>Aspa simples</td><td></td><td>No <code>char</code> <code>'\''</code></td></tr>
+<tr><td><code>\r</code></td><td>Retorno de carro: volta ao começo da mesma linha</td><td><em>carriage return</em>, das máquinas de escrever</td><td>Raro; o Windows termina linhas de arquivos com <code>\r\n</code></td></tr>
+<tr><td><code>\b</code></td><td>Volta um caractere (<em>backspace</em>)</td><td><em>backspace</em></td><td>Raro</td></tr>
+<tr><td><code>\f</code></td><td>Avanço de página</td><td><em>form feed</em></td><td>Antigo, para impressoras</td></tr>
+<tr><td><code>\s</code></td><td>Um espaço <span class="versao">Java 15+</span></td><td><em>space</em></td><td>Nos <a href="text-blocks.html">Text Blocks</a></td></tr>
+<tr><td><code>\0</code> a <code>\377</code></td><td>O caractere com aquele código em octal (base 8)</td><td></td><td>Raríssimo: <code>"\101"</code> é <code>"A"</code></td></tr>
+</table>
+</div>
+
+<p>Qualquer outra letra depois da barra (<code>\U</code>, <code>\D</code>, <code>\d</code>, <code>\w</code>…) é um <strong>erro de compilação</strong>, como você vai ver adiante.</p>
+
+<div class="tip">
+<strong>Quebra de linha no fim: <code>println</code> já faz</strong>
+<p><code>System.out.println("oi")</code> já pula a linha depois do texto (o "ln" é de <em>line</em>, veja <a href="saida.html">Saída: print e println</a>). Não precisa escrever <code>"oi\n"</code>. Use <code>\n</code> para quebras <strong>no meio</strong> do texto, ou com <code>print</code>. Nos modelos de <a href="formatacao.html">printf e format</a> existe ainda o <code>%n</code>, que gera a quebra de linha certa para cada sistema operacional.</p>
+</div>
+
+<hr>
+
+<h2>Escapes Unicode: <code>\u</code></h2>
+<p>Todo caractere do mundo (letras de todos os alfabetos, acentos, símbolos, emojis) tem um número no padrão <strong>Unicode</strong>. Em Java, você pode escrever qualquer caractere pelo número, com <code>\u</code> seguido de <strong>exatamente 4</strong> dígitos hexadecimais (base 16: <code>0</code>–<code>9</code> e <code>a</code>–<code>f</code>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Caf\u00e9 com p\u00e3o");
+        char letra = '\u0041';
+        System.out.println(letra);
+        System.out.println("\u00c1gua, a\u00e7\u00facar e \u20ac 5");
+        System.out.println("Ol\u00E1");
+        System.out.println("\u2665");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Café com pão
+A
+Água, açúcar e € 5
+Olá
+♥</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escape</th><th>Caractere</th><th>Escape</th><th>Caractere</th></tr>
+<tr><td><code>\u00e1</code></td><td>á</td><td><code>\u00c1</code></td><td>Á</td></tr>
+<tr><td><code>\u00e3</code></td><td>ã</td><td><code>\u00e9</code></td><td>é</td></tr>
+<tr><td><code>\u00ea</code></td><td>ê</td><td><code>\u00ed</code></td><td>í</td></tr>
+<tr><td><code>\u00f3</code></td><td>ó</td><td><code>\u00f5</code></td><td>õ</td></tr>
+<tr><td><code>\u00fa</code></td><td>ú</td><td><code>\u00e7</code></td><td>ç</td></tr>
+<tr><td><code>\u0041</code></td><td>A</td><td><code>\u20ac</code></td><td>€</td></tr>
+</table>
+</div>
+
+<p>Maiúsculas ou minúsculas nos dígitos tanto faz (<code>\u00E1</code> = <code>\u00e1</code>). Hoje os editores e o JDK trabalham em UTF-8, então você pode simplesmente <strong>digitar</strong> <code>"Café"</code> no código, como fizemos o curso todo. Os escapes Unicode são úteis para caracteres invisíveis (como o "espaço largo" <code>\u2003</code> da aula <a href="metodos-string.html">Métodos de String</a>) ou que não estão no teclado.</p>
+
+<h3>A pegadinha: <code>\u</code> funciona até em comentários</h3>
+<p>Os escapes Unicode são diferentes dos outros: o <code>javac</code> os traduz <strong>antes de tudo</strong>, no arquivo inteiro, inclusive dentro de <a href="comentarios.html">comentários</a>. Por isso um comentário inocente com um caminho do Windows quebra a compilação. <em>Este código tem um erro de propósito.</em></p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        // os arquivos ficam em C:\users\ana
+        System.out.println("Oi");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal unicode escape
+        // os arquivos ficam em C:\users\ana
+                                    ^
+1 error</pre>
+
+<p><code>\users</code> começa com <code>\u</code>, e <code>sers</code> não são 4 dígitos hexadecimais: "escape Unicode ilegal". Num comentário, escreva <code>C:\\users</code>, use <code>/</code> ou mude o texto.</p>
+
+<hr>
+
+<h2>Organizar a saída com <code>\n</code> e <code>\t</code></h2>
+<p>Com quebras e tabs, um único texto vira uma pequena tabela. Isso é útil para relatórios simples:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Aluno\tNota\nAna\t9.5\nBruno\t7.0");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Aluno	Nota
+Ana	9.5
+Bruno	7.0</pre>
+
+<p>O tab alinha bem enquanto os textos da primeira coluna são curtos (menos de 8 caracteres, no terminal). Com nomes longos, a coluna "pula" para o próximo ponto de tab e desalinha. Para colunas com largura exata, use <code>printf</code> com <code>%-10s</code> (veja <a href="formatacao.html">Formatar Texto</a>).</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> acrescente uma terceira coluna (<code>\tSituação</code>) e mais um aluno. Depois troque um nome por um bem comprido, como <code>Maria Eduarda</code>, e veja o que acontece com o alinhamento.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Aluno\tNota");
+        System.out.println("Ana\t9.5");
+        System.out.println("Bruno\t7.0");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: illegal escape character</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Pasta: C:\Documentos\Ana");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal escape character
+        System.out.println("Pasta: C:\Documentos\Ana");
+                                      ^
+Main.java:3: error: illegal escape character
+        System.out.println("Pasta: C:\Documentos\Ana");
+                                                 ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> <code>\D</code> e <code>\A</code> não são sequências de escape ("caractere de escape ilegal"). Uma barra sozinha num texto sempre tenta formar uma sequência com o caractere seguinte. O <code>^</code> aponta para cada uma.</p>
+<p><strong>Como resolver:</strong> dobre as barras: <code>"C:\\Documentos\\Ana"</code>. Em caminhos, o Java também aceita <code>/</code> no Windows: <code>"C:/Documentos/Ana"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: illegal unicode escape</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Pasta: C:\users\ana");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal unicode escape
+        System.out.println("Pasta: C:\users\ana");
+                                       ^
+Main.java:3: error: illegal escape character
+        System.out.println("Pasta: C:\users\ana");
+                                            ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> <code>\u</code> anuncia um escape Unicode com 4 dígitos hexadecimais, e veio <code>sers</code>. O segundo erro é o <code>\a</code>, que também não existe. Lembre que o <code>\u</code> dá esse erro até em comentários.</p>
+<p><strong>Como resolver:</strong> <code>\\users\\ana</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: unclosed string literal</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: unclosed string literal
+        System.out.println("Olá, mundo!);
+                           ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o texto foi aberto e nunca fechado na mesma linha ("literal de String não fechado"). O <code>^</code> aponta para a aspa que abriu. Um texto entre aspas comuns não pode atravessar linhas; se você apertar <kbd>Enter</kbd> no meio dele, o erro é o mesmo, uma vez para cada pedaço.</p>
+<p><strong>Como resolver:</strong> feche as aspas: <code>"Olá, mundo!"</code>. Para quebrar a linha dentro do texto, use <code>\n</code>; para textos de várias linhas no código, <a href="text-blocks.html">Text Blocks</a>. Outra causa comum: um <code>\"</code> no fim do texto, que vira aspa comum e deixa o texto aberto (<code>"C:\pasta\"</code>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: empty character literal</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        char aspa = ''';
+        System.out.println(aspa);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: empty character literal
+        char aspa = ''';
+                    ^
+Main.java:7: error: reached end of file while parsing
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> as duas primeiras aspas formaram um <code>char</code> vazio (<code>''</code>), que não existe ("literal de caractere vazio"). A terceira aspa abriu outro <code>char</code> que bagunçou o resto do arquivo, e o <code>javac</code> chegou ao fim (<em>end of file</em>) ainda procurando o fechamento.</p>
+<p><strong>Como resolver:</strong> <code>char aspa = '\'';</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrito no código</th><th>Aparece na tela</th></tr>
+<tr><td><code>"Ela disse \"oi\""</code></td><td><code>Ela disse "oi"</code></td></tr>
+<tr><td><code>"C:\\Users"</code></td><td><code>C:\Users</code></td></tr>
+<tr><td><code>"um\ndois"</code></td><td><code>um</code> (quebra) <code>dois</code></td></tr>
+<tr><td><code>"A\tB"</code></td><td><code>A</code> (tab) <code>B</code></td></tr>
+<tr><td><code>'\''</code></td><td><code>'</code></td></tr>
+<tr><td><code>"Caf\u00e9"</code></td><td><code>Café</code></td></tr>
+<tr><td><code>"\\d+"</code> (num padrão de <a href="regex.html">regex</a>)</td><td>o texto <code>\d+</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Aluno,out:Bruno,src:\\t,src:\\n">
+<p class="try-task"><strong>Missão final:</strong> com <strong>um único</strong> <code>System.out.println</code>, usando <code>\t</code> e <code>\n</code>, mostre a tabela:<br><code>Aluno</code>(tab)<code>Nota</code><br><code>Ana</code>(tab)<code>9.5</code><br><code>Bruno</code>(tab)<code>7.0</code></p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Aluno Nota");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Aluno\tNota\nAna\t9.5\nBruno\t7.0");
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. Aspas no texto</h3>
+<p>Complete para mostrar <code>O livro "Dom Casmurro"</code>:</p>
+<div class="ex-code">System.out.println("O livro <input data-answer="\&quot;Dom Casmurro\&quot;" aria-label="trecho">");</div>
+</div>
+
+<div class="exercise">
+<h3>2. Barra de verdade</h3>
+<p>Complete para mostrar <code>D:\fotos</code>:</p>
+<div class="ex-code">System.out.println("D:<input data-answer="\\fotos" aria-label="trecho">");</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quantos caracteres?</h3>
+<p>Quanto vale <code>"1\t2".length()</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="tamanho"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que <code>"C:\Downloads"</code> não compila?</p>
+<label><input type="radio" name="q4"> Porque o Java não aceita dois-pontos em texto.</label>
+<label><input type="radio" name="q4"> Porque <code>\D</code> não é uma sequência de escape válida.</label>
+<label><input type="radio" name="q4"> Porque falta o <code>\n</code> no fim.</label>
+<label><input type="radio" name="q4"> Compila normalmente.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destes <strong>não</strong> compila?</p>
+<label><input type="radio" name="q5"> <code>"copo d'água"</code></label>
+<label><input type="radio" name="q5"> <code>'\''</code></label>
+<label><input type="radio" name="q5"> <code>"\u00e9"</code></label>
+<label><input type="radio" name="q5"> <code>// pasta C:\users</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>A barra invertida <code>\</code> junta-se ao caractere seguinte e forma <strong>um</strong> caractere especial (uma sequência de escape).</li>
+  <li><code>\"</code> = aspa dupla dentro do texto; <code>\\</code> = uma barra; <code>\'</code> = aspa simples (obrigatório só em <code>char</code>).</li>
+  <li><code>\n</code> quebra a linha; <code>\t</code> avança até a próxima coluna.</li>
+  <li><code>\u</code> + 4 dígitos hexadecimais = qualquer caractere Unicode, e funciona até em comentários (cuidado com <code>C:\users</code>).</li>
+  <li>Barra seguida de outra letra dá <code>illegal escape character</code>; texto sem aspa de fechamento dá <code>unclosed string literal</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

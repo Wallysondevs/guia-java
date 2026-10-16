@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Concatenação — juntar textos com +, concat e join | Guia Java</title>
+<meta name="description" content="Como juntar textos em Java: o operador +, o +=, o método concat, número + texto (por que &quot;1&quot; + 2 + 3 dá 123 e 1 + 2 + &quot;3&quot; dá 33), o custo de concatenar em laço e String.join, com saídas reais e erros do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Concatenação</span></h1>
+
+<p class="intro"><strong>Concatenar</strong> é juntar textos, um atrás do outro: <code>"Olá, "</code> + <code>"Ana"</code> = <code>"Olá, Ana"</code>. Você vai fazer isso o tempo todo para montar mensagens. Parece simples, e é, com uma pegadinha famosa: quando números entram na conta, o <code>+</code> às vezes soma e às vezes junta. Nesta aula você vai entender exatamente quando acontece cada coisa.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como juntar textos com <code>+</code> e com <code>+=</code>.</li>
+  <li>O método <code>concat</code> e quando ele é diferente do <code>+</code>.</li>
+  <li>O que acontece quando você junta texto com números, <code>char</code> e <code>boolean</code>, e por que <code>"1" + 2 + 3</code> dá <code>123</code> mas <code>1 + 2 + "3"</code> dá <code>33</code>.</li>
+  <li>Por que concatenar dentro de um laço pode ficar lento.</li>
+  <li>Como juntar uma lista de textos com <code>String.join</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: emendar pedaços</h2>
+<p>Pense em vagões de trem: cada pedaço de texto é um vagão, e o <code>+</code> é o engate que prende um no outro. O trem resultante é um texto novo, com todos os vagões em ordem. Os vagões originais não mudam (lembre que <a href="strings.html">Strings são imutáveis</a>): a concatenação sempre <strong>cria uma String nova</strong>.</p>
+
+<hr>
+
+<h2>O operador <code>+</code></h2>
+<p>Entre dois textos, o <code>+</code> não soma: ele <strong>emenda</strong>. Você já usou isso em <code>System.out.println</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        String sobrenome = "Souza";
+        System.out.println("Olá, " + nome + "!");
+        System.out.println(nome + sobrenome);
+        System.out.println(nome + " " + sobrenome);
+        String completo = nome + " " + sobrenome;
+        System.out.println(completo.length());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Olá, Ana!
+AnaSouza      « o + não coloca espaço sozinho
+Ana Souza     « o espaço foi um pedaço a mais: " "
+9</pre>
+
+<dl class="anatomy">
+  <dt>"Olá, " + nome + "!"</dt><dd>Três pedaços: um literal, uma variável e outro literal. Repare no espaço <strong>dentro</strong> das aspas depois da vírgula: é ele que separa "Olá," de "Ana".</dd>
+  <dt>nome + sobrenome</dt><dd>Emenda sem nada no meio: <code>AnaSouza</code>. O Java nunca adivinha espaços.</dd>
+  <dt>String completo = …</dt><dd>O resultado é uma String como qualquer outra: pode ser guardado, medido, comparado.</dd>
+</dl>
+
+<div class="tip">
+<strong>Onde vai o espaço?</strong>
+<p>O erro mais comum de quem começa é a frase sair grudada: <code>Olá,Ana</code> ou <code>Ana tem30anos</code>. Os espaços precisam estar <strong>dentro das aspas</strong>: <code>"Ana tem " + idade + " anos"</code>. Espaços fora das aspas (<code>nome  +  sobrenome</code>) são só formatação do código e não aparecem na saída.</p>
+</div>
+
+<h3>Quebrar uma frase comprida no código</h3>
+<p>Quando o texto é longo demais para uma linha do editor, quebre-o em pedaços ligados por <code>+</code>. O <code>javac</code> junta tudo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String mensagem = "Esta é uma frase bem comprida que não cabe "
+                + "numa linha só do editor, então foi quebrada "
+                + "em três pedaços.";
+        System.out.println(mensagem);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Esta é uma frase bem comprida que não cabe numa linha só do editor, então foi quebrada em três pedaços.</pre>
+
+<p>Um literal entre aspas não pode ser quebrado no meio com <kbd>Enter</kbd>; por isso cada linha fecha as aspas e a próxima começa com <code>+</code>. Para textos de várias linhas de verdade, existe uma forma melhor: os <a href="text-blocks.html">Text Blocks</a>.</p>
+
+<hr>
+
+<h2>Acrescentar no fim: <code>+=</code></h2>
+<p>Você viu em <a href="operadores-atribuicao.html">Operadores de Atribuição</a> que <code>x += 5</code> é um atalho para <code>x = x + 5</code>. Com Strings funciona igual: <code>frase += "texto"</code> quer dizer <code>frase = frase + "texto"</code>, ou seja, "cria uma String nova com o texto antigo mais o pedaço, e guarda de volta em <code>frase</code>".</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String frase = "Eu gosto de";
+        frase = frase + " maçã";
+        frase += ", banana";
+        frase += " e uva";
+        System.out.println(frase);
+        int idade = 30;
+        String texto = "Idade: " + idade;
+        String soNumero = "" + idade;
+        String comValueOf = String.valueOf(idade);
+        System.out.println(texto);
+        System.out.println(soNumero.length() + " " + comValueOf.length());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Eu gosto de maçã, banana e uva
+Idade: 30
+2 2      « "30" virou um texto de 2 caracteres, pelos dois caminhos</pre>
+
+<p>As duas últimas variáveis mostram dois jeitos de transformar um número em texto: <code>"" + idade</code> (juntar com a String vazia, um truque muito usado) e <code>String.valueOf(idade)</code> ("valor de", a forma mais explícita). Os dois dão <code>"30"</code>.</p>
+
+<hr>
+
+<h2>O método <code>concat</code></h2>
+<p>Toda String tem o método <code>concat</code>, que faz a mesma emenda: <code>a.concat(b)</code> é parecido com <code>a + b</code>.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        String completo = nome.concat(" Souza");
+        System.out.println(completo);
+        System.out.println("Bom".concat(" ").concat("dia"));
+        String nada = null;
+        System.out.println("Valor: " + nada);
+        System.out.println("Valor: ".concat(nada));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Ana Souza
+Bom dia
+Valor: null
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.isEmpty()" because "str" is null
+	at java.base/java.lang.String.concat(String.java:2961)
+	at Main.main(Main.java:9)</pre>
+
+<p>As duas primeiras linhas funcionam como o <code>+</code>. A diferença aparece com <code>null</code>: o <code>+</code> escreve a palavra <code>null</code> e segue em frente; o <code>concat</code> derruba o programa. A mensagem fala de <code>"str"</code> porque esse é o nome do parâmetro <strong>dentro</strong> do método <code>concat</code>, na biblioteca do Java (a linha <code>at java.base/java.lang.String.concat</code>); a sua linha é a de baixo, <code>Main.java:9</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>+</code></th><th><code>concat</code></th></tr>
+<tr><td>Aceita números, <code>char</code>, <code>boolean</code>…</td><td>Sim, transforma em texto</td><td>Não: só String (erro de compilação)</td></tr>
+<tr><td>Com <code>null</code></td><td>Escreve <code>null</code></td><td><code>NullPointerException</code></td></tr>
+<tr><td>Uso</td><td>O dia a dia</td><td>Raro</td></tr>
+</table>
+</div>
+
+<p>Na prática, quase todo mundo usa o <code>+</code>. É bom conhecer o <code>concat</code> para entender código de outras pessoas.</p>
+
+<hr>
+
+<h2>Texto + número: soma ou emenda?</h2>
+<p>Aqui está a parte que mais confunde. O <code>+</code> tem dois trabalhos em Java:</p>
+<ul>
+  <li>Se os <strong>dois lados</strong> são números, ele <strong>soma</strong>: <code>2 + 3</code> é <code>5</code>.</li>
+  <li>Se <strong>pelo menos um lado</strong> é uma String, ele <strong>emenda</strong>, transformando o outro lado em texto: <code>"2" + 3</code> é <code>"23"</code>.</li>
+</ul>
+
+<p>E a regra que decide tudo: o Java avalia o <code>+</code> <strong>da esquerda para a direita</strong>, um par de cada vez (veja <a href="precedencia.html">Precedência</a>). A cada passo, olha os dois lados daquele <code>+</code> e decide se soma ou emenda. Veja:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("1" + 2 + 3);
+        System.out.println(1 + 2 + "3");
+        System.out.println(1 + 2 + "3" + 4 + 5);
+        System.out.println("Soma: " + 2 + 3);
+        System.out.println("Soma: " + (2 + 3));
+        System.out.println("Dobro: " + 2 * 3);
+        System.out.println('A' + 'B');
+        System.out.println("" + 'A' + 'B');
+        System.out.println('A' + "B");
+        System.out.println("Peso: " + 1.5 + " kg");
+        System.out.println("Aprovada? " + true);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+123
+33
+3345
+Soma: 23
+Soma: 5
+Dobro: 6
+131
+AB
+AB
+Peso: 1.5 kg
+Aprovada? true</pre>
+
+<p>Vamos passo a passo, como o Java faz:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>Passo 1</th><th>Passo 2</th><th>Resultado</th></tr>
+<tr><td><code>"1" + 2 + 3</code></td><td><code>"1" + 2</code> → texto + número → <code>"12"</code></td><td><code>"12" + 3</code> → <code>"123"</code></td><td><code>123</code></td></tr>
+<tr><td><code>1 + 2 + "3"</code></td><td><code>1 + 2</code> → dois números → <strong>soma</strong> <code>3</code></td><td><code>3 + "3"</code> → <code>"33"</code></td><td><code>33</code></td></tr>
+<tr><td><code>1 + 2 + "3" + 4 + 5</code></td><td><code>1 + 2</code> → <code>3</code></td><td><code>3 + "3"</code> → <code>"33"</code>, depois <code>"334"</code>, <code>"3345"</code></td><td><code>3345</code></td></tr>
+<tr><td><code>"Soma: " + 2 + 3</code></td><td><code>"Soma: " + 2</code> → <code>"Soma: 2"</code></td><td><code>"Soma: 2" + 3</code> → <code>"Soma: 23"</code></td><td><code>Soma: 23</code> (errado!)</td></tr>
+<tr><td><code>"Soma: " + (2 + 3)</code></td><td>Parênteses primeiro: <code>2 + 3</code> → <code>5</code></td><td><code>"Soma: " + 5</code></td><td><code>Soma: 5</code></td></tr>
+<tr><td><code>"Dobro: " + 2 * 3</code></td><td><code>*</code> vem antes de <code>+</code>: <code>2 * 3</code> → <code>6</code></td><td><code>"Dobro: " + 6</code></td><td><code>Dobro: 6</code></td></tr>
+</table>
+</div>
+
+<p>Moral: <strong>quando quiser fazer uma conta dentro de uma frase, coloque a conta entre parênteses</strong>. <code>*</code>, <code>/</code> e <code>%</code> já vêm antes do <code>+</code>, mas os parênteses deixam claro para quem lê.</p>
+
+<h3>E o <code>char</code>?</h3>
+<p>Lembra que um <code>char</code> é, por dentro, um número (veja <a href="char-boolean.html">char e boolean</a>)? Por isso <code>'A' + 'B'</code> não dá <code>"AB"</code>: são dois "números" (65 e 66), e o <code>+</code> soma: <code>131</code>. Basta <strong>uma</strong> String na conta para virar emenda: <code>"" + 'A' + 'B'</code> e <code>'A' + "B"</code> dão <code>AB</code>. Atenção às aspas: <code>'A'</code> (simples) é <code>char</code>; <code>"B"</code> (duplas) é String.</p>
+
+<h3>Outros tipos</h3>
+<p>Qualquer valor pode ser emendado num texto: <code>double</code> vira <code>1.5</code> (com ponto, sempre; a vírgula do português só aparece com <a href="formatacao.html">format e printf</a>), <code>boolean</code> vira <code>true</code>/<code>false</code>, <code>null</code> vira <code>null</code>.</p>
+
+<div class="tryjava" data-goal="out:Soma: 5,src:\(\s*a\s*\+\s*b\s*\)">
+<p class="try-task"><strong>Missão:</strong> o programa deveria mostrar <code>Soma: 5</code>, mas mostra <code>Soma: 23</code>. Rode, veja o problema e corrija com parênteses.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int a = 2;
+        int b = 3;
+        System.out.println("Soma: " + a + b);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int a = 2;
+        int b = 3;
+        System.out.println("Soma: " + (a + b));
+    }
+}
+</pre>
+</div>
+
+<div class="tryjshell">
+<p class="try-task"><strong>Brinque no JShell:</strong> antes de apertar <kbd>Enter</kbd>, tente adivinhar o resultado de <code>"a" + 1 + 1</code>, <code>1 + 1 + "a"</code>, <code>'a' + 1</code> e <code>"" + 'a' + 1</code>. Depois confira.</p>
+</div>
+
+<hr>
+
+<h2>Concatenar dentro de um laço</h2>
+<p>Um <strong>laço</strong> repete um trecho de código várias vezes; você vai estudá-los em <a href="while.html">while</a> e <a href="for.html">for</a>. Aqui, o <code>for</code> repete a linha <code>linha += i + " ";</code> cinco vezes, com <code>i</code> valendo 1, 2, 3, 4 e 5:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String linha = "";
+        for (int i = 1; i &lt;= 5; i++) {
+            linha += i + " ";
+        }
+        System.out.println(linha);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+1 2 3 4 5 </pre>
+
+<p>Funciona, e para poucas repetições está ótimo. O problema aparece quando são <strong>milhares</strong>. Como Strings são imutáveis, cada <code>+=</code> cria uma String nova e <strong>copia tudo</strong> o que já existia. Na repetição número 10.000, o Java copia 10.000 caracteres só para acrescentar um. É como reescrever o caderno inteiro à mão cada vez que você quer acrescentar uma palavra no fim.</p>
+
+<p>A solução é o <code>StringBuilder</code> ("construtor de Strings"), um "rascunho" que <strong>pode</strong> ser alterado, e que você vai estudar em <a href="stringbuilder.html">StringBuilder</a>. Só para ver a diferença, este programa junta 20.000 letras <code>x</code> dos dois jeitos e mede o tempo com <code>System.nanoTime()</code> (o relógio do computador, em bilionésimos de segundo):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int n = 20000;
+
+        long inicio = System.nanoTime();
+        String texto = "";
+        for (int i = 0; i &lt; n; i++) {
+            texto += "x";
+        }
+        long tempoMais = (System.nanoTime() - inicio) / 1_000_000;
+
+        inicio = System.nanoTime();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i &lt; n; i++) {
+            sb.append("x");
+        }
+        String texto2 = sb.toString();
+        long tempoSb = (System.nanoTime() - inicio) / 1_000_000;
+
+        System.out.println(texto.length() + " caracteres com +=: " + tempoMais + " ms");
+        System.out.println(texto2.length() + " caracteres com StringBuilder: " + tempoSb + " ms");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+20000 caracteres com +=: 113 ms
+20000 caracteres com StringBuilder: 2 ms</pre>
+
+<p>O resultado é o mesmo (20.000 caracteres), mas o <code>+=</code> levou dezenas de vezes mais tempo. Os números mudam a cada execução e de computador para computador; a diferença, não. E ela cresce quanto maior o <code>n</code>, porque cada repetição do <code>+=</code> copia um texto cada vez mais comprido.</p>
+
+<div class="note">
+<strong>Não precisa ter medo do <code>+</code></strong>
+<p>Fora de laços, use <code>+</code> à vontade: numa linha como <code>"Olá, " + nome + "!"</code>, o próprio Java já monta o texto de forma eficiente. A regra é só esta: <strong>dentro de um laço que repete muitas vezes, use <code>StringBuilder</code></strong>.</p>
+</div>
+
+<hr>
+
+<h2>Juntar uma lista: <code>String.join</code></h2>
+<p>Quando você tem vários textos e quer juntá-los com um separador no meio (vírgula, espaço, barra), o <code>String.join</code> é mais limpo que uma fila de <code>+</code>. Ele cuida de colocar o separador <strong>só entre</strong> os itens, nunca sobrando no fim.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(String.join(", ", "maçã", "banana", "uva"));
+        String nome = "Ana";
+        int idade = 30;
+        System.out.println(String.join(" ", "Nome:", nome, "| Idade:", String.valueOf(idade)));
+        System.out.println("Nome: %s | Idade: %d".formatted(nome, idade));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+maçã, banana, uva
+Nome: Ana | Idade: 30
+Nome: Ana | Idade: 30</pre>
+
+<dl class="anatomy">
+  <dt>String.join(", ", …)</dt><dd>O primeiro argumento é o separador; os outros são os itens. Todos têm de ser Strings: por isso o número <code>idade</code> passou por <code>String.valueOf</code>.</dd>
+  <dt>"Nome: %s | Idade: %d".formatted(nome, idade)</dt><dd>Uma terceira forma: um <strong>modelo</strong> com lugares marcados (<code>%s</code> para texto, <code>%d</code> para número inteiro) que são preenchidos em ordem. Para frases com muitos valores, costuma ser a mais legível. Ela tem aula própria: <a href="formatacao.html">Formatar Texto</a>.</dd>
+</dl>
+
+<hr>
+
+<h2>Qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th><th>Exemplo</th></tr>
+<tr><td>Montar uma frase com poucas partes</td><td><code>+</code></td><td><code>"Olá, " + nome + "!"</code></td></tr>
+<tr><td>Acrescentar um pedaço a uma variável, poucas vezes</td><td><code>+=</code></td><td><code>frase += " e uva";</code></td></tr>
+<tr><td>Conta dentro da frase</td><td><code>+</code> com parênteses</td><td><code>"Total: " + (a + b)</code></td></tr>
+<tr><td>Vários itens com separador</td><td><code>String.join</code></td><td><code>String.join(", ", itens)</code></td></tr>
+<tr><td>Frase com muitos valores e formatação</td><td><code>formatted</code> / <code>String.format</code></td><td><code>"%s tem %d anos".formatted(nome, idade)</code></td></tr>
+<tr><td>Juntar dentro de um laço longo</td><td><code>StringBuilder</code></td><td>veja <a href="stringbuilder.html">StringBuilder</a></td></tr>
+<tr><td>Número para texto</td><td><code>String.valueOf</code> ou <code>"" + n</code></td><td><code>String.valueOf(30)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A conta saiu grudada: <code>Soma: 23</code></strong>
+<p><strong>O que aconteceu:</strong> o <code>+</code> trabalha da esquerda para a direita; depois de encontrar o texto, todos os <code>+</code> seguintes emendam.</p>
+<p><strong>Como resolver:</strong> parênteses em volta da conta: <code>"Soma: " + (a + b)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: ')' or ',' expected</code> (esqueceu o <code>+</code>)</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        System.out.println("Olá, " nome);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: ')' or ',' expected
+        System.out.println("Olá, " nome);
+                                  ^
+Main.java:4: error: not a statement
+        System.out.println("Olá, " nome);
+                                   ^
+Main.java:4: error: ';' expected
+        System.out.println("Olá, " nome);
+                                       ^
+3 errors</pre>
+<p><strong>O que aconteceu:</strong> depois do texto <code>"Olá, "</code>, o <code>javac</code> esperava o fim dos parênteses ou uma vírgula, e encontrou <code>nome</code>. Os outros dois erros são consequência do primeiro.</p>
+<p><strong>Como resolver:</strong> coloque o <code>+</code> que falta: <code>"Olá, " + nome</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: incompatible types: int cannot be converted to String</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String idade = 30;
+        System.out.println(idade);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: int cannot be converted to String
+        String idade = 30;
+                       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o <code>+</code> transforma números em texto, mas a atribuição direta, não: <code>30</code> é um <code>int</code> e a variável é String.</p>
+<p><strong>Como resolver:</strong> <code>String idade = "30";</code>, <code>String.valueOf(30)</code> ou, se é um número, declare como <code>int</code>. O mesmo erro aparece com <code>"Idade: ".concat(idade)</code> quando <code>idade</code> é <code>int</code>, porque o <code>concat</code> só aceita String; nesse caso o <code>javac</code> ainda acrescenta a linha <code>Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output</code> ("algumas mensagens foram simplificadas").</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: bad operand types for binary operator '-'</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Total: " + 5 - 2);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: bad operand types for binary operator '-'
+        System.out.println("Total: " + 5 - 2);
+                                         ^
+  first type:  String
+  second type: int
+1 error</pre>
+<p><strong>O que aconteceu:</strong> <code>+</code> e <code>-</code> têm a mesma prioridade e são feitos da esquerda para a direita. Primeiro <code>"Total: " + 5</code> virou o texto <code>"Total: 5"</code>; depois o Java tentou <code>"Total: 5" - 2</code>, e não existe "texto menos número" ("tipos de operandos inválidos para o operador '-'": o primeiro é <code>String</code>, o segundo é <code>int</code>).</p>
+<p><strong>Como resolver:</strong> <code>"Total: " + (5 - 2)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A frase saiu com <code>null</code> no meio</strong>
+<p><strong>O que aconteceu:</strong> uma das variáveis valia <code>null</code>, e o <code>+</code> escreve a palavra <code>null</code> sem reclamar.</p>
+<p><strong>Como resolver:</strong> descubra por que a variável não recebeu valor (veja <a href="strings.html">Strings</a>, seção "String vazia × null").</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>O que faz</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>a + b</code></td><td>Emenda (se um dos lados é String)</td><td><code>"Ana" + " Souza"</code> → <code>"Ana Souza"</code></td></tr>
+<tr><td><code>s += x</code></td><td><code>s = s + x</code></td><td><code>s = "a"; s += "b";</code> → <code>"ab"</code></td></tr>
+<tr><td><code>a.concat(b)</code></td><td>Emenda; só aceita String; quebra com <code>null</code></td><td><code>"Bom".concat(" dia")</code> → <code>"Bom dia"</code></td></tr>
+<tr><td><code>"" + n</code></td><td>Número para texto</td><td><code>"" + 30</code> → <code>"30"</code></td></tr>
+<tr><td><code>String.valueOf(x)</code></td><td>Qualquer valor para texto</td><td><code>String.valueOf(1.5)</code> → <code>"1.5"</code></td></tr>
+<tr><td><code>String.join(sep, …)</code></td><td>Junta com separador entre os itens</td><td><code>String.join("-", "a", "b")</code> → <code>"a-b"</code></td></tr>
+<tr><td><code>"…%s…".formatted(…)</code></td><td>Preenche um modelo</td><td><code>"Oi, %s".formatted("Ana")</code> → <code>"Oi, Ana"</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Ana Souza tem 30 anos e daqui a 5 anos terá 35.">
+<p class="try-task"><strong>Missão final:</strong> usando as variáveis (sem escrever "Ana", "Souza", 30 ou 35 dentro de aspas), mostre exatamente:<br><code>Ana Souza tem 30 anos e daqui a 5 anos terá 35.</code><br>Cuidado com os espaços e com a conta do 35.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        String sobrenome = "Souza";
+        int idade = 30;
+        // escreva aqui
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        String sobrenome = "Souza";
+        int idade = 30;
+        System.out.println(nome + " " + sobrenome + " tem " + idade + " anos e daqui a 5 anos terá " + (idade + 5) + ".");
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. O resultado</h3>
+<p>O que <code>System.out.println("5" + 5 + 5);</code> mostra?</p>
+<div class="ex-code"><input data-answer="555" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>2. E agora?</h3>
+<p>O que <code>System.out.println(5 + 5 + "5");</code> mostra?</p>
+<div class="ex-code"><input data-answer="105" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Juntar com vírgulas</h3>
+<p>Complete para mostrar <code>pão, leite, café</code>:</p>
+<div class="ex-code">System.out.println(String.<input data-answer="join" aria-label="método">(", ", "pão", "leite", "café"));</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>System.out.println('x' + 'y');</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>xy</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação</label>
+<label><input type="radio" name="q4"> Um número (a soma dos códigos dos dois caracteres)</label>
+<label><input type="radio" name="q4"> <code>x y</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Você precisa juntar 50.000 linhas de um relatório dentro de um laço. O que usar?</p>
+<label><input type="radio" name="q5"> <code>+=</code>, porque é mais curto</label>
+<label><input type="radio" name="q5"> <code>StringBuilder</code></label>
+<label><input type="radio" name="q5"> <code>concat</code></label>
+<label><input type="radio" name="q5"> Tanto faz</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Se <code>String s = null;</code>, o que <code>System.out.println("Nome: " + s);</code> faz?</p>
+<label><input type="radio" name="q6"> Mostra <code>Nome: null</code></label>
+<label><input type="radio" name="q6"> Lança <code>NullPointerException</code></label>
+<label><input type="radio" name="q6"> Mostra <code>Nome: </code></label>
+<label><input type="radio" name="q6"> Não compila</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>+</code> entre textos emenda; os espaços têm de estar dentro das aspas.</li>
+  <li><code>+=</code> acrescenta no fim (cria uma String nova e guarda de volta).</li>
+  <li><code>concat</code> faz o mesmo, mas só aceita String e quebra com <code>null</code>; o <code>+</code> é o usado no dia a dia.</li>
+  <li>O <code>+</code> trabalha da esquerda para a direita: dois números somam; com uma String no meio, emenda. <code>"1" + 2 + 3</code> → <code>123</code>; <code>1 + 2 + "3"</code> → <code>33</code>. Contas dentro de frases vão entre parênteses.</li>
+  <li><code>char + char</code> soma os códigos; para juntar letras, comece com <code>""</code>.</li>
+  <li>Em laços longos, use <code>StringBuilder</code>; para listas com separador, <code>String.join</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
