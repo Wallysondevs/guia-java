@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Atributos — campos, valores padrão e objeto.campo | Guia Java</title>
+<meta name="description" content="Atributos (campos) de uma classe Java: declarar, valores padrão (0, false, null), ler e mudar com objeto.campo, cada objeto com os seus valores, atributos que são outros objetos e os erros reais cannot find symbol e NullPointerException.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Atributos</span></h1>
+
+<p class="intro">Os <strong>atributos</strong> são as variáveis que moram dentro de um objeto: o nome e o preço de uma fruta, o titular e o saldo de uma conta. Eles guardam o <strong>estado</strong> do objeto. Nesta aula você aprende a declará-los, a ler e mudar os seus valores e, principalmente, a entender que <strong>cada objeto tem os seus</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar atributos numa classe, com ou sem valor inicial.</li>
+  <li>Os <strong>valores padrão</strong>: por que um atributo sem valor vale <code>0</code>, <code>false</code> ou <code>null</code> (e uma variável local não).</li>
+  <li>Como ler e mudar atributos com <code>objeto.campo</code>, inclusive com <code>+=</code> e <code>++</code>.</li>
+  <li>Que cada objeto tem a sua própria cópia dos atributos (e a exceção: <code>static</code>).</li>
+  <li>Atributos que são outros objetos, e os erros que aparecem pelo caminho.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código: os campos da ficha</h2>
+<p>Volte à ficha de matrícula da aula <a href="poo.html">O que é POO</a>. Os campos impressos na ficha ("Nome: ____", "Turma: ____") são os <strong>atributos</strong>: todas as fichas têm os mesmos campos. O que cada aluno escreve neles é o <strong>valor</strong> do atributo, e muda de ficha para ficha. Apagar e reescrever a turma na ficha do Bruno não muda a ficha da Carla.</p>
+<p>Em Java, os atributos também são chamados de <strong>campos</strong> (<em>fields</em>, no inglês da documentação) ou <strong>variáveis de instância</strong>. São três nomes para a mesma coisa.</p>
+
+<hr>
+
+<h2>Declarar atributos</h2>
+
+<pre class="file" data-file="trecho">class Fruta {
+    String nome;
+    double preco;
+    int estoque = 10;
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>String nome;</dt><dd>Um atributo: tipo + nome, como qualquer variável. Fica <strong>dentro da classe</strong> e <strong>fora de qualquer método</strong>.</dd>
+  <dt>double preco;</dt><dd>Outro atributo. Sem valor escrito: começa com o valor padrão do tipo (veja abaixo).</dd>
+  <dt>int estoque = 10;</dt><dd>Um atributo com <strong>valor inicial</strong>. Toda fruta criada começa com estoque 10.</dd>
+  <dt>(sem static)</dt><dd>Atributos de objeto <strong>não</strong> levam <code>static</code>. Com <code>static</code>, a variável passa a ser da classe, uma só para todos (veja <a href="#static">a exceção</a>).</dd>
+</dl>
+
+<p>Para os nomes, valem as regras de <a href="variaveis.html">Variáveis</a>: começam com minúscula, camelCase (<code>precoDeCusto</code>, <code>emPromocao</code>), substantivos que dizem o que guardam. O tipo pode ser qualquer um: primitivos, <code>String</code>, arrays ou outras classes.</p>
+
+<hr>
+
+<h2>Valores padrão</h2>
+<p>Quando um objeto é criado com <code>new</code>, o Java preenche cada atributo sem valor inicial com um <strong>valor padrão</strong>, que depende do tipo:</p>
+
+<pre class="file" data-file="Main.java">class Produto {
+    String nome;
+    int estoque;
+    double preco;
+    boolean emPromocao;
+    char categoria;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Produto p = new Produto();
+        System.out.println("nome = " + p.nome);
+        System.out.println("estoque = " + p.estoque);
+        System.out.println("preco = " + p.preco);
+        System.out.println("emPromocao = " + p.emPromocao);
+        System.out.println("categoria = [" + p.categoria + "]");
+        System.out.println("código da categoria = " + (int) p.categoria);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+nome = null
+estoque = 0
+preco = 0.0
+emPromocao = false
+categoria = []                « entre os colchetes há um caractere invisível, o de código 0
+código da categoria = 0</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo do atributo</th><th>Valor padrão</th></tr>
+<tr><td><code>byte</code>, <code>short</code>, <code>int</code>, <code>long</code></td><td><code>0</code></td></tr>
+<tr><td><code>float</code>, <code>double</code></td><td><code>0.0</code></td></tr>
+<tr><td><code>boolean</code></td><td><code>false</code></td></tr>
+<tr><td><code>char</code></td><td>o caractere de código 0 (<code>'\u0000'</code>), invisível</td></tr>
+<tr><td>Qualquer classe (<code>String</code>, <code>Fruta</code>…) e arrays</td><td><code>null</code></td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Só atributos ganham valor padrão</strong>
+<p>Variáveis <strong>locais</strong> (declaradas dentro de um método) não recebem valor nenhum; usá-las antes de dar um valor é erro de compilação: <code>variable … might not have been initialized</code> (veja <a href="escopo.html">Escopo</a>). Com atributos, o Java sempre preenche. Cuidado com o <code>null</code> das <code>String</code>s: <code>p.nome.length()</code> num produto recém-criado dá <code>NullPointerException</code>.</p>
+</div>
+
+<hr>
+
+<h2>Ler e mudar: <code>objeto.campo</code></h2>
+<p>Do lado de fora da classe, você chega a um atributo pelo <strong>nome do objeto</strong>, um <strong>ponto</strong> e o <strong>nome do atributo</strong>. Ele funciona como uma variável comum: pode ser lido, recebe valores e entra em contas.</p>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+    int estoque = 10;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta();
+        maca.nome = "maçã";
+        maca.preco = 7.9;
+        System.out.println(maca.nome + ": R$ " + maca.preco + ", estoque " + maca.estoque);
+
+        maca.estoque = maca.estoque - 3;
+        maca.preco *= 0.9;
+        maca.estoque++;
+        System.out.println(maca.nome + ": R$ " + maca.preco + ", estoque " + maca.estoque);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+maçã: R$ 7.9, estoque 10
+maçã: R$ 7.11, estoque 8</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th><th><code>estoque</code></th><th><code>preco</code></th></tr>
+<tr><td><code>new Fruta()</code></td><td>Cria a fruta: <code>estoque</code> começa em 10 (valor inicial), <code>preco</code> em 0.0 (padrão)</td><td>10</td><td>0.0</td></tr>
+<tr><td><code>maca.preco = 7.9;</code></td><td>Atribui um valor</td><td>10</td><td>7.9</td></tr>
+<tr><td><code>maca.estoque = maca.estoque - 3;</code></td><td>Lê o valor atual, subtrai 3 e guarda de volta (vendeu 3)</td><td>7</td><td>7.9</td></tr>
+<tr><td><code>maca.preco *= 0.9;</code></td><td>10% de desconto, com o operador composto (veja <a href="operadores-atribuicao.html">Operadores de Atribuição</a>)</td><td>7</td><td>7.11</td></tr>
+<tr><td><code>maca.estoque++;</code></td><td>Mais uma unidade chegou</td><td>8</td><td>7.11</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Dentro da classe, não precisa do ponto</strong>
+<p>Nos <strong>métodos da própria classe</strong>, os atributos são usados direto pelo nome: <code>preco</code>, e não <code>maca.preco</code>. Foi assim no <code>media()</code> do <code>Aluno</code> em <a href="poo.html">O que é POO</a>. Você verá isso em detalhes em <a href="metodos-objeto.html">Métodos de Objeto</a>.</p>
+</div>
+
+<hr>
+
+<h2>Cada objeto tem os seus</h2>
+<p>Esta é a ideia central da aula. A Ana e o Bruno abriram contas no banco. A classe <code>Conta</code> é a mesma; os saldos, não:</p>
+
+<pre class="file" data-file="Main.java">class Conta {
+    String titular;
+    double saldo;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta daAna = new Conta();
+        daAna.titular = "Ana";
+        Conta doBruno = new Conta();
+        doBruno.titular = "Bruno";
+
+        daAna.saldo = daAna.saldo + 500;
+        doBruno.saldo = doBruno.saldo + 80;
+        daAna.saldo = daAna.saldo - 120;
+
+        System.out.println(daAna.titular + ": " + daAna.saldo);
+        System.out.println(doBruno.titular + ": " + doBruno.saldo);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Ana: 380.0         « 0 + 500 - 120
+Bruno: 80.0        « 0 + 80: o saque da Ana não mexeu aqui</pre>
+
+<p>Cada <code>new Conta()</code> reservou um espaço novo na memória com <strong>um</strong> <code>titular</code> e <strong>um</strong> <code>saldo</code>. São duas "caixinhas" <code>saldo</code> diferentes, uma em cada objeto. O <code>daAna.saldo</code> e o <code>doBruno.saldo</code> têm o mesmo nome de atributo, mas moram em objetos diferentes, como duas fichas com o campo "Turma".</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Objeto <code>daAna</code></th><th>Objeto <code>doBruno</code></th></tr>
+<tr><td><code>titular</code></td><td>"Ana"</td><td>"Bruno"</td></tr>
+<tr><td><code>saldo</code></td><td>380.0</td><td>80.0</td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:Ana: 450.0,out:Bruno: 20.0,src:daAna\.saldo,src:doBruno\.saldo">
+<p class="try-task"><strong>Missão:</strong> a Ana recebeu 100 de salário e depois pagou uma conta de 30. O Bruno sacou 60. Faça essas três operações mexendo só nos atributos <code>saldo</code> de cada conta, para a saída ser <code>Ana: 450.0</code> e <code>Bruno: 20.0</code>.</p>
+<pre class="script">class Conta {
+    String titular;
+    double saldo;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta daAna = new Conta();
+        daAna.titular = "Ana";
+        daAna.saldo = 380;
+        Conta doBruno = new Conta();
+        doBruno.titular = "Bruno";
+        doBruno.saldo = 80;
+
+        // faça as operações aqui
+
+        System.out.println(daAna.titular + ": " + daAna.saldo);
+        System.out.println(doBruno.titular + ": " + doBruno.saldo);
+    }
+}
+</pre>
+<pre class="solucao">class Conta {
+    String titular;
+    double saldo;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta daAna = new Conta();
+        daAna.titular = "Ana";
+        daAna.saldo = 380;
+        Conta doBruno = new Conta();
+        doBruno.titular = "Bruno";
+        doBruno.saldo = 80;
+
+        daAna.saldo += 100;
+        daAna.saldo -= 30;
+        doBruno.saldo -= 60;
+
+        System.out.println(daAna.titular + ": " + daAna.saldo);
+        System.out.println(doBruno.titular + ": " + doBruno.saldo);
+    }
+}
+</pre>
+</div>
+
+<h3 id="static">A exceção: atributos <code>static</code></h3>
+<p>Um atributo declarado com <code>static</code> não pertence a cada objeto, e sim à <strong>classe</strong>: existe uma cópia só, compartilhada por todos. É usado com o nome da classe, e não de um objeto:</p>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    static int criadas = 0;
+    String nome;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta a = new Fruta();
+        a.nome = "maçã";
+        Fruta.criadas++;
+        Fruta b = new Fruta();
+        b.nome = "uva";
+        Fruta.criadas++;
+        System.out.println(a.nome + " e " + b.nome + ": cada uma tem o seu nome");
+        System.out.println("criadas = " + Fruta.criadas + " (um só contador, da classe)");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+maçã e uva: cada uma tem o seu nome
+criadas = 2 (um só contador, da classe)</pre>
+
+<p>É o mural do corredor da aula <a href="escopo.html">Escopo</a>. Quando usar e como, você verá na aula <a href="static.html">static</a>. Por enquanto, a regra: <strong>atributo sem <code>static</code> = um por objeto</strong>.</p>
+
+<hr>
+
+<h2>Atributos que são outros objetos</h2>
+<p>Um atributo pode ter como tipo outra classe sua. A loja da Ana compra frutas de fornecedores, e cada fruta guarda quem a fornece:</p>
+
+<pre class="file" data-file="Main.java">class Fornecedor {
+    String nome;
+    String cidade;
+}
+
+class Fruta {
+    String nome;
+    double preco;
+    Fornecedor fornecedor;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fornecedor sitio = new Fornecedor();
+        sitio.nome = "Sítio Boa Vista";
+        sitio.cidade = "Campinas";
+
+        Fruta maca = new Fruta();
+        maca.nome = "maçã";
+        maca.fornecedor = sitio;
+
+        Fruta pera = new Fruta();
+        pera.nome = "pera";
+        pera.fornecedor = sitio;
+
+        System.out.println(maca.nome + " vem de " + maca.fornecedor.cidade);
+        sitio.cidade = "Jundiaí";
+        System.out.println(pera.nome + " vem de " + pera.fornecedor.cidade);
+        System.out.println(maca.nome + " vem de " + maca.fornecedor.cidade);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+maçã vem de Campinas
+pera vem de Jundiaí       « o sítio mudou de cidade…
+maçã vem de Jundiaí       « …e as duas frutas "veem" a mudança</pre>
+
+<dl class="anatomy">
+  <dt>Fornecedor fornecedor;</dt><dd>Um atributo cujo tipo é a classe <code>Fornecedor</code>. Como todo atributo de tipo classe, começa valendo <code>null</code>.</dd>
+  <dt>maca.fornecedor = sitio;</dt><dd>Guarda no atributo a <strong>referência</strong> para o objeto <code>sitio</code> (veja <a href="classes-objetos.html#referencia">Classes e Objetos</a>). A pera recebe a mesma referência: as duas frutas apontam para o <strong>mesmo</strong> fornecedor.</dd>
+  <dt>maca.fornecedor.cidade</dt><dd>Pontos encadeados: "a cidade do fornecedor da maçã". Leia da esquerda para a direita.</dd>
+</dl>
+
+<p>Se a Ana esquecer de ligar o fornecedor, o atributo continua <code>null</code>, e o segundo ponto falha:</p>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Fornecedor: null
+Exception in thread "main" java.lang.NullPointerException: Cannot read field "cidade" because "&lt;local1&gt;.fornecedor" is null
+	at Main.main(Main.java:17)</pre>
+
+<p>A mensagem aponta o culpado com precisão: <code>"&lt;local1&gt;.fornecedor"</code>, o atributo <code>fornecedor</code> da variável local 1 (a <code>maca</code>), era nulo quando o programa tentou ler a <code>cidade</code>.</p>
+
+<hr>
+
+<h2>Formas diferentes de dar valor aos atributos</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Valor padrão (não escrever nada)</td><td><code>double saldo;</code> → 0.0</td><td>O valor padrão já é o certo (saldo começa em zero)</td></tr>
+<tr><td>Valor inicial na declaração</td><td><code>int estoque = 10;</code></td><td>Todo objeto começa com o mesmo valor</td></tr>
+<tr><td>Atribuir depois de criar</td><td><code>maca.nome = "maçã";</code></td><td>O que vimos nesta aula; bom para aprender, mas trabalhoso e fácil de esquecer um campo</td></tr>
+<tr><td>Construtor</td><td><code>new Fruta("maçã", 7.9)</code></td><td>Cada objeto nasce com os seus valores, numa linha. A forma preferida: <a href="construtores.html">Construtores</a></td></tr>
+<tr><td>Métodos que validam (setters)</td><td><code>conta.depositar(100)</code></td><td>Quando nem todo valor é aceitável (saldo negativo?): <a href="encapsulamento.html">Encapsulamento</a></td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>Mexer direto no atributo é perigoso</strong>
+<p>Nesta aula, o <code>main</code> muda <code>saldo</code> e <code>preco</code> à vontade. Nada impede alguém de escrever <code>daAna.saldo = -1000000;</code>. Em programas reais, os atributos ficam <strong>protegidos</strong> (<code>private</code>) e só mudam por métodos que conferem os valores. Esse é o primeiro pilar da POO, que você verá em <a href="modificadores.html">Modificadores de Acesso</a> e <a href="encapsulamento.html">Encapsulamento</a>. E se um atributo nunca deve mudar depois de definido, ele pode ser <code>final</code> (veja <a href="final.html">final</a>).</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … location: variable maca of type Fruta"</strong>
+<pre class="term">$ javac Main.java
+Main.java:9: error: cannot find symbol
+        maca.preso = 7.9;
+            ^
+  symbol:   variable preso
+  location: variable maca of type Fruta
+1 error</pre>
+<p><strong>O que aconteceu:</strong> a classe <code>Fruta</code> não tem atributo <code>preso</code> (era <code>preco</code>). Repare na última linha: o compilador procurou "na variável <code>maca</code>, do tipo <code>Fruta</code>", ou seja, nos atributos da classe <code>Fruta</code>.</p>
+<p><strong>Como resolver:</strong> corrija o nome, ou acrescente o atributo à classe se ele de fato está faltando.</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible types: String cannot be converted to double"</strong>
+<pre class="term">$ javac Main.java
+Main.java:9: error: incompatible types: String cannot be converted to double
+        maca.preco = "7,90";
+                     ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o atributo é <code>double</code> e recebeu um texto. As aspas fazem de <code>"7,90"</code> uma <code>String</code>.</p>
+<p><strong>Como resolver:</strong> <code>maca.preco = 7.90;</code>, sem aspas e com <strong>ponto</strong> decimal (no código Java, a vírgula separa argumentos, nunca casas decimais).</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException</code> num atributo</strong>
+<pre class="term">$ java Main
+Fornecedor: null
+Exception in thread "main" java.lang.NullPointerException: Cannot read field "cidade" because "&lt;local1&gt;.fornecedor" is null
+	at Main.main(Main.java:17)</pre>
+<p><strong>O que aconteceu:</strong> o atributo de tipo classe nunca recebeu um objeto e continuou com o valor padrão, <code>null</code>.</p>
+<p><strong>Como resolver:</strong> atribua um objeto antes de usar (<code>maca.fornecedor = sitio;</code>) ou dê um valor inicial na declaração. Se o atributo pode mesmo ficar vazio, teste <code>if (maca.fornecedor != null)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"non-static variable … cannot be referenced from a static context"</strong>
+<p><strong>O que aconteceu:</strong> você usou o atributo pelo nome da classe (<code>Fruta.nome</code>) ou direto no <code>main</code> sem um objeto. O atributo é de cada objeto; o Java precisa saber de qual.</p>
+<p><strong>Como resolver:</strong> crie um objeto e use <code>objeto.nome</code>. Veja <a href="poo.html">O que é POO</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>Tipo nome;</code> (na classe)</td><td>Declara um atributo; começa com o valor padrão do tipo</td></tr>
+<tr><td><code>Tipo nome = valor;</code> (na classe)</td><td>Atributo com valor inicial</td></tr>
+<tr><td><code>obj.nome</code></td><td>Lê o atributo do objeto <code>obj</code></td></tr>
+<tr><td><code>obj.nome = valor;</code></td><td>Muda o atributo de <code>obj</code> (os outros objetos não mudam)</td></tr>
+<tr><td><code>obj.n += 5;</code>, <code>obj.n++;</code></td><td>Operadores compostos funcionam com atributos</td></tr>
+<tr><td><code>obj.outro.campo</code></td><td>Atributo de um atributo (cuidado com <code>null</code> no meio)</td></tr>
+<tr><td><code>static Tipo nome;</code></td><td>Atributo da classe: um só, compartilhado (<a href="static.html">static</a>)</td></tr>
+<tr><td>Padrões</td><td>números: <code>0</code>/<code>0.0</code>; <code>boolean</code>: <code>false</code>; <code>char</code>: <code>'\u0000'</code>; classes e arrays: <code>null</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: dois contadores</h2>
+<div class="tryjava" data-goal="out:catraca A: 3,out:catraca B: 1,src:class\s+Catraca[\s\S]*int\s+\w+">
+<p class="try-task"><strong>Missão:</strong> a escola da Ana tem duas catracas na entrada. Crie a classe <code>Catraca</code> com o atributo <code>int pessoas</code> (sem valor inicial: o padrão já é 0). No <code>main</code>, crie duas catracas, some 3 pessoas na primeira (com <code>++</code>) e 1 na segunda, e imprima <code>catraca A: 3</code> e <code>catraca B: 1</code>.</p>
+<pre class="script">// declare a classe Catraca aqui
+
+public class Main {
+    public static void main(String[] args) {
+
+    }
+}
+</pre>
+<pre class="solucao">class Catraca {
+    int pessoas;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Catraca a = new Catraca();
+        Catraca b = new Catraca();
+        a.pessoas++;
+        a.pessoas++;
+        a.pessoas++;
+        b.pessoas++;
+        System.out.println("catraca A: " + a.pessoas);
+        System.out.println("catraca B: " + b.pessoas);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Valor padrão de número</h3>
+<p>Qual é o valor de um atributo <code>int idade;</code> logo depois do <code>new</code>?</p>
+<div class="ex-code"><input data-answer="0" aria-label="valor"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Valor padrão de texto</h3>
+<p>E de um atributo <code>String email;</code>?</p>
+<div class="ex-code"><input data-answer="null" aria-label="valor"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Mudar o atributo</h3>
+<p>Complete para aumentar em 5 o atributo <code>estoque</code> do objeto <code>uva</code>:</p>
+<div class="ex-code"><input data-answer="uva.estoque += 5;|uva.estoque = uva.estoque + 5;|uva.estoque+=5;" aria-label="instrução"></div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. <code>Conta x = new Conta(); Conta y = new Conta(); x.saldo = 50;</code>. Quanto vale <code>y.saldo</code> (tipo <code>double</code>)?</p>
+<label><input type="radio" name="q4"> <code>0.0</code></label>
+<label><input type="radio" name="q4"> <code>50.0</code></label>
+<label><input type="radio" name="q4"> <code>null</code></label>
+<label><input type="radio" name="q4"> Erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Onde se declara um atributo?</p>
+<label><input type="radio" name="q5"> Dentro do <code>main</code>.</label>
+<label><input type="radio" name="q5"> Dentro de qualquer método da classe.</label>
+<label><input type="radio" name="q5"> Dentro da classe, fora dos métodos.</label>
+<label><input type="radio" name="q5"> Fora da classe.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Uma <code>Fruta</code> recém-criada tem o atributo <code>Fornecedor fornecedor;</code>. O que acontece em <code>System.out.println(f.fornecedor.nome);</code>?</p>
+<label><input type="radio" name="q6"> Imprime <code>null</code>.</label>
+<label><input type="radio" name="q6"> Imprime uma linha vazia.</label>
+<label><input type="radio" name="q6"> Erro de compilação.</label>
+<label><input type="radio" name="q6"> <code>NullPointerException</code>: <code>fornecedor</code> é <code>null</code>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Atributos</strong> (campos, variáveis de instância) são declarados na classe, fora dos métodos, e guardam o estado de cada objeto.</li>
+  <li>Sem valor inicial, recebem o <strong>padrão</strong>: <code>0</code>, <code>0.0</code>, <code>false</code>, <code>'\u0000'</code> ou <code>null</code>. Variáveis locais não têm padrão.</li>
+  <li>De fora, use <code>objeto.campo</code> para ler e mudar; operadores como <code>+=</code> e <code>++</code> funcionam.</li>
+  <li><strong>Cada objeto tem os seus atributos</strong>: mudar <code>daAna.saldo</code> não muda <code>doBruno.saldo</code>. Só os <code>static</code> são compartilhados.</li>
+  <li>Atributos de tipo classe guardam referências; vários objetos podem apontar para o mesmo. Atenção ao <code>null</code> no meio de <code>a.b.c</code>.</li>
+  <li>Próximos passos: métodos que usam os atributos (<a href="metodos-objeto.html">Métodos de Objeto</a>) e construtores que os preenchem (<a href="construtores.html">Construtores</a>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
