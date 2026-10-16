@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Projetos — como usar os projetos passo a passo | Guia Java</title>
+<meta name="description" content="Como funcionam os seis projetos do Guia Java: programas completos construídos em etapas (calculadora, jogo, agenda, biblioteca, banco com testes e tarefas com Maven), que aulas cada um pratica e como rodar no editor do guia ou no seu computador.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Projetos</span></h1>
+
+<p class="intro">Nas aulas, cada página ensina <strong>um</strong> assunto. Nos projetos, você junta vários assuntos para construir um programa de verdade, do arquivo vazio até a versão final. É aqui que o que você estudou "encaixa": o <code>Scanner</code> da aula de entrada conversa com o <code>switch</code>, que chama um método, que lança uma exceção que você mesmo criou.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como os seis projetos do guia estão organizados (em etapas pequenas).</li>
+  <li>Que aulas cada projeto pratica e em que ordem fazê-los.</li>
+  <li>Como rodar cada etapa: no editor do guia ou no terminal do seu computador.</li>
+  <li>O que fazer quando o seu código não bate com o da etapa.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: construir como um pedreiro, não como um mágico</h2>
+<p>Ninguém escreve um programa inteiro de uma vez. Um pedreiro não levanta a casa num dia: primeiro a fundação, depois uma parede, confere se está no prumo, depois a outra. Programar é igual. Cada projeto deste guia é dividido em <strong>etapas</strong>, e cada etapa acrescenta <strong>uma</strong> coisa nova ao programa da etapa anterior. No fim de toda etapa, o programa <strong>compila e roda</strong>. Você nunca fica com um monte de código "que ainda não funciona".</p>
+
+<p>Toda página de projeto segue o mesmo roteiro:</p>
+
+<ol class="passo">
+  <li><strong>O que vamos construir.</strong> Uma sessão real do programa pronto, para você ver aonde vai chegar.</li>
+  <li><strong>Antes de começar.</strong> As aulas que você precisa ter visto (com links) e a pasta onde o projeto vai morar.</li>
+  <li><strong>As etapas.</strong> Cada uma mostra o código novo, explica linha a linha o que mudou, mostra a saída real (rodada num JDK 25 de verdade) e termina com uma caixa <em>Experimente</em> em que <strong>você</strong> faz a etapa.</li>
+  <li><strong>Quando dá errado.</strong> Os erros que aparecem de verdade nesse projeto, com a mensagem completa e a correção.</li>
+  <li><strong>O código completo e os desafios.</strong> A versão final, inteira, e ideias para você continuar sozinho.</li>
+</ol>
+
+<hr>
+
+<h2>Os seis projetos</h2>
+<p>Os projetos estão em ordem de dificuldade. Os três primeiros usam só o <a href="index.html">Nível 1</a> e um pouco de métodos; os três últimos pedem orientação a objetos, coleções e ferramentas do <a href="maven.html">Nível 3</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Projeto</th><th>O que é</th><th>Aulas que ele pratica</th><th>Faça depois de</th></tr>
+<tr><td><a href="projeto-calculadora.html">Calculadora</a></td><td>Calculadora no terminal: lê dois números e uma operação, repete até você digitar <code>sair</code>.</td><td><a href="scanner.html">Scanner</a>, <a href="decimais.html">double</a>, <a href="switch-expressoes.html">switch com setas</a>, <a href="metodos.html">Métodos</a>, <a href="while.html">while</a>, <a href="break-continue.html">break e continue</a></td><td>Nível 1 + <a href="metodos.html">Métodos</a></td></tr>
+<tr><td><a href="projeto-adivinhacao.html">Jogo da Adivinhação</a></td><td>O computador sorteia um número e você tenta adivinhar, com dicas "maior/menor", níveis de dificuldade e recorde.</td><td><a href="aleatorios.html">Números Aleatórios</a>, <a href="while.html">while e do-while</a>, <a href="if-else.html">if/else</a>, <a href="enums.html">Enums</a>, <a href="constantes.html">final</a></td><td>Nível 1 + <a href="enums.html">Enums</a></td></tr>
+<tr><td><a href="projeto-agenda.html">Agenda de Contatos</a></td><td>Cadastra, lista, busca e remove contatos, e guarda tudo num arquivo para a próxima vez.</td><td><a href="records.html">Records</a>, <a href="arraylist.html">ArrayList</a>, <a href="metodos-string.html">Métodos de String</a>, <a href="arquivos.html">Arquivos</a>, <a href="try-catch.html">try e catch</a></td><td>Nível 2 + <a href="arraylist.html">ArrayList</a></td></tr>
+<tr><td><a href="projeto-biblioteca.html">Sistema de Biblioteca</a></td><td>Livros, usuários e empréstimos como objetos que conversam entre si, com regras e exceções próprias.</td><td><a href="classes-objetos.html">Classes</a>, <a href="encapsulamento.html">Encapsulamento</a>, <a href="heranca.html">Herança</a>, <a href="interfaces.html">Interfaces</a>, <a href="hashmap.html">HashMap</a>, <a href="excecoes-proprias.html">Criar suas Exceções</a></td><td>Nível 2 + <a href="hashmap.html">HashMap</a></td></tr>
+<tr><td><a href="projeto-banco.html">Conta Bancária com Testes</a></td><td>Depósito, saque e transferência com dinheiro exato, e testes automáticos que conferem tudo com um comando.</td><td><a href="bigdecimal.html">BigDecimal</a>, <a href="excecoes-proprias.html">Criar suas Exceções</a>, <a href="throw-throws.html">throw</a>, <a href="maven.html">Maven</a>, <a href="junit.html">JUnit</a></td><td><a href="junit.html">Testes com JUnit</a></td></tr>
+<tr><td><a href="projeto-tarefas.html">Tarefas com Maven</a></td><td>Um programa de linha de comando de verdade: <code>java -jar tarefas.jar add "Comprar pão"</code>, salvando num arquivo.</td><td><a href="args.html">args</a>, <a href="records.html">Records</a>, <a href="arquivos.html">Arquivos</a>, <a href="streams.html">Streams</a>, <a href="maven.html">Maven</a>, <a href="jar.html">JAR</a></td><td>Nível 3 (<a href="streams.html">Streams</a> e <a href="maven.html">Maven</a>)</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Não precisa ter terminado o nível inteiro</strong>
+<p>A coluna "Faça depois de" é o mínimo. Se alguma etapa usar algo que você ainda não viu, o texto tem o link para a aula. Abra numa aba nova, leia, e volte.</p>
+</div>
+
+<hr>
+
+<h2>Onde rodar: duas formas</h2>
+
+<h3>1. No editor do guia (mais fácil)</h3>
+<p>Toda etapa tem uma caixa <strong>Experimente</strong> com o código da etapa anterior. Você edita, clica em <strong>Rodar</strong> e vê a saída. Quando o programa lê o teclado, aparece um campo para você digitar (ou o guia já preenche a entrada da missão). Se travar, o botão de solução mostra a resposta. Veja como o editor funciona em <a href="simulador.html">O Editor do Guia</a>.</p>
+
+<p>Experimente agora. Este é o "esqueleto" de todo projeto do guia: uma classe com o método <code>main</code> que mostra o título do programa.</p>
+
+<div class="tryjava" data-goal="out:=== Meu Primeiro Projeto ===">
+<p class="try-task"><strong>Missão:</strong> troque o título para <code>=== Meu Primeiro Projeto ===</code> e clique em Rodar.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("=== Título ===");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("=== Meu Primeiro Projeto ===");
+    }
+}
+</pre>
+</div>
+
+<h3>2. No terminal do seu computador (o jeito "de verdade")</h3>
+<p>Para guardar o seu trabalho, crie uma pasta para cada projeto dentro de <code>~/java</code> e escreva o arquivo num editor (<a href="editores-ide.html">Editores e IDEs</a> mostra as opções). Depois rode com <code>java NomeDoArquivo.java</code>. Esta é a máquina da Ana fazendo a primeira etapa da calculadora:</p>
+
+<pre class="term">$ mkdir -p java/calculadora        « cria a pasta do projeto (e a java, se não existir)
+$ cd java/calculadora
+$ ls
+Calculadora.java                   « o arquivo que a Ana escreveu no editor
+$ java Calculadora.java
+=== Calculadora da Ana ===
+Primeiro número: 10                « 10 e 5 foram digitados pela Ana
+Segundo número: 5
+10.0 + 5.0 = 15.0</pre>
+
+<p>O comando <code>java Calculadora.java</code> (com o <code>.java</code> no fim) compila o arquivo na memória e já executa, sem deixar arquivos <code>.class</code> na pasta. É o jeito mais rápido para projetos de um arquivo. A outra forma, em dois passos, é a que você aprendeu em <a href="compilar-executar.html">javac e java</a>:</p>
+
+<pre class="term">$ javac Calculadora.java           « compila: gera o Calculadora.class
+$ ls
+Calculadora.class  Calculadora.java
+$ java Calculadora                 « executa a classe (sem .java no fim)
+=== Calculadora da Ana ===
+Primeiro número: 7
+Segundo número: 3
+7.0 + 3.0 = 10.0</pre>
+
+<p>Os projetos com <strong>vários arquivos</strong> (agenda, biblioteca) também rodam com <code>java Principal.java</code>: desde o Java 22, o lançador encontra sozinho as outras classes na mesma pasta. Os dois últimos projetos (banco e tarefas) usam o <a href="maven.html">Maven</a>, e a página explica cada comando.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Comando</th><th>Quando usar</th></tr>
+<tr><td>Editor do guia</td><td>botão Rodar</td><td>Para fazer as etapas rapidamente, em qualquer computador ou celular.</td></tr>
+<tr><td>Arquivo-fonte</td><td><code>java Calculadora.java</code></td><td>No seu computador, projetos de um ou poucos arquivos.</td></tr>
+<tr><td>Compilar e executar</td><td><code>javac *.java</code> e <code>java Calculadora</code></td><td>Quando quiser ver os <code>.class</code> ou rodar várias vezes sem recompilar.</td></tr>
+<tr><td>Maven</td><td><code>mvn package</code>, <code>mvn test</code></td><td>Projetos com testes ou bibliotecas: <a href="projeto-banco.html">banco</a> e <a href="projeto-tarefas.html">tarefas</a>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Como estudar um projeto</h2>
+<ol class="passo">
+  <li><strong>Leia a etapa inteira antes de digitar.</strong> Entenda o que muda e por quê.</li>
+  <li><strong>Digite o código, não copie e cole.</strong> Parece mais lento, mas é digitando que você erra, lê a mensagem do <code>javac</code> e aprende a consertar. Os erros mais comuns estão em <a href="ref-erros-javac.html">Erros do Compilador</a>.</li>
+  <li><strong>Rode depois de cada etapa</strong> e compare com a saída mostrada. Se for diferente, procure a diferença no código antes de seguir.</li>
+  <li><strong>Mude alguma coisa.</strong> Troque uma mensagem, um número, uma condição. Rode de novo. Prever o que vai acontecer e conferir é o melhor exercício que existe.</li>
+  <li><strong>Só então vá para a próxima etapa.</strong></li>
+</ol>
+
+<div class="cenario">
+<strong>"O meu não funciona e o da página funciona"</strong>
+<p>Quase sempre é um destes: uma letra maiúscula diferente (<code>string</code> em vez de <code>String</code>), um <code>;</code> esquecido, uma chave <code>}</code> a mais ou a menos, ou o nome do arquivo diferente do nome da classe pública. Leia a <strong>primeira</strong> linha do erro: ela diz o arquivo e o número da linha (<code>Calculadora.java:9: error: …</code>). Veja como ler essas mensagens em <a href="erros-compilacao.html">Lendo Erros do javac</a> e, se aparecer uma exceção na hora de rodar, em <a href="ref-excecoes.html">Exceções Comuns</a>.</p>
+</div>
+
+<p>Para aquecer, um programa que lê do teclado, como quase todos os projetos fazem. A entrada <code>Ana</code> já vem preenchida na missão.</p>
+
+<div class="tryjava" data-stdin="Ana\n" data-goal="out:Olá\, Ana! Vamos programar.">
+<p class="try-task"><strong>Missão:</strong> complete o programa para que, depois de ler o nome, ele mostre <code>Olá, Ana! Vamos programar.</code> (use a variável <code>nome</code>, não escreva "Ana" no código). Se precisar, revise <a href="scanner.html">Ler do Teclado (Scanner)</a> e <a href="concatenacao.html">Concatenação</a>.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.print("Seu nome: ");
+        String nome = entrada.nextLine();
+        // escreva aqui a saudação
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.print("Seu nome: ");
+        String nome = entrada.nextLine();
+        System.out.println("Olá, " + nome + "! Vamos programar.");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. A Ana terminou a etapa 2 de um projeto, mas o programa não compila. O que ela deve fazer?</p>
+<label><input type="radio" name="q1"> Pular para a etapa 3, que talvez conserte.</label>
+<label><input type="radio" name="q1"> Copiar o código completo do fim da página.</label>
+<label><input type="radio" name="q1"> Ler a primeira linha do erro, achar a linha indicada e consertar antes de seguir.</label>
+<label><input type="radio" name="q1"> Apagar tudo e começar de novo.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. Qual comando compila na memória e executa <code>Agenda.java</code>, sem criar <code>.class</code> na pasta?</p>
+<label><input type="radio" name="q2"> <code>javac Agenda</code></label>
+<label><input type="radio" name="q2"> <code>java Agenda.java</code></label>
+<label><input type="radio" name="q2"> <code>java Agenda</code></label>
+<label><input type="radio" name="q2"> <code>run Agenda.java</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Qual projeto pratica testes automáticos com JUnit?</p>
+<label><input type="radio" name="q3"> Calculadora</label>
+<label><input type="radio" name="q3"> Jogo da Adivinhação</label>
+<label><input type="radio" name="q3"> Agenda de Contatos</label>
+<label><input type="radio" name="q3"> Conta Bancária com Testes</label>
+</div>
+
+<div class="exercise">
+<p>Complete o comando que cria a pasta do projeto da agenda (e a pasta <code>java</code>, se ela ainda não existir):</p>
+<div class="ex-code">mkdir <input data-answer="-p"> java/agenda</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Cada projeto é construído em <strong>etapas</strong>; no fim de cada uma, o programa compila e roda.</li>
+  <li>Toda etapa tem a explicação do código novo, a saída real e uma caixa <strong>Experimente</strong> para você fazer.</li>
+  <li>Rode no editor do guia ou no seu computador com <code>java Arquivo.java</code> (ou <code>javac</code> + <code>java</code>); banco e tarefas usam Maven.</li>
+  <li>Comece pela <a href="projeto-calculadora.html">Calculadora</a> e siga a ordem da tabela.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

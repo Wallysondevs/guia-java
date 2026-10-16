@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Projeto Calculadora — Scanner, switch e métodos passo a passo | Guia Java</title>
+<meta name="description" content="Projeto passo a passo: uma calculadora no terminal em Java com Scanner, switch com setas, métodos, validação com hasNextDouble, divisão por zero e um laço até digitar sair. Seis etapas com saídas reais e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Calculadora</span></h1>
+
+<p class="intro">O primeiro projeto do guia: uma calculadora que roda no terminal. Ela pergunta a operação e os dois números, mostra o resultado e continua até você digitar <code>sair</code>. Parece simples, e é de propósito: o desafio não é a conta, é fazer o programa <strong>não quebrar</strong> quando alguém digita "abc", divide por zero ou escolhe uma operação que não existe.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Ler números e texto do teclado com <a href="scanner.html">Scanner</a>.</li>
+  <li>Escolher a conta com o <a href="switch-expressoes.html">switch com setas</a>.</li>
+  <li>Organizar o código em <a href="metodos.html">métodos</a> com <a href="parametros.html">parâmetros</a> e <a href="retorno.html">retorno</a>.</li>
+  <li>Validar a entrada com <code>hasNextDouble</code> (e ver o que acontece sem validar).</li>
+  <li>Tratar a divisão por zero de um <a href="decimais.html">double</a>.</li>
+  <li>Repetir tudo com <a href="while.html">while</a>, <a href="break-continue.html">break e continue</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>Esta é a calculadora pronta, rodando na máquina da Ana. Tudo que aparece depois dos <code>:</code> nas perguntas foi digitado por ela:</p>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, / ou sair): +
+Primeiro número: 10
+Segundo número: 5
+10.0 + 5.0 = 15.0
+
+Operação (+, -, *, / ou sair): /
+Primeiro número: 7
+Segundo número: 2
+7.0 / 2.0 = 3.5
+
+Operação (+, -, *, / ou sair): %
+Operação desconhecida: %                  « operação que não existe
+Operação (+, -, *, / ou sair): *
+Primeiro número: seis
+"seis" não é um número. Tente de novo.    « texto no lugar de número
+Primeiro número: 6
+Segundo número: 1,5                       « decimal com vírgula (veja a etapa 1)
+6.0 * 1.5 = 9.0
+
+Operação (+, -, *, / ou sair): /
+Primeiro número: 1
+Segundo número: 0
+Não dá para dividir por zero.
+Operação (+, -, *, / ou sair): sair
+Até logo!</pre>
+
+<p>Vamos chegar lá em seis etapas:</p>
+
+<ol class="passo">
+  <li><a href="#etapa1">Ler dois números e somar</a> (<code>Scanner</code>, <code>nextDouble</code>).</li>
+  <li><a href="#etapa2">Escolher a operação</a> (<code>switch</code> com setas).</li>
+  <li><a href="#etapa3">Organizar em métodos</a> (<code>calcular</code>, <code>lerNumero</code>, <code>operacaoValida</code>).</li>
+  <li><a href="#etapa4">Validar o que foi digitado</a> (<code>hasNextDouble</code>).</li>
+  <li><a href="#etapa5">Não dividir por zero</a>.</li>
+  <li><a href="#etapa6">Repetir até "sair"</a> (<code>while</code>, <code>break</code>, <code>continue</code>).</li>
+</ol>
+
+<h3>Antes de começar</h3>
+<p>Você precisa saber criar e rodar um programa (<a href="primeiro-programa.html">Olá, Mundo</a>), usar variáveis <code>double</code> e <code>String</code> e ter visto o básico do <a href="scanner.html">Scanner</a>. No seu computador, crie a pasta do projeto; o arquivo vai se chamar <code>Calculadora.java</code>, porque a classe se chama <code>Calculadora</code>:</p>
+
+<pre class="term">$ mkdir -p java/calculadora
+$ cd java/calculadora</pre>
+
+<hr>
+
+<h2 id="etapa1">Etapa 1 · Ler dois números e somar</h2>
+<p>O começo de toda calculadora: pedir dois números e mostrar a soma. Para ler do teclado, o Java usa um <strong>Scanner</strong> (em inglês, "leitor", "escâner"), um objeto que lê o que você digita e transforma em números ou texto.</p>
+
+<pre class="file" data-file="Calculadora.java">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Primeiro número: ");
+        double a = entrada.nextDouble();
+        System.out.print("Segundo número: ");
+        double b = entrada.nextDouble();
+
+        double soma = a + b;
+        System.out.println(a + " + " + b + " = " + soma);
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>import java.util.Scanner;</code></td><td>Avisa que vamos usar a classe <code>Scanner</code>, que mora no pacote <code>java.util</code>. Sem isso, o <code>javac</code> diz <code>cannot find symbol</code> (veja <a href="pacotes.html">Pacotes e import</a>).</td></tr>
+<tr><td><code>Scanner entrada = new Scanner(System.in);</code></td><td>Cria o leitor. <code>System.in</code> é a entrada padrão: o teclado. Criamos <strong>um</strong> Scanner e usamos o programa inteiro.</td></tr>
+<tr><td><code>System.out.print("Primeiro número: ");</code></td><td><code>print</code>, sem <code>ln</code>: não pula linha, então o que a pessoa digitar aparece logo depois dos dois-pontos.</td></tr>
+<tr><td><code>double a = entrada.nextDouble();</code></td><td>Espera a pessoa digitar e apertar <kbd>Enter</kbd>, e converte o texto num <code>double</code> (número com casas decimais).</td></tr>
+<tr><td><code>a + " + " + b + " = " + soma</code></td><td>Junta números e texto numa frase só (<a href="concatenacao.html">concatenação</a>).</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Primeiro número: 10
+Segundo número: 5
+10.0 + 5.0 = 15.0</pre>
+
+<p>Repare no <code>10.0</code>: a Ana digitou <code>10</code>, mas a variável é <code>double</code>, e o Java sempre mostra um <code>double</code> com pelo menos uma casa decimal. Na última etapa você vai ver um desafio para deixar isso mais bonito.</p>
+
+<div class="warning">
+<strong>Decimais: no teclado, com vírgula; na tela, com ponto</strong>
+<p>O <code>Scanner</code> lê os números no formato do idioma do sistema. Na máquina da Ana, em português do Brasil, o separador decimal é a <strong>vírgula</strong>: <code>2,5</code> funciona e <code>2.5</code> dá erro. Já o <code>println</code> de um <code>double</code> sempre usa ponto:</p>
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Primeiro número: 2,5
+Segundo número: 1,25
+2.5 + 1.25 = 3.75
+$ java Calculadora.java
+=== Calculadora da Ana ===
+Primeiro número: 2.5
+Exception in thread "main" java.util.InputMismatchException
+	at java.base/java.util.Scanner.throwFor(Scanner.java:977)
+	at java.base/java.util.Scanner.next(Scanner.java:1632)
+	at java.base/java.util.Scanner.nextDouble(Scanner.java:2603)
+	at Calculadora.main(Calculadora.java:9)</pre>
+<p><code>InputMismatchException</code> quer dizer "a entrada não combina com o que foi pedido": o <code>nextDouble</code> queria um número e encontrou um texto que, em português, não é número. A última linha mostra onde: <code>Calculadora.java</code>, linha 9. Na etapa 4, a calculadora vai aprender a se defender disso.</p>
+</div>
+
+<div class="tryjava" data-file="Calculadora.java" data-stdin="10\n5\n" data-goal="out:10.0 + 5.0 = 15.0,src:nextDouble\(\)[\s\S]*nextDouble\(\)">
+<p class="try-task"><strong>Missão (etapa 1):</strong> o programa já lê o primeiro número. Leia o segundo número na variável <code>b</code> e mostre a soma no formato <code>10.0 + 5.0 = 15.0</code>. A entrada <code>10</code> e <code>5</code> já vem preenchida.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Primeiro número: ");
+        double a = entrada.nextDouble();
+        // peça e leia o segundo número
+
+        // calcule e mostre a soma
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Primeiro número: ");
+        double a = entrada.nextDouble();
+        System.out.print("Segundo número: ");
+        double b = entrada.nextDouble();
+
+        double soma = a + b;
+        System.out.println(a + " + " + b + " = " + soma);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa2">Etapa 2 · Escolher a operação</h2>
+<p>Agora a calculadora pergunta qual conta fazer. A operação é um texto (<code>"+"</code>, <code>"-"</code>…), lido com <code>entrada.next()</code>, que devolve a próxima "palavra" digitada. Para escolher a conta, um <code>switch</code> com setas: ele compara o texto com cada <code>case</code> e <strong>devolve</strong> o valor da seta escolhida.</p>
+
+<pre class="file" data-file="Calculadora.java">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Primeiro número: ");
+        double a = entrada.nextDouble();
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        System.out.print("Segundo número: ");
+        double b = entrada.nextDouble();
+
+        double resultado = switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; {
+                System.out.println("Operação desconhecida: " + op);
+                yield 0;
+            }
+        };
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>double resultado =</dt><dd>O <code>switch</code> aqui é uma <strong>expressão</strong>: ele produz um valor, que vai para <code>resultado</code>.</dd>
+  <dt>switch (op)</dt><dd>Olha o valor de <code>op</code> e procura o <code>case</code> igual. Com <code>String</code>, a comparação é pelo conteúdo do texto.</dd>
+  <dt>case "+" -&gt; a + b;</dt><dd>Se <code>op</code> for <code>"+"</code>, o valor do switch é <code>a + b</code>. A seta <code>-&gt;</code> não "cai" no próximo case: não precisa de <code>break</code>.</dd>
+  <dt>default -&gt; { … yield 0; }</dt><dd>Qualquer outro texto. Como aqui há duas instruções, elas vão entre chaves, e <code>yield</code> ("render", "entregar") diz qual valor o switch devolve.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+, -, *, /): *
+Segundo número: 4
+10.0 * 4.0 = 40.0
+$ java Calculadora.java
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+, -, *, /): /
+Segundo número: 4
+10.0 / 4.0 = 2.5
+$ java Calculadora.java
+=== Calculadora da Ana ===
+Primeiro número: 10
+Operação (+, -, *, /): x
+Segundo número: 4                         « a operação é inválida, mas ele pede o número mesmo assim
+Operação desconhecida: x
+10.0 x 4.0 = 0.0                          « e ainda mostra um resultado falso</pre>
+
+<p>A divisão <code>10.0 / 4.0</code> deu <code>2.5</code>, e não <code>2</code>, porque os dois números são <code>double</code> (divisão inteira só acontece entre inteiros; veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). A terceira execução mostra um defeito: com a operação <code>x</code>, o programa pede o segundo número à toa e mostra <code>0.0</code> como se fosse uma resposta. A etapa 3 conserta isso.</p>
+
+<div class="cenario">
+<strong>Quando dá errado: esqueci o <code>default</code></strong>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Calculadora.java">        double resultado = switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+        };
+</pre>
+<pre class="term" data-cwd="~/java/calculadora">$ javac Calculadora.java
+Calculadora.java:5: error: the switch expression does not cover all possible input values
+        double resultado = switch (op) {
+                           ^
+1 error</pre>
+<p>"A expressão switch não cobre todos os valores possíveis." Um switch que <strong>devolve um valor</strong> precisa ter resposta para qualquer texto, e uma <code>String</code> pode ser qualquer coisa. Acrescente um <code>default</code>.</p>
+</div>
+
+<div class="tryjava" data-file="Calculadora.java" data-stdin="10\n/\n4\n" data-goal="out:10.0 / 4.0 = 2.5,src:case \&quot;\*\&quot;,src:case \&quot;/\&quot;">
+<p class="try-task"><strong>Missão (etapa 2):</strong> esta versão só sabe somar e subtrair. Acrescente os <code>case</code> de multiplicação (<code>*</code>) e divisão (<code>/</code>). A entrada da missão é <code>10</code>, <code>/</code>, <code>4</code>.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Primeiro número: ");
+        double a = entrada.nextDouble();
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        System.out.print("Segundo número: ");
+        double b = entrada.nextDouble();
+
+        double resultado = switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            default -&gt; {
+                System.out.println("Operação desconhecida: " + op);
+                yield 0;
+            }
+        };
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Primeiro número: ");
+        double a = entrada.nextDouble();
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        System.out.print("Segundo número: ");
+        double b = entrada.nextDouble();
+
+        double resultado = switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; {
+                System.out.println("Operação desconhecida: " + op);
+                yield 0;
+            }
+        };
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa3">Etapa 3 · Organizar em métodos</h2>
+<p>O <code>main</code> está ficando comprido. Vamos separar o programa em <strong>métodos</strong>: blocos com nome, cada um com uma tarefa. É como numa cozinha: um cozinheiro corta, outro cozinha, outro monta o prato. Ao mesmo tempo, mudamos a ordem: a operação vem <strong>primeiro</strong>, e se ela for inválida o programa avisa e para, sem pedir os números à toa.</p>
+
+<pre class="file" data-file="Calculadora.java">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        if (!operacaoValida(op)) {
+            System.out.println("Operação desconhecida: " + op);
+            return;
+        }
+        double a = lerNumero(entrada, "Primeiro número: ");
+        double b = lerNumero(entrada, "Segundo número: ");
+        double resultado = calcular(a, op, b);
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Recebe</th><th>Devolve</th><th>Tarefa</th></tr>
+<tr><td><code>lerNumero</code></td><td>o <code>Scanner</code> e a pergunta</td><td><code>double</code></td><td>Mostra a pergunta e lê um número. Assim não repetimos <code>print</code> + <code>nextDouble</code> duas vezes.</td></tr>
+<tr><td><code>operacaoValida</code></td><td>a operação</td><td><code>boolean</code></td><td><code>true</code> se for uma das quatro. <code>case "+", "-", "*", "/"</code> junta vários valores no mesmo case.</td></tr>
+<tr><td><code>calcular</code></td><td>os dois números e a operação</td><td><code>double</code></td><td>Faz a conta. Só faz conta: não lê teclado nem escreve na tela. Isso deixa o método fácil de testar e de reaproveitar.</td></tr>
+</table>
+</div>
+
+<dl class="anatomy">
+  <dt>static</dt><dd>O método pertence à classe, e por isso o <code>main</code> (que também é <code>static</code>) pode chamá-lo direto. Veja <a href="static.html">static</a>.</dd>
+  <dt>double</dt><dd>O tipo do valor devolvido (<a href="retorno.html">retorno</a>).</dd>
+  <dt>calcular(double a, String op, double b)</dt><dd>O nome e os <a href="parametros.html">parâmetros</a>: as "entradas" do método.</dd>
+  <dt>return switch (op) { … };</dt><dd>Devolve o valor que o switch produzir.</dd>
+  <dt>default -&gt; throw new IllegalArgumentException(…)</dt><dd>Se alguém chamar <code>calcular</code> com uma operação inválida, o método <strong>lança uma exceção</strong> (avisa que recebeu um argumento ilegal) em vez de inventar um resultado. Veja <a href="throw-throws.html">throw e throws</a>.</dd>
+</dl>
+
+<p>No <code>main</code>, o <code>!</code> em <code>!operacaoValida(op)</code> quer dizer "não" (<a href="operadores-logicos.html">operadores lógicos</a>), e o <code>return</code> sozinho encerra o <code>main</code>, ou seja, o programa.</p>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, /): -
+Primeiro número: 7
+Segundo número: 2
+7.0 - 2.0 = 5.0
+$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, /): %
+Operação desconhecida: %                  « agora ele para antes de pedir os números</pre>
+
+<div class="tryjava" data-file="Calculadora.java" data-stdin="-\n7\n2\n" data-goal="out:7.0 - 2.0 = 5.0,src:static double calcular\s*\(">
+<p class="try-task"><strong>Missão (etapa 3):</strong> o <code>main</code> chama <code>calcular(a, op, b)</code>, mas o método ainda não existe (rode e veja o <code>cannot find symbol</code>). Escreva o método <code>static double calcular(double a, String op, double b)</code> com o switch das quatro operações.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        if (!operacaoValida(op)) {
+            System.out.println("Operação desconhecida: " + op);
+            return;
+        }
+        double a = lerNumero(entrada, "Primeiro número: ");
+        double b = lerNumero(entrada, "Segundo número: ");
+        double resultado = calcular(a, op, b);
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    // escreva aqui o método calcular
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        if (!operacaoValida(op)) {
+            System.out.println("Operação desconhecida: " + op);
+            return;
+        }
+        double a = lerNumero(entrada, "Primeiro número: ");
+        double b = lerNumero(entrada, "Segundo número: ");
+        double resultado = calcular(a, op, b);
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa4">Etapa 4 · Validar o que foi digitado</h2>
+<p>Hoje, se alguém digita uma palavra no lugar do número, a calculadora "explode":</p>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, /): +
+Primeiro número: abc
+Exception in thread "main" java.util.InputMismatchException
+	at java.base/java.util.Scanner.throwFor(Scanner.java:977)
+	at java.base/java.util.Scanner.next(Scanner.java:1632)
+	at java.base/java.util.Scanner.nextDouble(Scanner.java:2603)
+	at Calculadora.lerNumero(Calculadora.java:22)
+	at Calculadora.main(Calculadora.java:14)</pre>
+
+<p>Leia o <strong>stack trace</strong> (a "pilha de chamadas") de baixo para cima: o <code>main</code>, na linha 14, chamou o <code>lerNumero</code>, que na linha 22 chamou o <code>nextDouble</code>, que lançou a exceção. As linhas com <code>java.base/</code> são do próprio Java; as que importam para você são as do seu arquivo.</p>
+
+<p>A solução é <strong>perguntar antes de ler</strong>. O método <code>hasNextDouble()</code> ("tem um próximo double?") olha o que foi digitado <strong>sem consumir</strong> e devolve <code>true</code> se aquilo é um número válido. Só mudamos o método <code>lerNumero</code>; o resto do programa fica igual:</p>
+
+<pre class="file" data-file="Calculadora.java">    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+</pre>
+
+<dl class="anatomy">
+  <dt>while (!entrada.hasNextDouble())</dt><dd>"Enquanto o que foi digitado <strong>não</strong> for um número…" O <code>hasNextDouble</code> espera a pessoa digitar, se for preciso, mas não tira nada da entrada.</dd>
+  <dt>String lixo = entrada.next();</dt><dd>Tira a palavra inválida da entrada. <strong>Esta linha é essencial</strong>: sem ela, o <code>hasNextDouble</code> olharia para o mesmo "abc" para sempre, num laço infinito.</dd>
+  <dt>"\"" + lixo + "\" …"</dt><dd><code>\"</code> é uma aspa dentro do texto (<a href="escapes.html">caracteres especiais</a>).</dd>
+  <dt>return entrada.nextDouble();</dt><dd>Quando o laço termina, com certeza há um número esperando: agora é seguro ler.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, /): +
+Primeiro número: abc
+"abc" não é um número. Tente de novo.
+Primeiro número: dez
+"dez" não é um número. Tente de novo.
+Primeiro número: 10
+Segundo número: 2.5                       « com ponto: em pt_BR, não é número
+"2.5" não é um número. Tente de novo.
+Segundo número: 2,5
+10.0 + 2.5 = 12.5</pre>
+
+<div class="tip">
+<strong>Uma família de métodos "has"</strong>
+<p>Para cada <code>nextXxx</code> existe um <code>hasNextXxx</code>: <code>hasNextInt()</code>, <code>hasNextLine()</code>, <code>hasNext()</code>… Use-os sempre que a entrada vier de uma pessoa. A tabela completa está em <a href="scanner.html">Ler do Teclado (Scanner)</a>.</p>
+</div>
+
+<div class="tryjava" data-file="Calculadora.java" data-stdin="+\nabc\n10\n5\n" data-goal="out:&quot;abc&quot; não é um número,out:10.0 + 5.0 = 15.0,src:hasNextDouble">
+<p class="try-task"><strong>Missão (etapa 4):</strong> rode primeiro como está: a entrada da missão tem <code>abc</code> no lugar do primeiro número e o programa termina com <code>InputMismatchException</code>. Depois mude o <code>lerNumero</code> para usar <code>hasNextDouble</code> e mostrar <code>"abc" não é um número. Tente de novo.</code></p>
+<pre class="script">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        if (!operacaoValida(op)) {
+            System.out.println("Operação desconhecida: " + op);
+            return;
+        }
+        double a = lerNumero(entrada, "Primeiro número: ");
+        double b = lerNumero(entrada, "Segundo número: ");
+        double resultado = calcular(a, op, b);
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        if (!operacaoValida(op)) {
+            System.out.println("Operação desconhecida: " + op);
+            return;
+        }
+        double a = lerNumero(entrada, "Primeiro número: ");
+        double b = lerNumero(entrada, "Segundo número: ");
+        double resultado = calcular(a, op, b);
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa5">Etapa 5 · Não dividir por zero</h2>
+<p>Na escola você aprendeu que não existe divisão por zero. O Java, com <code>double</code>, não reclama: ele responde com valores especiais.</p>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, /): /
+Primeiro número: 10
+Segundo número: 0
+10.0 / 0.0 = Infinity                     « "infinito"
+$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, /): /
+Primeiro número: -10
+Segundo número: 0
+-10.0 / 0.0 = -Infinity
+$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, /): /
+Primeiro número: 0
+Segundo número: 0
+0.0 / 0.0 = NaN                           « Not a Number: "não é um número"</pre>
+
+<p>Com números <strong>inteiros</strong> (<code>int</code>), a mesma conta não dá infinito: dá erro. Compare no <a href="jshell.html">JShell</a>:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; 10 / 0
+|  Exception java.lang.ArithmeticException: / by zero
+|        at (#1:1)
+
+jshell&gt; 10.0 / 0
+$2 ==&gt; Infinity</pre>
+
+<p>Para uma calculadora de gente, "Infinity" não serve. Vamos conferir o divisor <strong>antes</strong> de calcular. No <code>main</code>, logo depois de ler o segundo número:</p>
+
+<pre class="file" data-file="Calculadora.java">        double b = lerNumero(entrada, "Segundo número: ");
+        if (op.equals("/") &amp;&amp; b == 0) {
+            System.out.println("Não dá para dividir por zero.");
+            return;
+        }
+        double resultado = calcular(a, op, b);
+</pre>
+
+<dl class="anatomy">
+  <dt>op.equals("/")</dt><dd>Compara o <strong>conteúdo</strong> do texto. Nunca use <code>==</code> para comparar <code>String</code> (veja <a href="strings.html">Strings</a>).</dd>
+  <dt>&amp;&amp;</dt><dd>"E": as duas condições precisam ser verdadeiras.</dd>
+  <dt>b == 0</dt><dd>Para números, <code>==</code> está certo. <code>0</code> e <code>0.0</code> são iguais aqui.</dd>
+  <dt>return;</dt><dd>Encerra o programa sem calcular. Na próxima etapa, ele vai virar <code>continue</code>.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, /): /
+Primeiro número: 10
+Segundo número: 0
+Não dá para dividir por zero.</pre>
+
+<div class="tryjava" data-file="Calculadora.java" data-stdin="/\n10\n0\n" data-goal="out:Não dá para dividir por zero.">
+<p class="try-task"><strong>Missão (etapa 5):</strong> com a entrada <code>/</code>, <code>10</code>, <code>0</code>, o programa mostra <code>Infinity</code>. Acrescente o <code>if</code> que mostra <code>Não dá para dividir por zero.</code> e encerra.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        if (!operacaoValida(op)) {
+            System.out.println("Operação desconhecida: " + op);
+            return;
+        }
+        double a = lerNumero(entrada, "Primeiro número: ");
+        double b = lerNumero(entrada, "Segundo número: ");
+        double resultado = calcular(a, op, b);
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Operação (+, -, *, /): ");
+        String op = entrada.next();
+        if (!operacaoValida(op)) {
+            System.out.println("Operação desconhecida: " + op);
+            return;
+        }
+        double a = lerNumero(entrada, "Primeiro número: ");
+        double b = lerNumero(entrada, "Segundo número: ");
+        if (op.equals("/") &amp;&amp; b == 0) {
+            System.out.println("Não dá para dividir por zero.");
+            return;
+        }
+        double resultado = calcular(a, op, b);
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="etapa6">Etapa 6 · Repetir até "sair"</h2>
+<p>Uma calculadora que faz uma conta e fecha não ajuda muito. A última etapa coloca o trabalho dentro de um laço <code>while (true)</code> ("enquanto verdadeiro", ou seja, para sempre) e dá duas saídas de emergência: <code>break</code> e <code>continue</code>. Só o <code>main</code> muda:</p>
+
+<pre class="file" data-file="Calculadora.java">    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        while (true) {
+            System.out.print("Operação (+, -, *, / ou sair): ");
+            String op = entrada.next();
+            if (op.equals("sair")) {
+                break;
+            }
+            if (!operacaoValida(op)) {
+                System.out.println("Operação desconhecida: " + op);
+                continue;
+            }
+            double a = lerNumero(entrada, "Primeiro número: ");
+            double b = lerNumero(entrada, "Segundo número: ");
+            if (op.equals("/") &amp;&amp; b == 0) {
+                System.out.println("Não dá para dividir por zero.");
+                continue;
+            }
+            double resultado = calcular(a, op, b);
+            System.out.println(a + " " + op + " " + b + " = " + resultado);
+            System.out.println();
+        }
+        System.out.println("Até logo!");
+    }
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Instrução</th><th>O que acontece</th><th>Usada quando</th></tr>
+<tr><td><code>while (true) { … }</code></td><td>Repete o bloco sem parar, até um <code>break</code>.</td><td>Sempre: é o "programa ligado".</td></tr>
+<tr><td><code>break;</code></td><td><strong>Sai do laço</strong>. O programa continua depois da <code>}</code> do while e mostra "Até logo!".</td><td>A pessoa digitou <code>sair</code>.</td></tr>
+<tr><td><code>continue;</code></td><td><strong>Pula o resto desta volta</strong> e começa a próxima: pergunta a operação de novo.</td><td>Operação inválida ou divisão por zero.</td></tr>
+<tr><td><code>System.out.println();</code></td><td>Escreve uma linha vazia, para separar uma conta da outra.</td><td>Depois de cada resultado.</td></tr>
+</table>
+</div>
+
+<p>Os dois <code>return</code> da etapa anterior viraram <code>continue</code>: agora um erro não fecha o programa, só pula para a próxima conta. A sessão completa está em "O que vamos construir", no começo da página; aqui, uma bem curta:</p>
+
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, / ou sair): +
+Primeiro número: 10
+Segundo número: 5
+10.0 + 5.0 = 15.0
+
+Operação (+, -, *, / ou sair): sair
+Até logo!</pre>
+
+<div class="cenario">
+<strong>Quando dá errado: <kbd>Ctrl</kbd>+<kbd>D</kbd> no lugar de "sair"</strong>
+<p>No terminal do Linux, <kbd>Ctrl</kbd>+<kbd>D</kbd> significa "acabou a entrada". Se a Ana apertar isso na pergunta da operação, o <code>next()</code> não tem mais nada para ler:</p>
+<pre class="term" data-cwd="~/java/calculadora">$ java Calculadora.java
+=== Calculadora da Ana ===
+Operação (+, -, *, / ou sair): +
+Primeiro número: 10
+Segundo número: 5
+10.0 + 5.0 = 15.0
+
+Operação (+, -, *, / ou sair): Exception in thread "main" java.util.NoSuchElementException
+	at java.base/java.util.Scanner.throwFor(Scanner.java:975)
+	at java.base/java.util.Scanner.next(Scanner.java:1516)
+	at Calculadora.main(Calculadora.java:10)</pre>
+<p><code>NoSuchElementException</code> = "não existe tal elemento". Para tratar, troque a condição do laço: <code>while (entrada.hasNext())</code> só entra se ainda houver algo para ler. Fica como desafio.</p>
+</div>
+
+<div class="tryjava" data-file="Calculadora.java" data-stdin="+\n10\n5\n*\n3\n4\nsair\n" data-goal="out:10.0 + 5.0 = 15.0,out:3.0 * 4.0 = 12.0,out:Até logo!,src:while\s*\(">
+<p class="try-task"><strong>Missão (etapa 6):</strong> coloque a parte de "perguntar e calcular" dentro de um <code>while (true)</code>, saia com <code>break</code> quando a operação for <code>sair</code> e mostre <code>Até logo!</code> no fim. Troque os <code>return</code> por <code>continue</code>. A entrada da missão faz duas contas e sai.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        System.out.print("Operação (+, -, *, / ou sair): ");
+        String op = entrada.next();
+        if (!operacaoValida(op)) {
+            System.out.println("Operação desconhecida: " + op);
+            return;
+        }
+        double a = lerNumero(entrada, "Primeiro número: ");
+        double b = lerNumero(entrada, "Segundo número: ");
+        if (op.equals("/") &amp;&amp; b == 0) {
+            System.out.println("Não dá para dividir por zero.");
+            return;
+        }
+        double resultado = calcular(a, op, b);
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        while (true) {
+            System.out.print("Operação (+, -, *, / ou sair): ");
+            String op = entrada.next();
+            if (op.equals("sair")) {
+                break;
+            }
+            if (!operacaoValida(op)) {
+                System.out.println("Operação desconhecida: " + op);
+                continue;
+            }
+            double a = lerNumero(entrada, "Primeiro número: ");
+            double b = lerNumero(entrada, "Segundo número: ");
+            if (op.equals("/") &amp;&amp; b == 0) {
+                System.out.println("Não dá para dividir por zero.");
+                continue;
+            }
+            double resultado = calcular(a, op, b);
+            System.out.println(a + " " + op + " " + b + " = " + resultado);
+            System.out.println();
+        }
+        System.out.println("Até logo!");
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O código completo</h2>
+<p>A calculadora final, com as seis etapas juntas. Ela tem 57 linhas, quatro métodos e nenhum jeito fácil de quebrar.</p>
+
+<pre class="file" data-file="Calculadora.java">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        while (true) {
+            System.out.print("Operação (+, -, *, / ou sair): ");
+            String op = entrada.next();
+            if (op.equals("sair")) {
+                break;
+            }
+            if (!operacaoValida(op)) {
+                System.out.println("Operação desconhecida: " + op);
+                continue;
+            }
+            double a = lerNumero(entrada, "Primeiro número: ");
+            double b = lerNumero(entrada, "Segundo número: ");
+            if (op.equals("/") &amp;&amp; b == 0) {
+                System.out.println("Não dá para dividir por zero.");
+                continue;
+            }
+            double resultado = calcular(a, op, b);
+            System.out.println(a + " " + op + " " + b + " = " + resultado);
+            System.out.println();
+        }
+        System.out.println("Até logo!");
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+
+<h2>Desafios extras</h2>
+<ol>
+  <li><strong>Resto da divisão.</strong> Acrescente a operação <code>%</code> (resto; veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). Lembre-se de mudar os dois métodos e o texto da pergunta. Resto por zero também deve ser recusado.</li>
+  <li><strong>Potência.</strong> Acrescente <code>^</code> usando <code>Math.pow(a, b)</code> (<a href="math.html">Math</a>).</li>
+  <li><strong>Resultado bonito.</strong> Mostre o resultado com duas casas decimais usando <code>System.out.printf("%.2f%n", resultado)</code>. Em pt_BR, ele usa vírgula: <code>3,50</code> (veja <a href="formatacao.html">Formatar Texto</a>).</li>
+  <li><strong>Sair sem exceção.</strong> Troque <code>while (true)</code> por <code>while (entrada.hasNext())</code> para que <kbd>Ctrl</kbd>+<kbd>D</kbd> encerre o programa sem erro.</li>
+  <li><strong>Memória.</strong> Guarde o último resultado numa variável e deixe a pessoa digitar <code>m</code> no lugar de um número para usá-lo.</li>
+</ol>
+
+<div class="tryjava" data-file="Calculadora.java" data-stdin="%\n10\n3\nsair\n" data-goal="out:10.0 % 3.0 = 1.0,out:Até logo!">
+<p class="try-task"><strong>Desafio 1 no editor:</strong> acrescente a operação <code>%</code>. Com a entrada <code>%</code>, <code>10</code>, <code>3</code>, a calculadora deve mostrar <code>10.0 % 3.0 = 1.0</code>.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        while (true) {
+            System.out.print("Operação (+, -, *, / ou sair): ");
+            String op = entrada.next();
+            if (op.equals("sair")) {
+                break;
+            }
+            if (!operacaoValida(op)) {
+                System.out.println("Operação desconhecida: " + op);
+                continue;
+            }
+            double a = lerNumero(entrada, "Primeiro número: ");
+            double b = lerNumero(entrada, "Segundo número: ");
+            if (op.equals("/") &amp;&amp; b == 0) {
+                System.out.println("Não dá para dividir por zero.");
+                continue;
+            }
+            double resultado = calcular(a, op, b);
+            System.out.println(a + " " + op + " " + b + " = " + resultado);
+            System.out.println();
+        }
+        System.out.println("Até logo!");
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Calculadora {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.println("=== Calculadora da Ana ===");
+
+        while (true) {
+            System.out.print("Operação (+, -, *, /, % ou sair): ");
+            String op = entrada.next();
+            if (op.equals("sair")) {
+                break;
+            }
+            if (!operacaoValida(op)) {
+                System.out.println("Operação desconhecida: " + op);
+                continue;
+            }
+            double a = lerNumero(entrada, "Primeiro número: ");
+            double b = lerNumero(entrada, "Segundo número: ");
+            if ((op.equals("/") || op.equals("%")) &amp;&amp; b == 0) {
+                System.out.println("Não dá para dividir por zero.");
+                continue;
+            }
+            double resultado = calcular(a, op, b);
+            System.out.println(a + " " + op + " " + b + " = " + resultado);
+            System.out.println();
+        }
+        System.out.println("Até logo!");
+    }
+
+    static double lerNumero(Scanner entrada, String pergunta) {
+        System.out.print(pergunta);
+        while (!entrada.hasNextDouble()) {
+            String lixo = entrada.next();
+            System.out.println("\"" + lixo + "\" não é um número. Tente de novo.");
+            System.out.print(pergunta);
+        }
+        return entrada.nextDouble();
+    }
+
+    static boolean operacaoValida(String op) {
+        return switch (op) {
+            case "+", "-", "*", "/", "%" -&gt; true;
+            default -&gt; false;
+        };
+    }
+
+    static double calcular(double a, String op, double b) {
+        return switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            case "%" -&gt; a % b;
+            default -&gt; throw new IllegalArgumentException("Operação desconhecida: " + op);
+        };
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. Na máquina da Ana (pt_BR), o que acontece se ela digitar <code>2.5</code> num <code>nextDouble()</code>?</p>
+<label><input type="radio" name="q1"> Lê 2.5 normalmente.</label>
+<label><input type="radio" name="q1"> Lança <code>InputMismatchException</code>, porque em pt_BR o decimal é com vírgula.</label>
+<label><input type="radio" name="q1"> Lê 2 e ignora o resto.</label>
+<label><input type="radio" name="q1"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">2. No <code>lerNumero</code>, o que acontece se você apagar a linha <code>String lixo = entrada.next();</code> e alguém digitar "abc"?</p>
+<label><input type="radio" name="q2"> Nada muda.</label>
+<label><input type="radio" name="q2"> O programa termina com exceção.</label>
+<label><input type="radio" name="q2"> Laço infinito: o "abc" nunca sai da entrada, e a mensagem se repete para sempre.</label>
+<label><input type="radio" name="q2"> O javac recusa o código.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. O que <code>continue</code> faz dentro do <code>while</code> da calculadora?</p>
+<label><input type="radio" name="q3"> Pula o resto da volta atual e volta a perguntar a operação.</label>
+<label><input type="radio" name="q3"> Sai do laço.</label>
+<label><input type="radio" name="q3"> Encerra o programa.</label>
+<label><input type="radio" name="q3"> Repete a última conta.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Quanto vale <code>10.0 / 0</code> em Java?</p>
+<label><input type="radio" name="q4"> <code>0</code></label>
+<label><input type="radio" name="q4"> <code>NaN</code></label>
+<label><input type="radio" name="q4"> Lança <code>ArithmeticException</code>.</label>
+<label><input type="radio" name="q4"> <code>Infinity</code></label>
+</div>
+
+<div class="exercise">
+<p>Complete o método para que ele só leia quando houver um número esperando:</p>
+<div class="ex-code">while (!entrada.<input data-answer="hasNextDouble()">) {</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Scanner(System.in)</code> lê o teclado; <code>nextDouble()</code> lê números (com vírgula em pt_BR) e <code>next()</code> lê uma palavra.</li>
+  <li>O <code>switch</code> com setas devolve um valor e precisa de <code>default</code> quando o tipo é <code>String</code>.</li>
+  <li>Métodos pequenos, cada um com uma tarefa, deixam o <code>main</code> fácil de ler.</li>
+  <li><code>hasNextDouble()</code> confere antes de ler; o <code>next()</code> descarta o que não serve.</li>
+  <li>Divisão de <code>double</code> por zero dá <code>Infinity</code> ou <code>NaN</code>; de <code>int</code>, dá <code>ArithmeticException</code>. Confira o divisor antes.</li>
+  <li><code>while (true)</code> + <code>break</code> + <code>continue</code> fazem o "menu que repete".</li>
+</ul>
+<p>Próximo projeto: <a href="projeto-adivinhacao.html">Jogo da Adivinhação</a>, com números aleatórios e enums.</p>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
