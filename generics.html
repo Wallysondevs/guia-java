@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Generics — o que é List&lt;T&gt;, classes e métodos genéricos | Guia Java</title>
+<meta name="description" content="Generics em Java do zero: por que existem (sem eles, ClassCastException), classe genérica Caixa&lt;T&gt;, várias variáveis de tipo, métodos genéricos, &lt;T extends Comparable&lt;T&gt;&gt;, wildcards ? extends e ? super, e os erros reais incompatible types e unexpected type do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Generics</span></h1>
+
+<p class="intro">Em todas as aulas de coleções você escreveu coisas como <code>List&lt;String&gt;</code> e <code>Map&lt;String, Integer&gt;</code>. O que vai entre <code>&lt; &gt;</code> é um <strong>tipo passado como parâmetro</strong>, e o recurso que permite isso se chama <strong>generics</strong> (tipos genéricos). Nesta aula você vai entender por que ele existe, como criar as suas próprias classes e métodos genéricos e como ler as mensagens de erro que envolvem <code>&lt;T&gt;</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O problema que os generics resolvem (o <code>ClassCastException</code> das listas "sem tipo").</li>
+  <li>Criar uma classe genérica: <code>Caixa&lt;T&gt;</code>, e com dois tipos: <code>Par&lt;A, B&gt;</code>.</li>
+  <li>Criar métodos genéricos: <code>static &lt;T&gt; T primeiro(List&lt;T&gt; lista)</code>.</li>
+  <li>Limitar o tipo: <code>&lt;T extends Comparable&lt;T&gt;&gt;</code>.</li>
+  <li>O básico dos coringas: <code>? extends</code> e <code>? super</code>.</li>
+  <li>Os erros <code>incompatible types</code> e <code>unexpected type</code> (por que não existe <code>List&lt;int&gt;</code>).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma caixa com etiqueta</h2>
+<p>Imagine caixas de mudança. Uma caixa <strong>sem etiqueta</strong> aceita qualquer coisa, mas quando você a abre, precisa adivinhar o que tem dentro. Uma caixa com a etiqueta <strong>"LIVROS"</strong> só recebe livros, e quem abre já sabe o que vai encontrar.</p>
+
+<p>Generics são essas etiquetas. <code>List&lt;String&gt;</code> é "uma lista com etiqueta String": o compilador <strong>recusa</strong> qualquer coisa que não seja texto e <strong>garante</strong> que o que sai é texto. O erro, que antes aparecia no meio da execução, passa a aparecer na hora de compilar, antes de o programa rodar.</p>
+
+<hr>
+
+<h2>Por que generics: a vida sem eles</h2>
+<p>Os generics chegaram no Java 5 (2004). Antes disso, as listas guardavam <code>Object</code> (qualquer objeto). Esse código antigo ainda compila hoje, e mostra o problema. A Ana guarda nomes numa lista "sem etiqueta" e, por engano, coloca um número:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List nomes = new ArrayList();
+        nomes.add("Ana");
+        nomes.add("Bruno");
+        nomes.add(42);
+
+        for (int i = 0; i &lt; nomes.size(); i++) {
+            String nome = (String) nomes.get(i);
+            System.out.println(nome.toUpperCase());
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Note: Main.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+$ java Main
+ANA
+BRUNO
+Exception in thread "main" java.lang.ClassCastException: class java.lang.Integer cannot be cast to class java.lang.String (java.lang.Integer and java.lang.String are in module java.base of loader 'bootstrap')
+	at Main.main(Main.java:12)</pre>
+
+<p>Repare na sequência:</p>
+<ol>
+  <li>O <code>javac</code> compilou, só com uma <strong>nota</strong> (não é erro): "Main.java usa operações não verificadas ou inseguras".</li>
+  <li>O <code>add(42)</code> foi aceito sem reclamação: a lista aceita qualquer coisa.</li>
+  <li>Para usar cada elemento como texto, foi preciso um <a href="conversao-tipos.html">cast</a>: <code>(String) nomes.get(i)</code>, "confie em mim, isto é uma String".</li>
+  <li>No terceiro elemento, a "confiança" falhou: <code>ClassCastException</code>, "a classe Integer não pode ser convertida para String". O programa já tinha rodado pela metade.</li>
+</ol>
+
+<p>Agora a mesma ideia com a etiqueta <code>&lt;Integer&gt;</code> numa lista de notas:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;();
+        notas.add(10);
+        notas.add("dez");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:8: error: incompatible types: String cannot be converted to Integer
+        notas.add("dez");
+                  ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+1 error</pre>
+
+<p>O erro agora é de <strong>compilação</strong>: "tipos incompatíveis: String não pode ser convertida para Integer". O programa nem chega a rodar, e o <code>^</code> aponta exatamente o culpado. A última nota só avisa que o <code>javac</code> resumiu a mensagem; ela não muda nada.</p>
+
+<p>O mesmo vale na saída: o que sai de uma <code>List&lt;String&gt;</code> é <code>String</code>, sem cast, e o compilador não deixa guardar em outro tipo:</p>
+
+<pre class="file" data-file="Main.java">        List&lt;String&gt; nomes = new ArrayList&lt;&gt;();
+        nomes.add("Ana");
+        Integer x = nomes.get(0);
+        String s = nomes.get(0);
+</pre>
+
+<p>A linha do <code>Integer x</code> está errada (o que sai é <code>String</code>); a do <code>String s</code> está certa, e sem cast:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:8: error: incompatible types: String cannot be converted to Integer
+        Integer x = nomes.get(0);
+                             ^
+1 error</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Sem generics (<code>List</code>)</th><th>Com generics (<code>List&lt;String&gt;</code>)</th></tr>
+<tr><td>O que entra</td><td>Qualquer coisa</td><td>Só <code>String</code></td></tr>
+<tr><td>O que sai</td><td><code>Object</code>: precisa de cast</td><td><code>String</code>, direto</td></tr>
+<tr><td>Erro de tipo aparece</td><td>Ao rodar (<code>ClassCastException</code>)</td><td>Ao compilar (<code>incompatible types</code>)</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Nunca use o "tipo cru"</strong>
+<p><code>List</code> sem <code>&lt; &gt;</code> se chama <strong>raw type</strong> ("tipo cru"). Ele só existe para o código anterior a 2004 continuar compilando. Se você vir a nota "uses unchecked or unsafe operations", procure um <code>&lt; &gt;</code> faltando.</p>
+</div>
+
+<hr>
+
+<h2>Sua primeira classe genérica: <code>Caixa&lt;T&gt;</code></h2>
+<p>A <code>ArrayList</code> não foi escrita uma vez para <code>String</code>, outra para <code>Integer</code>… Ela foi escrita <strong>uma vez só</strong>, com um "tipo a definir". Você pode fazer o mesmo. Esta é uma caixa que guarda uma coisa de um tipo qualquer, decidido por quem usa:</p>
+
+<pre class="file" data-file="Main.java">class Caixa&lt;T&gt; {
+    private T conteudo;
+
+    void guardar(T coisa) {
+        this.conteudo = coisa;
+    }
+
+    T abrir() {
+        return conteudo;
+    }
+
+    boolean vazia() {
+        return conteudo == null;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Caixa&lt;String&gt; bilhete = new Caixa&lt;&gt;();
+        System.out.println("vazia? " + bilhete.vazia());
+        bilhete.guardar("Parabéns, Ana!");
+        String texto = bilhete.abrir();
+        System.out.println(texto + " (" + texto.length() + " letras)");
+
+        Caixa&lt;Integer&gt; cofre = new Caixa&lt;&gt;();
+        cofre.guardar(150);
+        int moedas = cofre.abrir();
+        System.out.println("moedas + 50 = " + (moedas + 50));
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class Caixa&lt;T&gt;</dt><dd><code>T</code> é uma <strong>variável de tipo</strong>: um nome provisório para "o tipo que alguém vai escolher". Ele vale dentro de toda a classe.</dd>
+  <dt>private T conteudo;</dt><dd>Um atributo do tipo <code>T</code>. Numa <code>Caixa&lt;String&gt;</code>, é como se estivesse escrito <code>private String conteudo;</code>.</dd>
+  <dt>void guardar(T coisa)</dt><dd>Só aceita coisas do tipo <code>T</code>.</dd>
+  <dt>T abrir()</dt><dd>Devolve um <code>T</code>: quem abre uma <code>Caixa&lt;String&gt;</code> recebe <code>String</code>, sem cast.</dd>
+  <dt>Caixa&lt;String&gt; bilhete = new Caixa&lt;&gt;();</dt><dd>Aqui o <code>T</code> é escolhido: <code>String</code>. O <code>&lt;&gt;</code> vazio do <code>new</code> (o "diamante", Java 7+) repete o tipo da esquerda.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+vazia? true
+Parabéns, Ana! (14 letras)       « abrir() devolveu String: deu para usar length()
+moedas + 50 = 200                « abrir() devolveu Integer: virou int sozinho</pre>
+
+<p>A mesma classe serviu para textos e números, e em cada uso o compilador conferiu os tipos. Tentar <code>cofre.guardar("cem")</code> daria <code>incompatible types: String cannot be converted to Integer</code>.</p>
+
+<h3>Nomes das variáveis de tipo</h3>
+<p>Por convenção, variáveis de tipo são <strong>uma letra maiúscula</strong>, para não serem confundidas com nomes de classes:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Letra</th><th>Costuma significar</th><th>Exemplo da biblioteca</th></tr>
+<tr><td><code>T</code></td><td><em>Type</em>, um tipo qualquer</td><td><code>Optional&lt;T&gt;</code></td></tr>
+<tr><td><code>E</code></td><td><em>Element</em>, elemento de coleção</td><td><code>List&lt;E&gt;</code>, <code>Set&lt;E&gt;</code></td></tr>
+<tr><td><code>K</code>, <code>V</code></td><td><em>Key</em> e <em>Value</em>, chave e valor</td><td><code>Map&lt;K, V&gt;</code></td></tr>
+<tr><td><code>R</code></td><td><em>Result</em>, resultado</td><td><code>Function&lt;T, R&gt;</code></td></tr>
+<tr><td><code>A</code>, <code>B</code>, <code>U</code>…</td><td>Segundo, terceiro tipo</td><td><code>BiFunction&lt;T, U, R&gt;</code></td></tr>
+</table>
+</div>
+
+<h3>Mais de um tipo: <code>Par&lt;A, B&gt;</code></h3>
+<p>Uma classe pode ter várias variáveis de tipo, separadas por vírgula, como <code>Map&lt;K, V&gt;</code>:</p>
+
+<pre class="file" data-file="Main.java">class Par&lt;A, B&gt; {
+    private final A primeiro;
+    private final B segundo;
+
+    Par(A primeiro, B segundo) {
+        this.primeiro = primeiro;
+        this.segundo = segundo;
+    }
+
+    A primeiro() { return primeiro; }
+    B segundo() { return segundo; }
+
+    public String toString() {
+        return "(" + primeiro + ", " + segundo + ")";
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Par&lt;String, Double&gt; nota = new Par&lt;&gt;("Ana", 9.5);
+        Par&lt;String, Integer&gt; idade = new Par&lt;&gt;("Bruno", 17);
+        System.out.println(nota + " " + idade);
+        double n = nota.segundo();
+        System.out.println(nota.primeiro() + " precisa de " + (10 - n) + " para o 10");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+(Ana, 9.5) (Bruno, 17)
+Ana precisa de 0.5 para o 10</pre>
+
+<p>Records também podem ser genéricos: <code>record Par&lt;A, B&gt;(A primeiro, B segundo) { }</code> faz o mesmo em uma linha (veja <a href="records.html">Records</a>).</p>
+
+<div class="tryjava" data-goal="out:10.0,src:Caixa&lt;Double&gt;">
+<p class="try-task"><strong>Missão:</strong> rode e veja a saída estranha <code>9.50.5</code>: a caixa guarda um <strong>texto</strong>, e <code>+</code> com texto concatena. Mude a caixa para <code>Caixa&lt;Double&gt;</code> e guarde o número <code>9.5</code> (sem aspas), para a saída ser <code>10.0</code>.</p>
+<pre class="script">class Caixa&lt;T&gt; {
+    private T conteudo;
+
+    void guardar(T coisa) {
+        this.conteudo = coisa;
+    }
+
+    T abrir() {
+        return conteudo;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Caixa&lt;String&gt; nota = new Caixa&lt;&gt;();
+        nota.guardar("9.5");
+        System.out.println(nota.abrir() + 0.5);
+    }
+}
+</pre>
+<pre class="solucao">class Caixa&lt;T&gt; {
+    private T conteudo;
+
+    void guardar(T coisa) {
+        this.conteudo = coisa;
+    }
+
+    T abrir() {
+        return conteudo;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Caixa&lt;Double&gt; nota = new Caixa&lt;&gt;();
+        nota.guardar(9.5);
+        System.out.println(nota.abrir() + 0.5);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Métodos genéricos</h2>
+<p>Às vezes só <strong>um método</strong> precisa ser genérico, não a classe inteira. Aí a variável de tipo é declarada <strong>antes do tipo de retorno</strong>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    static &lt;T&gt; T primeiro(List&lt;T&gt; lista) {
+        return lista.get(0);
+    }
+
+    static &lt;T&gt; void mostrarTodos(T[] itens) {
+        for (T item : itens) {
+            System.out.print("[" + item + "] ");
+        }
+        System.out.println();
+    }
+
+    public static void main(String[] args) {
+        String nome = primeiro(List.of("Ana", "Bruno"));
+        Integer nota = primeiro(List.of(10, 7));
+        System.out.println(nome + " " + nota);
+
+        mostrarTodos(new String[] {"uva", "kiwi"});
+        mostrarTodos(new Integer[] {1, 2, 3});
+        System.out.println(Main.&lt;Double&gt;primeiro(List.of(9.5, 7.0)));
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>static &lt;T&gt; T primeiro(List&lt;T&gt; lista)</dt><dd>Lê-se: "para qualquer tipo <code>T</code>, este método recebe uma lista de <code>T</code> e devolve um <code>T</code>". O primeiro <code>&lt;T&gt;</code> <strong>declara</strong> a variável; o <code>T</code> seguinte é o tipo de retorno.</dd>
+  <dt>primeiro(List.of("Ana", "Bruno"))</dt><dd>Você não diz qual é o <code>T</code>: o compilador <strong>deduz</strong> (<em>inferência de tipo</em>) pelo argumento. Aqui, <code>T = String</code>.</dd>
+  <dt>Main.&lt;Double&gt;primeiro(…)</dt><dd>A forma explícita, dizendo o tipo. Quase nunca é necessária.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Ana 10
+[uva] [kiwi]
+[1] [2] [3]
+9.5</pre>
+
+<p>É assim que muitos métodos da biblioteca são declarados. <code>Collections.max</code>, <code>List.of</code> e <code>Collections.emptyList</code> são métodos genéricos: por isso <code>List.of("a")</code> devolve uma <code>List&lt;String&gt;</code> e <code>List.of(1)</code>, uma <code>List&lt;Integer&gt;</code>.</p>
+
+<hr>
+
+<h2>Limitar o tipo: <code>&lt;T extends Comparable&lt;T&gt;&gt;</code></h2>
+<p>Com um <code>T</code> "qualquer", você só pode usar o que <strong>todo</strong> objeto tem (<code>toString</code>, <code>equals</code>…). Para achar o maior de uma lista, é preciso comparar, e nem todo tipo sabe se comparar. A solução é exigir: "<code>T</code> tem que ser um tipo <code>Comparable</code>":</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    static &lt;T extends Comparable&lt;T&gt;&gt; T maior(List&lt;T&gt; lista) {
+        T m = lista.get(0);
+        for (T item : lista) {
+            if (item.compareTo(m) &gt; 0) {
+                m = item;
+            }
+        }
+        return m;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(maior(List.of(7, 10, 3)));
+        System.out.println(maior(List.of("Bruno", "Ana", "Carla")));
+        System.out.println(maior(List.of(9.5, 8.25)));
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;T extends Comparable&lt;T&gt;&gt;</dt><dd>"Qualquer tipo <code>T</code>, <strong>desde que</strong> seja comparável com outro <code>T</code>." Isso se chama <strong>limite</strong> (<em>bound</em>). Aqui, <code>extends</code> vale tanto para classes quanto para interfaces.</dd>
+  <dt>item.compareTo(m)</dt><dd>Só compila por causa do limite: o compilador sabe que todo <code>T</code> tem <code>compareTo</code> (veja <a href="comparable-comparator.html">Comparable e Comparator</a>).</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+10
+Carla
+9.5</pre>
+
+<p>Funciona com <code>Integer</code>, <code>String</code> e <code>Double</code>, que são <code>Comparable</code>. E com uma classe que não é?</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">class Aluno {
+    String nome;
+    Aluno(String nome) { this.nome = nome; }
+}
+…
+        Aluno a = maior(List.of(new Aluno("Ana"), new Aluno("Bruno")));
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:20: error: method maior in class Main cannot be applied to given types;
+        Aluno a = maior(List.of(new Aluno("Ana"), new Aluno("Bruno")));
+                  ^
+  required: List&lt;T&gt;
+  found:    List&lt;Aluno&gt;
+  reason: inference variable E has incompatible bounds
+    upper bounds: Comparable&lt;T&gt;,Object
+    lower bounds: Aluno
+  where T,E are type-variables:
+    T extends Comparable&lt;T&gt; declared in method &lt;T&gt;maior(List&lt;T&gt;)
+    E extends Object declared in method &lt;E&gt;of(E,E)
+1 error</pre>
+
+<p>"O método <code>maior</code> não pode ser aplicado a estes tipos". A linha que explica é <code>upper bounds: Comparable&lt;T&gt;</code>: o tipo precisava ser <code>Comparable</code>, e <code>Aluno</code> não é. O erro apareceu <strong>na compilação</strong>, e não como <code>ClassCastException</code> ao rodar (compare com o <code>TreeSet</code> da aula <a href="treemap-treeset.html">TreeMap e TreeSet</a>).</p>
+
+<hr>
+
+<h2>Coringas: <code>? extends</code> e <code>? super</code> (o básico)</h2>
+<p>Uma surpresa dos generics: <code>Integer</code> é um <code>Number</code>, mas <strong><code>List&lt;Integer&gt;</code> não é uma <code>List&lt;Number&gt;</code></strong>. Veja:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    static double somar(List&lt;Number&gt; numeros) {
+        double soma = 0;
+        for (Number n : numeros) {
+            soma += n.doubleValue();
+        }
+        return soma;
+    }
+
+    public static void main(String[] args) {
+        List&lt;Integer&gt; faltas = List.of(2, 0, 5);
+        System.out.println(somar(faltas));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:14: error: incompatible types: List&lt;Integer&gt; cannot be converted to List&lt;Number&gt;
+        System.out.println(somar(faltas));
+                                 ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+1 error</pre>
+
+<p>Por que o Java proíbe? Porque numa <code>List&lt;Number&gt;</code> é permitido fazer <code>add(9.5)</code> (um <code>Double</code> também é <code>Number</code>). Se o método pudesse receber a lista de <code>Integer</code>, ele poderia enfiar um <code>Double</code> numa lista que só devia ter inteiros. Pense numa caixa "FRUTAS" e numa caixa "MAÇÃS": quem recebe uma caixa de frutas pode colocar uma banana nela, então não dá para entregar a caixa de maçãs no lugar.</p>
+
+<p>Os <strong>coringas</strong> (<em>wildcards</em>, o <code>?</code>) resolvem isso dizendo o que o método pretende fazer com a lista:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    static double somar(List&lt;? extends Number&gt; numeros) {
+        double soma = 0;
+        for (Number n : numeros) {
+            soma += n.doubleValue();
+        }
+        return soma;
+    }
+
+    static void encher(List&lt;? super Integer&gt; destino) {
+        for (int i = 1; i &lt;= 3; i++) {
+            destino.add(i);
+        }
+    }
+
+    public static void main(String[] args) {
+        List&lt;Integer&gt; faltas = List.of(2, 0, 5);
+        List&lt;Double&gt; notas = List.of(9.5, 7.0);
+        System.out.println(somar(faltas));
+        System.out.println(somar(notas));
+
+        List&lt;Number&gt; numeros = new ArrayList&lt;&gt;();
+        List&lt;Object&gt; coisas = new ArrayList&lt;&gt;();
+        coisas.add("oi");
+        encher(numeros);
+        encher(coisas);
+        System.out.println(numeros + " " + coisas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+7.0
+16.5
+[1, 2, 3] [oi, 1, 2, 3]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Lê-se</th><th>Aceita</th><th>O método pode…</th></tr>
+<tr><td><code>List&lt;Number&gt;</code></td><td>"lista de Number"</td><td>só <code>List&lt;Number&gt;</code></td><td>ler e escrever</td></tr>
+<tr><td><code>List&lt;? extends Number&gt;</code></td><td>"lista de algum tipo que é Number"</td><td><code>List&lt;Integer&gt;</code>, <code>List&lt;Double&gt;</code>, <code>List&lt;Number&gt;</code>…</td><td><strong>ler</strong> (cada elemento é um <code>Number</code>), mas não acrescentar</td></tr>
+<tr><td><code>List&lt;? super Integer&gt;</code></td><td>"lista de algum tipo acima de Integer"</td><td><code>List&lt;Integer&gt;</code>, <code>List&lt;Number&gt;</code>, <code>List&lt;Object&gt;</code></td><td><strong>acrescentar</strong> <code>Integer</code>s, mas o que sai é só <code>Object</code></td></tr>
+<tr><td><code>List&lt;?&gt;</code></td><td>"lista de qualquer coisa"</td><td>qualquer lista</td><td>ler como <code>Object</code>, <code>size</code>, <code>isEmpty</code></td></tr>
+</table>
+</div>
+
+<p>Uma regra para lembrar: <strong>quem só lê, <code>extends</code>; quem só escreve, <code>super</code></strong> (em inglês, <em>PECS: Producer Extends, Consumer Super</em>). Você vai encontrar isso na documentação da biblioteca, como em <code>Collections.max(Collection&lt;? extends T&gt;)</code> e <code>Comparator&lt;? super T&gt;</code>. Para escrever o seu código no dia a dia, o básico desta seção é suficiente.</p>
+
+<hr>
+
+<h2>Generics não aceitam tipos primitivos</h2>
+<p>A variável de tipo só pode ser uma <strong>classe</strong> (um tipo de referência). <code>int</code>, <code>double</code>, <code>char</code>, <code>boolean</code>… não são classes:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;int&gt; notas = new ArrayList&lt;&gt;();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:6: error: unexpected type
+        List&lt;int&gt; notas = new ArrayList&lt;&gt;();
+             ^
+  required: reference
+  found:    int
+1 error</pre>
+
+<p>"Tipo inesperado: era necessário um tipo de referência (uma classe), foi encontrado <code>int</code>". Use a classe "embrulho" (<a href="wrappers.html">wrapper</a>) correspondente: <code>List&lt;Integer&gt;</code>, <code>List&lt;Double&gt;</code>, <code>List&lt;Character&gt;</code>, <code>List&lt;Boolean&gt;</code>. O Java converte entre <code>int</code> e <code>Integer</code> sozinho (<em>autoboxing</em>), por isso <code>notas.add(10)</code> e <code>int n = notas.get(0)</code> funcionam.</p>
+
+<div class="note">
+<strong>Curiosidade: os tipos somem depois de compilar</strong>
+<p>Os generics são uma conferência feita <strong>pelo compilador</strong>. Depois de conferir, o <code>javac</code> apaga os <code>&lt; &gt;</code> do código gerado (isso se chama <em>type erasure</em>, "apagamento de tipo"): para a JVM, uma <code>ArrayList&lt;String&gt;</code> e uma <code>ArrayList&lt;Integer&gt;</code> são a mesma classe. Por isso não dá para fazer <code>new T()</code> nem perguntar <code>lista instanceof List&lt;String&gt;</code>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"incompatible types: String cannot be converted to Integer"</strong>
+<p><strong>O que aconteceu:</strong> você tentou colocar um texto numa coleção (ou variável) de <code>Integer</code>, ou guardar o que sai de uma <code>List&lt;String&gt;</code> num <code>Integer</code>. O <code>^</code> aponta o valor errado.</p>
+<p><strong>Como consertar:</strong> confira a etiqueta. Se o texto é um número digitado (<code>"10"</code>), converta: <code>Integer.parseInt("10")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"unexpected type … required: reference … found: int"</strong>
+<p><strong>O que aconteceu:</strong> um tipo primitivo entre <code>&lt; &gt;</code>.</p>
+<p><strong>Como consertar:</strong> <code>int</code> → <code>Integer</code>, <code>double</code> → <code>Double</code>, <code>char</code> → <code>Character</code>, <code>boolean</code> → <code>Boolean</code>, <code>long</code> → <code>Long</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Note: Main.java uses unchecked or unsafe operations."</strong>
+<p><strong>O que aconteceu:</strong> não é erro: o programa compilou. Mas em algum lugar há um tipo cru (<code>List</code>, <code>new ArrayList()</code> sem <code>&lt;&gt;</code>). Para ver onde: <code>javac -Xlint:unchecked Main.java</code>.</p>
+<p><strong>Como consertar:</strong> acrescente o tipo: <code>List&lt;String&gt;</code> e <code>new ArrayList&lt;&gt;()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible types: List&lt;Integer&gt; cannot be converted to List&lt;Number&gt;"</strong>
+<p><strong>O que aconteceu:</strong> um método pede <code>List&lt;Number&gt;</code> e recebeu <code>List&lt;Integer&gt;</code>.</p>
+<p><strong>Como consertar:</strong> se o método só lê a lista, declare o parâmetro como <code>List&lt;? extends Number&gt;</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>class Caixa&lt;T&gt; { … }</code></td><td>Classe genérica com a variável de tipo <code>T</code></td></tr>
+<tr><td><code>class Par&lt;A, B&gt;</code></td><td>Duas variáveis de tipo</td></tr>
+<tr><td><code>Caixa&lt;String&gt; c = new Caixa&lt;&gt;();</code></td><td>Usar, escolhendo <code>T = String</code> (diamante no <code>new</code>)</td></tr>
+<tr><td><code>static &lt;T&gt; T metodo(List&lt;T&gt; l)</code></td><td>Método genérico</td></tr>
+<tr><td><code>&lt;T extends Comparable&lt;T&gt;&gt;</code></td><td><code>T</code> limitado a tipos comparáveis</td></tr>
+<tr><td><code>&lt;T extends Number&gt;</code></td><td><code>T</code> limitado a <code>Number</code> e subclasses</td></tr>
+<tr><td><code>List&lt;? extends Number&gt;</code></td><td>Lista de algum subtipo de <code>Number</code> (para ler)</td></tr>
+<tr><td><code>List&lt;? super Integer&gt;</code></td><td>Lista de algum supertipo de <code>Integer</code> (para escrever)</td></tr>
+<tr><td><code>List&lt;?&gt;</code></td><td>Lista de tipo desconhecido</td></tr>
+<tr><td><code>List</code> (sem <code>&lt;&gt;</code>)</td><td>Tipo cru: não use</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A etiqueta certa</h3>
+<p>Complete para declarar uma lista de números decimais:</p>
+<div class="ex-code">List&lt;<input data-answer="Double" aria-label="tipo">&gt; precos = new ArrayList&lt;&gt;();</div>
+</div>
+
+<div class="exercise">
+<h3>2. Declarar uma classe genérica</h3>
+<p>Complete a declaração de uma classe <code>Pacote</code> com uma variável de tipo <code>T</code>:</p>
+<div class="ex-code">class <input data-answer="Pacote&lt;T&gt;" aria-label="nome"> { private T item; }</div>
+</div>
+
+<div class="exercise">
+<h3>3. Só leitura de números</h3>
+<p>Complete o parâmetro para aceitar <code>List&lt;Integer&gt;</code> e <code>List&lt;Double&gt;</code>:</p>
+<div class="ex-code">static double media(List&lt;<input data-answer="? extends Number" aria-label="coringa">&gt; nums)</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Num programa sem generics (<code>List</code> cru), quando aparece o erro de colocar um número numa lista de nomes?</p>
+<label><input type="radio" name="q4"> Na compilação.</label>
+<label><input type="radio" name="q4"> Só ao rodar, como <code>ClassCastException</code>, quando o número é usado como texto.</label>
+<label><input type="radio" name="q4"> Nunca.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que <code>List&lt;double&gt;</code> não compila?</p>
+<label><input type="radio" name="q5"> Porque listas não guardam números decimais.</label>
+<label><input type="radio" name="q5"> Porque faltou o diamante.</label>
+<label><input type="radio" name="q5"> Porque generics só aceitam tipos de referência; use <code>Double</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Em <code>static &lt;T&gt; T primeiro(List&lt;T&gt; l)</code>, o que é o primeiro <code>&lt;T&gt;</code>?</p>
+<label><input type="radio" name="q6"> A declaração da variável de tipo do método.</label>
+<label><input type="radio" name="q6"> O tipo de retorno.</label>
+<label><input type="radio" name="q6"> Um erro de digitação.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Carla,outre:Carla\s+3,src:static\s+&lt;T&gt;">
+<p class="try-task"><strong>Missão final:</strong> escreva o método genérico <code>static &lt;T&gt; T ultimo(List&lt;T&gt; lista)</code>, que devolve o último elemento de uma lista de qualquer tipo. O programa deve mostrar <code>Carla</code> e <code>3</code>.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    // escreva o método ultimo aqui
+
+    public static void main(String[] args) {
+        String nome = ultimo(List.of("Ana", "Bruno", "Carla"));
+        Integer nota = ultimo(List.of(7, 10, 3));
+        System.out.println(nome);
+        System.out.println(nota);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    static &lt;T&gt; T ultimo(List&lt;T&gt; lista) {
+        return lista.get(lista.size() - 1);
+    }
+
+    public static void main(String[] args) {
+        String nome = ultimo(List.of("Ana", "Bruno", "Carla"));
+        Integer nota = ultimo(List.of(7, 10, 3));
+        System.out.println(nome);
+        System.out.println(nota);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Generics são "etiquetas" de tipo: <code>List&lt;String&gt;</code> só aceita e só devolve <code>String</code>.</li>
+  <li>Sem eles (tipo cru), erros de tipo viram <code>ClassCastException</code> ao rodar; com eles, viram <code>incompatible types</code> ao compilar.</li>
+  <li>Classe genérica: <code>class Caixa&lt;T&gt;</code>; o <code>T</code> é escolhido por quem usa: <code>new Caixa&lt;String&gt;()</code>.</li>
+  <li>Método genérico: <code>static &lt;T&gt; T primeiro(List&lt;T&gt; l)</code>; o tipo é deduzido pelos argumentos.</li>
+  <li><code>&lt;T extends Comparable&lt;T&gt;&gt;</code> limita <code>T</code> a tipos que sabem se comparar.</li>
+  <li><code>List&lt;Integer&gt;</code> não é <code>List&lt;Number&gt;</code>; para ler, use <code>? extends</code>; para escrever, <code>? super</code>.</li>
+  <li>Primitivos não entram: <code>unexpected type</code>; use <code>Integer</code>, <code>Double</code>…</li>
+</ul>
+
+<p>Fim do grupo Coleções. Próxima aula: <a href="lambdas.html">Lambdas</a>, o começo da programação funcional em Java.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
