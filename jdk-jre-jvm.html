@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java JDK, JRE e JVM — o que é cada um, bytecode e distribuições | Guia Java</title>
+<meta name="description" content="A diferença entre JDK, JRE e JVM com desenho e tabela, o que vem dentro do JDK, o bytecode dos arquivos .class visto com javap -c, e as distribuições do OpenJDK (Temurin, Oracle, Corretto, Microsoft, Liberica, Zulu) com licença e suporte.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">JDK, JRE e JVM</span></h1>
+
+<p class="intro">Três siglas aparecem em todo lugar quando o assunto é Java: <strong>JDK</strong>, <strong>JRE</strong> e <strong>JVM</strong>. Elas são peças encaixadas uma dentro da outra, e saber qual é qual evita o erro mais comum de quem instala o Java pela primeira vez: ter o Java para <em>rodar</em> programas, mas não para <em>criar</em>. Nesta aula você abre o JDK, olha o bytecode de um programa de verdade e conhece as empresas que distribuem o Java.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que são a JVM, o JRE e o JDK, e como um fica dentro do outro.</li>
+  <li>Quais ferramentas vêm no JDK (<code>javac</code>, <code>java</code>, <code>jshell</code>, <code>javap</code>…).</li>
+  <li>O que tem dentro de um arquivo <code>.class</code>: o <strong>bytecode</strong>, visto com <code>javap -c</code>.</li>
+  <li>O que é uma "distribuição" do OpenJDK e como escolher uma (Temurin, Oracle, Corretto, Microsoft, Liberica, Zulu).</li>
+  <li>Por que aparece <code>javac: comando não encontrado</code> mesmo com o Java instalado.</li>
+</ul>
+</div>
+
+<p>Os exemplos acontecem na máquina fictícia da Ana, que tem o <strong>Temurin JDK 25</strong> instalado na pasta <code>/opt/jdk-25</code> (a aula <a href="instalar-linux.html">Instalar no Linux</a> mostra como).</p>
+
+<hr>
+
+<h2>A ideia: um estúdio de música</h2>
+<p>Pense em música gravada num disco de vinil:</p>
+<ul>
+  <li>O <strong>disco</strong> é o seu programa compilado, o arquivo <code>.class</code>. Ele sozinho não toca nada.</li>
+  <li>O <strong>toca-discos</strong> é a <strong>JVM</strong>: a máquina que lê o disco e faz o som sair.</li>
+  <li>O <strong>aparelho de som completo</strong> (toca-discos, amplificador, caixas de som) é o <strong>JRE</strong>: tudo o que você precisa para <em>ouvir</em> música.</li>
+  <li>O <strong>estúdio de gravação</strong> é o <strong>JDK</strong>: tem um aparelho de som completo para ouvir <em>e</em> as ferramentas para <em>gravar</em> discos novos.</li>
+</ul>
+
+<p>Quem só quer ouvir música compra um aparelho de som. Quem quer gravar precisa do estúdio. Você vai <strong>criar</strong> programas, então precisa do JDK.</p>
+
+<pre class="syntax">┌──────────────────────── JDK (Java Development Kit) ────────────────────────┐
+│  ferramentas de desenvolvimento: javac, jshell, javap, jar, javadoc, jdb…  │
+│                                                                            │
+│  ┌──────────────────── JRE (Java Runtime Environment) ──────────────────┐  │
+│  │  biblioteca padrão: String, Math, listas, datas, arquivos, rede…     │  │
+│  │                                                                      │  │
+│  │  ┌──────────────────── JVM (Java Virtual Machine) ────────────────┐  │  │
+│  │  │  executa o bytecode: interpretador, compilador JIT, memória    │  │  │
+│  │  └────────────────────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────┘</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sigla</th><th>Nome em inglês</th><th>Tradução</th><th>O que faz</th><th>Quem precisa</th></tr>
+<tr><td><strong>JVM</strong></td><td><em>Java Virtual Machine</em></td><td>Máquina Virtual Java</td><td>Executa o bytecode dos arquivos <code>.class</code>. Gerencia a memória e faz a compilação JIT.</td><td>Todo mundo que roda Java (ela vem dentro do JRE e do JDK).</td></tr>
+<tr><td><strong>JRE</strong></td><td><em>Java Runtime Environment</em></td><td>Ambiente de Execução Java</td><td>A JVM mais a biblioteca padrão e o comando <code>java</code>. Roda programas prontos.</td><td>Quem só <strong>usa</strong> programas Java.</td></tr>
+<tr><td><strong>JDK</strong></td><td><em>Java Development Kit</em></td><td>Kit de Desenvolvimento Java</td><td>Tudo do JRE mais as ferramentas de desenvolvimento, começando pelo compilador <code>javac</code>.</td><td>Quem <strong>escreve</strong> programas Java. Você.</td></tr>
+</table>
+</div>
+
+<p>A palavra <em>runtime</em> quer dizer "hora de rodar", e <em>kit</em> é um conjunto de ferramentas. Repare na ordem: JVM ⊂ JRE ⊂ JDK. Instalando o JDK, você tem as três.</p>
+
+<hr>
+
+<h2>Abrindo o JDK</h2>
+<p>O JDK é só uma pasta com arquivos. Na máquina da Ana, ela fica em <code>/opt/jdk-25</code>. Veja o que tem dentro:</p>
+
+<pre class="term">$ ls /opt/jdk-25
+bin  conf  include  legal  lib  man  NOTICE  release</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pasta ou arquivo</th><th>O que guarda</th></tr>
+<tr><td><code>bin</code></td><td>Os programas que você roda no terminal: <code>java</code>, <code>javac</code>, <code>jshell</code>… (<em>bin</em> vem de <em>binaries</em>, "binários", programas executáveis).</td></tr>
+<tr><td><code>lib</code></td><td>A biblioteca padrão e a própria JVM (bibliotecas, de <em>library</em>). É a maior parte do JDK.</td></tr>
+<tr><td><code>conf</code></td><td>Arquivos de configuração (segurança, rede).</td></tr>
+<tr><td><code>include</code></td><td>Arquivos para quem liga Java a código em C. Você não vai usar.</td></tr>
+<tr><td><code>legal</code>, <code>NOTICE</code></td><td>Licenças.</td></tr>
+<tr><td><code>man</code></td><td>Os manuais (<code>man javac</code>, em inglês).</td></tr>
+<tr><td><code>release</code></td><td>Um arquivo de texto com a versão exata e quem fez esta distribuição.</td></tr>
+</table>
+</div>
+
+<p>A pasta <code>bin</code> é a caixa de ferramentas. Repare que <code>java</code> e <code>javac</code> estão lá, lado a lado:</p>
+
+<pre class="term">$ ls /opt/jdk-25/bin
+jar        javap      jdeps   jlink        jps         jstatd
+jarsigner  jcmd       jfr     jmap         jrunscript  jwebserver
+java       jconsole   jhsdb   jmod         jshell      keytool
+javac      jdb        jimage  jnativescan  jstack      rmiregistry
+javadoc    jdeprscan  jinfo   jpackage     jstat       serialver</pre>
+
+<p>São 30 programas, mas um iniciante usa poucos. Os que aparecem neste guia:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ferramenta</th><th>Para que serve</th><th>Aula</th></tr>
+<tr><td><code>javac</code></td><td>O compilador: transforma <code>.java</code> em <code>.class</code> (de <em>Java compiler</em>).</td><td><a href="compilar-executar.html">javac e java</a></td></tr>
+<tr><td><code>java</code></td><td>O lançador: liga a JVM e executa um programa.</td><td><a href="compilar-executar.html">javac e java</a></td></tr>
+<tr><td><code>jshell</code></td><td>Um console para testar código linha por linha.</td><td><a href="jshell.html">JShell</a></td></tr>
+<tr><td><code>javap</code></td><td>Mostra o que tem dentro de um <code>.class</code> (de <em>Java printer</em>, ou "desmontador").</td><td>esta aula</td></tr>
+<tr><td><code>jar</code></td><td>Junta vários <code>.class</code> num arquivo só, o <code>.jar</code>.</td><td><a href="jar.html">Empacotar em JAR</a></td></tr>
+<tr><td><code>javadoc</code></td><td>Gera páginas de documentação a partir dos comentários <code>/** */</code>.</td><td><a href="javadoc.html">Javadoc</a></td></tr>
+<tr><td><code>jdb</code></td><td>O depurador de linha de comando.</td><td><a href="depuracao.html">Depurar</a></td></tr>
+<tr><td><code>jlink</code>, <code>jpackage</code></td><td>Montam um Java sob medida para um programa e criam instaladores.</td><td><a href="modulos.html">Módulos</a></td></tr>
+</table>
+</div>
+
+<p>O arquivo <code>release</code> diz exatamente qual Java é este. As primeiras linhas:</p>
+
+<pre class="term">$ head -5 /opt/jdk-25/release
+IMPLEMENTOR="Eclipse Adoptium"
+IMPLEMENTOR_VERSION="Temurin-25.0.4.1+1"
+JAVA_RUNTIME_VERSION="25.0.4.1+1-LTS"
+JAVA_VERSION="25.0.4.1"
+JAVA_VERSION_DATE="2026-08-18"</pre>
+
+<p><code>IMPLEMENTOR</code> ("quem implementou") é a organização que montou este JDK: a Eclipse Adoptium, que distribui o Temurin. <code>JAVA_VERSION</code> é a versão: 25, com a quarta atualização de segurança (os números são explicados em <a href="versoes.html">Versões e LTS</a>).</p>
+
+<h3>E o JRE, onde está?</h3>
+<p>Até o Java 8, a Oracle distribuía o JRE separado, e era isso que as pessoas instalavam para "ter Java" no computador. A partir do Java 11, a Oracle e o OpenJDK pararam de publicar um JRE separado: a ideia é que cada programa traga o seu Java (o <code>jlink</code> monta um sob medida). Ainda assim, algumas distribuições e os sistemas Linux continuam oferecendo um pacote "só para rodar". No Ubuntu, o pacote <code>openjdk-25-jre</code> instala um Java assim. Compare a pasta <code>bin</code> dele com a do JDK:</p>
+
+<pre class="term">$ ls /usr/lib/jvm/java-25-openjdk-amd64/bin
+java  jpackage  keytool  rmiregistry       « só 4 programas: nada de javac nem jshell</pre>
+
+<p>Tem o <code>java</code>, que roda programas, mas falta o <code>javac</code>. Quem instala só esse pacote consegue rodar um <code>.class</code> pronto e não consegue compilar. É o problema da seção <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2>Bytecode: o que tem dentro de um <code>.class</code></h2>
+<p>Na aula anterior você viu que o <code>javac</code> traduz o código para <strong>bytecode</strong>, a linguagem da JVM. Vamos ver esse bytecode de verdade. A Ana escreveu um programa pequeno, que soma dois números:</p>
+
+<pre class="file" data-file="Soma.java">public class Soma {
+    public static void main(String[] args) {
+        int a = 2;
+        int b = 3;
+        System.out.println(a + b);
+    }
+}
+</pre>
+
+<p>As linhas novas: <code>int a = 2;</code> cria uma caixinha chamada <code>a</code>, para números inteiros, com o valor 2 (você vai estudar isso em <a href="variaveis.html">Variáveis</a>). A última linha escreve a soma das duas. Compilando e rodando:</p>
+
+<pre class="term">$ javac Soma.java
+$ ls -l
+total 8
+-rw-rw-r-- 1 ana ana 392 out 16 18:19 Soma.class      « 392 bytes de bytecode
+-rw-rw-r-- 1 ana ana 146 out 16 18:19 Soma.java       « 146 bytes de código-fonte
+$ java Soma
+5</pre>
+
+<p>O <code>Soma.class</code> não é texto: se você abrir num editor, verá símbolos estranhos. Quem lê esse arquivo é a JVM. Para nós, humanos, o JDK traz o <code>javap</code>, que traduz o <code>.class</code> de volta para algo legível. Sem opções, ele mostra só o "índice" da classe:</p>
+
+<pre class="term">$ javap Soma
+Compiled from "Soma.java"                         « compilado a partir de Soma.java
+public class Soma {
+  public Soma();                                  « um construtor que o javac criou sozinho
+  public static void main(java.lang.String[]);    « o seu método main
+}</pre>
+
+<p>Com a opção <code>-c</code> (de <em>code</em>), ele mostra as instruções de bytecode de cada método:</p>
+
+<pre class="term">$ javap -c Soma
+Compiled from "Soma.java"
+public class Soma {
+  public Soma();
+    Code:
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."&lt;init&gt;":()V
+         4: return
+
+  public static void main(java.lang.String[]);
+    Code:
+         0: iconst_2
+         1: istore_1
+         2: iconst_3
+         3: istore_2
+         4: getstatic     #7                  // Field java/lang/System.out:Ljava/io/PrintStream;
+         7: iload_1
+         8: iload_2
+         9: iadd
+        10: invokevirtual #13                 // Method java/io/PrintStream.println:(I)V
+        13: return
+}</pre>
+
+<p>Assusta à primeira vista, mas o <code>main</code> é só uma receita de 10 passos, um por linha. A JVM é uma máquina de <strong>pilha</strong>: ela empilha valores, como pratos, e cada instrução pega os pratos de cima. O número à esquerda é a posição da instrução no arquivo. Leia de cima para baixo:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Instrução</th><th>O que faz</th><th>Linha do Java</th></tr>
+<tr><td><code>iconst_2</code></td><td>Empilha o número inteiro 2 (<em>i</em> de <em>int</em>, <em>const</em> de constante).</td><td rowspan="2"><code>int a = 2;</code></td></tr>
+<tr><td><code>istore_1</code></td><td>Tira o 2 da pilha e guarda na variável número 1 (a <code>a</code>).</td></tr>
+<tr><td><code>iconst_3</code></td><td>Empilha o 3.</td><td rowspan="2"><code>int b = 3;</code></td></tr>
+<tr><td><code>istore_2</code></td><td>Guarda o 3 na variável número 2 (a <code>b</code>).</td></tr>
+<tr><td><code>getstatic #7</code></td><td>Empilha o <code>System.out</code>, a saída padrão.</td><td rowspan="5"><code>System.out.println(a + b);</code></td></tr>
+<tr><td><code>iload_1</code></td><td>Empilha o valor da variável 1 (o 2).</td></tr>
+<tr><td><code>iload_2</code></td><td>Empilha o valor da variável 2 (o 3).</td></tr>
+<tr><td><code>iadd</code></td><td>Tira os dois números de cima, soma e empilha o resultado: 5 (<em>add</em> = somar).</td></tr>
+<tr><td><code>invokevirtual #13</code></td><td>Chama o <code>println</code> do <code>System.out</code> com o 5 (<em>invoke</em> = chamar). O <code>(I)V</code> quer dizer "recebe um <code>int</code>, devolve nada".</td></tr>
+<tr><td><code>return</code></td><td>Termina o método.</td><td>a chave <code>}</code></td></tr>
+</table>
+</div>
+
+<p>Por que a variável <code>a</code> é a número 1, e não 0? Porque a posição 0 é ocupada pelo <code>args</code>, o parâmetro do <code>main</code> (você vai conhecê-lo em <a href="args.html">Argumentos da Linha de Comando</a>). E o construtor <code>Soma()</code>, que você não escreveu, é criado automaticamente pelo <code>javac</code> em toda classe sem construtor (veja <a href="construtores.html">Construtores</a>).</p>
+
+<div class="note">
+<strong>Você não precisa saber bytecode</strong>
+<p>Programadores Java quase nunca leem bytecode. O objetivo aqui é só tirar o mistério: o <code>.class</code> é uma lista de instruções simples para a JVM, gerada a partir do seu código. Instruções como <code>iadd</code> são iguais em qualquer sistema; é a JVM de cada computador que as transforma em instruções do processador.</p>
+</div>
+
+<h3>A assinatura do arquivo: <code>CAFEBABE</code></h3>
+<p>Todo arquivo <code>.class</code> começa com os mesmos quatro bytes, escritos em hexadecimal (base 16): <code>CA FE BA BE</code>. É o "número mágico" que identifica um <code>.class</code>, uma brincadeira dos criadores do Java com <em>cafe babe</em>. O comando <code>xxd</code> mostra os bytes de um arquivo:</p>
+
+<pre class="term">$ xxd Soma.class | head -1
+00000000: cafe babe 0000 0045 001b 0a00 0200 0307  .......E........
+$ javap -v Soma | grep major
+  major version: 69                                « 0x45 em hexadecimal = 69 = Java 25</pre>
+
+<p>Logo depois do <code>cafe babe</code> vem a versão do formato: <code>0045</code> em hexadecimal é 69, que quer dizer Java 25. Cada versão do Java tem o seu número (Java 21 = 65, Java 17 = 61, Java 8 = 52: é sempre a versão mais 44). Uma JVM mais antiga recusa um <code>.class</code> de versão mais nova; você vai ver esse erro em <a href="compilar-executar.html">javac e java</a>.</p>
+
+<div class="tryjava" data-file="Soma.java" data-goal="out:6,src:\*">
+<p class="try-task"><strong>Missão:</strong> em vez de somar, faça o programa <strong>multiplicar</strong> <code>a</code> por <code>b</code> e mostrar <code>6</code>. Em Java, a multiplicação usa o asterisco <code>*</code>. No bytecode, o <code>iadd</code> viraria <code>imul</code>.</p>
+<pre class="script">public class Soma {
+    public static void main(String[] args) {
+        int a = 2;
+        int b = 3;
+        System.out.println(a + b);
+    }
+}
+</pre>
+<pre class="solucao">public class Soma {
+    public static void main(String[] args) {
+        int a = 2;
+        int b = 3;
+        System.out.println(a * b);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="distribuicoes">Distribuições: muitos JDKs, um só Java</h2>
+<p>O código do Java é desenvolvido no projeto aberto <strong>OpenJDK</strong>. Mas o OpenJDK publica principalmente o <em>código</em>; alguém precisa compilá-lo, testá-lo, empacotá-lo para cada sistema e publicar as atualizações de segurança. Cada organização que faz isso oferece uma <strong>distribuição</strong> (uma "versão de fábrica") do JDK. É como o mesmo refrigerante engarrafado por fábricas diferentes: o sabor é o mesmo, mudam o rótulo e quem dá a garantia.</p>
+
+<p>Todas as distribuições abaixo passam pelos mesmos testes de compatibilidade (o <em>TCK</em>, a "prova oficial" do Java). Um programa que roda numa roda nas outras, e todas as saídas deste guia seriam iguais em qualquer uma delas, mudando só as linhas do <code>java -version</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Distribuição</th><th>De quem</th><th>Licença e preço</th><th>Atualizações e suporte</th></tr>
+<tr><td><strong>Eclipse Temurin</strong></td><td>Fundação Eclipse (projeto Adoptium), com apoio de várias empresas</td><td>Livre (GPL com exceção de classpath), grátis para qualquer uso</td><td>Atualizações das versões LTS por anos; suporte pago oferecido por empresas parceiras. <strong>É a usada neste guia.</strong></td></tr>
+<tr><td><strong>Oracle JDK</strong></td><td>Oracle</td><td>Licença própria da Oracle: grátis, inclusive em produção, para a versão LTS mais recente, até um ano depois da LTS seguinte; depois, as atualizações exigem assinatura paga</td><td>Suporte pago (assinatura Java SE). Confira os termos atuais no site da Oracle antes de usar numa empresa.</td></tr>
+<tr><td><strong>Oracle OpenJDK</strong> (jdk.java.net)</td><td>Oracle</td><td>Livre (GPL com exceção de classpath), grátis</td><td>Só recebe atualizações por 6 meses, até a versão seguinte sair. Bom para testar novidades.</td></tr>
+<tr><td><strong>Amazon Corretto</strong></td><td>Amazon</td><td>Livre, grátis</td><td>Atualizações das LTS por muitos anos; é o Java usado na nuvem da Amazon (AWS).</td></tr>
+<tr><td><strong>Microsoft Build of OpenJDK</strong></td><td>Microsoft</td><td>Livre, grátis</td><td>Só versões LTS (11, 17, 21, 25); usado no Azure.</td></tr>
+<tr><td><strong>BellSoft Liberica</strong></td><td>BellSoft</td><td>Livre, grátis</td><td>Tem uma versão "Full" que já inclui o JavaFX (interfaces gráficas); suporte pago opcional.</td></tr>
+<tr><td><strong>Azul Zulu</strong></td><td>Azul Systems</td><td>Livre, grátis</td><td>Versões para muitos sistemas e processadores, inclusive antigos; suporte pago opcional.</td></tr>
+<tr><td><strong>Pacotes do Linux</strong></td><td>Debian, Ubuntu, Fedora, Red Hat, Arch…</td><td>Livre, grátis</td><td>Atualizados pelo próprio sistema, junto com o resto (veja <a href="instalar-linux.html">Instalar no Linux</a>).</td></tr>
+</table>
+</div>
+
+<h3>Qual escolher?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Sugestão</th></tr>
+<tr><td>Você está aprendendo (este guia)</td><td><strong>Temurin 25</strong>, ou o pacote <code>openjdk-25-jdk</code> do seu Linux. Os dois são gratuitos e iguais em comportamento.</td></tr>
+<tr><td>Você usa Linux e quer atualizações automáticas</td><td>O pacote do próprio sistema.</td></tr>
+<tr><td>A empresa roda na nuvem da Amazon ou da Microsoft</td><td>Corretto ou Microsoft Build of OpenJDK, que essas nuvens já usam.</td></tr>
+<tr><td>A empresa exige um contrato de suporte</td><td>Oracle JDK com assinatura, ou o suporte pago de Azul, BellSoft, Red Hat ou parceiros do Adoptium.</td></tr>
+<tr><td>Você quer experimentar a versão mais nova (não LTS)</td><td>Oracle OpenJDK em jdk.java.net, ou Temurin da versão mais recente.</td></tr>
+</table>
+</div>
+
+<p>Cada distribuição se identifica no <code>java -version</code>. Compare a do Temurin, usada no guia, com a do pacote do Ubuntu, ambas da mesma versão 25.0.4.1:</p>
+
+<pre class="term">$ java -version
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)        « Temurin
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)
+$ /usr/lib/jvm/java-25-openjdk-amd64/bin/java -version
+openjdk version "25.0.4.1" 2026-08-18
+OpenJDK Runtime Environment (build 25.0.4.1+1-1-26.04.4-Ubuntu)                « pacote do Ubuntu
+OpenJDK 64-Bit Server VM (build 25.0.4.1+1-1-26.04.4-Ubuntu, mixed mode, sharing)</pre>
+
+<p>Mesma versão, mesmo comportamento; muda só o "rótulo" de quem montou.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>javac: comando não encontrado</code>, mas o <code>java</code> funciona</strong>
+<pre class="term">$ java -version
+openjdk version "25.0.4.1" 2026-08-18
+OpenJDK Runtime Environment (build 25.0.4.1+1-1-26.04.4-Ubuntu)
+OpenJDK 64-Bit Server VM (build 25.0.4.1+1-1-26.04.4-Ubuntu, mixed mode, sharing)
+$ javac -version
+bash: javac: comando não encontrado
+$ echo $?
+127</pre>
+<p><strong>O que aconteceu:</strong> o computador tem um Java para <strong>rodar</strong> programas (um JRE, como o pacote <code>openjdk-25-jre</code> do Ubuntu), mas não o JDK. O <code>java</code> existe; o <code>javac</code>, não. O código <code>127</code> é o jeito do terminal dizer "comando não existe". É muito comum em computadores onde o Java veio instalado por causa de algum outro programa.</p>
+<p><strong>Como resolver:</strong> instale o <strong>JDK</strong> (no Ubuntu, <code>sudo apt install openjdk-25-jdk</code>; ou o Temurin). Os passos estão em <a href="instalar-linux.html">Instalar no Linux</a> e <a href="instalar-windows-mac.html">Instalar no Windows e macOS</a>. O mesmo vale para <code>jshell: comando não encontrado</code> e <code>javap: comando não encontrado</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Abri o <code>.class</code> no editor e só vejo símbolos estranhos</strong>
+<p><strong>O que aconteceu:</strong> o <code>.class</code> é bytecode, não texto. Editores de texto mostram os bytes como letras aleatórias. Não edite um <code>.class</code>: mude o <code>.java</code> e compile de novo.</p>
+<p><strong>Como ver o conteúdo:</strong> <code>javap -c NomeDaClasse</code>, como nesta aula.</p>
+</div>
+
+<div class="cenario">
+<strong>Apaguei o <code>.java</code> e fiquei só com o <code>.class</code></strong>
+<p><strong>O que aconteceu:</strong> o programa ainda roda (<code>java Soma</code>), mas o código-fonte se foi, e o <code>javap -c</code> mostra bytecode, não o seu código. Sempre guarde os arquivos <code>.java</code>: eles são o seu trabalho; o <code>.class</code> é só o resultado da compilação e pode ser gerado de novo a qualquer momento.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo</th><th>Em uma frase</th></tr>
+<tr><td>JVM</td><td>A máquina virtual que executa bytecode.</td></tr>
+<tr><td>JRE</td><td>JVM + biblioteca padrão + comando <code>java</code>: para rodar.</td></tr>
+<tr><td>JDK</td><td>JRE + <code>javac</code>, <code>jshell</code>, <code>javap</code>, <code>jar</code>…: para criar.</td></tr>
+<tr><td>Bytecode</td><td>As instruções da JVM, guardadas nos arquivos <code>.class</code>.</td></tr>
+<tr><td><code>javap NomeDaClasse</code></td><td>Lista os métodos de uma classe compilada.</td></tr>
+<tr><td><code>javap -c NomeDaClasse</code></td><td>Mostra o bytecode de cada método.</td></tr>
+<tr><td>OpenJDK</td><td>O projeto aberto onde o Java é desenvolvido.</td></tr>
+<tr><td>Distribuição</td><td>Um JDK montado e mantido por uma organização (Temurin, Corretto, Oracle…).</td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-file="Soma.java">
+<p class="try-task"><strong>Brinque com o código:</strong> troque os valores de <code>a</code> e <code>b</code>, experimente subtração (<code>-</code>) e divisão (<code>/</code>). Tente <code>a / b</code> com <code>a = 7</code> e <code>b = 2</code>: o resultado vai surpreender (a explicação está em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>).</p>
+<pre class="script">public class Soma {
+    public static void main(String[] args) {
+        int a = 7;
+        int b = 2;
+        System.out.println(a - b);
+        System.out.println(a / b);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. Qual destas peças você precisa instalar para <strong>escrever e compilar</strong> programas Java?</p>
+<label><input type="radio" name="q1"> Só a JVM</label>
+<label><input type="radio" name="q1"> Só o JRE</label>
+<label><input type="radio" name="q1"> O JDK</label>
+<label><input type="radio" name="q1"> O JavaScript</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. O comando <code>java -version</code> funciona, mas <code>javac -version</code> diz "comando não encontrado". O que está instalado?</p>
+<label><input type="radio" name="q2"> O JDK completo.</label>
+<label><input type="radio" name="q2"> Só um JRE (Java para rodar programas).</label>
+<label><input type="radio" name="q2"> Nenhum Java.</label>
+<label><input type="radio" name="q2"> Duas versões do JDK.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. No <code>javap -c</code>, qual instrução faz a soma de dois inteiros?</p>
+<label><input type="radio" name="q3"> <code>iconst_2</code></label>
+<label><input type="radio" name="q3"> <code>istore_1</code></label>
+<label><input type="radio" name="q3"> <code>getstatic</code></label>
+<label><input type="radio" name="q3"> <code>iadd</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Por que existem várias distribuições do JDK (Temurin, Corretto, Zulu…)?</p>
+<label><input type="radio" name="q4"> O código é aberto (OpenJDK) e várias organizações o compilam, testam e mantêm atualizado.</label>
+<label><input type="radio" name="q4"> Cada uma é uma linguagem diferente.</label>
+<label><input type="radio" name="q4"> Cada uma só roda num sistema operacional.</label>
+<label><input type="radio" name="q4"> Programas feitos numa não rodam nas outras.</label>
+</div>
+
+<div class="exercise">
+<h3>5. A assinatura do .class</h3>
+<p>Complete com os quatro bytes (em hexadecimal, sem espaço) que começam todo arquivo <code>.class</code>:</p>
+<div class="ex-code"><input data-answer="cafebabe|CAFEBABE" aria-label="número mágico"></div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>JVM</strong> executa bytecode; <strong>JRE</strong> = JVM + biblioteca (para rodar); <strong>JDK</strong> = JRE + ferramentas (para criar). Você precisa do JDK.</li>
+  <li>O JDK é uma pasta; os programas ficam em <code>bin</code> (<code>javac</code>, <code>java</code>, <code>jshell</code>, <code>javap</code>…).</li>
+  <li>O <code>.class</code> contém bytecode: instruções simples como <code>iconst_2</code>, <code>iadd</code>, <code>invokevirtual</code>. O <code>javap -c</code> mostra.</li>
+  <li>Todo <code>.class</code> começa com <code>CAFEBABE</code> e traz a versão do formato (69 = Java 25).</li>
+  <li>O OpenJDK é o projeto aberto; Temurin, Oracle, Corretto, Microsoft, Liberica e Zulu são distribuições, quase todas gratuitas.</li>
+  <li><code>javac: comando não encontrado</code> com o <code>java</code> funcionando = só o JRE instalado. Instale o JDK.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

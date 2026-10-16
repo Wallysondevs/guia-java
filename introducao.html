@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java O que é Java — linguagem, plataforma e história | Guia Java</title>
+<meta name="description" content="O que é Java: a linguagem e a plataforma, a história (Sun, James Gosling, 1995, Oracle, OpenJDK), o lema escreva uma vez e rode em qualquer lugar, onde o Java é usado, a diferença entre Java e JavaScript e a ideia de compilar para bytecode e rodar com JIT.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">O que é Java</span></h1>
+
+<p class="intro">Antes de escrever o primeiro programa, vale saber com quem você está falando. <strong>Java</strong> é duas coisas ao mesmo tempo: uma <strong>linguagem</strong>, o idioma em que você escreve as instruções, e uma <strong>plataforma</strong>, o conjunto de programas que faz essas instruções rodarem em qualquer computador. Nesta aula você conhece as duas, a história do Java e onde ele está no seu dia a dia.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um programa, uma linguagem de programação e um código-fonte.</li>
+  <li>Por que se diz que Java é uma <strong>linguagem</strong> e também uma <strong>plataforma</strong>.</li>
+  <li>A história: Sun, James Gosling, 1995, Oracle e OpenJDK.</li>
+  <li>O que quer dizer "escreva uma vez, rode em qualquer lugar".</li>
+  <li>Onde o Java é usado hoje e por que Java não é JavaScript.</li>
+  <li>A ideia de "compilado e interpretado" (bytecode e JIT), sem detalhes técnicos.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: dar ordens ao computador</h2>
+<p>Um computador é muito rápido e muito obediente, mas não entende português. Ele só sabe executar instruções minúsculas, escritas em números ("some estes dois números", "guarde este valor ali"). Escrever direto nesses números seria como montar um móvel lendo um manual em código Morse.</p>
+
+<p>Uma <strong>linguagem de programação</strong> é um idioma intermediário: parecido o bastante com o inglês para uma pessoa ler e escrever, e preciso o bastante para um programa traduzi-lo, sem ambiguidade, para as instruções da máquina. O texto que você escreve nessa linguagem se chama <strong>código-fonte</strong> (a "fonte" de onde o programa sai), e o resultado pronto para rodar é o <strong>programa</strong>.</p>
+
+<p>Pense numa receita de bolo. A receita é o código-fonte: uma lista de passos, numa ordem, escrita para alguém seguir. A cozinheira que segue a receita é o computador. Se a receita diz "bata 3 ovos" e você escreveu "bata 3 ovo", uma pessoa entenderia; o computador não. Por isso as linguagens têm regras rígidas de escrita, a <strong>sintaxe</strong> (veja <a href="sintaxe.html">Sintaxe e Estrutura</a>).</p>
+
+<p>Este é um programa Java completo. Por enquanto, olhe só para as três linhas do meio: cada uma escreve uma frase na tela, na ordem em que aparecem.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Loja da Ana");
+        System.out.println("Maçã: 3 reais");
+        System.out.println("Banana: 2 reais");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Loja da Ana
+Maçã: 3 reais
+Banana: 2 reais</pre>
+
+<p>O computador seguiu as instruções de cima para baixo, como a receita. Tudo o que está em volta dessas três linhas (<code>public class Main</code>, <code>public static void main</code>, as chaves <code>{ }</code>) é a estrutura obrigatória de um programa Java, explicada palavra por palavra em <a href="primeiro-programa.html">Olá, Mundo</a>.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> mude os preços, troque as frutas, acrescente uma linha <code>System.out.println("Uva: 5 reais");</code> antes da chave <code>}</code> e clique em <strong>Rodar</strong>. Se aparecer um erro, confira se cada linha nova termina com <code>;</code> e se o texto está entre aspas.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Loja da Ana");
+        System.out.println("Maçã: 3 reais");
+        System.out.println("Banana: 2 reais");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Java é uma linguagem e uma plataforma</h2>
+<p>Quando alguém diz "eu programo em Java", está falando da <strong>linguagem</strong>: as palavras (<code>class</code>, <code>if</code>, <code>while</code>), os símbolos e as regras para combiná-los. Quando alguém diz "instale o Java para rodar este programa", está falando da <strong>plataforma</strong>: os programas que transformam e executam o código.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que é</th><th>Exemplo</th></tr>
+<tr><td><strong>A linguagem</strong></td><td>As regras para escrever o código-fonte, nos arquivos <code>.java</code>.</td><td><code>System.out.println("Oi");</code></td></tr>
+<tr><td><strong>O compilador</strong> (<code>javac</code>)</td><td>O tradutor: lê os arquivos <code>.java</code> e gera arquivos <code>.class</code>, com <strong>bytecode</strong>.</td><td><code>javac Main.java</code></td></tr>
+<tr><td><strong>A máquina virtual</strong> (JVM)</td><td>O programa que executa o bytecode no seu computador.</td><td><code>java Main</code></td></tr>
+<tr><td><strong>A biblioteca padrão</strong></td><td>Milhares de classes prontas: textos, contas, listas, datas, arquivos, rede.</td><td><code>Math.sqrt(16)</code>, <code>LocalDate.now()</code></td></tr>
+</table>
+</div>
+
+<p>O compilador, a máquina virtual e a biblioteca vêm juntos num pacote chamado <strong>JDK</strong>. A próxima aula, <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>, abre esse pacote e mostra cada peça.</p>
+
+<hr>
+
+<h2>Um pouco de história</h2>
+<p>Em 1991, a empresa americana <strong>Sun Microsystems</strong> montou um pequeno grupo, o <em>Green Project</em> ("projeto verde"), para criar software para aparelhos eletrônicos: TVs a cabo, controles remotos, eletrodomésticos. Esses aparelhos usavam processadores de fabricantes diferentes, e reescrever o programa para cada um era caro. O engenheiro canadense <strong>James Gosling</strong> liderou a criação de uma linguagem nova, que rodasse em qualquer um deles. Ela se chamou primeiro <em>Oak</em> ("carvalho", por causa de uma árvore que Gosling via da janela).</p>
+
+<p>O nome Oak já pertencia a outra empresa, e a equipe escolheu <strong>Java</strong>, o nome de uma ilha da Indonésia famosa pelo café (em inglês, <em>java</em> também é gíria para "café"). Por isso o símbolo do Java é uma xícara fumegante. O mascote é o <strong>Duke</strong>, um bonequinho preto e branco com nariz vermelho.</p>
+
+<p>Os aparelhos não decolaram, mas a internet sim. Em <strong>1995</strong>, a Sun lançou o Java publicamente, com uma novidade que impressionou: pequenos programas Java (os <em>applets</em>) rodavam dentro das páginas da web, em qualquer sistema. Os applets sumiram com o tempo, mas a linguagem cresceu em outro lugar: nos <strong>servidores</strong> das empresas.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ano</th><th>O que aconteceu</th></tr>
+<tr><td>1991</td><td>Começa o Green Project na Sun; James Gosling cria a linguagem Oak.</td></tr>
+<tr><td>1995</td><td>Lançamento público com o nome Java e o lema "escreva uma vez, rode em qualquer lugar".</td></tr>
+<tr><td>1996</td><td>Sai o JDK 1.0, a primeira versão oficial para programadores.</td></tr>
+<tr><td>2006–2007</td><td>A Sun libera o código do Java como software livre (licença GPL): nasce o <strong>OpenJDK</strong>.</td></tr>
+<tr><td>2010</td><td>A <strong>Oracle</strong> compra a Sun e passa a comandar o Java.</td></tr>
+<tr><td>2014</td><td>Java 8: lambdas e streams, uma das versões mais usadas da história.</td></tr>
+<tr><td>2018</td><td>Começa o ritmo de uma versão nova a cada seis meses (março e setembro).</td></tr>
+<tr><td>2025</td><td>Java 25, a versão de suporte longo (LTS) que este guia ensina.</td></tr>
+</table>
+</div>
+
+<h3>Quem é dono do Java hoje?</h3>
+<p>A marca "Java" é da Oracle, mas o código é livre. O <strong>OpenJDK</strong> é o projeto aberto onde o Java é desenvolvido, com programadores da Oracle, da Red Hat, da Amazon, da Microsoft, do Google, da IBM e de muitas outras empresas. A partir do código do OpenJDK, várias organizações distribuem o seu próprio JDK, quase todos gratuitos. O deste guia é o <strong>Eclipse Temurin</strong>, da fundação Eclipse. Você vai conhecer os outros em <a href="jdk-jre-jvm.html#distribuicoes">JDK, JRE e JVM</a>.</p>
+
+<hr>
+
+<h2>"Escreva uma vez, rode em qualquer lugar"</h2>
+<p>O lema do Java em 1995 era <em>Write once, run anywhere</em>: "escreva uma vez, rode em qualquer lugar". Para entender por que isso era novidade, compare com a forma tradicional.</p>
+
+<p>Em linguagens como C, o compilador traduz o código-fonte direto para as instruções de <strong>um</strong> processador e <strong>um</strong> sistema. O programa compilado para Linux num processador Intel não roda no Windows, nem num Mac com processador Apple. Para cada combinação, é preciso compilar de novo.</p>
+
+<p>O Java separou a tradução em duas etapas:</p>
+
+<pre class="syntax">  Main.java  ──javac──►  Main.class  ──►  JVM do Linux    ──►  roda no Linux
+ (você escreve)          (bytecode)  ──►  JVM do Windows  ──►  roda no Windows
+                                     ──►  JVM do macOS    ──►  roda no macOS</pre>
+
+<ol>
+  <li>O <code>javac</code> traduz o código para <strong>bytecode</strong>: instruções para uma máquina que não existe de verdade, uma máquina "virtual", igual em todo lugar.</li>
+  <li>Cada sistema tem a sua <strong>JVM</strong> (<em>Java Virtual Machine</em>, máquina virtual Java), que sabe executar esse bytecode naquele processador.</li>
+</ol>
+
+<p>O mesmo <code>Main.class</code> roda em qualquer sistema que tenha uma JVM. O comando <code>file</code> do Linux, que descreve o tipo de um arquivo, mostra a diferença:</p>
+
+<pre class="term">$ file Main.class
+Main.class: compiled Java class data, version 69.0 (Java SE 25)
+$ file -L /usr/bin/ls
+/usr/bin/ls: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=062a2939ec6dab624820ce5afb8e521a13e230f3, for GNU/Linux 3.2.0, stripped</pre>
+
+<p>O <code>Main.class</code> é "dados de classe Java compilada, versão 69 (Java SE 25)": não diz nada sobre processador nem sistema. Já o programa <code>ls</code> (que lista arquivos, escrito em C) é um executável "x86-64" "para GNU/Linux": só roda nesse tipo de máquina. O número <code>69.0</code> é a versão do formato do bytecode; ele aparece de novo em <a href="compilar-executar.html">javac e java</a>, num erro bem comum.</p>
+
+<div class="tip">
+<strong>O lema tem letras miúdas</strong>
+<p>"Qualquer lugar" quer dizer "qualquer lugar com uma JVM de versão igual ou mais nova". Um programa compilado para o Java 25 não roda num Java 17. E um programa que lê o arquivo <code>C:\notas.txt</code> só vai achar esse arquivo no Windows. A portabilidade é do bytecode, não das decisões que você toma no código.</p>
+</div>
+
+<hr>
+
+<h2>Compilado ou interpretado? Os dois</h2>
+<p>Você vai ouvir que Java é "compilado" e também que é "interpretado". As duas coisas são verdade, em momentos diferentes. A ideia, sem detalhes:</p>
+
+<ol>
+  <li><strong>Compilação</strong> (antes de rodar): o <code>javac</code> confere o código inteiro, aponta os erros e gera o bytecode. Se houver um erro de digitação, o programa nem chega a rodar.</li>
+  <li><strong>Interpretação</strong> (enquanto roda): a JVM começa lendo o bytecode instrução por instrução e executando, como um intérprete que traduz frase por frase.</li>
+  <li><strong>JIT</strong> (enquanto roda): a JVM repara quais partes do programa rodam muitas vezes (um laço que repete um milhão de vezes, por exemplo) e traduz essas partes para instruções nativas do processador, que rodam muito mais rápido. Isso se chama compilação <strong>JIT</strong>, de <em>just in time</em>, "na hora certa".</li>
+</ol>
+
+<p>Dá para ver essa mistura na resposta do <code>java -version</code>:</p>
+
+<pre class="term">$ java -version
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)   « "modo misto": interpreta e compila com JIT</pre>
+
+<p><em>Mixed mode</em> ("modo misto") é exatamente isso: o interpretador e o compilador JIT trabalhando juntos. Por causa do JIT, um programa Java que roda por bastante tempo (como um servidor) chega perto da velocidade de programas em C. Você não precisa fazer nada para ligar o JIT: ele já vem ligado.</p>
+
+<hr>
+
+<h2>Onde o Java é usado</h2>
+<p>Você provavelmente usa programas em Java todos os dias sem saber. Alguns exemplos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Onde</th><th>Como o Java aparece</th></tr>
+<tr><td>Bancos e pagamentos</td><td>Boa parte dos sistemas de bancos, cartões e bolsas de valores roda em Java nos servidores. São sistemas grandes, que precisam funcionar por anos sem parar.</td></tr>
+<tr><td>Lojas virtuais e serviços web</td><td>O "lado de trás" (o servidor) de sites de compras, de companhias aéreas e de serviços do governo, muitas vezes com o framework Spring.</td></tr>
+<tr><td>Android</td><td>Os aplicativos Android foram escritos em Java desde o começo. Hoje o Google recomenda o Kotlin, uma linguagem "prima" que conversa com o Java, e muitos apps ainda são em Java.</td></tr>
+<tr><td>Big data</td><td>Ferramentas que processam quantidades enormes de dados, como Hadoop, Kafka, Elasticsearch e Spark, rodam na JVM.</td></tr>
+<tr><td>Jogos</td><td>O <strong>Minecraft</strong> original (a "Java Edition") é escrito em Java, e os mods da comunidade também.</td></tr>
+<tr><td>Ferramentas de programação</td><td>O IntelliJ IDEA, o Eclipse e o NetBeans, editores que você vai conhecer em <a href="editores-ide.html">Editores e IDEs</a>, são feitos em Java.</td></tr>
+<tr><td>Cartões e aparelhos</td><td>Chips de cartão de banco e de celular (SIM) rodam uma versão minúscula do Java, o Java Card.</td></tr>
+</table>
+</div>
+
+<h3>Por que aprender Java como primeira linguagem</h3>
+<ul>
+  <li><strong>O compilador pega erros cedo.</strong> Em Java, cada variável tem um tipo declarado, e o <code>javac</code> reclama antes de o programa rodar quando você mistura texto com número. Para quem está aprendendo, isso é um professor apontando o erro na hora.</li>
+  <li><strong>Mensagens de erro claras</strong>, sempre com o arquivo, a linha e um <code>^</code> embaixo do problema (veja <a href="erros-compilacao.html">Lendo Erros do javac</a>).</li>
+  <li><strong>É estável.</strong> Um programa escrito em Java há 20 anos, na maioria dos casos, ainda compila hoje.</li>
+  <li><strong>Mercado de trabalho.</strong> Java está há décadas entre as linguagens mais pedidas em vagas, principalmente em empresas grandes.</li>
+  <li><strong>Abre portas.</strong> C#, Kotlin, C++ e TypeScript se parecem muito com Java. Quem aprende um, aprende o outro rápido.</li>
+</ul>
+
+<hr>
+
+<h2>Java não é JavaScript</h2>
+<p>É a confusão mais comum de todas. Os nomes se parecem por uma decisão de marketing de 1995: a empresa Netscape criou uma linguagem para os navegadores e, para aproveitar a fama do Java, chamou-a de JavaScript. Fora o nome e alguns símbolos parecidos (chaves, ponto e vírgula), são linguagens diferentes, feitas por empresas diferentes, para usos diferentes. Uma piada antiga resume: "Java está para JavaScript assim como carro está para carpete".</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Java</th><th>JavaScript</th></tr>
+<tr><td>Criada por</td><td>James Gosling, na Sun (1995)</td><td>Brendan Eich, na Netscape (1995)</td></tr>
+<tr><td>Onde roda</td><td>Na JVM: servidores, computadores, Android</td><td>No navegador (e em servidores com o Node.js)</td></tr>
+<tr><td>Como roda</td><td>Compila com <code>javac</code> antes, depois a JVM executa</td><td>O navegador lê o código-fonte direto</td></tr>
+<tr><td>Tipos</td><td>Cada variável tem um tipo fixo, declarado: <code>int idade = 29;</code></td><td>A variável aceita qualquer coisa: <code>let idade = 29;</code></td></tr>
+<tr><td>Erro de tipo</td><td>Aparece na compilação, antes de rodar</td><td>Aparece (ou não) só quando aquela linha roda</td></tr>
+<tr><td>Escrever na tela</td><td><code>System.out.println("Oi");</code></td><td><code>console.log("Oi");</code></td></tr>
+<tr><td>Arquivos</td><td><code>.java</code> (código) e <code>.class</code> (bytecode)</td><td><code>.js</code></td></tr>
+</table>
+</div>
+
+<p>Quando uma vaga pede "Java", não serve JavaScript, e vice-versa. Neste guia, tudo é Java.</p>
+
+<div class="tryjava" data-goal="out:Java nasceu em 1995,out:James Gosling">
+<p class="try-task"><strong>Missão:</strong> o programa abaixo está incompleto. Troque os dois <code>???</code> para ele mostrar <code>Java nasceu em 1995</code> e <code>Criador: James Gosling</code>. Mantenha as aspas e o <code>;</code> do fim de cada linha.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Java nasceu em ???");
+        System.out.println("Criador: ???");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Java nasceu em 1995");
+        System.out.println("Criador: James Gosling");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. Qual programa traduz o código <code>.java</code> para bytecode?</p>
+<label><input type="radio" name="q1"> <code>java</code></label>
+<label><input type="radio" name="q1"> <code>javac</code></label>
+<label><input type="radio" name="q1"> a JVM</label>
+<label><input type="radio" name="q1"> o navegador</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">2. Por que o mesmo <code>Main.class</code> roda no Linux, no Windows e no macOS?</p>
+<label><input type="radio" name="q2"> Porque o <code>javac</code> gera três arquivos, um para cada sistema.</label>
+<label><input type="radio" name="q2"> Porque o Java só roda num sistema por vez.</label>
+<label><input type="radio" name="q2"> Porque ele contém bytecode, e cada sistema tem uma JVM que sabe executá-lo.</label>
+<label><input type="radio" name="q2"> Porque o <code>.class</code> é um arquivo de texto.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Sobre Java e JavaScript, qual frase é verdadeira?</p>
+<label><input type="radio" name="q3"> JavaScript é a versão do Java para navegadores.</label>
+<label><input type="radio" name="q3"> As duas foram criadas por James Gosling.</label>
+<label><input type="radio" name="q3"> Um código Java roda no navegador sem mudança nenhuma.</label>
+<label><input type="radio" name="q3"> São linguagens diferentes; o nome parecido foi uma jogada de marketing.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. O que a JVM faz com as partes do programa que rodam muitas vezes?</p>
+<label><input type="radio" name="q4"> Traduz para instruções nativas do processador (JIT), que rodam mais rápido.</label>
+<label><input type="radio" name="q4"> Apaga, para economizar memória.</label>
+<label><input type="radio" name="q4"> Manda de volta para o <code>javac</code>.</label>
+<label><input type="radio" name="q4"> Nada: a JVM só interpreta.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Quem desenvolve o Java hoje?</p>
+<label><input type="radio" name="q5"> Só a Sun Microsystems.</label>
+<label><input type="radio" name="q5"> O projeto aberto OpenJDK, liderado pela Oracle, com várias outras empresas.</label>
+<label><input type="radio" name="q5"> A Netscape.</label>
+<label><input type="radio" name="q5"> O Google, desde que criou o Android.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma linguagem de programação é um idioma preciso para dar instruções ao computador; o texto escrito nela é o <strong>código-fonte</strong>.</li>
+  <li>Java é uma <strong>linguagem</strong> (as regras dos arquivos <code>.java</code>) e uma <strong>plataforma</strong> (compilador <code>javac</code>, máquina virtual JVM e biblioteca padrão).</li>
+  <li>Criado por James Gosling na Sun, lançado em 1995; a Oracle comprou a Sun em 2010; o código é livre no projeto OpenJDK.</li>
+  <li>"Escreva uma vez, rode em qualquer lugar": o <code>javac</code> gera <strong>bytecode</strong>, e a JVM de cada sistema o executa.</li>
+  <li>Java é compilado (para bytecode) e depois interpretado e compilado de novo pelo <strong>JIT</strong> enquanto roda (<em>mixed mode</em>).</li>
+  <li>Java está em bancos, servidores, Android, big data e no Minecraft.</li>
+  <li>Java e JavaScript são linguagens diferentes.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial Java — aprenda Java do zero, como numa escola | Guia Java</title>
+<meta name="description" content="Curso de Java do zero ao avançado, em português: cada linha de código explicada parte por parte, editor Experimente e JShell no navegador, missões, projetos e exercícios. Java 25 LTS, com todas as saídas conferidas num JDK de verdade.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="hero">
+<h1>Tutorial Java</h1>
+<p>Aprenda Java do zero, como numa escola: cada linha de código é explicada parte por parte, você vê exatamente o que aparece na tela e pratica num editor aqui mesmo no navegador. O guia ensina o <strong>Java 25 LTS</strong>, e todas as saídas e mensagens de erro foram conferidas num JDK de verdade. Vale para Linux, Windows e macOS.</p>
+<a class="btn btn-lg" href="introducao.html">Comece pelo Nível 1 &#10095;</a>
+</div>
+
+<div class="pager"></div>
+
+<h2>Experimente agora</h2>
+<p>A caixa abaixo é o editor <strong>Experimente</strong> do guia. Ela tem um programa Java completo, pronto para rodar. Clique em <strong>Rodar</strong>: o editor confere o código como o compilador do Java faria e mostra o que o programa escreve na tela. Nada do que você fizer aqui mexe no seu computador.</p>
+
+<div class="tryjava" data-goal="out:Estou aprendendo Java!">
+<p class="try-task"><strong>Missão:</strong> clique em <strong>Rodar</strong> e veja o <code>Olá, mundo!</code> aparecer. Depois troque o texto entre as aspas por <code>Estou aprendendo Java!</code> e rode de novo. Cuidado para não apagar as aspas <code>"</code> nem o <code>;</code> do fim da linha.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Estou aprendendo Java!");
+    }
+}
+</pre>
+</div>
+
+<p>O que aconteceu: o programa tem uma única linha que <strong>faz</strong> alguma coisa, a do meio, <code>System.out.println("Olá, mundo!");</code>. Ela manda o Java escrever um texto na tela e pular para a linha de baixo. Todo o resto (<code>public class Main</code>, <code>public static void main</code>, as chaves) é a "moldura" que todo programa Java tem. Na aula <a href="primeiro-programa.html">Olá, Mundo</a> você vai entender cada palavra dessa moldura.</p>
+
+<p>Se você apagou uma aspa ou o ponto e vírgula, viu uma mensagem em inglês com um <code>^</code> apontando o erro. Não se assuste: é o compilador ajudando. O guia tem uma aula inteira sobre essas mensagens, <a href="erros-compilacao.html">Lendo Erros do javac</a>.</p>
+
+<hr>
+
+<h2>O que é este guia</h2>
+<p>O <strong>Java</strong> é uma das linguagens de programação mais usadas do mundo. Ela roda nos servidores de bancos e lojas virtuais, em aplicativos Android, em sistemas de governo e até no Minecraft. Quem aprende Java consegue:</p>
+<ul>
+  <li>escrever programas que fazem contas, tomam decisões e repetem tarefas;</li>
+  <li>organizar programas grandes com <strong>classes e objetos</strong>, o jeito de pensar que o Java popularizou;</li>
+  <li>trabalhar com listas, arquivos, datas e dinheiro usando a enorme biblioteca que vem com o Java;</li>
+  <li>entender o código de sistemas profissionais, que muitas vezes são feitos em Java há décadas.</li>
+</ul>
+<p>O guia é para quem <strong>nunca programou</strong>. Ele começa do zero absoluto (o que é um programa? o que é compilar?) e vai até o Java moderno: lambdas, streams, records, threads virtuais, Maven e testes. A aula <a href="introducao.html">O que é Java</a> conta a história da linguagem e mostra onde ela é usada.</p>
+
+<hr>
+
+<h2>Como as aulas funcionam</h2>
+<p>Nenhum código aparece "seco". Toda aula segue o mesmo caminho:</p>
+<ol class="passo">
+  <li><strong>A ideia primeiro.</strong> Antes do código, você entende o problema que ele resolve, com uma comparação do dia a dia.</li>
+  <li><strong>Anatomia.</strong> Cada pedaço de uma linha nova é separado e explicado: o que é palavra do Java, o que é nome escolhido por você, para que serve cada símbolo.</li>
+  <li><strong>A saída real.</strong> Você vê exatamente o que aparece na tela, com etiquetas laranja apontando o que importa. Toda saída foi produzida pelo JDK 25 de verdade.</li>
+  <li><strong>Experimente.</strong> Pelo menos duas caixas por aula para você mudar o código e rodar, muitas com uma <strong>missão</strong> e um botão para ver a solução.</li>
+  <li><strong>Várias formas de fazer.</strong> Quase sempre há mais de um caminho, e uma tabela "qual usar" mostra quando escolher cada um.</li>
+  <li><strong>Quando dá errado.</strong> O código com erro, a mensagem real do compilador (ou da exceção), o que ela quer dizer e como consertar.</li>
+  <li><strong>Exercícios e resumo.</strong> Perguntas com correção na hora e uma lista curta do que levar da aula.</li>
+</ol>
+
+<h3>Exemplo: a anatomia de uma linha</h3>
+<p>Esta é a linha que você rodou lá em cima, com outro texto. Veja como as aulas desmontam uma linha de código:</p>
+
+<pre class="file" data-file="trecho">System.out.println("Oi");</pre>
+
+<dl class="anatomy">
+  <dt>System</dt><dd>Uma <strong>classe</strong> que já vem com o Java e representa o "sistema" onde o programa roda. Começa com letra maiúscula, e isso importa.</dd>
+  <dt>.out</dt><dd>A <strong>saída padrão</strong> do sistema: normalmente, a tela do terminal. O ponto quer dizer "dentro de": o <code>out</code> que fica dentro de <code>System</code>.</dd>
+  <dt>.println</dt><dd>O <strong>método</strong> (uma ação) que escreve um texto e pula para a próxima linha. O nome vem de <em>print line</em>, "imprimir linha".</dd>
+  <dt>( )</dt><dd>Os parênteses levam para o método aquilo que ele deve usar, o <strong>argumento</strong>.</dd>
+  <dt>"Oi"</dt><dd>O texto a escrever. As aspas duplas marcam onde o texto começa e termina; elas não aparecem na tela.</dd>
+  <dt>;</dt><dd>O ponto e vírgula termina a instrução, como o ponto final de uma frase.</dd>
+</dl>
+
+<h3>Exemplo: o terminal</h3>
+<p>Além do editor, as aulas mostram o <strong>terminal</strong> da máquina fictícia do guia: um computador chamado <code>notebook</code>, da usuária <code>ana</code>, com o JDK 25 instalado. É ali que o programa vira algo executável. Primeiro o <code>javac</code> (o compilador) traduz o arquivo <code>Main.java</code>; depois o <code>java</code> executa o resultado:</p>
+
+<pre class="term">$ cd java
+$ javac Main.java                « compila: não mostra nada quando dá certo
+$ ls
+Main.class  Main.java              « o .class é o programa traduzido (bytecode)
+$ java Main                        « executa a classe Main (sem o .class)
+Oi
+$ echo $?
+0                                  « código de saída 0: terminou sem erro</pre>
+
+<p>Repare que o <code>javac</code> não escreveu nada: no mundo do terminal, silêncio quer dizer sucesso. Ele criou o arquivo <code>Main.class</code>, e o <code>java Main</code> rodou esse arquivo. A aula <a href="compilar-executar.html">javac e java</a> mostra cada passo e os erros mais comuns desse caminho; a aula <a href="simulador.html">O Editor do Guia</a> ensina a usar as caixas Experimente e o JShell do guia.</p>
+
+<p>Quando quiser só testar uma conta rápida, o Java tem o <strong>JShell</strong>, um "Java de conversa": você digita, ele responde na hora. Experimente:</p>
+
+<div class="tryjshell" data-goal="out:15">
+<p class="try-task"><strong>Missão:</strong> digite <code>7 + 8</code> e aperte <kbd>Enter</kbd>. O JShell mostra o resultado com um nome, como <code>$1 ==&gt; 15</code>. Depois tente <code>"Olá, " + "Ana"</code>.</p>
+<pre class="solucao">7 + 8</pre>
+</div>
+
+<p>A aula <a href="jshell.html">JShell</a> explica o que é o <code>$1</code> e como guardar valores e criar métodos ali dentro.</p>
+
+<hr>
+
+<h2>Escolha sua trilha</h2>
+<div class="trilhas">
+  <div class="trilha n1">
+    <h3>Nível 1 · Iniciante</h3>
+    <p>Para quem nunca programou.</p>
+    <ul>
+      <li>O que é Java, JDK e JVM; instalar e escolher um editor</li>
+      <li>O primeiro programa, <code>javac</code>, <code>java</code> e JShell</li>
+      <li>Variáveis, tipos e operadores</li>
+      <li>Textos, <code>if</code>, <code>switch</code>, laços e arrays</li>
+      <li>Ler o teclado com <code>Scanner</code></li>
+    </ul>
+    <a class="btn" href="introducao.html">Começar &#10095;</a>
+  </div>
+  <div class="trilha n2">
+    <h3>Nível 2 · Intermediário</h3>
+    <p>Métodos e orientação a objetos.</p>
+    <ul>
+      <li>Métodos, parâmetros, retorno e recursão</li>
+      <li>Classes, objetos, construtores e encapsulamento</li>
+      <li>Herança, interfaces, enums e records</li>
+      <li>Exceções, datas, dinheiro e arquivos</li>
+    </ul>
+    <a class="btn" href="metodos.html">Começar &#10095;</a>
+  </div>
+  <div class="trilha n3">
+    <h3>Nível 3 · Avançado</h3>
+    <p>Java moderno e profissional.</p>
+    <ul>
+      <li>Coleções e generics</li>
+      <li>Lambdas, streams e <code>Optional</code></li>
+      <li>Pattern matching, classes seladas e threads virtuais</li>
+      <li>JAR, Maven, Gradle, JUnit e depuração</li>
+    </ul>
+    <a class="btn" href="colecoes.html">Começar &#10095;</a>
+  </div>
+  <div class="trilha proj">
+    <h3>Projetos</h3>
+    <p>Programas completos, construídos passo a passo.</p>
+    <ul>
+      <li>Calculadora e jogo da adivinhação</li>
+      <li>Agenda de contatos</li>
+      <li>Sistema de biblioteca</li>
+      <li>Conta bancária com testes e tarefas com Maven</li>
+    </ul>
+    <a class="btn" href="projetos.html">Ver projetos &#10095;</a>
+  </div>
+  <div class="trilha ref">
+    <h3>Referência</h3>
+    <p>Consulta rápida para quando você já sabe o que procura.</p>
+    <ul>
+      <li>Palavras-chave do Java</li>
+      <li>Métodos de <code>String</code> e de <code>Math</code></li>
+      <li>Exceções comuns e erros do compilador</li>
+      <li>Glossário e quiz</li>
+    </ul>
+    <a class="btn" href="ref-palavras-chave.html">Consultar &#10095;</a>
+  </div>
+</div>
+
+<div class="tip">
+<strong>A regra de ouro</strong>
+<p>Ler não basta: digite cada exemplo. Use as caixas Experimente das aulas e, quando tiver o JDK instalado, repita no terminal do seu computador. Para instalar, veja <a href="instalar-linux.html">Instalar no Linux</a> ou <a href="instalar-windows-mac.html">Instalar no Windows e macOS</a>.</p>
+</div>
+
+<hr>
+
+<h2>Como ler este guia</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Elemento</th><th>O que significa</th></tr>
+<tr><td>Caixa com o nome <code>Main.java</code> no canto</td><td>O conteúdo de um arquivo de código. O nome no canto é o nome do arquivo. Quando aparece <code>trecho</code>, é só um pedaço de programa, não um arquivo inteiro.</td></tr>
+<tr><td><code>Main.java · erro de propósito</code></td><td>Código que <strong>não compila</strong> (ou que quebra ao rodar), mostrado de propósito para você ver a mensagem de erro. Não copie como exemplo a seguir.</td></tr>
+<tr><td><code>ana@notebook:~$</code></td><td>O prompt do terminal: usuária <code>ana</code>, na máquina <code>notebook</code>, na pasta pessoal (<code>~</code>). O que vem depois é o comando digitado.</td></tr>
+<tr><td><code>jshell&gt;</code></td><td>O prompt do JShell: o que vem depois foi digitado no JShell, não no terminal.</td></tr>
+<tr><td>Linhas sem prompt</td><td>A resposta do computador (a saída do programa ou a mensagem de erro).</td></tr>
+<tr><td><span class="t-a">← etiqueta</span></td><td>Uma explicação do guia sobre aquela linha. Não aparece no terminal real.</td></tr>
+<tr><td><span class="versao">Java 21+</span></td><td>O recurso só existe a partir dessa versão do Java. A aula diz a alternativa para versões mais antigas (veja <a href="versoes.html">Versões e LTS</a>).</td></tr>
+<tr><td><strong>ilustrativo</strong></td><td>Uma tela que não pôde ser produzida na máquina do guia (por exemplo, o instalador do Windows). Ela segue o formato real, mas os detalhes podem variar.</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>Versão de referência: Java 25 LTS</strong>
+<p>Todas as saídas foram conferidas no <strong>Eclipse Temurin 25.0.4.1</strong> (uma distribuição gratuita do OpenJDK), num Linux em português do Brasil. O Java 25 é a versão de suporte longo (LTS) mais recente. Quase tudo do Nível 1 funciona igual no Java 17 e no 21; quando um recurso é novo, a aula avisa com o selo de versão. A aula <a href="versoes.html">Versões e LTS</a> explica o que isso quer dizer.</p>
+</div>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

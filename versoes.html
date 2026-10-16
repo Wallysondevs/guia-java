@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Versões e LTS — 8, 11, 17, 21 e 25, ciclo de 6 meses | Guia Java</title>
+<meta name="description" content="As versões do Java e o que é LTS: o ciclo de uma versão a cada seis meses, as versões de suporte longo 8, 11, 17, 21 e 25, o que cada uma trouxe, como ler o java -version, por que empresas ainda usam Java 8, 11 e 17 e o selo de versão do guia.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Versões e LTS</span></h1>
+
+<p class="intro">O Java muda: a cada seis meses sai uma versão nova, com recursos novos e correções. Algumas dessas versões são especiais, as <strong>LTS</strong>, que recebem atualizações por muitos anos e são as que as empresas usam. Nesta aula você aprende a descobrir qual Java tem no computador, a ler o número da versão e a saber por que um código que funciona aqui pode não compilar no computador de outra pessoa.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como ver a versão instalada com <code>java -version</code>, <code>java --version</code> e <code>javac -version</code>.</li>
+  <li>O que quer dizer cada parte de <code>25.0.4.1+1-LTS</code>.</li>
+  <li>O ciclo de seis meses e o que é uma versão <strong>LTS</strong> (8, 11, 17, 21 e 25).</li>
+  <li>O que cada LTS trouxe de mais importante.</li>
+  <li>Por que tantas empresas ainda usam Java 8, 11 ou 17.</li>
+  <li>O que é o selo <span class="versao">Java 21+</span> das aulas e o que fazer quando o seu Java é mais antigo.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: modelos de carro e revisões</h2>
+<p>Pense numa montadora de carros. Todo ano sai um <strong>modelo novo</strong>, com novidades. A maioria das pessoas não troca de carro todo ano; troca a cada vários anos e, enquanto isso, leva o carro para as <strong>revisões</strong>, que corrigem problemas sem mudar o modelo. A montadora promete peças e revisões por mais tempo só para alguns modelos, os mais vendidos.</p>
+
+<p>O Java funciona assim:</p>
+<ul>
+  <li>Cada <strong>versão</strong> (Java 21, 22, 23…) é um modelo novo, com recursos novos na linguagem e na biblioteca.</li>
+  <li>As <strong>atualizações</strong> (25.0.1, 25.0.2…) são as revisões: corrigem falhas de segurança e defeitos, sem recursos novos.</li>
+  <li>As versões <strong>LTS</strong> (de <em>Long-Term Support</em>, "suporte de longo prazo") são os modelos com revisões garantidas por muitos anos. As outras recebem atualizações só por seis meses, até sair a próxima.</li>
+</ul>
+
+<hr>
+
+<h2>Qual Java está instalado?</h2>
+<p>O primeiro comando para qualquer problema com Java é perguntar a versão:</p>
+
+<dl class="anatomy">
+  <dt>java</dt><dd>O lançador do Java, o mesmo que executa programas.</dd>
+  <dt>-version</dt><dd>Uma <strong>opção</strong>: em vez de rodar um programa, "mostre a versão". O traço único é o estilo antigo, que funciona em todas as versões do Java.</dd>
+</dl>
+
+<pre class="term">$ java -version
+openjdk version "25.0.4.1" 2026-08-18 LTS                  « a versão, a data de lançamento e LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)     « a distribuição: Temurin
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)   « a JVM</pre>
+
+<p>Três linhas, uma para cada coisa:</p>
+<ol>
+  <li><strong>A versão do Java</strong>: <code>openjdk version "25.0.4.1"</code>, lançada em <code>2026-08-18</code>, uma <code>LTS</code>. O <code>openjdk</code> diz que ela vem do projeto OpenJDK (no Oracle JDK aparece <code>java version</code>).</li>
+  <li><strong>O ambiente de execução</strong> (<em>Runtime Environment</em>, o JRE que vem dentro do JDK) e quem o montou: <code>Temurin</code>.</li>
+  <li><strong>A máquina virtual</strong>: <code>64-Bit Server VM</code> (a JVM para computadores de 64 bits), em <em>mixed mode</em> (interpretador + JIT, veja <a href="introducao.html">O que é Java</a>) e com <em>sharing</em> (compartilha classes já carregadas para iniciar mais rápido).</li>
+</ol>
+
+<h3>Três jeitos de perguntar</h3>
+<pre class="term">$ java --version
+openjdk 25.0.4.1 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)
+$ javac -version
+javac 25.0.4.1                     « a versão do compilador
+$ jshell --version
+jshell 25.0.4.1</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que mostra</th><th>Detalhe</th></tr>
+<tr><td><code>java -version</code></td><td>A versão do <code>java</code> (quem roda)</td><td>Funciona em qualquer Java, até no 8. Escreve na <strong>saída de erro</strong>.</td></tr>
+<tr><td><code>java --version</code></td><td>O mesmo, com a primeira linha um pouco diferente</td><td>Java 9+. Escreve na saída normal.</td></tr>
+<tr><td><code>javac -version</code></td><td>A versão do compilador (quem compila)</td><td>Se der "comando não encontrado", você tem só o JRE (veja <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>).</td></tr>
+</table>
+</div>
+
+<p>A diferença entre "saída de erro" e "saída normal" parece detalhe, mas aparece quando você joga a resposta fora ou a passa para outro comando. O <code>2&gt;/dev/null</code> descarta a saída de erro; o <code>&gt;/dev/null</code> descarta a saída normal:</p>
+
+<pre class="term">$ java -version 2&gt;/dev/null
+$ java --version &gt; /dev/null       « nenhum dos dois mostra nada
+$ java -version 2&gt;&amp;1 | head -1
+openjdk version "25.0.4.1" 2026-08-18 LTS   « 2&gt;&amp;1 junta a saída de erro à normal</pre>
+
+<p>Se um dia você precisar da versão dentro de um script, use <code>java -version 2&gt;&amp;1</code> ou <code>java --version</code>. As duas saídas de um programa são assunto de <a href="saida.html">Saída: print e println</a>.</p>
+
+<div class="tip">
+<strong>Confira sempre o <code>java</code> e o <code>javac</code></strong>
+<p>Os dois devem mostrar a mesma versão. Se o <code>javac</code> diz 25 e o <code>java</code> diz 21, há dois Javas no computador e o <code>PATH</code> está misturando (veja <a href="instalar-linux.html#varias">Várias versões</a>). Isso causa o erro <code>UnsupportedClassVersionError</code>, explicado em <a href="compilar-executar.html">javac e java</a>.</p>
+</div>
+
+<hr>
+
+<h2>Lendo o número da versão</h2>
+<p>Desde o Java 10, o número segue o formato <code>RECURSO.INTERINO.ATUALIZAÇÃO.CORREÇÃO+BUILD</code>. Desmontando <code>25.0.4.1+1-LTS</code>:</p>
+
+<dl class="anatomy">
+  <dt>25</dt><dd>A versão <strong>de recursos</strong> (<em>feature</em>): o "modelo do carro". É o número que todo mundo usa: "Java 25".</dd>
+  <dt>.0</dt><dd>Versão <strong>interina</strong>: quase sempre 0 (é reservada para casos raros).</dd>
+  <dt>.4</dt><dd>A <strong>atualização</strong> (<em>update</em>): a quarta revisão de segurança do Java 25. Sai a cada três meses (janeiro, abril, julho e outubro).</dd>
+  <dt>.1</dt><dd>Uma <strong>correção</strong> (<em>patch</em>) urgente em cima da atualização 4.</dd>
+  <dt>+1</dt><dd>O número da <strong>compilação</strong> (<em>build</em>) feita pela distribuição.</dd>
+  <dt>-LTS</dt><dd>Marca que esta é uma versão de suporte longo.</dd>
+</dl>
+
+<h3>O Java 8 tem outro jeito: <code>1.8</code></h3>
+<p>Até o Java 8, o número oficial começava com <code>1.</code>: o Java 8 é o "1.8", o Java 7 é o "1.7". Na máquina da Ana também há um Java 8 e um Java 21 instalados pelo sistema (você vai ver por que em <a href="instalar-linux.html#varias">Várias versões</a>). Compare:</p>
+
+<pre class="term">$ /usr/lib/jvm/java-8-openjdk-amd64/bin/java -version
+openjdk version "1.8.0_504"                            « Java 8, atualização 504
+OpenJDK Runtime Environment (build 1.8.0_504-8u504-ga-1ubuntu1~26.04.3-b01)
+OpenJDK 64-Bit Server VM (build 25.504-b01, mixed mode)        « este "25" é da JVM antiga, não é Java 25!
+$ /usr/lib/jvm/java-21-openjdk-amd64/bin/java -version
+openjdk version "21.0.12.1" 2026-08-18
+OpenJDK Runtime Environment (build 21.0.12.1+1-1-26.04.4-Ubuntu)
+OpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-26.04.4-Ubuntu, mixed mode, sharing)</pre>
+
+<p><code>1.8.0_504</code> quer dizer "Java 8, atualização 504"; você vai ver isso escrito como <strong>8u504</strong> em muitos lugares. Cuidado com a terceira linha: o <code>25.504</code> é o número interno da máquina virtual do Java 8 e não tem nada a ver com o Java 25. Olhe sempre a <strong>primeira</strong> linha.</p>
+
+<p>Repare também que o pacote do Ubuntu não escreve <code>LTS</code> na versão, mesmo sendo o 21 uma versão LTS: essa marca é opcional e cada distribuição decide se a mostra.</p>
+
+<hr>
+
+<h2>O ciclo de seis meses</h2>
+<p>Até 2017, uma versão nova do Java saía quando ficava pronta, às vezes depois de três ou quatro anos de espera (o Java 8 é de 2014; o 9, de 2017). Desde o Java 10, em 2018, o calendário é fixo: <strong>uma versão nova em março e outra em setembro, todo ano</strong>. O que não ficou pronto a tempo espera a próxima.</p>
+
+<p>De dois em dois anos, a versão de setembro é <strong>LTS</strong>. As demais são versões "de passagem": recebem atualizações por seis meses e depois são abandonadas, porque a seguinte já saiu.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Lançamento</th><th>Tipo</th></tr>
+<tr><td>Java 8</td><td>março de 2014</td><td><strong>LTS</strong> (ainda muito usada)</td></tr>
+<tr><td>Java 9 e 10</td><td>2017 e março de 2018</td><td>comuns (o 10 inaugurou o ciclo de 6 meses)</td></tr>
+<tr><td>Java 11</td><td>setembro de 2018</td><td><strong>LTS</strong></td></tr>
+<tr><td>Java 12 a 16</td><td>2019 a 2021</td><td>comuns</td></tr>
+<tr><td>Java 17</td><td>setembro de 2021</td><td><strong>LTS</strong></td></tr>
+<tr><td>Java 18 a 20</td><td>2022 a 2023</td><td>comuns</td></tr>
+<tr><td>Java 21</td><td>setembro de 2023</td><td><strong>LTS</strong></td></tr>
+<tr><td>Java 22 a 24</td><td>2024 a março de 2025</td><td>comuns</td></tr>
+<tr><td>Java 25</td><td>setembro de 2025</td><td><strong>LTS</strong> — a deste guia</td></tr>
+<tr><td>Java 26 e 27</td><td>março e setembro de 2026</td><td>comuns</td></tr>
+<tr><td>Java 29</td><td>previsto para setembro de 2027</td><td>próxima <strong>LTS</strong></td></tr>
+</table>
+</div>
+
+<h3>Por que o guia usa o 25, e não o 27?</h3>
+<p>O Java 27 é mais novo, mas é uma versão comum: em março de 2027 ele deixa de receber atualizações. O Java 25 recebe atualizações por anos, é o que as empresas estão adotando e é o que você vai encontrar nos empregos e nos cursos. Tudo o que você aprender aqui funciona igual nas versões 26 e 27, porque o Java quase nunca remove recursos da linguagem.</p>
+
+<hr>
+
+<h2>O que cada LTS trouxe</h2>
+<p>Um resumo do que mais importa para quem está aprendendo. Cada versão LTS inclui tudo das anteriores. Não se preocupe com os nomes agora: cada recurso tem a sua aula, e a aula <a href="novidades.html">Novidades do Java 17 ao 25</a> aprofunda as versões recentes.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Principais novidades (inclui as versões comuns anteriores)</th></tr>
+<tr><td><strong>Java 8</strong> (2014)</td><td><a href="lambdas.html">Lambdas</a>, <a href="streams.html">streams</a>, <a href="optional.html"><code>Optional</code></a>, a nova API de <a href="datas.html">datas (<code>java.time</code>)</a>, métodos <code>default</code> em <a href="interfaces.html">interfaces</a>.</td></tr>
+<tr><td><strong>Java 11</strong> (2018)</td><td>O <a href="jshell.html">JShell</a> e os <a href="modulos.html">módulos</a> (Java 9); <a href="var.html"><code>var</code></a> (Java 10); rodar um <code>.java</code> direto com <code>java Main.java</code>; métodos novos de <code>String</code> como <code>repeat</code>, <code>strip</code>, <code>isBlank</code>; cliente HTTP novo.</td></tr>
+<tr><td><strong>Java 17</strong> (2021)</td><td><a href="switch-expressoes.html"><code>switch</code> com setas</a> (14), <a href="text-blocks.html">text blocks</a> (15), <a href="records.html">records</a> e <code>instanceof</code> com padrão (16), <a href="sealed.html">classes seladas</a> (17), mensagens de <code>NullPointerException</code> que dizem o que era nulo.</td></tr>
+<tr><td><strong>Java 21</strong> (2023)</td><td><a href="virtual-threads.html">Threads virtuais</a>, <a href="pattern-matching.html">padrões no <code>switch</code> e padrões de record</a>, coleções com ordem definida (<code>getFirst</code>, <code>getLast</code>).</td></tr>
+<tr><td><strong>Java 25</strong> (2025)</td><td><a href="primeiro-programa.html#simples"><code>main</code> simplificado</a> (<code>void main()</code> sem classe) e a classe <code>IO</code> (<code>IO.println</code>), <code>import module</code>, construtores que podem ter código antes do <code>super(...)</code>, a opção de cabeçalhos de objeto compactos (menos memória).</td></tr>
+</table>
+</div>
+
+<p>Para ver a diferença na prática, este programa usa três recursos de versões diferentes. Cada um está marcado com o selo da versão em que apareceu:</p>
+
+<ul>
+  <li><code>var nome = "Ana";</code> — o Java descobre sozinho o tipo da variável <span class="versao">Java 10+</span>.</li>
+  <li>o texto entre <code>"""</code> — um <em>text block</em>, texto de várias linhas <span class="versao">Java 15+</span>.</li>
+  <li><code>"=".repeat(20)</code> — repete um texto 20 vezes <span class="versao">Java 11+</span>.</li>
+</ul>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        var nome = "Ana";
+        String recibo = """
+            Loja da Ana
+            Cliente: %s
+            """.formatted(nome);
+        System.out.print(recibo);
+        System.out.println("=".repeat(20));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Loja da Ana
+Cliente: Ana
+====================</pre>
+
+<p>No Java 25 tudo funciona. Agora a Ana pede ao <code>javac</code> para compilar como se fosse o Java 11, com a opção <code>--release 11</code> ("gere código para o Java 11 e só aceite o que existia nele"):</p>
+
+<pre class="term">$ javac --release 11 Main.java
+Main.java:4: error: text blocks are not supported in -source 11
+        String recibo = """
+                        ^
+  (use -source 15 or higher to enable text blocks)
+1 error</pre>
+
+<p>A mensagem é clara: "text blocks não são suportados no Java 11; use 15 ou maior". O <code>var</code> e o <code>repeat</code> passaram, porque já existiam no 11. É exatamente isso que acontece quando você copia um exemplo moderno e tenta compilar num Java antigo: o <code>javac</code> diz qual recurso não existe e a partir de qual versão ele existe.</p>
+
+<div class="tryjava" data-goal="out:********************">
+<p class="try-task"><strong>Missão:</strong> o <code>repeat</code> <span class="versao">Java 11+</span> repete um texto. Faça a última linha mostrar <strong>20 asteriscos</strong> (<code>*</code>) em vez de 20 sinais de igual.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Loja da Ana");
+        System.out.println("=".repeat(20));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Loja da Ana");
+        System.out.println("*".repeat(20));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Por que empresas ainda usam Java 8, 11 e 17</h2>
+<p>Se o Java 25 é melhor, por que tantas vagas pedem "Java 8" ou "Java 11"? Porque trocar a versão de um sistema grande não é como atualizar o celular:</p>
+
+<ul>
+  <li><strong>Custo e risco.</strong> Um banco tem milhões de linhas de código funcionando. Mudar a versão exige testar tudo de novo. Enquanto o sistema funciona e recebe atualizações de segurança, a empresa adia a mudança.</li>
+  <li><strong>Bibliotecas e servidores antigos.</strong> O sistema depende de bibliotecas que só funcionam até certa versão. Atualizar o Java obriga a atualizar essas peças também.</li>
+  <li><strong>Mudanças do Java 9 e 11.</strong> O Java 9 trouxe os módulos, e o Java 11 removeu partes antigas da biblioteca (como algumas de XML e de sistemas corporativos). Muitos sistemas travaram nessa passagem e ficaram no 8.</li>
+  <li><strong>Suporte longo.</strong> Várias distribuições ainda publicam atualizações de segurança para o 8, o 11 e o 17, então ficar neles continua seguro por um tempo.</li>
+</ul>
+
+<p>A boa notícia: quem aprende Java 25 lê sem dificuldade um código de Java 8. O contrário é que dá trabalho, porque o Java 8 não conhece <code>var</code>, records, text blocks nem o <code>switch</code> com setas. Por isso as aulas marcam esses recursos com o selo de versão.</p>
+
+<hr>
+
+<h2>O selo de versão do guia</h2>
+<p>Quando um recurso não existe em todas as versões do Java, a aula mostra um selo com a versão mínima:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Selo</th><th>Quer dizer</th><th>Se o seu Java for mais antigo</th></tr>
+<tr><td><span class="versao">Java 10+</span></td><td>Funciona do Java 10 em diante (por exemplo, <code>var</code>).</td><td>A aula mostra a alternativa: aqui, escrever o tipo (<code>String nome = "Ana";</code>).</td></tr>
+<tr><td><span class="versao">Java 21+</span></td><td>Funciona do Java 21 em diante (por exemplo, padrões no <code>switch</code>).</td><td>A aula mostra a forma antiga, com <code>if</code> e <code>instanceof</code>.</td></tr>
+<tr><td><span class="versao">Java 25+</span></td><td>Só no Java 25 ou mais novo (por exemplo, <code>IO.println</code>).</td><td>Use a forma clássica, <code>System.out.println</code>.</td></tr>
+</table>
+</div>
+
+<p>Recursos sem selo existem pelo menos desde o Java 8. Se você está usando o Java 17 ou o 21, quase todo o Nível 1 funciona sem mudança.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"is not supported in -source …" ao compilar</strong>
+<pre class="term">$ javac --release 11 Main.java
+Main.java:4: error: text blocks are not supported in -source 11
+        String recibo = """
+                        ^
+  (use -source 15 or higher to enable text blocks)
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o código usa um recurso mais novo que a versão para a qual você está compilando. Acontece com <code>--release</code> antigo, com projetos Maven/Gradle configurados para uma versão antiga, ou quando o <code>javac</code> do computador é mesmo antigo.</p>
+<p><strong>Como resolver:</strong> confira <code>javac -version</code>. Se ele for antigo, instale o JDK 25. Se a versão antiga for obrigatória (o servidor da empresa usa Java 11, por exemplo), troque o recurso pela alternativa que a aula indica.</p>
+</div>
+
+<div class="cenario">
+<strong>Avisos "source value 8 is obsolete"</strong>
+<pre class="term">$ javac --release 8 Main.java
+warning: [options] source value 8 is obsolete and will be removed in a future release
+warning: [options] target value 8 is obsolete and will be removed in a future release
+warning: [options] To suppress warnings about obsolete options, use -Xlint:-options.
+3 warnings</pre>
+<p><strong>O que aconteceu:</strong> o código compilou (são <em>warnings</em>, avisos, não erros), mas o <code>javac</code> 25 avisa que compilar para o Java 8 é "obsoleto" e um dia vai deixar de ser possível. Se você não precisa rodar no Java 8, não use <code>--release 8</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>java -version</code> mostra uma versão diferente da que eu instalei</strong>
+<p><strong>O que aconteceu:</strong> há mais de um Java no computador, e o terminal está achando outro primeiro. Acontece muito quando o sistema já tinha um Java (como os do Ubuntu da Ana) e você instalou outro.</p>
+<p><strong>Como resolver:</strong> veja qual está sendo usado com <code>which java</code> e ajuste o <code>PATH</code> ou as alternativas do sistema, como em <a href="instalar-linux.html#varias">Instalar no Linux</a>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Java 25 é LTS">
+<p class="try-task"><strong>Missão:</strong> complete o programa para ele mostrar, na última linha, a frase <code>Java 25 é LTS</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Java 8 é LTS");
+        System.out.println("Java 17 é LTS");
+        System.out.println("Java 21 é LTS");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Java 8 é LTS");
+        System.out.println("Java 17 é LTS");
+        System.out.println("Java 21 é LTS");
+        System.out.println("Java 25 é LTS");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A versão de recursos</h3>
+<p>O <code>java -version</code> mostrou <code>openjdk version "21.0.12.1"</code>. Qual é a versão "de recursos" (o número que as pessoas falam)?</p>
+<div class="ex-code">Java <input data-answer="21" aria-label="versão"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O Java antigo</h3>
+<p>O <code>java -version</code> mostrou <code>openjdk version "1.8.0_504"</code>. Que Java é esse?</p>
+<div class="ex-code">Java <input data-answer="8" aria-label="versão"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destas versões é LTS?</p>
+<label><input type="radio" name="q3"> Java 22</label>
+<label><input type="radio" name="q3"> Java 24</label>
+<label><input type="radio" name="q3"> Java 21</label>
+<label><input type="radio" name="q3"> Java 27</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. De quanto em quanto tempo sai uma versão nova de recursos do Java?</p>
+<label><input type="radio" name="q4"> Todo mês</label>
+<label><input type="radio" name="q4"> A cada seis meses (março e setembro)</label>
+<label><input type="radio" name="q4"> A cada três anos</label>
+<label><input type="radio" name="q4"> Quando a Oracle quiser, sem data</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Um exemplo usa um recurso com o selo <span class="versao">Java 21+</span> e o seu computador tem Java 17. O que acontece?</p>
+<label><input type="radio" name="q5"> Funciona, mas mais devagar.</label>
+<label><input type="radio" name="q5"> O Java 17 baixa o recurso sozinho.</label>
+<label><input type="radio" name="q5"> Compila, mas dá erro só quando roda.</label>
+<label><input type="radio" name="q5"> O <code>javac</code> recusa, dizendo que o recurso não existe nessa versão; use a alternativa da aula ou instale o Java 25.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>java -version</code> e <code>javac -version</code> mostram a versão; confira que os dois concordam.</li>
+  <li><code>25.0.4.1+1-LTS</code> = Java 25, atualização 4, correção 1, build 1, versão LTS. O Java 8 se escreve <code>1.8.0_…</code>.</li>
+  <li>Uma versão nova a cada seis meses (março e setembro); uma LTS a cada dois anos.</li>
+  <li>LTS: 8 (2014), 11 (2018), 17 (2021), 21 (2023) e 25 (2025). O guia ensina o 25.</li>
+  <li>Empresas ficam em versões antigas por custo, risco e bibliotecas; o código antigo é fácil de ler para quem aprendeu o novo.</li>
+  <li>O selo <span class="versao">Java 21+</span> marca recursos novos; a aula sempre mostra a alternativa.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
