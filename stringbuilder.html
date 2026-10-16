@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java StringBuilder — montar textos de forma eficiente | Guia Java</title>
+<meta name="description" content="Por que concatenar String com + dentro de um laço é lento (medição real), como usar StringBuilder (append, insert, reverse, deleteCharAt, replace, setLength, toString) e a diferença entre StringBuilder e StringBuffer. Com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">StringBuilder</span></h1>
+
+<p class="intro">Uma <code>String</code> do Java nunca muda depois de criada. Cada <code>texto = texto + "x"</code> cria uma <code>String</code> <strong>nova</strong>, copiando tudo o que já existia. Num laço com milhares de voltas, isso fica lento de verdade. O <code>StringBuilder</code> ("construtor de strings") é um texto que <strong>pode</strong> mudar: você vai acrescentando pedaços e, no fim, pega a <code>String</code> pronta.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que quer dizer "a <code>String</code> é imutável" e o que acontece no <code>+</code> dentro de um laço.</li>
+  <li>Medir a diferença de velocidade entre <code>+</code> e <code>StringBuilder</code>.</li>
+  <li>Os métodos do <code>StringBuilder</code>: <code>append</code>, <code>insert</code>, <code>reverse</code>, <code>deleteCharAt</code>, <code>delete</code>, <code>replace</code>, <code>setLength</code>, <code>toString</code>.</li>
+  <li>Encadear chamadas (<code>sb.append(a).append(b)</code>).</li>
+  <li>A diferença entre <code>StringBuilder</code> e <code>StringBuffer</code>, e quando o <code>+</code> comum é a melhor escolha.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Imagine que a Ana escreve uma lista de compras <strong>a caneta, num cartão</strong>. Para acrescentar "leite", ela não pode escrever no cartão antigo (não há espaço e caneta não apaga): pega um cartão novo, copia tudo e escreve "leite" no fim. Para acrescentar "pão", outro cartão novo, copia tudo de novo… Com 3 itens, tudo bem. Com 10 mil, ela passa o dia copiando.</p>
+<p>Agora imagine um <strong>caderno a lápis</strong>: ela só escreve o item novo no fim da página. Pode apagar uma letra, inserir uma palavra no meio. Quando a lista fica pronta, ela passa a limpo <strong>uma vez</strong>.</p>
+<p>A <code>String</code> é o cartão a caneta. O <code>StringBuilder</code> é o caderno a lápis, e o <code>toString()</code> é "passar a limpo".</p>
+
+<hr>
+
+<h2>A <code>String</code> não muda</h2>
+<p>Você viu em <a href="metodos-string.html">Métodos de String</a> que métodos como <code>toUpperCase()</code> devolvem uma <code>String</code> nova. Veja o que acontece quando o resultado não é guardado, e compare com um <code>StringBuilder</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        nome.toUpperCase();
+        System.out.println(nome);
+        nome = nome.toUpperCase();
+        System.out.println(nome);
+
+        StringBuilder sb = new StringBuilder("Ana");
+        sb.reverse();
+        System.out.println(sb);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Ana
+ANA
+anA</pre>
+
+<p>A linha 4 criou <code>"ANA"</code> e jogou fora: <code>nome</code> continuou <code>"Ana"</code>. Só na linha 6, guardando o resultado na variável, <code>nome</code> passou a apontar para o texto novo. Já o <code>sb.reverse()</code> <strong>mudou o próprio objeto</strong>: não foi preciso guardar nada. Dizemos que a <code>String</code> é <strong>imutável</strong> e o <code>StringBuilder</code> é <strong>mutável</strong>.</p>
+
+<hr>
+
+<h2>O <code>+</code> no laço: medindo</h2>
+<p>Vamos montar um texto com <code>n</code> letras "x", primeiro com <code>String</code> e <code>+</code>, depois com <code>StringBuilder</code>, e cronometrar com <code>System.nanoTime()</code> (um relógio em nanossegundos; dividindo por 1.000.000 temos milissegundos, ms):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static long comString(int n) {
+        long inicio = System.nanoTime();
+        String texto = "";
+        for (int i = 0; i &lt; n; i++) {
+            texto = texto + "x";
+        }
+        return (System.nanoTime() - inicio) / 1_000_000;
+    }
+
+    static long comStringBuilder(int n) {
+        long inicio = System.nanoTime();
+        StringBuilder texto = new StringBuilder();
+        for (int i = 0; i &lt; n; i++) {
+            texto.append("x");
+        }
+        String resultado = texto.toString();
+        return (System.nanoTime() - inicio) / 1_000_000;
+    }
+
+    public static void main(String[] args) {
+        int[] tamanhos = {10_000, 20_000, 40_000, 80_000};
+        for (int n : tamanhos) {
+            System.out.println(n + " letras: String " + comString(n)
+                + " ms, StringBuilder " + comStringBuilder(n) + " ms");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+10000 letras: String 43 ms, StringBuilder 1 ms
+20000 letras: String 58 ms, StringBuilder 0 ms
+40000 letras: String 170 ms, StringBuilder 1 ms
+80000 letras: String 618 ms, StringBuilder 1 ms</pre>
+
+<p>Os números mudam de computador para computador (e de uma execução para outra), mas o padrão é sempre o mesmo:</p>
+<ul>
+  <li>Com <code>StringBuilder</code>, o tempo é praticamente zero em todos os tamanhos.</li>
+  <li>Com <code>+</code>, cada vez que o tamanho <strong>dobra</strong>, o tempo fica perto de <strong>quatro vezes</strong> maior (170 → 618 ms). Na volta 40.000, o Java copia 40.000 letras para acrescentar uma; somando todas as voltas, são centenas de milhões de cópias. Com 1 milhão de letras, esse programa levaria minutos.</li>
+</ul>
+
+<div class="note">
+<strong>E o <code>+</code> numa linha só?</strong>
+<p>Uma expressão como <code>"Olá, " + nome + "! Você tem " + idade + " anos."</code> é perfeitamente boa: o compilador já a transforma numa montagem eficiente. O problema é <strong>só</strong> o <code>+</code> que se repete dentro de um <strong>laço</strong>, acumulando na mesma variável. Para juntar texto numa linha, continue usando <code>+</code> (veja <a href="concatenacao.html">Concatenação</a>) ou <a href="formatacao.html">String.format</a>.</p>
+</div>
+
+<hr>
+
+<h2>Usando o <code>StringBuilder</code></h2>
+
+<dl class="anatomy">
+  <dt>StringBuilder sb = new StringBuilder();</dt><dd>Cria um "caderno" vazio. Também dá para começar com um texto: <code>new StringBuilder("Ana")</code>. Fica em <code>java.lang</code>: sem <code>import</code>.</dd>
+  <dt>sb.append(x)</dt><dd>"Acrescentar": coloca <code>x</code> no fim. Aceita texto, números, <code>char</code>, <code>boolean</code>, objetos.</dd>
+  <dt>sb.toString()</dt><dd>Devolve uma <code>String</code> com o conteúdo atual. O <code>println(sb)</code> chama o <code>toString()</code> sozinho.</dd>
+</dl>
+
+<p>Os outros métodos, um por um, no JShell (acompanhe o texto mudando a cada linha):</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell> StringBuilder sb = new StringBuilder();
+sb ==>
+
+jshell> sb.append("Ana")
+$2 ==> Ana
+
+jshell> sb.append(": ").append(9.5)
+$3 ==> Ana: 9.5
+
+jshell> sb.insert(0, "Aluna ")
+$4 ==> Aluna Ana: 9.5
+
+jshell> sb.length()
+$5 ==> 14
+
+jshell> sb.charAt(0)
+$6 ==> 'A'
+
+jshell> sb.indexOf(":")
+$7 ==> 9
+
+jshell> sb.replace(6, 9, "Carla")
+$8 ==> Aluna Carla: 9.5
+
+jshell> sb.deleteCharAt(sb.length() - 1)
+$9 ==> Aluna Carla: 9.
+
+jshell> sb.setCharAt(0, 'a')
+
+jshell> sb
+sb ==> aluna Carla: 9.
+
+jshell> sb.delete(0, 6)
+$12 ==> Carla: 9.
+
+jshell> String texto = sb.toString();
+texto ==> "Carla: 9."
+
+jshell> new StringBuilder("roma").reverse()
+$14 ==> amor
+
+jshell> /exit
+|  Goodbye</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que aconteceu</th></tr>
+<tr><td><code>append("Ana")</code></td><td>Acrescentou no fim. O JShell mostra o resultado porque o <code>append</code> devolve o próprio <code>sb</code></td></tr>
+<tr><td><code>append(": ").append(9.5)</code></td><td><strong>Encadeamento</strong>: como cada <code>append</code> devolve o <code>sb</code>, dá para chamar o próximo em seguida. O <code>9.5</code> (um <code>double</code>) virou texto</td></tr>
+<tr><td><code>insert(0, "Aluna ")</code></td><td>Inseriu na posição 0 (o começo). As posições contam a partir de 0, como na <code>String</code></td></tr>
+<tr><td><code>length()</code>, <code>charAt(0)</code>, <code>indexOf(":")</code></td><td>Iguais aos da <code>String</code>: tamanho, caractere numa posição, onde está um trecho</td></tr>
+<tr><td><code>replace(6, 9, "Carla")</code></td><td>Trocou o trecho das posições 6 a 8 (<code>Ana</code>) por <code>Carla</code>. O fim (9) não entra</td></tr>
+<tr><td><code>deleteCharAt(sb.length() - 1)</code></td><td>Apagou o último caractere (o <code>5</code>)</td></tr>
+<tr><td><code>setCharAt(0, 'a')</code></td><td>Trocou um caractere. Não devolve nada (<code>void</code>), por isso o JShell não mostrou resultado</td></tr>
+<tr><td><code>delete(0, 6)</code></td><td>Apagou as posições 0 a 5 (<code>aluna </code>)</td></tr>
+<tr><td><code>toString()</code></td><td>"Passou a limpo": uma <code>String</code> comum (repare nas aspas na resposta do JShell)</td></tr>
+<tr><td><code>reverse()</code></td><td>Inverteu o texto</td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:5 4 3 2 1 Fogo!,src:StringBuilder,src:append">
+<p class="try-task"><strong>Missão:</strong> o programa monta a contagem regressiva com <code>+</code> num laço. Reescreva usando um <code>StringBuilder</code> e <code>append</code>. A saída deve continuar sendo <code>5 4 3 2 1 Fogo!</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String contagem = "";
+        for (int i = 5; i &gt;= 1; i--) {
+            contagem = contagem + i + " ";
+        }
+        contagem = contagem + "Fogo!";
+        System.out.println(contagem);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        StringBuilder contagem = new StringBuilder();
+        for (int i = 5; i &gt;= 1; i--) {
+            contagem.append(i).append(' ');
+        }
+        contagem.append("Fogo!");
+        System.out.println(contagem);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Um exemplo completo: o relatório da turma</h2>
+<p>A Ana quer montar um relatório com uma linha por aluno e, no fim, a lista dos nomes separados por vírgula. O truque clássico da vírgula: acrescentar <code>", "</code> depois de cada nome e, no fim, cortar os dois últimos caracteres com <code>setLength</code> ("definir o tamanho").</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla"};
+        double[] notas = {9.5, 7.0, 8.5};
+
+        StringBuilder relatorio = new StringBuilder();
+        relatorio.append("Notas da turma\n");
+        for (int i = 0; i &lt; alunos.length; i++) {
+            relatorio.append("- ").append(alunos[i]).append(": ").append(notas[i]).append('\n');
+        }
+
+        StringBuilder nomes = new StringBuilder();
+        for (String a : alunos) {
+            nomes.append(a).append(", ");
+        }
+        nomes.setLength(nomes.length() - 2);
+        relatorio.append("Alunos: ").append(nomes);
+
+        System.out.println(relatorio);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Notas da turma
+- Ana: 9.5
+- Bruno: 7.0
+- Carla: 8.5
+Alunos: Ana, Bruno, Carla</pre>
+
+<dl class="anatomy">
+  <dt>append('\n')</dt><dd>Um <code>char</code> de quebra de linha (veja <a href="escapes.html">Caracteres Especiais</a>). Cada aluno ganha a sua linha.</dd>
+  <dt>nomes.setLength(nomes.length() - 2)</dt><dd>Antes, <code>nomes</code> era <code>"Ana, Bruno, Carla, "</code>. Encurtar o tamanho em 2 corta o <code>", "</code> que sobrou no fim.</dd>
+  <dt>relatorio.append("Alunos: ").append(nomes)</dt><dd>Um <code>StringBuilder</code> pode receber outro.</dd>
+</dl>
+
+<div class="tip">
+<strong>Atalhos prontos para casos comuns</strong>
+<p>Para juntar itens com separador, o Java já tem <code>String.join(", ", alunos)</code>, que dá <code>Ana, Bruno, Carla</code> sem o truque da vírgula. Para repetir um texto, <code>"x".repeat(80000)</code>. Use o <code>StringBuilder</code> quando a montagem tem lógica no meio (ifs, cálculos, formatos diferentes por linha).</p>
+</div>
+
+<hr>
+
+<h2><code>StringBuilder</code> × <code>StringBuffer</code></h2>
+<p>Você vai encontrar, em código antigo e em livros, o <code>StringBuffer</code>. Ele tem <strong>os mesmos métodos</strong> (<code>append</code>, <code>insert</code>, <code>reverse</code>…). A diferença é interna:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>StringBuilder</code></th><th><code>StringBuffer</code></th></tr>
+<tr><td>Desde</td><td>Java 5 (2004)</td><td>Java 1.0 (1996)</td></tr>
+<tr><td>Seguro para várias <a href="threads.html">threads</a> ao mesmo tempo</td><td>Não</td><td>Sim (métodos <code>synchronized</code>)</td></tr>
+<tr><td>Velocidade</td><td>Mais rápido</td><td>Um pouco mais lento (paga pela sincronização em toda chamada)</td></tr>
+<tr><td>Quando usar</td><td><strong>Quase sempre</strong>: um texto montado dentro de um método</td><td>Raramente: quando várias threads escrevem <strong>no mesmo</strong> objeto (e mesmo aí há opções melhores)</td></tr>
+</table>
+</div>
+
+<p>Resumo prático: use <code>StringBuilder</code>. O <code>StringBuffer</code> existe por compatibilidade com código antigo; ao ver um, saiba que ele funciona igual.</p>
+
+<h2>Qual usar: <code>+</code>, <code>StringBuilder</code> ou outro</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Juntar algumas partes numa expressão</td><td><code>+</code> ou <code>String.format</code></td></tr>
+<tr><td>Acumular texto dentro de um laço</td><td><strong><code>StringBuilder</code></strong></td></tr>
+<tr><td>Inserir, apagar, inverter, trocar caracteres</td><td><code>StringBuilder</code></td></tr>
+<tr><td>Juntar uma lista com separador</td><td><code>String.join</code></td></tr>
+<tr><td>Repetir um texto</td><td><code>"…".repeat(n)</code></td></tr>
+<tr><td>Várias threads escrevendo no mesmo texto</td><td><code>StringBuffer</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"StringBuilder cannot be converted to String"</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder("Ana");
+        String nome = sb;
+        System.out.println(nome);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:4: error: incompatible types: StringBuilder cannot be converted to String
+        String nome = sb;
+                      ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> <code>StringBuilder</code> e <code>String</code> são classes diferentes. O <code>println</code> aceita os dois, mas uma variável <code>String</code> só aceita <code>String</code>.</p>
+<p><strong>Como resolver:</strong> <code>String nome = sb.toString();</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Dois <code>StringBuilder</code> com o mesmo texto não são <code>equals</code></strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        StringBuilder a = new StringBuilder("uva");
+        StringBuilder b = new StringBuilder("uva");
+        System.out.println(a.equals(b));
+        System.out.println(a.toString().equals(b.toString()));
+        System.out.println(a.compareTo(b) == 0);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+false
+true
+true</pre>
+<p><strong>O que aconteceu:</strong> o <code>StringBuilder</code> não redefine o <code>equals</code> (veja <a href="object.html">A Classe Object</a>): para ele, <code>equals</code> é o mesmo que <code>==</code>, "é o mesmo objeto?". Como é um texto que muda, comparar conteúdos não faz muito sentido.</p>
+<p><strong>Como resolver:</strong> compare os textos prontos (<code>a.toString().equals(b.toString())</code>) ou use <code>a.compareTo(b) == 0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>StringIndexOutOfBoundsException</code> ao apagar</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder("uva");
+        sb.deleteCharAt(sb.length());
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.StringIndexOutOfBoundsException: Index 3 out of bounds for length 3
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:55)
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:52)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:213)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:210)
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:98)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+	at java.base/java.lang.String.checkIndex(String.java:4904)
+	at java.base/java.lang.AbstractStringBuilder.deleteCharAt(AbstractStringBuilder.java:1081)
+	at java.base/java.lang.StringBuilder.deleteCharAt(StringBuilder.java:298)
+	at Main.main(Main.java:4)</pre>
+<p><strong>O que aconteceu:</strong> <code>"uva"</code> tem tamanho 3 e posições 0, 1 e 2. A posição 3 não existe. O último caractere é sempre <code>length() - 1</code>.</p>
+<p><strong>Como resolver:</strong> <code>sb.deleteCharAt(sb.length() - 1)</code>, e só se o texto não estiver vazio (<code>if (sb.length() &gt; 0)</code>).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>new StringBuilder()</code> / <code>new StringBuilder("txt")</code></td><td>Cria vazio / com texto inicial</td><td></td></tr>
+<tr><td><code>append(x)</code></td><td>Acrescenta no fim (qualquer tipo)</td><td>o próprio <code>sb</code></td></tr>
+<tr><td><code>insert(pos, x)</code></td><td>Insere na posição</td><td>o próprio <code>sb</code></td></tr>
+<tr><td><code>delete(ini, fim)</code></td><td>Apaga de <code>ini</code> até <code>fim - 1</code></td><td>o próprio <code>sb</code></td></tr>
+<tr><td><code>deleteCharAt(pos)</code></td><td>Apaga um caractere</td><td>o próprio <code>sb</code></td></tr>
+<tr><td><code>replace(ini, fim, "txt")</code></td><td>Troca um trecho</td><td>o próprio <code>sb</code></td></tr>
+<tr><td><code>reverse()</code></td><td>Inverte</td><td>o próprio <code>sb</code></td></tr>
+<tr><td><code>setCharAt(pos, c)</code></td><td>Troca um caractere</td><td>nada (<code>void</code>)</td></tr>
+<tr><td><code>setLength(n)</code></td><td>Corta (ou completa) até o tamanho <code>n</code>; <code>setLength(0)</code> esvazia</td><td>nada</td></tr>
+<tr><td><code>length()</code>, <code>charAt(pos)</code>, <code>indexOf("txt")</code></td><td>Como na <code>String</code></td><td><code>int</code>, <code>char</code>, <code>int</code></td></tr>
+<tr><td><code>toString()</code></td><td>O texto pronto</td><td><code>String</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Acrescentar</h3>
+<p>Complete para acrescentar <code>"!"</code> no fim:</p>
+<div class="ex-code">sb.<input data-answer="append" aria-label="método">("!");</div>
+</div>
+
+<div class="exercise">
+<h3>2. Passar a limpo</h3>
+<p>Complete para obter a <code>String</code>:</p>
+<div class="ex-code">String pronto = sb.<input data-answer="toString()" aria-label="método">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Inverter</h3>
+<p>O que <code>new StringBuilder("Ana").reverse()</code> produz?</p>
+<div class="ex-code"><input data-answer="anA" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Por que <code>texto = texto + "x"</code> dentro de um laço grande é lento?</p>
+<label><input type="radio" name="q4"> Porque o <code>+</code> só funciona com números.</label>
+<label><input type="radio" name="q4"> Porque o Java faz a conta em binário.</label>
+<label><input type="radio" name="q4"> Porque cada volta cria uma <code>String</code> nova, copiando todo o texto anterior.</label>
+<label><input type="radio" name="q4"> Não é lento.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual a principal diferença entre <code>StringBuilder</code> e <code>StringBuffer</code>?</p>
+<label><input type="radio" name="q5"> O <code>StringBuffer</code> é sincronizado (seguro para várias threads) e mais lento.</label>
+<label><input type="radio" name="q5"> O <code>StringBuffer</code> não tem <code>append</code>.</label>
+<label><input type="radio" name="q5"> O <code>StringBuilder</code> é imutável.</label>
+<label><input type="radio" name="q5"> São idênticos em tudo.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. <code>StringBuilder sb = new StringBuilder("abc"); sb.deleteCharAt(0);</code> Quanto vale <code>sb</code>?</p>
+<label><input type="radio" name="q6"> <code>ab</code></label>
+<label><input type="radio" name="q6"> <code>bc</code></label>
+<label><input type="radio" name="q6"> <code>abc</code>, porque o resultado não foi guardado.</label>
+<label><input type="radio" name="q6"> Lança exceção.</label>
+</div>
+
+<div class="tryjava" data-goal="out:arara é palíndromo,out:banana não é palíndromo,out:Reviver é palíndromo,src:reverse">
+<p class="try-task"><strong>Missão final:</strong> um <strong>palíndromo</strong> é uma palavra que se lê igual de trás para frente. Complete o laço: inverta cada palavra com <code>new StringBuilder(p).reverse().toString()</code> e compare com a original ignorando maiúsculas (<code>equalsIgnoreCase</code>). Mostre <code>arara é palíndromo</code>, <code>banana não é palíndromo (ananab)</code> e <code>Reviver é palíndromo</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] palavras = {"arara", "banana", "Reviver"};
+        for (String p : palavras) {
+            String invertida = "";
+            // inverta p e compare
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] palavras = {"arara", "banana", "Reviver"};
+        for (String p : palavras) {
+            String invertida = new StringBuilder(p).reverse().toString();
+            if (p.equalsIgnoreCase(invertida)) {
+                System.out.println(p + " é palíndromo");
+            } else {
+                System.out.println(p + " não é palíndromo (" + invertida + ")");
+            }
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>String</code> é imutável: todo "alterar" cria uma <code>String</code> nova. <code>StringBuilder</code> é mutável: os métodos mudam o próprio objeto.</li>
+  <li><code>+</code> acumulando texto num laço é lento (dobrar o tamanho quadruplica o tempo). Use <code>StringBuilder</code> e <code>append</code>; <code>+</code> numa expressão só continua ótimo.</li>
+  <li>Métodos: <code>append</code>, <code>insert</code>, <code>delete</code>, <code>deleteCharAt</code>, <code>replace</code>, <code>reverse</code>, <code>setCharAt</code>, <code>setLength</code>, <code>toString</code>. A maioria devolve o próprio <code>sb</code>, o que permite encadear.</li>
+  <li>Para virar <code>String</code>: <code>toString()</code>. Para comparar: compare os <code>toString()</code> (o <code>equals</code> do <code>StringBuilder</code> não compara texto).</li>
+  <li><code>StringBuffer</code> é a versão antiga e sincronizada; prefira <code>StringBuilder</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
