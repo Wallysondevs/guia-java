@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Exceções Comuns — mensagem real, causa e como evitar | Guia Java</title>
+<meta name="description" content="Referência das exceções mais comuns do Java 25 (NullPointerException, ArrayIndexOutOfBounds, NumberFormatException, InputMismatchException, ClassCastException, ConcurrentModification, NoSuchFile e outras): quando acontecem, a mensagem real do JDK, como evitar e a aula de cada uma.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Exceções Comuns</span></h1>
+
+<p class="intro">Quando um programa Java quebra rodando, ele mostra uma <strong>exceção</strong>: o nome do problema, uma mensagem e a lista de onde aconteceu. Esta página reúne as exceções que você mais vai encontrar, cada uma com a <strong>mensagem real</strong> (todas provocadas de propósito num JDK 25), a causa e como evitar. Para entender o que é uma exceção e como tratá-la, veja <a href="excecoes.html">O que são Exceções</a> e <a href="try-catch.html">try e catch</a>.</p>
+
+<div class="note">
+<strong>Nesta página</strong>
+<ul>
+  <li><a href="#ler">Como ler uma exceção</a> em 10 segundos.</li>
+  <li><a href="#tabela">A tabela das exceções comuns</a>: quando, mensagem, como evitar, aula.</li>
+  <li><a href="#npe">NullPointerException em detalhe</a> (e o misterioso <code>&lt;local1&gt;</code>).</li>
+  <li><a href="#errors">Errors</a>: <code>StackOverflowError</code> e <code>OutOfMemoryError</code>.</li>
+  <li>Se o problema aparece <strong>antes</strong> de rodar, ao compilar, veja <a href="ref-erros-javac.html">Erros do Compilador</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="ler">Como ler uma exceção</h2>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.NumberFormatException: For input string: "vinte"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:3)</pre>
+
+<dl class="anatomy">
+  <dt>Exception in thread "main"</dt><dd>Uma exceção não tratada parou a thread principal (o seu <code>main</code>). O programa termina com código de saída 1.</dd>
+  <dt>java.lang.NumberFormatException</dt><dd>O <strong>tipo</strong> do problema, com o pacote na frente. É o nome que você procura na tabela abaixo.</dd>
+  <dt>For input string: "vinte"</dt><dd>A <strong>mensagem</strong>: o detalhe. Aqui, o texto que não virou número.</dd>
+  <dt>at java.base/…</dt><dd>Linhas de dentro do próprio Java. Quase sempre você pode pular.</dd>
+  <dt>at Main.main(Main.java:3)</dt><dd>A primeira linha do <strong>seu</strong> código, de cima para baixo: arquivo <code>Main.java</code>, linha 3. Comece por ela.</dd>
+</dl>
+
+<p>Essa lista de <code>at …</code> é o <strong>stack trace</strong> ("rastro da pilha"): quem chamou quem até o erro, do mais recente (em cima) para o mais antigo (embaixo).</p>
+
+<h3>Checked × unchecked</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Família</th><th>Exemplos</th><th>O compilador obriga a tratar?</th><th>Normalmente indica</th></tr>
+<tr><td><code>RuntimeException</code> e filhas (<strong>unchecked</strong>)</td><td><code>NullPointerException</code>, <code>ArithmeticException</code>, <code>IndexOutOfBoundsException</code></td><td>Não</td><td>Um defeito no código: conserte o código.</td></tr>
+<tr><td>Outras filhas de <code>Exception</code> (<strong>checked</strong>)</td><td><code>IOException</code>, <code>NoSuchFileException</code>, <code>InterruptedException</code></td><td>Sim: <code>try/catch</code> ou <code>throws</code></td><td>Algo externo que pode falhar (arquivo, rede): trate.</td></tr>
+<tr><td><code>Error</code> e filhas</td><td><code>StackOverflowError</code>, <code>OutOfMemoryError</code></td><td>Não</td><td>Problema grave da JVM; não se costuma capturar.</td></tr>
+</table>
+</div>
+<p>Detalhes em <a href="checked-unchecked.html">Checked × Unchecked</a>.</p>
+
+<hr>
+
+<h2 id="tabela">As exceções comuns</h2>
+<p>Em cada linha, a mensagem é a primeira linha real da saída; a coluna "Linha do seu código" mostra a linha <code>at</code> que aponta para o programa de exemplo.</p>
+
+<h3>Números e contas</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção</th><th>Quando acontece</th><th>Mensagem real</th><th>Como evitar</th><th>Aula</th></tr>
+<tr><td><code>ArithmeticException</code></td><td>Divisão inteira por zero: <code>total / pessoas</code> com <code>pessoas = 0</code>.</td><td><code>java.lang.ArithmeticException: / by zero</code></td><td>Confira o divisor antes (<code>if (pessoas != 0)</code>). Com <code>double</code> não há exceção: dá <code>Infinity</code>.</td><td><a href="operadores-aritmeticos.html">Operadores Aritméticos</a></td></tr>
+<tr><td><code>ArithmeticException</code></td><td><code>BigDecimal.divide</code> com resultado infinito (10 ÷ 3).</td><td><code>java.lang.ArithmeticException: Non-terminating decimal expansion; no exact representable decimal result.</code></td><td>Diga as casas e o arredondamento: <code>divide(tres, 2, RoundingMode.HALF_EVEN)</code>.</td><td><a href="bigdecimal.html">BigDecimal</a></td></tr>
+<tr><td><code>ArithmeticException</code></td><td><code>Math.addExact</code>/<code>multiplyExact</code> passou do limite do tipo.</td><td><code>java.lang.ArithmeticException: integer overflow</code></td><td>Use <code>long</code> ou <code>BigInteger</code> se os números podem crescer.</td><td><a href="ref-math.html#exatas">Métodos de Math</a></td></tr>
+<tr><td><code>NumberFormatException</code></td><td>Converter texto que não é número: <code>Integer.parseInt("vinte")</code>.</td><td><code>java.lang.NumberFormatException: For input string: "vinte"</code></td><td><code>try/catch (NumberFormatException e)</code> ou validar antes (<code>texto.matches("-?\\d+")</code>).</td><td><a href="wrappers.html">Wrappers</a></td></tr>
+</table>
+</div>
+
+<h3>Índices e tamanhos</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção</th><th>Quando acontece</th><th>Mensagem real</th><th>Como evitar</th><th>Aula</th></tr>
+<tr><td><code>ArrayIndexOutOfBoundsException</code></td><td>Posição inexistente num array: <code>notas[3]</code> com 3 notas (posições 0, 1, 2).</td><td><code>java.lang.ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 3</code></td><td>O último índice é <code>length - 1</code>. Em laços, <code>i &lt; notas.length</code> (nunca <code>&lt;=</code>), ou use for-each.</td><td><a href="arrays.html">Arrays</a></td></tr>
+<tr><td><code>IndexOutOfBoundsException</code></td><td>Posição inexistente numa lista: <code>frutas.get(3)</code> num <code>ArrayList</code> de 3.</td><td><code>java.lang.IndexOutOfBoundsException: Index 3 out of bounds for length 3</code></td><td>Confira <code>i &lt; lista.size()</code>. Num <code>List.of(…)</code>, a mesma situação dá <code>ArrayIndexOutOfBoundsException</code>.</td><td><a href="arraylist.html">ArrayList</a></td></tr>
+<tr><td><code>StringIndexOutOfBoundsException</code></td><td>Posição inexistente num texto: <code>"Ana".charAt(5)</code>, ou <code>substring</code> com início maior que o fim.</td><td><code>java.lang.StringIndexOutOfBoundsException: Index 5 out of bounds for length 3</code></td><td>Confira contra <code>length()</code>; cuidado com <code>indexOf</code> que devolveu <code>-1</code>.</td><td><a href="ref-string.html">Métodos de String</a></td></tr>
+<tr><td><code>NegativeArraySizeException</code></td><td>Criar array com tamanho negativo.</td><td><code>java.lang.NegativeArraySizeException: -1</code></td><td>Valide o tamanho que veio da entrada ou de uma conta.</td><td><a href="arrays.html">Arrays</a></td></tr>
+<tr><td><code>ArrayStoreException</code></td><td>Guardar um tipo errado num array visto como <code>Object[]</code>: <code>caixas[0] = 42</code> num <code>String[]</code>.</td><td><code>java.lang.ArrayStoreException: java.lang.Integer</code></td><td>Prefira listas com generics (<code>List&lt;String&gt;</code>): o erro aparece na compilação.</td><td><a href="generics.html">Generics</a></td></tr>
+</table>
+</div>
+
+<h3>Objetos e tipos</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção</th><th>Quando acontece</th><th>Mensagem real</th><th>Como evitar</th><th>Aula</th></tr>
+<tr><td><code>NullPointerException</code></td><td>Usar (chamar método, ler atributo) uma variável que vale <code>null</code>.</td><td><code>java.lang.NullPointerException: Cannot invoke "String.length()" because "&lt;local1&gt;" is null</code></td><td>Inicialize as variáveis; confira <code>if (x != null)</code>; use <code>Optional</code> para "pode não ter valor". Veja <a href="#npe">abaixo</a>.</td><td><a href="excecoes.html">O que são Exceções</a></td></tr>
+<tr><td><code>ClassCastException</code></td><td>Converter (<em>cast</em>) um objeto para um tipo que ele não é: <code>(Integer) "42"</code>.</td><td><code>java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Integer (java.lang.String and java.lang.Integer are in module java.base of loader 'bootstrap')</code></td><td>Teste antes com <code>instanceof</code> (melhor: <code>if (valor instanceof Integer n)</code>).</td><td><a href="pattern-matching.html">Pattern Matching</a></td></tr>
+<tr><td><code>IllegalArgumentException</code></td><td>Um método recebeu um argumento inválido: <code>sorteio.nextInt(0)</code>. Também é a exceção certa para os <strong>seus</strong> métodos recusarem argumentos.</td><td><code>java.lang.IllegalArgumentException: bound must be positive</code></td><td>Leia a documentação do método; valide antes de chamar.</td><td><a href="throw-throws.html">throw e throws</a></td></tr>
+<tr><td><code>IllegalStateException</code></td><td>O objeto não está em condições de fazer aquilo agora: ler de um <code>Scanner</code> já fechado.</td><td><code>java.lang.IllegalStateException: Scanner closed</code></td><td>Respeite a ordem de uso (não feche o <code>Scanner(System.in)</code> antes de terminar de ler).</td><td><a href="scanner.html">Scanner</a></td></tr>
+</table>
+</div>
+
+<h3>Entrada do teclado</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção</th><th>Quando acontece</th><th>Mensagem real</th><th>Como evitar</th><th>Aula</th></tr>
+<tr><td><code>InputMismatchException</code></td><td><code>nextInt()</code>/<code>nextDouble()</code> encontrou algo que não é número (ou, em pt_BR, <code>2.5</code> com ponto).</td><td><code>java.util.InputMismatchException</code> (sem mensagem)</td><td>Pergunte antes com <code>hasNextInt()</code>/<code>hasNextDouble()</code>; veja o <a href="projeto-calculadora.html#etapa4">projeto da calculadora</a>.</td><td><a href="scanner.html">Scanner</a></td></tr>
+<tr><td><code>NoSuchElementException</code></td><td>Pedir a próxima linha quando a entrada acabou (<kbd>Ctrl</kbd>+<kbd>D</kbd>, ou entrada vazia).</td><td><code>java.util.NoSuchElementException: No line found</code></td><td>Confira com <code>hasNextLine()</code>/<code>hasNext()</code>.</td><td><a href="scanner.html">Scanner</a></td></tr>
+</table>
+</div>
+
+<h3>Coleções, Optional e iteradores</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção</th><th>Quando acontece</th><th>Mensagem real</th><th>Como evitar</th><th>Aula</th></tr>
+<tr><td><code>UnsupportedOperationException</code></td><td>Alterar uma coleção imutável: <code>List.of("uva", "maçã").add("kiwi")</code>.</td><td><code>java.lang.UnsupportedOperationException</code> (sem mensagem)</td><td>Para alterar, copie: <code>new ArrayList&lt;&gt;(List.of(…))</code>.</td><td><a href="ref-colecoes.html#imutaveis">Cola de Coleções</a></td></tr>
+<tr><td><code>ConcurrentModificationException</code></td><td>Remover (ou adicionar) itens da lista dentro de um for-each sobre ela.</td><td><code>java.util.ConcurrentModificationException</code> (sem mensagem)</td><td><code>lista.removeIf(n -&gt; n % 2 == 0)</code> ou um <code>Iterator</code> com <code>it.remove()</code>.</td><td><a href="iterator.html">Iterator</a></td></tr>
+<tr><td><code>NoSuchElementException</code></td><td><code>Optional.get()</code> num Optional vazio (ex.: o <code>max</code> de uma lista vazia).</td><td><code>java.util.NoSuchElementException: No value present</code></td><td>Use <code>orElse(0)</code>, <code>orElseThrow(…)</code> ou <code>ifPresent(…)</code>.</td><td><a href="optional.html">Optional</a></td></tr>
+<tr><td><code>NoSuchElementException</code></td><td><code>it.next()</code> num iterador que já acabou.</td><td><code>java.util.NoSuchElementException</code> (sem mensagem)</td><td>Chame <code>next()</code> só depois de <code>hasNext()</code> devolver <code>true</code>.</td><td><a href="iterator.html">Iterator</a></td></tr>
+</table>
+</div>
+
+<h3>Arquivos, datas e textos</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção</th><th>Quando acontece</th><th>Mensagem real</th><th>Como evitar</th><th>Aula</th></tr>
+<tr><td><code>NoSuchFileException</code> <em>(checked, é uma IOException)</em></td><td><code>Files.readString(Path.of("notas.txt"))</code> e o arquivo não existe (na pasta de onde você rodou o <code>java</code>).</td><td><code>java.nio.file.NoSuchFileException: notas.txt</code></td><td><code>Files.exists(caminho)</code> antes, e <code>try/catch (IOException e)</code>.</td><td><a href="arquivos.html">Ler e Escrever Arquivos</a></td></tr>
+<tr><td><code>FileNotFoundException</code> <em>(checked)</em></td><td>O mesmo, com as classes antigas (<code>FileReader</code>, <code>FileInputStream</code>).</td><td><code>java.io.FileNotFoundException: notas.txt (Arquivo ou diretório inexistente)</code></td><td>Idem. A parte entre parênteses vem do sistema, no idioma dele.</td><td><a href="arquivos.html">Ler e Escrever Arquivos</a></td></tr>
+<tr><td><code>DateTimeParseException</code></td><td><code>LocalDate.parse("16/10/2026")</code>: o <code>parse</code> sem formato espera <code>2026-10-16</code>.</td><td><code>java.time.format.DateTimeParseException: Text '16/10/2026' could not be parsed at index 0</code></td><td>Passe o formato: <code>LocalDate.parse(texto, DateTimeFormatter.ofPattern("dd/MM/yyyy"))</code>.</td><td><a href="datas.html">Datas e Horas</a></td></tr>
+<tr><td><code>DateTimeException</code></td><td>Data impossível: <code>LocalDate.of(2026, 2, 30)</code>.</td><td><code>java.time.DateTimeException: Invalid date 'FEBRUARY 30'</code></td><td>Valide dia e mês; capture a exceção se a data vem do usuário.</td><td><a href="datas.html">Datas e Horas</a></td></tr>
+<tr><td><code>PatternSyntaxException</code></td><td>Expressão regular mal escrita: <code>Pattern.compile("(abc")</code>.</td><td><code>java.util.regex.PatternSyntaxException: Unclosed group near index 4</code> (e a regex na linha seguinte)</td><td>Feche parênteses e colchetes; para texto literal, <code>Pattern.quote(…)</code>.</td><td><a href="regex.html">Expressões Regulares</a></td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-stdin="vinte\n" data-goal="out:Isso não é um número: vinte,src:catch\s*\(\s*NumberFormatException">
+<p class="try-task"><strong>Missão:</strong> o programa lê uma idade como texto e converte com <code>Integer.parseInt</code>. Com a entrada <code>vinte</code>, ele quebra com <code>NumberFormatException</code>. Capture a exceção e mostre <code>Isso não é um número: vinte</code>.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.print("Idade: ");
+        String texto = entrada.nextLine();
+        int idade = Integer.parseInt(texto);
+        System.out.println("Ano que vem você terá " + (idade + 1));
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        System.out.print("Idade: ");
+        String texto = entrada.nextLine();
+        try {
+            int idade = Integer.parseInt(texto);
+            System.out.println("Ano que vem você terá " + (idade + 1));
+        } catch (NumberFormatException e) {
+            System.out.println("Isso não é um número: " + texto);
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="npe"><code>NullPointerException</code> em detalhe</h2>
+<p>É a exceção mais famosa do Java. Desde o Java 14 (e por padrão desde o 15), a mensagem diz <strong>o que</strong> era <code>null</code> (são as <em>helpful NullPointerExceptions</em>). Com um atributo <code>static</code> que nunca recebeu valor:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.toUpperCase()" because "Main.apelido" is null
+	at Main.main(Main.java:5)</pre>
+
+<p>"Não dá para chamar <code>toUpperCase()</code> porque <code>Main.apelido</code> é null." Com uma <strong>variável local</strong>, porém, aparece um nome estranho:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "&lt;local1&gt;" is null
+	at Main.main(Main.java:4)
+$ javac -g Main.java
+$ java Main
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "nome" is null
+	at Main.main(Main.java:4)</pre>
+
+<p><code>&lt;local1&gt;</code> é "a variável local número 1". Os nomes das variáveis locais só ficam guardados no <code>.class</code> quando você compila com <code>javac -g</code> (de <em>debug</em>, "depuração"); o <code>java Main.java</code> e o <code>javac</code> comum não guardam. Nos dois casos, a linha (<code>Main.java:4</code>) leva direto ao problema. O Maven e as IDEs já compilam com <code>-g</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Causa comum</th><th>Exemplo</th><th>Correção</th></tr>
+<tr><td>Atributo de objeto nunca inicializado</td><td><code>private List&lt;String&gt; itens;</code> e depois <code>itens.add(…)</code></td><td><code>private List&lt;String&gt; itens = new ArrayList&lt;&gt;();</code></td></tr>
+<tr><td><code>Map.get</code> de chave inexistente</td><td><code>mapa.get("L9").getTitulo()</code></td><td>Confira <code>containsKey</code> ou o <code>null</code>; use <code>getOrDefault</code>.</td></tr>
+<tr><td>Método que devolve <code>null</code> quando não acha</td><td><code>buscar(codigo).getNome()</code></td><td>Faça o método lançar uma exceção clara ou devolver <code>Optional</code> (veja o <a href="projeto-biblioteca.html#etapa3">projeto da biblioteca</a>).</td></tr>
+<tr><td>Array de objetos recém-criado</td><td><code>String[] nomes = new String[3]; nomes[0].length()</code></td><td>Os itens começam <code>null</code>: preencha antes.</td></tr>
+<tr><td>Comparar com o lado errado</td><td><code>resposta.equals("s")</code> com <code>resposta == null</code></td><td><code>"s".equals(resposta)</code> nunca dá NPE.</td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:Total de itens: 1,src:new ArrayList">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Carrinho</code> esqueceu de criar a lista, e o programa termina com <code>NullPointerException</code>. Rode, leia a mensagem e conserte inicializando o atributo, para mostrar <code>Total de itens: 1</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        Carrinho c = new Carrinho();
+        c.adicionar("pão");
+        System.out.println("Total de itens: " + c.total());
+    }
+}
+
+class Carrinho {
+    private List&lt;String&gt; itens;
+
+    void adicionar(String item) {
+        itens.add(item);
+    }
+
+    int total() {
+        return itens.size();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        Carrinho c = new Carrinho();
+        c.adicionar("pão");
+        System.out.println("Total de itens: " + c.total());
+    }
+}
+
+class Carrinho {
+    private List&lt;String&gt; itens = new ArrayList&lt;&gt;();
+
+    void adicionar(String item) {
+        itens.add(item);
+    }
+
+    int total() {
+        return itens.size();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="errors">Errors: quando a JVM não aguenta</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Error</th><th>Quando acontece</th><th>Mensagem real</th><th>Como evitar</th><th>Aula</th></tr>
+<tr><td><code>StackOverflowError</code></td><td>Recursão sem fim: um método que chama a si mesmo sem caso base.</td><td><code>java.lang.StackOverflowError</code>, seguido de centenas de <code>at Main.contar(Main.java:3)</code></td><td>Todo método recursivo precisa de um caso base que pare.</td><td><a href="recursao.html">Recursão</a></td></tr>
+<tr><td><code>OutOfMemoryError</code></td><td>Acabou a memória reservada para os objetos (o <em>heap</em>).</td><td><code>java.lang.OutOfMemoryError: Java heap space</code></td><td>Não guarde tudo de uma vez (leia arquivos aos poucos); se for preciso, aumente com <code>java -Xmx2g</code>.</td><td><a href="jdk-jre-jvm.html">JDK, JRE e JVM</a></td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.StackOverflowError
+	at Main.contar(Main.java:3)
+	at Main.contar(Main.java:3)
+	at Main.contar(Main.java:3)
+	at Main.contar(Main.java:3)
+…                                       « a mesma linha se repete: a saída inteira tem 1020 linhas
+$ java -Xmx64m Main.java                « um array de 100 milhões de long (800 MB) com só 64 MB
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+	at Main.main(Main.java:3)
+…</pre>
+
+<h3>E quando o <code>java</code> nem acha a classe</h3>
+<p>Não é uma exceção do seu programa, mas aparece com a palavra "Exception": a classe pedida não existe (nome errado, pasta errada ou faltou compilar). A primeira parte vem em português, do lançador <code>java</code>:</p>
+
+<pre class="term" data-cwd="~/java">$ java Olaa
+Erro: Não foi possível localizar nem carregar a classe principal Olaa
+Causada por: java.lang.ClassNotFoundException: Olaa</pre>
+
+<p>Veja <a href="compilar-executar.html">javac e java</a>.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. Qual linha do stack trace você deve olhar primeiro?</p>
+<label><input type="radio" name="q1"> A última, sempre.</label>
+<label><input type="radio" name="q1"> A primeira linha <code>at</code> que aponta para um arquivo seu (ex.: <code>Main.java:7</code>).</label>
+<label><input type="radio" name="q1"> A primeira <code>at java.base/…</code>.</label>
+<label><input type="radio" name="q1"> Nenhuma: só o nome da exceção importa.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">2. <code>int[] v = new int[3];</code> O que <code>v[3] = 1;</code> lança?</p>
+<label><input type="radio" name="q2"> <code>NullPointerException</code></label>
+<label><input type="radio" name="q2"> <code>IndexOutOfBoundsException</code></label>
+<label><input type="radio" name="q2"> Nada: o array cresce.</label>
+<label><input type="radio" name="q2"> <code>ArrayIndexOutOfBoundsException: Index 3 out of bounds for length 3</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. Por que <code>"s".equals(resposta)</code> é mais seguro que <code>resposta.equals("s")</code>?</p>
+<label><input type="radio" name="q3"> Se <code>resposta</code> for <code>null</code>, o primeiro devolve <code>false</code>; o segundo lança <code>NullPointerException</code>.</label>
+<label><input type="radio" name="q3"> Porque é mais rápido.</label>
+<label><input type="radio" name="q3"> Porque ignora maiúsculas.</label>
+<label><input type="radio" name="q3"> Não há diferença.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destas é <strong>checked</strong> (o compilador obriga a tratar)?</p>
+<label><input type="radio" name="q4"> <code>NullPointerException</code></label>
+<label><input type="radio" name="q4"> <code>NumberFormatException</code></label>
+<label><input type="radio" name="q4"> <code>NoSuchFileException</code></label>
+<label><input type="radio" name="q4"> <code>ArithmeticException</code></label>
+</div>
+
+<div class="exercise">
+<p>Complete o <code>catch</code> que trata o texto que não virou número:</p>
+<div class="ex-code">} catch (<input data-answer="NumberFormatException"> e) {</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Leia: tipo da exceção, mensagem e a primeira linha <code>at</code> do seu arquivo.</li>
+  <li>Unchecked (<code>RuntimeException</code>) costuma ser defeito no código; checked (<code>IOException</code>…) é algo externo que você deve tratar.</li>
+  <li>Os campeões: <code>NullPointerException</code>, índices fora do limite, <code>NumberFormatException</code>, <code>InputMismatchException</code>, <code>ConcurrentModificationException</code>.</li>
+  <li><code>&lt;local1&gt;</code> na mensagem do NPE = variável local de um código compilado sem <code>-g</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
