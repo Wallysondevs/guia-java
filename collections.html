@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Collections — sort, reverse, shuffle, max, min, frequency | Guia Java</title>
+<meta name="description" content="A classe utilitária Collections em Java: sort, reverse, shuffle com semente, swap, max, min, frequency, unmodifiableList, emptyList, nCopies, fill e addAll, com saídas reais do JDK 25 e os erros mais comuns.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">A Classe Collections</span></h1>
+
+<p class="intro">A classe <code>Collections</code> (no plural) é uma <strong>caixa de ferramentas</strong> para coleções: ordenar, inverter, embaralhar, achar o maior, contar repetições, criar listas "só de leitura"… São métodos prontos que você chama sem criar objeto nenhum, como faz com <a href="math.html">Math</a>. Ela é a irmã da classe <a href="classe-arrays.html">Arrays</a>, que faz o mesmo para arrays.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Reorganizar listas: <code>sort</code>, <code>reverse</code>, <code>swap</code> e <code>shuffle</code> (com e sem semente).</li>
+  <li>Perguntar: <code>max</code>, <code>min</code> e <code>frequency</code>.</li>
+  <li>Proteger: <code>unmodifiableList</code> (e a diferença para <code>List.copyOf</code>).</li>
+  <li>Criar: <code>emptyList</code>, <code>nCopies</code>, <code>fill</code> e <code>addAll</code>.</li>
+  <li>Os erros: <code>NoSuchElementException</code> e <code>UnsupportedOperationException</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: métodos estáticos</h2>
+<p>Até aqui, você chamava métodos <strong>na</strong> coleção: <code>lista.add(…)</code>, <code>lista.size()</code>. Os métodos de <code>Collections</code> são <a href="static.html">estáticos</a>: você chama <strong>na classe</strong> e passa a coleção como argumento:</p>
+
+<pre class="syntax">lista.sort(null);            « método da lista
+Collections.sort(lista);     « método da classe Collections, recebendo a lista</pre>
+
+<div class="note">
+<strong><code>Collection</code> × <code>Collections</code></strong>
+<p><code>Collection</code> (singular) é a <strong>interface</strong> que <code>List</code>, <code>Set</code> e <code>Queue</code> herdam (veja a <a href="colecoes.html">Visão Geral</a>). <code>Collections</code> (plural) é esta <strong>classe de ferramentas</strong>. Um "s" de diferença; o compilador não perdoa a troca.</p>
+</div>
+
+<p>Muitos desses métodos só funcionam com <code>List</code> (que tem posições): ordenar, inverter e embaralhar um <code>HashSet</code> não faria sentido. Já <code>max</code>, <code>min</code> e <code>frequency</code> aceitam qualquer <code>Collection</code>.</p>
+
+<hr>
+
+<h2>Reorganizar: <code>sort</code>, <code>reverse</code>, <code>swap</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(7, 10, 3, 8, 5));
+        System.out.println("original:  " + notas);
+
+        Collections.sort(notas);
+        System.out.println("sort:      " + notas);
+
+        Collections.reverse(notas);
+        System.out.println("reverse:   " + notas);
+
+        Collections.sort(notas, Collections.reverseOrder());
+        System.out.println("decrescente: " + notas);
+
+        Collections.swap(notas, 0, 4);
+        System.out.println("swap(0, 4): " + notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+original:  [7, 10, 3, 8, 5]
+sort:      [3, 5, 7, 8, 10]
+reverse:   [10, 8, 7, 5, 3]
+decrescente: [10, 8, 7, 5, 3]
+swap(0, 4): [3, 8, 7, 5, 10]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Tradução</th><th>O que faz</th></tr>
+<tr><td><code>sort(lista)</code></td><td>ordenar</td><td>Ordem natural (menor → maior, A → Z). Muda a própria lista.</td></tr>
+<tr><td><code>sort(lista, comparador)</code></td><td></td><td>Ordem definida pelo comparador. <code>Collections.reverseOrder()</code> = decrescente.</td></tr>
+<tr><td><code>reverse(lista)</code></td><td>inverter</td><td>Põe de trás para a frente. <strong>Não ordena</strong>: só inverte a ordem atual.</td></tr>
+<tr><td><code>swap(lista, i, j)</code></td><td>trocar</td><td>Troca os elementos das posições <code>i</code> e <code>j</code>.</td></tr>
+</table>
+</div>
+
+<p>Aqui <code>reverse</code> e o <code>sort</code> decrescente deram o mesmo resultado só porque a lista já estava ordenada. Numa lista desordenada, <code>reverse([7, 10, 3])</code> dá <code>[3, 10, 7]</code>: é só um espelho. Lembre também que ordenar textos pela ordem natural põe as maiúsculas antes das minúsculas (veja a <a href="arraylist.html">aula de ArrayList</a>).</p>
+
+<hr>
+
+<h2>Embaralhar: <code>shuffle</code> (com e sem semente)</h2>
+<p>A Ana quer sortear a ordem de apresentação dos trabalhos. <code>Collections.shuffle</code> ("embaralhar") mistura a lista como um baralho:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Carla", "Duda", "Edu"));
+
+        Collections.shuffle(alunos);
+        System.out.println("shuffle sem semente: " + alunos);
+
+        Collections.sort(alunos);
+        Collections.shuffle(alunos, new Random(42));
+        System.out.println("shuffle semente 42:  " + alunos);
+
+        Collections.sort(alunos);
+        Collections.shuffle(alunos, new Random(42));
+        System.out.println("de novo, semente 42: " + alunos);
+    }
+}
+</pre>
+
+<p>O mesmo programa, rodado três vezes:</p>
+
+<pre class="term">$ javac Main.java
+$ java Main
+shuffle sem semente: [Edu, Ana, Duda, Carla, Bruno]
+shuffle semente 42:  [Bruno, Carla, Duda, Edu, Ana]
+de novo, semente 42: [Bruno, Carla, Duda, Edu, Ana]
+$ java Main
+shuffle sem semente: [Duda, Bruno, Edu, Carla, Ana]      « mudou
+shuffle semente 42:  [Bruno, Carla, Duda, Edu, Ana]      « igual
+de novo, semente 42: [Bruno, Carla, Duda, Edu, Ana]
+$ java Main
+shuffle sem semente: [Ana, Edu, Bruno, Carla, Duda]      « mudou de novo
+shuffle semente 42:  [Bruno, Carla, Duda, Edu, Ana]      « sempre igual
+de novo, semente 42: [Bruno, Carla, Duda, Edu, Ana]</pre>
+
+<dl class="anatomy">
+  <dt>Collections.shuffle(alunos)</dt><dd>Embaralha de um jeito diferente a cada execução. É o que você quer num sorteio de verdade.</dd>
+  <dt>new Random(42)</dt><dd>Um gerador de números aleatórios com <strong>semente</strong> 42 (veja <a href="aleatorios.html">Números Aleatórios</a>). Com a mesma semente, o gerador produz sempre a mesma sequência.</dd>
+  <dt>Collections.shuffle(alunos, new Random(42))</dt><dd>Embaralha usando esse gerador: a mesma lista de entrada dá <strong>sempre</strong> o mesmo resultado.</dd>
+  <dt>Collections.sort(alunos) antes</dt><dd>Garante que a entrada do segundo e do terceiro <code>shuffle</code> é a mesma (em ordem alfabética). Embaralhar uma lista já embaralhada daria outra coisa.</dd>
+</dl>
+
+<p>Por que alguém quer um embaralhamento "previsível"? Para <strong>testes</strong> (o resultado tem que ser conferível), para repetir um problema que aconteceu e para jogos em que a "partida número 42" deve ser sempre a mesma. É assim também que as missões deste guia conseguem conferir a sua saída.</p>
+
+<div class="tryjava" data-goal="out:1º Bruno,out:5º Ana,src:shuffle">
+<p class="try-task"><strong>Missão:</strong> sorteie a ordem de apresentação com <code>Collections.shuffle</code> e semente <code>42</code>, e mostre a ordem numerada (<code>1º Bruno</code>, <code>2º …</code>). Depois tire a semente e rode algumas vezes.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Carla", "Duda", "Edu"));
+        // embaralhe aqui
+
+        for (int i = 0; i &lt; alunos.size(); i++) {
+            System.out.println((i + 1) + "º " + alunos.get(i));
+        }
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Carla", "Duda", "Edu"));
+        Collections.shuffle(alunos, new Random(42));
+
+        for (int i = 0; i &lt; alunos.size(); i++) {
+            System.out.println((i + 1) + "º " + alunos.get(i));
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Perguntar: <code>max</code>, <code>min</code>, <code>frequency</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = List.of(7, 10, 3, 8, 5, 10, 7, 10);
+        System.out.println("max: " + Collections.max(notas));
+        System.out.println("min: " + Collections.min(notas));
+        System.out.println("frequency(10): " + Collections.frequency(notas, 10));
+        System.out.println("frequency(9):  " + Collections.frequency(notas, 9));
+
+        List&lt;String&gt; nomes = List.of("Ana", "Bruno", "Bia", "Carla");
+        System.out.println("max (alfabética): " + Collections.max(nomes));
+        System.out.println("max (tamanho):    " + Collections.max(nomes, Comparator.comparing(String::length)));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+max: 10
+min: 3
+frequency(10): 3                « o 10 aparece três vezes
+frequency(9):  0
+max (alfabética): Carla         « o "último" no dicionário
+max (tamanho):    Bruno         « Bruno e Carla têm 5 letras: vale o primeiro</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th></tr>
+<tr><td><code>max(col)</code> / <code>min(col)</code></td><td>O maior / o menor pela ordem natural. Não precisa ordenar antes, e não muda a coleção.</td></tr>
+<tr><td><code>max(col, comparador)</code></td><td>O maior segundo o comparador (aqui, pelo tamanho). Empate: devolve o primeiro encontrado.</td></tr>
+<tr><td><code>frequency(col, x)</code></td><td>Quantas vezes <code>x</code> aparece (compara com <code>equals</code>).</td></tr>
+</table>
+</div>
+
+<p>Repare que funcionou numa <code>List.of</code>, que é imutável: esses métodos só leem.</p>
+
+<hr>
+
+<h2>Proteger: <code>unmodifiableList</code></h2>
+<p>Às vezes você quer entregar uma lista para outra parte do programa <strong>só para leitura</strong>. <code>Collections.unmodifiableList(lista)</code> devolve uma "janela" para a lista original, sem a porta de mexer:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; chamada = new ArrayList&lt;&gt;(List.of("Ana", "Bruno"));
+        List&lt;String&gt; soLeitura = Collections.unmodifiableList(chamada);
+        List&lt;String&gt; copia = List.copyOf(chamada);
+
+        System.out.println("soLeitura: " + soLeitura);
+        chamada.add("Carla");
+        System.out.println("depois de chamada.add: soLeitura = " + soLeitura + ", copia = " + copia);
+
+        soLeitura.add("Duda");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+soLeitura: [Ana, Bruno]
+depois de chamada.add: soLeitura = [Ana, Bruno, Carla], copia = [Ana, Bruno]
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.Collections$UnmodifiableCollection.add(Collections.java:1093)
+	at Main.main(Main.java:15)</pre>
+
+<p>Três coisas aconteceram:</p>
+<ol>
+  <li>A Carla, acrescentada na lista <strong>original</strong>, apareceu na <code>soLeitura</code>: ela é uma janela, não uma cópia.</li>
+  <li>A <code>copia</code> (feita com <code>List.copyOf</code>, Java 10+) continuou <code>[Ana, Bruno]</code>: é uma fotografia, imutável e independente.</li>
+  <li>Tentar mudar pela janela dá <code>UnsupportedOperationException</code>.</li>
+</ol>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Pode mudar por ela?</th><th>Vê mudanças da original?</th><th>Quando usar</th></tr>
+<tr><td><code>Collections.unmodifiableList(l)</code></td><td>Não</td><td><strong>Sim</strong></td><td>Dar acesso de leitura a uma lista que continua mudando (um <code>getAlunos()</code> de uma classe; veja <a href="encapsulamento.html">Encapsulamento</a>).</td></tr>
+<tr><td><code>List.copyOf(l)</code></td><td>Não</td><td>Não</td><td>Guardar um retrato que nunca muda.</td></tr>
+<tr><td><code>new ArrayList&lt;&gt;(l)</code></td><td>Sim</td><td>Não</td><td>Ter a sua própria versão para mexer.</td></tr>
+</table>
+</div>
+<p>Existem também <code>unmodifiableSet</code> e <code>unmodifiableMap</code>, com a mesma ideia.</p>
+
+<hr>
+
+<h2>Criar: <code>emptyList</code>, <code>nCopies</code>, <code>fill</code>, <code>addAll</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; vazia = Collections.emptyList();
+        System.out.println("emptyList: " + vazia + " size " + vazia.size());
+
+        List&lt;String&gt; tracos = Collections.nCopies(5, "-");
+        System.out.println("nCopies(5, \"-\"): " + tracos);
+        System.out.println(String.join("", Collections.nCopies(20, "=")));
+
+        List&lt;Integer&gt; zeros = new ArrayList&lt;&gt;(Collections.nCopies(4, 0));
+        zeros.set(2, 7);
+        System.out.println("placar: " + zeros);
+
+        Collections.fill(zeros, 1);
+        System.out.println("fill(1): " + zeros);
+
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;();
+        Collections.addAll(frutas, "uva", "kiwi", "pera");
+        System.out.println("addAll: " + frutas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+emptyList: [] size 0
+nCopies(5, "-"): [-, -, -, -, -]
+====================                  « String.join colou as 20 cópias
+placar: [0, 0, 7, 0]
+fill(1): [1, 1, 1, 1]
+addAll: [uva, kiwi, pera]</pre>
+
+<dl class="anatomy">
+  <dt>Collections.emptyList()</dt><dd>Uma lista vazia e imutável. Útil para um método devolver "nada" sem devolver <code>null</code> (quem recebe pode fazer for-each nela sem erro). O mesmo que <code>List.of()</code>.</dd>
+  <dt>Collections.nCopies(5, "-")</dt><dd>"n cópias": uma lista imutável com o mesmo elemento repetido.</dd>
+  <dt>new ArrayList&lt;&gt;(Collections.nCopies(4, 0))</dt><dd>O truque para criar uma lista mutável já com tamanho e valor inicial: um placar com 4 zeros.</dd>
+  <dt>Collections.fill(zeros, 1)</dt><dd>"Preencher": troca <strong>todos</strong> os elementos existentes por <code>1</code>. Não muda o tamanho.</dd>
+  <dt>Collections.addAll(frutas, "uva", "kiwi", "pera")</dt><dd>Acrescenta vários de uma vez, numa coleção que já existe.</dd>
+</dl>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>NoSuchElementException</code> no <code>max</code> de uma coleção vazia</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;();
+        System.out.println(Collections.max(notas));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+$ java Main
+Exception in thread "main" java.util.NoSuchElementException
+	at java.base/java.util.ArrayList$Itr.next(ArrayList.java:1053)
+	at java.base/java.util.Collections.max(Collections.java:698)
+	at Main.main(Main.java:8)</pre>
+<p><strong>O que quer dizer:</strong> não existe maior elemento numa lista vazia. A pilha mostra que o <code>max</code> usa um <a href="iterator.html">iterador</a> e pediu o primeiro elemento, que não existe.</p>
+<p><strong>Como consertar:</strong> confira <code>isEmpty()</code> antes. Com <a href="streams.html">streams</a>, o <code>max</code> devolve um <a href="optional.html">Optional</a>, que trata o "vazio" sem exceção.</p>
+</div>
+
+<div class="cenario">
+<strong><code>UnsupportedOperationException</code> ao mudar uma <code>nCopies</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        List&lt;String&gt; tracos = Collections.nCopies(3, "-");
+        tracos.set(0, "+");
+</pre>
+<pre class="term">$ java Main
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.AbstractList.set(AbstractList.java:138)
+	at Main.main(Main.java:7)</pre>
+<p><strong>O que quer dizer:</strong> <code>nCopies</code>, <code>emptyList</code>, <code>unmodifiableList</code> (e <code>List.of</code>) devolvem listas imutáveis.</p>
+<p><strong>Como consertar:</strong> copie para uma <code>ArrayList</code>: <code>new ArrayList&lt;&gt;(Collections.nCopies(3, "-"))</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol" com <code>Collection.sort</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(7, 3));
+        Collection.sort(notas);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:6: error: cannot find symbol
+        Collection.sort(notas);
+                  ^
+  symbol:   method sort(List&lt;Integer&gt;)
+  location: interface Collection
+1 error</pre>
+<p><strong>O que aconteceu:</strong> faltou o "s". O <code>javac</code> procurou um método <code>sort</code> na <strong>interface</strong> <code>Collection</code>, e ela não tem.</p>
+<p><strong>Como consertar:</strong> <code>Collections.sort(…)</code>, ou <code>lista.sort(null)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Aceita</th><th>O que faz</th></tr>
+<tr><td><code>sort(l)</code> / <code>sort(l, comp)</code></td><td><code>List</code></td><td>Ordena (muda a lista)</td></tr>
+<tr><td><code>reverse(l)</code></td><td><code>List</code></td><td>Inverte a ordem atual</td></tr>
+<tr><td><code>shuffle(l)</code> / <code>shuffle(l, new Random(s))</code></td><td><code>List</code></td><td>Embaralha (com semente: sempre igual)</td></tr>
+<tr><td><code>swap(l, i, j)</code></td><td><code>List</code></td><td>Troca duas posições</td></tr>
+<tr><td><code>max(c)</code> / <code>min(c)</code> (+ comparador)</td><td><code>Collection</code></td><td>Maior / menor; vazia: <code>NoSuchElementException</code></td></tr>
+<tr><td><code>frequency(c, x)</code></td><td><code>Collection</code></td><td>Quantas vezes <code>x</code> aparece</td></tr>
+<tr><td><code>reverseOrder()</code></td><td>—</td><td>Comparador decrescente</td></tr>
+<tr><td><code>unmodifiableList/Set/Map(x)</code></td><td><code>List</code>, <code>Set</code>, <code>Map</code></td><td>Janela só de leitura</td></tr>
+<tr><td><code>emptyList()</code>, <code>emptySet()</code>, <code>emptyMap()</code></td><td>—</td><td>Coleção vazia imutável</td></tr>
+<tr><td><code>nCopies(n, x)</code></td><td>—</td><td>Lista imutável com <code>n</code> cópias de <code>x</code></td></tr>
+<tr><td><code>fill(l, x)</code></td><td><code>List</code></td><td>Troca todos por <code>x</code></td></tr>
+<tr><td><code>addAll(c, a, b, …)</code></td><td><code>Collection</code></td><td>Acrescenta vários</td></tr>
+<tr><td><code>disjoint(c1, c2)</code></td><td><code>Collection</code></td><td><code>true</code> se não têm nenhum elemento em comum</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O maior</h3>
+<p>Complete para achar a maior nota da lista <code>notas</code>:</p>
+<div class="ex-code">int maior = Collections.<input data-answer="max(notas)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas vezes</h3>
+<p>Complete para contar quantas vezes "Ana" aparece na lista <code>presencas</code>:</p>
+<div class="ex-code">int vezes = Collections.<input data-answer="frequency(presencas, &quot;Ana&quot;)|frequency(presencas,&quot;Ana&quot;)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Sorteio repetível</h3>
+<p>Complete para embaralhar <code>cartas</code> sempre do mesmo jeito, com semente 7:</p>
+<div class="ex-code">Collections.shuffle(cartas, <input data-answer="new Random(7)" aria-label="gerador">);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. A lista é <code>[7, 10, 3]</code>. Como fica depois de <code>Collections.reverse</code>?</p>
+<label><input type="radio" name="q4"> <code>[10, 7, 3]</code></label>
+<label><input type="radio" name="q4"> <code>[3, 10, 7]</code></label>
+<label><input type="radio" name="q4"> <code>[3, 7, 10]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>v = Collections.unmodifiableList(l)</code>. Depois, <code>l.add("x")</code>. O que acontece com <code>v</code>?</p>
+<label><input type="radio" name="q5"> Passa a mostrar o "x" também.</label>
+<label><input type="radio" name="q5"> Continua igual.</label>
+<label><input type="radio" name="q5"> O <code>l.add</code> dá <code>UnsupportedOperationException</code>.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Maior: 10,out:Menor: 3,out:Notas 10: 3,out:Ranking: [10\, 10\, 10\, 8\, 7\, 7\, 5\, 3],src:Collections\.max,src:Collections\.frequency">
+<p class="try-task"><strong>Missão final:</strong> mostre as estatísticas da turma usando <code>Collections</code>: <code>Maior: 10</code>, <code>Menor: 3</code>, <code>Notas 10: 3</code> e o ranking em ordem decrescente, <code>Ranking: [10, 10, 10, 8, 7, 7, 5, 3]</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(7, 10, 3, 8, 5, 10, 7, 10));
+
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(7, 10, 3, 8, 5, 10, 7, 10));
+
+        System.out.println("Maior: " + Collections.max(notas));
+        System.out.println("Menor: " + Collections.min(notas));
+        System.out.println("Notas 10: " + Collections.frequency(notas, 10));
+        Collections.sort(notas, Collections.reverseOrder());
+        System.out.println("Ranking: " + notas);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>Collections</code> (plural) é uma classe de métodos estáticos; <code>Collection</code> (singular) é a interface.</li>
+  <li><code>sort</code>, <code>reverse</code>, <code>swap</code> e <code>shuffle</code> mudam a própria lista. <code>shuffle</code> com <code>new Random(semente)</code> é repetível.</li>
+  <li><code>max</code>, <code>min</code> e <code>frequency</code> só leem; <code>max</code>/<code>min</code> de coleção vazia: <code>NoSuchElementException</code>.</li>
+  <li><code>unmodifiableList</code> é uma janela só de leitura (vê as mudanças da original); <code>List.copyOf</code> é um retrato.</li>
+  <li><code>emptyList</code>, <code>nCopies</code> criam listas imutáveis; <code>fill</code> e <code>addAll</code> mexem em listas existentes.</li>
+</ul>
+
+<p>Próxima aula: <a href="comparable-comparator.html">Comparable e Comparator</a>, para ordenar os seus próprios objetos do jeito que quiser.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
