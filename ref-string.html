@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Métodos de String — referência completa com exemplos | Guia Java</title>
+<meta name="description" content="Referência dos métodos de String do Java 25: length, charAt, substring, indexOf, contains, equals, compareTo, strip, replace, split, join, repeat, format, lines e outros, com assinatura, exemplo e o resultado real do JShell.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Métodos de String</span></h1>
+
+<p class="intro">Todos os métodos de <code>String</code> que você vai usar no dia a dia, agrupados pelo que fazem. Cada linha tem a assinatura, uma explicação curta, um exemplo e o <strong>resultado real</strong>, conferido no JShell do JDK 25. Para aprender com calma, veja as aulas <a href="strings.html">Strings</a> e <a href="metodos-string.html">Métodos de String</a>.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>A assinatura começa pelo tipo do resultado: <code>int length()</code> devolve um <code>int</code>; <code>String substring(…)</code> devolve uma <code>String</code>.</li>
+  <li>Os resultados estão no formato do <a href="jshell.html">JShell</a>: textos entre aspas duplas (<code>"nana"</code>), caracteres entre aspas simples (<code>'A'</code>) e arrays como <code>String[3] { "a", "b", "c" }</code>.</li>
+  <li>Os índices começam em <strong>0</strong>: em <code>"banana"</code>, o <code>b</code> é a posição 0 e o último <code>a</code> é a 5.</li>
+  <li>Nenhum método muda o texto original: <code>String</code> é <strong>imutável</strong>. Todos devolvem um valor novo (veja <a href="#imutavel">abaixo</a>).</li>
+</ul>
+</div>
+
+<p>Atalhos: <a href="#tam">Tamanho</a> · <a href="#pedacos">Pedaços</a> · <a href="#procurar">Procurar</a> · <a href="#comparar">Comparar</a> · <a href="#caixa">Maiúsculas e espaços</a> · <a href="#trocar">Trocar</a> · <a href="#dividir">Dividir e juntar</a> · <a href="#converter">Converter</a> · <a href="#linhas">Linhas</a> · <a href="#formatar">Formatar</a></p>
+
+<div class="tryjshell" data-goal="out:4">
+<p class="try-task"><strong>Experimente:</strong> qualquer linha das tabelas pode ser digitada aqui. Comece descobrindo a posição do segundo <code>"na"</code> de <code>"banana"</code> com <code>indexOf("na", 3)</code>.</p>
+<pre class="solucao">"banana".indexOf("na", 3)</pre>
+</div>
+
+<hr>
+
+<h3 id="tam">Tamanho e caracteres</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>int length()</code></td><td>Quantos caracteres o texto tem. <a href="strings.html">Strings</a></td><td><code>"Ana".length()</code><br><code>"".length()</code></td><td><code>3</code><br><code>0</code></td></tr>
+<tr><td><code>char charAt(int índice)</code></td><td>O caractere na posição (começa em 0). Fora do intervalo: <code>StringIndexOutOfBoundsException</code>. <a href="metodos-string.html">Métodos de String</a></td><td><code>"Ana".charAt(0)</code><br><code>"Ana".charAt(2)</code></td><td><code>'A'</code><br><code>'a'</code></td></tr>
+<tr><td><code>boolean isEmpty()</code></td><td><code>true</code> se o tamanho é 0. <a href="metodos-string.html">Métodos de String</a></td><td><code>"".isEmpty()</code><br><code>"   ".isEmpty()</code></td><td><code>true</code><br><code>false</code></td></tr>
+<tr><td><code>boolean isBlank()</code> <span class="versao">Java 11+</span></td><td><code>true</code> se está vazio ou só tem espaços. <a href="metodos-string.html">Métodos de String</a></td><td><code>"   ".isBlank()</code><br><code>"Ana".isBlank()</code></td><td><code>true</code><br><code>false</code></td></tr>
+<tr><td><code>int codePointAt(int índice)</code></td><td>O código Unicode do caractere na posição. <a href="char-boolean.html">char e boolean</a></td><td><code>"Ana".codePointAt(0)</code></td><td><code>65</code></td></tr>
+<tr><td><code>char[] toCharArray()</code></td><td>Um array com os caracteres. <a href="arrays.html">Arrays</a></td><td><code>"Ana".toCharArray()</code></td><td><code>char[3] { 'A', 'n', 'a' }</code></td></tr>
+<tr><td><code>IntStream chars()</code></td><td>Um stream com os códigos dos caracteres (aqui, 97 + 98 + 99). <a href="streams.html">Streams</a></td><td><code>"abc".chars().sum()</code></td><td><code>294</code></td></tr>
+</table>
+</div>
+
+<h3 id="pedacos">Pedaços</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>String substring(int início)</code></td><td>Do índice <code>início</code> até o fim. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".substring(2)</code><br><code>"banana".substring(6)</code></td><td><code>"nana"</code><br><code>""</code></td></tr>
+<tr><td><code>String substring(int início, int fim)</code></td><td>De <code>início</code> até <code>fim</code>, <strong>sem</strong> incluir o <code>fim</code>. Tamanho do pedaço = fim − início. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".substring(1, 4)</code></td><td><code>"ana"</code></td></tr>
+</table>
+</div>
+
+<h3 id="procurar">Procurar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>int indexOf(String texto)</code></td><td>Posição da primeira ocorrência, ou <code>-1</code> se não achar. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".indexOf("na")</code><br><code>"banana".indexOf("x")</code></td><td><code>2</code><br><code>-1</code></td></tr>
+<tr><td><code>int indexOf(String texto, int aPartirDe)</code></td><td>Procura começando na posição indicada. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".indexOf("na", 3)</code></td><td><code>4</code></td></tr>
+<tr><td><code>int indexOf(char c)</code></td><td>O mesmo, para um caractere. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".indexOf('a')</code></td><td><code>1</code></td></tr>
+<tr><td><code>int indexOf(char c, int início, int fim)</code> <span class="versao">Java 21+</span></td><td>Procura só no trecho [início, fim). <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".indexOf('a', 2, 4)</code></td><td><code>3</code></td></tr>
+<tr><td><code>int lastIndexOf(String texto)</code></td><td>Posição da <strong>última</strong> ocorrência. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".lastIndexOf("na")</code></td><td><code>4</code></td></tr>
+<tr><td><code>int lastIndexOf(char c)</code></td><td>Última ocorrência do caractere. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".lastIndexOf('a')</code></td><td><code>5</code></td></tr>
+<tr><td><code>boolean contains(CharSequence texto)</code></td><td><code>true</code> se o texto aparece em qualquer lugar. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".contains("nan")</code></td><td><code>true</code></td></tr>
+<tr><td><code>boolean startsWith(String prefixo)</code></td><td>Começa com o prefixo? <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".startsWith("ba")</code></td><td><code>true</code></td></tr>
+<tr><td><code>boolean startsWith(String prefixo, int posição)</code></td><td>Começa com o prefixo a partir da posição? <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".startsWith("na", 2)</code></td><td><code>true</code></td></tr>
+<tr><td><code>boolean endsWith(String sufixo)</code></td><td>Termina com o sufixo? <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".endsWith("na")</code></td><td><code>true</code></td></tr>
+<tr><td><code>boolean matches(String regex)</code></td><td>O texto <strong>inteiro</strong> casa com a expressão regular? <a href="regex.html">Expressões Regulares</a></td><td><code>"banana".matches("b[an]+")</code></td><td><code>true</code></td></tr>
+</table>
+</div>
+
+<h3 id="comparar">Comparar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>boolean equals(Object outro)</code></td><td>Mesmo conteúdo, letra por letra. Use sempre este, nunca <code>==</code>. <a href="strings.html">Strings</a></td><td><code>"Ana".equals("ana")</code></td><td><code>false</code></td></tr>
+<tr><td><code>boolean equalsIgnoreCase(String outro)</code></td><td>Igual, ignorando maiúsculas e minúsculas. <a href="metodos-string.html">Métodos de String</a></td><td><code>"Ana".equalsIgnoreCase("ana")</code></td><td><code>true</code></td></tr>
+<tr><td><code>int compareTo(String outro)</code></td><td>Ordem de dicionário (pelos códigos Unicode): negativo se vem antes, 0 se igual, positivo se vem depois. Maiúsculas vêm antes de minúsculas. <a href="comparable-comparator.html">Comparable e Comparator</a></td><td><code>"abacate".compareTo("banana")</code><br><code>"banana".compareTo("abacate")</code><br><code>"Ana".compareTo("Ana")</code><br><code>"ana".compareTo("Bia")</code></td><td><code>-1</code><br><code>1</code><br><code>0</code><br><code>31</code></td></tr>
+<tr><td><code>int compareToIgnoreCase(String outro)</code></td><td>Ordem ignorando maiúsculas. <a href="comparable-comparator.html">Comparable e Comparator</a></td><td><code>"ana".compareToIgnoreCase("Bia")</code></td><td><code>-1</code></td></tr>
+<tr><td><code>boolean contentEquals(CharSequence cs)</code></td><td>Compara com um <code>StringBuilder</code> (ou outra sequência de caracteres). <a href="stringbuilder.html">StringBuilder</a></td><td><code>"Ana".contentEquals(new StringBuilder("Ana"))</code></td><td><code>true</code></td></tr>
+<tr><td><code>int hashCode()</code></td><td>Um número calculado do conteúdo, usado pelo <code>HashMap</code>. <a href="hashmap.html">HashMap</a></td><td><code>"Ana".hashCode()</code></td><td><code>65972</code></td></tr>
+</table>
+</div>
+
+<h3 id="caixa">Maiúsculas, minúsculas e espaços</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>String toUpperCase()</code></td><td>Tudo em maiúsculas (acentos incluídos). <a href="metodos-string.html">Métodos de String</a></td><td><code>"Olá, Ana".toUpperCase()</code></td><td><code>"OLÁ, ANA"</code></td></tr>
+<tr><td><code>String toLowerCase()</code></td><td>Tudo em minúsculas. <a href="metodos-string.html">Métodos de String</a></td><td><code>"Olá, Ana".toLowerCase()</code></td><td><code>"olá, ana"</code></td></tr>
+<tr><td><code>String trim()</code></td><td>Tira espaços (e caracteres de controle) do começo e do fim. Não conhece os espaços Unicode, como o <code>\u2003</code>. <a href="metodos-string.html">Métodos de String</a></td><td><code>"  Ana  ".trim()</code><br><code>"\u2003Ana\u2003".trim().length()</code></td><td><code>"Ana"</code><br><code>5</code></td></tr>
+<tr><td><code>String strip()</code> <span class="versao">Java 11+</span></td><td>Como o <code>trim</code>, mas entende todos os espaços Unicode. Prefira este. <a href="metodos-string.html">Métodos de String</a></td><td><code>"  Ana  ".strip()</code><br><code>"\u2003Ana\u2003".strip().length()</code></td><td><code>"Ana"</code><br><code>3</code></td></tr>
+<tr><td><code>String stripLeading()</code> <span class="versao">Java 11+</span></td><td>Só do começo. <a href="metodos-string.html">Métodos de String</a></td><td><code>"  Ana  ".stripLeading()</code></td><td><code>"Ana  "</code></td></tr>
+<tr><td><code>String stripTrailing()</code> <span class="versao">Java 11+</span></td><td>Só do fim. <a href="metodos-string.html">Métodos de String</a></td><td><code>"  Ana  ".stripTrailing()</code></td><td><code>"  Ana"</code></td></tr>
+</table>
+</div>
+
+<h3 id="trocar">Trocar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>String replace(char velho, char novo)</code></td><td>Troca <strong>todas</strong> as ocorrências do caractere. <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".replace('a', 'o')</code></td><td><code>"bonono"</code></td></tr>
+<tr><td><code>String replace(CharSequence velho, CharSequence novo)</code></td><td>Troca todas as ocorrências do texto (literal, sem regex). <a href="metodos-string.html">Métodos de String</a></td><td><code>"banana".replace("na", "NA")</code></td><td><code>"baNANA"</code></td></tr>
+<tr><td><code>String replaceAll(String regex, String novo)</code></td><td>Troca tudo que casa com a expressão regular. <a href="regex.html">Expressões Regulares</a></td><td><code>"a1b22c333".replaceAll("[0-9]+", "#")</code></td><td><code>"a#b#c#"</code></td></tr>
+<tr><td><code>String replaceFirst(String regex, String novo)</code></td><td>Só a primeira ocorrência. <a href="regex.html">Expressões Regulares</a></td><td><code>"a1b22c333".replaceFirst("[0-9]+", "#")</code></td><td><code>"a#b22c333"</code></td></tr>
+</table>
+</div>
+
+<h3 id="dividir">Dividir e juntar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>String[] split(String regex)</code></td><td>Corta nos separadores. O separador é uma <strong>regex</strong>: o ponto precisa de <code>"\\."</code>. Pedaços vazios do <strong>fim</strong> são descartados. <a href="metodos-string.html">Métodos de String</a></td><td><code>"maçã,banana,uva".split(",")</code><br><code>"a,b,,c,,".split(",")</code><br><code>"um  dois   tres".split(" +")</code><br><code>"a.b.c".split(".")</code><br><code>"a.b.c".split("\\.")</code></td><td><code>String[3] { "maçã", "banana", "uva" }</code><br><code>String[4] { "a", "b", "", "c" }</code><br><code>String[3] { "um", "dois", "tres" }</code><br><code>String[0] {  }</code><br><code>String[3] { "a", "b", "c" }</code></td></tr>
+<tr><td><code>String[] split(String regex, int limite)</code></td><td>Com limite positivo, no máximo esse número de pedaços (o último leva o resto). Com <code>-1</code>, mantém os vazios do fim. <a href="metodos-string.html">Métodos de String</a></td><td><code>"a,b,,c,,".split(",", -1)</code><br><code>"2;false;Ler; e anotar".split(";", 3)</code></td><td><code>String[6] { "a", "b", "", "c", "", "" }</code><br><code>String[3] { "2", "false", "Ler; e anotar" }</code></td></tr>
+<tr><td><code>static String join(CharSequence separador, …)</code></td><td>Junta vários textos (ou uma lista) com o separador entre eles. <a href="concatenacao.html">Concatenação</a></td><td><code>String.join(", ", "maçã", "banana", "uva")</code><br><code>String.join("-", java.util.List.of("2026", "10", "16"))</code></td><td><code>"maçã, banana, uva"</code><br><code>"2026-10-16"</code></td></tr>
+<tr><td><code>String concat(String outro)</code></td><td>Junta no fim, como o <code>+</code>. <a href="concatenacao.html">Concatenação</a></td><td><code>"Ana".concat(" Souza")</code></td><td><code>"Ana Souza"</code></td></tr>
+<tr><td><code>String repeat(int vezes)</code> <span class="versao">Java 11+</span></td><td>O texto repetido. <a href="metodos-string.html">Métodos de String</a></td><td><code>"ab".repeat(3)</code><br><code>"-".repeat(10)</code></td><td><code>"ababab"</code><br><code>"----------"</code></td></tr>
+</table>
+</div>
+
+<h3 id="converter">Converter para texto</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>static String valueOf(…)</code></td><td>Transforma número, <code>boolean</code>, <code>char[]</code> ou qualquer objeto em <code>String</code>. <a href="conversao-tipos.html">Conversão de Tipos</a></td><td><code>String.valueOf(42)</code><br><code>String.valueOf(3.5)</code><br><code>String.valueOf(true)</code><br><code>String.valueOf(new char[] {'o', 'i'})</code></td><td><code>"42"</code><br><code>"3.5"</code><br><code>"true"</code><br><code>"oi"</code></td></tr>
+</table>
+</div>
+
+<h3 id="linhas">Linhas e text blocks</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>Stream&lt;String&gt; lines()</code> <span class="versao">Java 11+</span></td><td>Um stream com as linhas do texto. <a href="text-blocks.html">Text Blocks</a></td><td><code>"linha 1\nlinha 2\nlinha 3".lines().count()</code></td><td><code>3</code></td></tr>
+<tr><td><code>String indent(int n)</code> <span class="versao">Java 12+</span></td><td>Acrescenta <code>n</code> espaços no começo de cada linha (ou tira, se negativo) e garante <code>\n</code> no fim. <a href="text-blocks.html">Text Blocks</a></td><td><code>"Ana\nBia".indent(2)</code></td><td><code>"  Ana\n  Bia\n"</code></td></tr>
+<tr><td><code>String stripIndent()</code> <span class="versao">Java 15+</span></td><td>Tira o recuo comum de todas as linhas, como faz um text block. <a href="text-blocks.html">Text Blocks</a></td><td><code>"   Ana\n   Bia".stripIndent()</code></td><td><code>"Ana\nBia"</code></td></tr>
+<tr><td><code>String translateEscapes()</code> <span class="versao">Java 15+</span></td><td>Transforma os códigos escritos (<code>\t</code>, <code>\n</code>…) nos caracteres de verdade. <a href="escapes.html">Caracteres Especiais</a></td><td><code>"a\\tb".translateEscapes()</code></td><td><code>"a\tb"</code></td></tr>
+</table>
+</div>
+
+<h3 id="formatar">Formatar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>static String format(String modelo, Object... valores)</code></td><td>Monta um texto a partir de um modelo com <code>%s</code>, <code>%d</code>, <code>%.2f</code>… Usa o idioma do sistema: em pt_BR, <strong>vírgula</strong> decimal. <a href="formatacao.html">Formatar Texto</a></td><td><code>String.format("%s tem %d anos", "Ana", 29)</code><br><code>String.format("%.2f", 3.14159)</code><br><code>String.format("%08.3f", 3.14159)</code></td><td><code>"Ana tem 29 anos"</code><br><code>"3,14"</code><br><code>"0003,142"</code></td></tr>
+<tr><td><code>String formatted(Object... valores)</code> <span class="versao">Java 15+</span></td><td>O mesmo, chamado no próprio modelo. <a href="formatacao.html">Formatar Texto</a></td><td><code>"%s comprou %d itens".formatted("Bia", 3)</code></td><td><code>"Bia comprou 3 itens"</code></td></tr>
+<tr><td><code>&lt;R&gt; R transform(Function f)</code> <span class="versao">Java 12+</span></td><td>Aplica uma função ao texto e devolve o resultado. <a href="lambdas.html">Lambdas</a></td><td><code>"Ana".transform(t -&gt; t + "!")</code></td><td><code>"Ana!"</code></td></tr>
+</table>
+</div>
+<hr>
+
+<h2 id="imutavel">Armadilhas</h2>
+
+<div class="cenario">
+<strong>Esquecer que String é imutável</strong>
+<pre class="file" data-file="Main.java">        String nome = "Ana";
+        nome.toUpperCase();
+        System.out.println(nome);
+        nome = nome.toUpperCase();
+        System.out.println(nome);
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Ana
+ANA</pre>
+<p>A primeira chamada calculou <code>"ANA"</code> e jogou fora: <code>nome</code> continuou <code>"Ana"</code>. Para guardar o resultado, atribua: <code>nome = nome.toUpperCase();</code>. Vale para <strong>todos</strong> os métodos desta página.</p>
+</div>
+
+<div class="cenario">
+<strong>Comparar com <code>==</code></strong>
+<pre class="file" data-file="Main.java">        String a = "Ana";
+        String b = new Scanner("Ana").next();
+        System.out.println(a == b);
+        System.out.println(a.equals(b));
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+false
+true</pre>
+<p>O texto é o mesmo, mas o que veio do <code>Scanner</code> é <strong>outro objeto</strong>. O <code>==</code> compara se são o mesmo objeto; o <code>equals</code> compara o conteúdo. Com textos digitados, lidos de arquivo ou montados no programa, o <code>==</code> dá <code>false</code>. Use sempre <code>equals</code> (veja <a href="strings.html">Strings</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Índice fora do texto</strong>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.StringIndexOutOfBoundsException: Index 3 out of bounds for length 3
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:55)
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:52)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:213)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:210)
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:98)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+	at java.base/java.lang.String.checkIndex(String.java:4904)
+	at java.base/java.lang.StringLatin1.charAt(StringLatin1.java:45)
+	at java.base/java.lang.String.charAt(String.java:1624)
+	at Main.main(Main.java:4)</pre>
+<p><code>"Ana".charAt(3)</code>: o texto tem 3 caracteres, nas posições 0, 1 e 2. O último índice válido é sempre <code>length() - 1</code>. Só a última linha do stack trace é do seu código. No <code>substring</code>, a mensagem mostra o intervalo pedido:</p>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.StringIndexOutOfBoundsException: Range [4, 2) out of bounds for length 6
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:55)
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:52)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:213)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:210)
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:98)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckFromToIndex(Preconditions.java:112)
+	at java.base/jdk.internal.util.Preconditions.checkFromToIndex(Preconditions.java:349)
+	at java.base/java.lang.String.checkBoundsBeginEnd(String.java:4937)
+	at java.base/java.lang.String.substring(String.java:2899)
+	at Main.main(Main.java:4)</pre>
+<p><code>"banana".substring(4, 2)</code>: o início (4) não pode ser maior que o fim (2). A notação <code>[4, 2)</code> quer dizer "de 4, incluído, até 2, excluído".</p>
+</div>
+
+<div class="tryjava" data-goal="out:Usuário: ana.souza,out:Domínio: exemplo.com,src:indexOf">
+<p class="try-task"><strong>Missão:</strong> separe o e-mail em usuário e domínio usando <code>indexOf('@')</code> e <code>substring</code> (sem <code>split</code>), mostrando <code>Usuário: ana.souza</code> e <code>Domínio: exemplo.com</code>. O e-mail tem espaços sobrando e uma letra maiúscula: limpe com <code>strip()</code> e <code>toLowerCase()</code> antes.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String email = "  Ana.Souza@exemplo.com ";
+        // limpe o e-mail, ache a posição do @ e separe as duas partes
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String email = "  Ana.Souza@exemplo.com ";
+        email = email.strip().toLowerCase();
+        int arroba = email.indexOf('@');
+        String usuario = email.substring(0, arroba);
+        String dominio = email.substring(arroba + 1);
+        System.out.println("Usuário: " + usuario);
+        System.out.println("Domínio: " + dominio);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. Quanto vale <code>"banana".substring(1, 4)</code>?</p>
+<label><input type="radio" name="q1"> <code>"bana"</code></label>
+<label><input type="radio" name="q1"> <code>"ana"</code></label>
+<label><input type="radio" name="q1"> <code>"anan"</code></label>
+<label><input type="radio" name="q1"> <code>"nan"</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">2. Por que <code>"a.b.c".split(".")</code> devolve um array vazio?</p>
+<label><input type="radio" name="q2"> Porque o ponto não pode aparecer em textos.</label>
+<label><input type="radio" name="q2"> Porque <code>split</code> só aceita vírgula.</label>
+<label><input type="radio" name="q2"> É um defeito do Java.</label>
+<label><input type="radio" name="q2"> O separador é uma regex, e <code>.</code> casa com qualquer caractere: tudo vira separador e os pedaços vazios do fim são descartados. Use <code>"\\."</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. Na máquina da Ana (pt_BR), quanto vale <code>String.format("%.2f", 3.14159)</code>?</p>
+<label><input type="radio" name="q3"> <code>"3,14"</code></label>
+<label><input type="radio" name="q3"> <code>"3.14"</code></label>
+<label><input type="radio" name="q3"> <code>"3.14159"</code></label>
+<label><input type="radio" name="q3"> <code>"3"</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual a diferença entre <code>trim()</code> e <code>strip()</code>?</p>
+<label><input type="radio" name="q4"> <code>trim</code> tira só do começo.</label>
+<label><input type="radio" name="q4"> Nenhuma.</label>
+<label><input type="radio" name="q4"> <code>strip</code> (Java 11) entende todos os espaços Unicode; <code>trim</code> só os do ASCII.</label>
+<label><input type="radio" name="q4"> <code>strip</code> tira também as letras repetidas.</label>
+</div>
+
+<div class="exercise">
+<p>Complete para saber se o nome termina com "a":</p>
+<div class="ex-code">nome.<input data-answer="endsWith">("a")</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Tamanho e posições: <code>length</code>, <code>charAt</code>, <code>indexOf</code>/<code>lastIndexOf</code> (−1 se não achar), <code>substring(início, fim)</code> sem o <code>fim</code>.</li>
+  <li>Testes: <code>isEmpty</code>, <code>isBlank</code>, <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>equals</code>, <code>equalsIgnoreCase</code>, <code>compareTo</code>.</li>
+  <li>Transformações: <code>toUpperCase</code>, <code>strip</code>, <code>replace</code>, <code>repeat</code>, <code>split</code> (regex!), <code>String.join</code>, <code>String.format</code> (vírgula em pt_BR).</li>
+  <li>Nenhum método altera a <code>String</code>: guarde o resultado. Compare com <code>equals</code>, nunca com <code>==</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
