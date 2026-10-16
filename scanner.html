@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Scanner — ler do teclado com nextLine, nextInt e nextDouble | Guia Java</title>
+<meta name="description" content="Aula do Scanner em Java para iniciantes: ler do teclado com nextLine, nextInt, nextDouble (com a vírgula do locale pt_BR e o InputMismatchException real ao digitar 3.5), next, a pegadinha do nextInt seguido de nextLine, validar com hasNextInt e fechar o Scanner.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Ler do Teclado (Scanner)</span></h1>
+
+<p class="intro">Até agora, os seus programas só <strong>falavam</strong>: tudo o que eles usavam estava escrito no código. Nesta aula eles começam a <strong>ouvir</strong>. Com a classe <code>Scanner</code>, o programa para, espera a pessoa digitar algo e apertar <kbd>Enter</kbd>, e usa o que foi digitado: um nome, uma idade, um preço.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Criar um <code>Scanner</code> que lê o teclado (<code>System.in</code>).</li>
+  <li>Ler uma linha de texto (<code>nextLine</code>), um inteiro (<code>nextInt</code>), um número com vírgula (<code>nextDouble</code>) e uma palavra (<code>next</code>).</li>
+  <li>Por que, no Brasil, o <code>nextDouble</code> quer <strong>vírgula</strong> (<code>3,5</code>) e falha com <code>3.5</code>.</li>
+  <li><strong>A pegadinha do <code>nextInt</code> seguido de <code>nextLine</code></strong>, que todo iniciante encontra.</li>
+  <li>Validar a entrada com <code>hasNextInt</code>, sem o programa quebrar.</li>
+  <li>Fechar o <code>Scanner</code> e o cuidado com o <code>System.in</code>.</li>
+  <li>Testar programas que leem o teclado mandando a entrada pronta pelo terminal.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25, idioma <strong>português do Brasil</strong>) com <code>java Main.java</code>. As sessões em que a Ana digita foram gravadas num terminal de verdade, então você vê o que ela digitou logo depois de cada pergunta.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense numa atendente de balcão com um formulário. Ela faz uma pergunta, <strong>espera</strong> a resposta, anota no campo certo e só então passa para a próxima pergunta. Se o campo é "idade" e a pessoa responde "vinte", a atendente reclama.</p>
+<p>No Java:</p>
+<ul>
+  <li><code>System.in</code> ("entrada do sistema") é o teclado: um fluxo de caracteres que chegam um atrás do outro. Ele é o par do <code>System.out</code> que você já usa para escrever.</li>
+  <li>O <code>Scanner</code> ("leitor", "escaneador") é a atendente: lê esses caracteres, separa em pedaços e entrega cada pedaço já no tipo que você pediu (<code>String</code>, <code>int</code>, <code>double</code>).</li>
+</ul>
+
+<hr>
+
+<h2>O primeiro programa: ler o nome</h2>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Qual é o seu nome? ");
+        String nome = teclado.nextLine();
+        System.out.println("Olá, " + nome + "!");
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Qual é o seu nome? Ana Souza       « o programa parou aqui até a Ana digitar e apertar Enter
+Olá, Ana Souza!</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>import java.util.Scanner;</code></td><td>O <code>Scanner</code> mora no pacote <code>java.util</code>. Esta linha avisa ao compilador que vamos usá-lo (veja <a href="pacotes.html">Pacotes e import</a>). Vem antes da classe.</td></tr>
+<tr><td><code>Scanner teclado = new Scanner(System.in);</code></td><td>Cria o leitor. Veja a anatomia logo abaixo.</td></tr>
+<tr><td><code>System.out.print("Qual é o seu nome? ");</code></td><td>A pergunta. Com <code>print</code> (sem "ln"), o cursor fica <strong>na mesma linha</strong>, e a resposta aparece ao lado da pergunta. O espaço no fim separa os dois.</td></tr>
+<tr><td><code>String nome = teclado.nextLine();</code></td><td>O programa <strong>para e espera</strong>. Quando a pessoa aperta <kbd>Enter</kbd>, tudo o que ela digitou na linha (com espaços) vira uma <code>String</code>, guardada em <code>nome</code>.</td></tr>
+<tr><td><code>teclado.close();</code></td><td>Fecha o leitor no fim, quando não vai mais ler nada (veja <a href="#fechar">Fechar o Scanner</a>).</td></tr>
+</table>
+</div>
+
+<h3>Anatomia da criação</h3>
+<dl class="anatomy">
+  <dt>Scanner</dt><dd>O tipo da variável: um leitor.</dd>
+  <dt>teclado</dt><dd>O nome que você escolhe. <code>teclado</code>, <code>entrada</code>, <code>sc</code> e <code>leitor</code> são comuns.</dd>
+  <dt>= new Scanner(</dt><dd>Cria um <code>Scanner</code> novo (<code>new</code> = "novo"; você verá mais sobre isso em <a href="classes-objetos.html">Classes e Objetos</a>).</dd>
+  <dt>System.in);</dt><dd>De onde ler: o teclado.</dd>
+</dl>
+
+<p>Crie <strong>um</strong> <code>Scanner</code> no começo do programa e use o mesmo para todas as leituras.</p>
+
+<div class="tryjava" data-goal="out:Bem-vinda\, Ana Souza!,src:nextLine" data-stdin="Ana Souza\n">
+<p class="try-task"><strong>Missão:</strong> complete o programa para ler o nome com <code>nextLine</code> e responder <code>Bem-vinda, Ana Souza!</code>. A entrada de teste já é "Ana Souza".</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Nome: ");
+        // leia o nome aqui
+
+        System.out.println("Bem-vinda, " + "?" + "!");
+        teclado.close();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Nome: ");
+        String nome = teclado.nextLine();
+        System.out.println("Bem-vinda, " + nome + "!");
+        teclado.close();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Testar sem digitar: a entrada pelo terminal</h2>
+<p>Para não precisar digitar tudo a cada teste, você pode mandar a resposta pronta para o programa. O comando <code>printf</code> do terminal escreve o texto, e a barra vertical <code>|</code> ("cano", <em>pipe</em>) liga a saída dele à entrada do <code>java</code>. Cada <code>\n</code> é um <kbd>Enter</kbd>:</p>
+
+<pre class="term" data-cwd="~/java">$ printf 'Ana Souza\n' | java Main.java
+Qual é o seu nome? Olá, Ana Souza!</pre>
+
+<p>O programa é o mesmo, mas a resposta não aparece na tela e o "Olá" ficou grudado na pergunta. Por quê? Quando você digita, é o <strong>terminal</strong> que mostra as teclas (o "eco") e o <kbd>Enter</kbd> que pula a linha. Pelo <code>|</code>, ninguém digitou nada; o programa só recebeu os caracteres. O editor do guia funciona assim quando a caixa traz a entrada pronta: as respostas não aparecem no meio da saída.</p>
+
+<hr>
+
+<h2>Números: <code>nextInt</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Quantos anos você tem? ");
+        int idade = teclado.nextInt();
+        System.out.println("Ano que vem você terá " + (idade + 1) + " anos.");
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Quantos anos você tem? 29
+Ano que vem você terá 30 anos.</pre>
+
+<p>O <code>nextInt</code> lê um número inteiro e já o entrega como <code>int</code>, pronto para contas. Com <code>nextLine</code> você receberia o <strong>texto</strong> <code>"29"</code>, e <code>"29" + 1</code> daria <code>"291"</code> (veja <a href="concatenacao.html">Concatenação</a>).</p>
+
+<h3>Quando a pessoa digita outra coisa</h3>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Quantos anos você tem? vinte
+Exception in thread "main" java.util.InputMismatchException
+	at java.base/java.util.Scanner.throwFor(Scanner.java:977)
+	at java.base/java.util.Scanner.next(Scanner.java:1632)
+	at java.base/java.util.Scanner.nextInt(Scanner.java:2297)
+	at java.base/java.util.Scanner.nextInt(Scanner.java:2251)
+	at Main.main(Main.java:7)</pre>
+
+<p><code>InputMismatchException</code> quer dizer "exceção de entrada incompatível": o <code>nextInt</code> esperava um inteiro e encontrou "vinte". O programa termina ali. As linhas com <code>java.base</code> são o caminho dentro do próprio <code>Scanner</code>; a que importa é a <strong>última</strong>: <code>Main.java:7</code>, a linha do <code>nextInt</code>. Mais adiante você aprende a <a href="#validar">validar</a> para isso não acontecer.</p>
+
+<h3>Vários números na mesma linha</h3>
+<p>O <code>nextInt</code> pega o próximo número, esteja ele na mesma linha ou na seguinte. Espaços e <kbd>Enter</kbd> são só separadores:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Digite três números: ");
+        int a = teclado.nextInt();
+        int b = teclado.nextInt();
+        int c = teclado.nextInt();
+        System.out.println("Soma: " + (a + b + c));
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ printf '4 5 6\n' | java Main.java
+Digite três números: Soma: 15</pre>
+
+<hr>
+
+<h2>Números com vírgula: <code>nextDouble</code> e o jeito brasileiro</h2>
+<p>O <code>nextDouble</code> lê um número decimal. Mas atenção: o <code>Scanner</code> segue o <strong>idioma e o país</strong> configurados no computador (o <em>locale</em>). Na máquina da Ana, que está em português do Brasil (<code>pt_BR</code>), o separador decimal é a <strong>vírgula</strong>, como nos documentos brasileiros.</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Preço do quilo: ");
+        double preco = teclado.nextDouble();
+        System.out.print("Quantos quilos: ");
+        double quilos = teclado.nextDouble();
+        System.out.println("Total: R$ " + preco * quilos);
+        teclado.close();
+    }
+}
+</pre>
+
+<p>Digitando com vírgula, funciona:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Preço do quilo: 3,5
+Quantos quilos: 2
+Total: R$ 7.0</pre>
+
+<p>Repare num detalhe curioso: a Ana <strong>digitou</strong> com vírgula, mas o <code>println</code> <strong>mostrou</strong> <code>7.0</code>, com ponto. O <code>Scanner</code> segue o locale; o <code>println</code> de um <code>double</code>, não (já o <code>printf</code> segue: veja <a href="formatacao.html">Formatar Texto</a>).</p>
+
+<p>Agora, digitando como num programa americano, com ponto:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Preço do quilo: 3.5
+Exception in thread "main" java.util.InputMismatchException
+	at java.base/java.util.Scanner.throwFor(Scanner.java:977)
+	at java.base/java.util.Scanner.next(Scanner.java:1632)
+	at java.base/java.util.Scanner.nextDouble(Scanner.java:2603)
+	at Main.main(Main.java:7)</pre>
+
+<p>Para o <code>Scanner</code> brasileiro, <code>3.5</code> não é um número: no Brasil, o ponto separa os milhares (<code>1.000</code>), e "3.5" não faz sentido assim. Resultado: <code>InputMismatchException</code> na linha 7, a do <code>nextDouble</code>. Esse é um dos erros mais comuns de quem aprende Java no Brasil, porque os livros e vídeos em inglês sempre digitam com ponto.</p>
+
+<h3>Duas soluções</h3>
+<p><strong>1. Digitar do jeito do locale</strong>: <code>3,5</code>. Simples, mas depende do computador onde o programa roda: na máquina de alguém configurada em inglês, a vírgula é que daria erro.</p>
+<p><strong>2. Fixar o locale do <code>Scanner</code></strong> com <code>useLocale</code> ("usar o locale"). Com <code>Locale.US</code> (Estados Unidos), o ponto passa a ser o separador, em qualquer computador:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Locale;
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        teclado.useLocale(Locale.US);
+        System.out.print("Preço do quilo: ");
+        double preco = teclado.nextDouble();
+        System.out.print("Quantos quilos: ");
+        double quilos = teclado.nextDouble();
+        System.out.println("Total: R$ " + preco * quilos);
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Preço do quilo: 3.5
+Quantos quilos: 2
+Total: R$ 7.0</pre>
+
+<dl class="anatomy">
+  <dt>import java.util.Locale;</dt><dd>A classe <code>Locale</code> (idioma + país) também precisa de <code>import</code>.</dd>
+  <dt>teclado.useLocale(</dt><dd>Muda as regras de leitura deste <code>Scanner</code>, logo depois de criá-lo.</dd>
+  <dt>Locale.US);</dt><dd>As regras dos Estados Unidos: ponto decimal.</dd>
+</dl>
+
+<p>A troca vale para os dois lados: com <code>Locale.US</code>, quem digitar <code>3,5</code> recebe o <code>InputMismatchException</code> (conferido no laboratório). Escolha um padrão e diga ao usuário qual é ("Preço (use ponto): ").</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Scanner</th><th>Digitar <code>3,5</code></th><th>Digitar <code>3.5</code></th></tr>
+<tr><td>Padrão, num computador em <code>pt_BR</code></td><td>funciona</td><td><code>InputMismatchException</code></td></tr>
+<tr><td>Com <code>useLocale(Locale.US)</code></td><td><code>InputMismatchException</code></td><td>funciona</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Uma palavra: <code>next</code></h2>
+<p>O <code>next</code> lê só até o próximo espaço: <strong>uma palavra</strong>. O resto da linha fica esperando a próxima leitura:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Nome completo (com next): ");
+        String primeiro = teclado.next();
+        System.out.println("O next leu: [" + primeiro + "]");
+        String resto = teclado.nextLine();
+        System.out.println("Sobrou na linha: [" + resto + "]");
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Nome completo (com next): Ana Souza
+O next leu: [Ana]
+Sobrou na linha: [ Souza]    « o nextLine pegou o resto, com o espaço da frente</pre>
+
+<p>Os colchetes na mensagem são só para você enxergar onde o texto começa e termina. O <code>next</code> é útil para respostas de uma palavra ("sim", "não", um código); para nomes e frases, use <code>nextLine</code>.</p>
+
+<hr>
+
+<h2 id="pegadinha">A pegadinha do <code>nextInt</code> seguido de <code>nextLine</code></h2>
+<p>Este é o problema mais famoso do <code>Scanner</code>. O cadastro pede a idade e depois o nome:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Idade: ");
+        int idade = teclado.nextInt();
+        System.out.print("Nome: ");
+        String nome = teclado.nextLine();
+        System.out.println("Cadastro: [" + nome + "], " + idade + " anos");
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Idade: 29
+Nome: Cadastro: [], 29 anos  « não esperou o nome! e o nome ficou vazio</pre>
+
+<p>A Ana digitou <code>29</code> e apertou <kbd>Enter</kbd>. O programa mostrou "Nome:" e, <strong>sem esperar</strong>, já terminou com o nome vazio. Nada de erro, nada de exceção. O que aconteceu?</p>
+
+<h3>O que o teclado mandou</h3>
+<p>Quando a Ana digitou 29 e apertou <kbd>Enter</kbd>, chegaram ao programa <strong>três</strong> caracteres: <code>2</code>, <code>9</code> e a quebra de linha (o <kbd>Enter</kbd>, que no Java se escreve <code>\n</code>):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>Entrada que sobra</th><th>O que acontece</th></tr>
+<tr><td>Início</td><td><code>2 9 \n</code></td><td>A Ana digitou "29" e <kbd>Enter</kbd>.</td></tr>
+<tr><td><code>nextInt()</code></td><td><code>\n</code></td><td>Pega só os dígitos (<code>29</code>). O <code>\n</code> <strong>fica lá</strong>.</td></tr>
+<tr><td><code>nextLine()</code></td><td>(nada)</td><td>Lê "até o fim da linha". O fim da linha já está ali: lê um texto <strong>vazio</strong> e consome o <code>\n</code>. Não precisa esperar.</td></tr>
+</table>
+</div>
+
+<p>O <code>nextInt</code> (e também <code>nextDouble</code> e <code>next</code>) lê o número e <strong>não</strong> a quebra de linha que veio depois dele. O <code>nextLine</code> seguinte encontra essa sobra e acha que a linha acabou.</p>
+
+<h3>Solução 1: um <code>nextLine()</code> extra para "limpar" a linha</h3>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Idade: ");
+        int idade = teclado.nextInt();
+        teclado.nextLine();
+        System.out.print("Nome: ");
+        String nome = teclado.nextLine();
+        System.out.println("Cadastro: [" + nome + "], " + idade + " anos");
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Idade: 29
+Nome: Ana Souza
+Cadastro: [Ana Souza], 29 anos</pre>
+
+<p>O <code>teclado.nextLine();</code> solto, sem guardar o resultado, serve só para consumir o <code>\n</code> que sobrou. Ele vai logo depois de cada <code>nextInt</code>/<code>nextDouble</code> que é seguido de um <code>nextLine</code>.</p>
+
+<h3>Solução 2: ler tudo com <code>nextLine</code> e converter</h3>
+<p>Outra estratégia, muito usada: ler <strong>sempre</strong> linhas inteiras e transformar em número quando precisar, com <code>Integer.parseInt</code> ("interpretar como inteiro"; para decimais, <code>Double.parseDouble</code>). Assim nunca sobra nada na linha:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Idade: ");
+        int idade = Integer.parseInt(teclado.nextLine());
+        System.out.print("Nome: ");
+        String nome = teclado.nextLine();
+        System.out.println("Cadastro: [" + nome + "], " + idade + " anos");
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ printf '29\nAna Souza\n' | java Main.java
+Idade: Nome: Cadastro: [Ana Souza], 29 anos</pre>
+
+<p>Se a pessoa digitar algo que não é número, o erro muda de nome: <code>NumberFormatException</code> ("formato de número inválido"), com o texto culpado na mensagem:</p>
+
+<pre class="term" data-cwd="~/java">$ printf 'vinte\nAna\n' | java Main.java
+Idade: Exception in thread "main" java.lang.NumberFormatException: For input string: "vinte"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:7)</pre>
+
+<p>O <code>Integer.parseInt</code> aparece de novo, com mais detalhes, em <a href="args.html">Argumentos da Linha de Comando</a> e em <a href="wrappers.html">Wrappers</a>. Diferente do <code>nextDouble</code>, o <code>Double.parseDouble</code> <strong>não</strong> segue o locale: ele sempre quer ponto (<code>"3.5"</code>).</p>
+
+<div class="tryjava" data-goal="out:Cadastro: [Ana Souza]\, 29 anos" data-stdin="29\nAna Souza\n">
+<p class="try-task"><strong>Missão:</strong> este é o programa com a pegadinha. Rode e veja o nome sair vazio. Depois conserte com uma das duas soluções, para a saída terminar com <code>Cadastro: [Ana Souza], 29 anos</code>. A entrada de teste é <code>29</code> e depois <code>Ana Souza</code>.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Idade: ");
+        int idade = teclado.nextInt();
+        System.out.print("Nome: ");
+        String nome = teclado.nextLine();
+        System.out.println("Cadastro: [" + nome + "], " + idade + " anos");
+        teclado.close();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Idade: ");
+        int idade = teclado.nextInt();
+        teclado.nextLine();
+        System.out.print("Nome: ");
+        String nome = teclado.nextLine();
+        System.out.println("Cadastro: [" + nome + "], " + idade + " anos");
+        teclado.close();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="validar">Validar com <code>hasNextInt</code></h2>
+<p>Em vez de deixar o programa quebrar com <code>InputMismatchException</code>, dá para <strong>perguntar antes</strong>. O <code>hasNextInt()</code> ("tem um próximo inteiro?") olha o que vem pela frente, sem consumir nada, e responde <code>true</code> ou <code>false</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Quantos anos você tem? ");
+        while (!teclado.hasNextInt()) {
+            String errado = teclado.next();
+            System.out.print("\"" + errado + "\" não é um número inteiro. Tente de novo: ");
+        }
+        int idade = teclado.nextInt();
+        System.out.println("Ano que vem você terá " + (idade + 1) + " anos.");
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Quantos anos você tem? vinte
+"vinte" não é um número inteiro. Tente de novo: 2.5
+"2.5" não é um número inteiro. Tente de novo: 29
+Ano que vem você terá 30 anos.</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>while (!teclado.hasNextInt())</code></td><td>"Enquanto o que vem <strong>não</strong> for um inteiro" (o <code>!</code> inverte, veja <a href="operadores-logicos.html">Operadores Lógicos</a>). O <code>hasNextInt</code> espera a pessoa digitar, se ainda não houver nada.</td></tr>
+<tr><td><code>String errado = teclado.next();</code></td><td><strong>Essencial:</strong> tira a palavra errada da entrada. Sem esta linha, o <code>hasNextInt</code> veria o mesmo "vinte" para sempre: laço infinito.</td></tr>
+<tr><td><code>System.out.print(…)</code></td><td>Avisa e pede de novo. O <code>\"</code> põe aspas dentro do texto (veja <a href="escapes.html">Caracteres Especiais</a>).</td></tr>
+<tr><td><code>int idade = teclado.nextInt();</code></td><td>Só chega aqui quando o próximo item é um inteiro: agora o <code>nextInt</code> não falha.</td></tr>
+</table>
+</div>
+
+<p>Existe um <code>hasNext…</code> para cada <code>next…</code>: <code>hasNextDouble()</code>, <code>hasNextLine()</code>, <code>hasNext()</code>… Validar faixas (idade entre 1 e 120) é outra etapa, feita com <code>if</code> ou com o <code>do-while</code> que você viu em <a href="while.html">while e do-while</a>. Tratar a exceção com <code>try</code>/<code>catch</code> é a outra forma de lidar com entradas erradas, assunto de <a href="try-catch.html">try e catch</a>.</p>
+
+<hr>
+
+<h2>Ler num laço: preencher um array</h2>
+<p>O <code>Scanner</code> combina com os laços. A professora digita as notas de 3 alunos:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        int[] notas = new int[3];
+        for (int i = 0; i &lt; notas.length; i++) {
+            System.out.print("Nota do aluno " + (i + 1) + ": ");
+            notas[i] = teclado.nextInt();
+        }
+        int soma = 0;
+        for (int nota : notas) {
+            soma += nota;
+        }
+        System.out.println("Média: " + (double) soma / notas.length);
+        teclado.close();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ printf '7\n8\n10\n' | java Main.java
+Nota do aluno 1: Nota do aluno 2: Nota do aluno 3: Média: 8.333333333333334</pre>
+
+<p>(Veja <a href="arrays.html">Arrays</a> e <a href="percorrer-arrays.html">Percorrer Arrays</a>.) E se a entrada acabar antes? Com só duas notas:</p>
+
+<pre class="term" data-cwd="~/java">$ printf '7\n8\n' | java Main.java
+Nota do aluno 1: Nota do aluno 2: Nota do aluno 3: Exception in thread "main" java.util.NoSuchElementException
+	at java.base/java.util.Scanner.throwFor(Scanner.java:975)
+	at java.base/java.util.Scanner.next(Scanner.java:1632)
+	at java.base/java.util.Scanner.nextInt(Scanner.java:2297)
+	at java.base/java.util.Scanner.nextInt(Scanner.java:2251)
+	at Main.main(Main.java:9)</pre>
+
+<p><code>NoSuchElementException</code> = "não existe o próximo elemento": a entrada <strong>terminou</strong> e o programa ainda queria ler. No terminal, a pessoa encerra a entrada apertando <kbd>Ctrl</kbd>+<kbd>D</kbd> no Linux e no macOS (<kbd>Ctrl</kbd>+<kbd>Z</kbd> e <kbd>Enter</kbd> no Windows). Com o <code>nextLine</code>, a mensagem traz um detalhe: <code>No line found</code> ("nenhuma linha encontrada").</p>
+
+<hr>
+
+<h2 id="fechar">Fechar o <code>Scanner</code></h2>
+<p>O <code>teclado.close()</code> diz "terminei de ler". É uma boa prática fechar o que você abriu, e algumas IDEs mostram um aviso amarelo ("resource leak", vazamento de recurso) quando um <code>Scanner</code> nunca é fechado.</p>
+<p>Mas atenção: fechar o <code>Scanner</code> fecha também o <strong><code>System.in</code></strong>, e o teclado não pode ser reaberto. Um segundo <code>Scanner</code> criado depois não consegue ler nada:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner primeiro = new Scanner(System.in);
+        System.out.print("Nome: ");
+        String nome = primeiro.nextLine();
+        primeiro.close();
+        Scanner segundo = new Scanner(System.in);
+        System.out.print("Cidade: ");
+        String cidade = segundo.nextLine();
+        System.out.println(nome + " mora em " + cidade);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ printf 'Ana\nRecife\n' | java Main.java
+Nome: Cidade: Exception in thread "main" java.util.NoSuchElementException: No line found
+	at java.base/java.util.Scanner.nextLine(Scanner.java:1690)
+	at Main.main(Main.java:11)</pre>
+
+<p>A cidade estava lá, mas o <code>System.in</code> já tinha sido fechado. A regra: <strong>um <code>Scanner</code> só, criado no começo, fechado no fim</strong> (ou nem fechado, num programa pequeno que termina logo depois; ao terminar, o sistema libera tudo).</p>
+
+<p>Há também uma forma que fecha sozinha, o <code>try</code> com recursos (<em>try-with-resources</em>), explicado em <a href="finally.html">finally e try-with-resources</a>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        try (Scanner teclado = new Scanner(System.in)) {
+            System.out.print("Qual é o seu nome? ");
+            String nome = teclado.nextLine();
+            System.out.println("Olá, " + nome + "!");
+        }
+    }
+}
+</pre>
+
+<hr>
+
+<h2>Outra forma no Java 25: <code>IO.readln</code> <span class="versao">Java 25+</span></h2>
+<p>O Java 25 trouxe os "arquivos-fonte compactos": um <code>main</code> mais curto, sem <code>public class</code>, e a classe <code>IO</code> com métodos simples para escrever e ler. O <code>IO.readln</code> mostra a pergunta e lê uma linha, tudo junto:</p>
+
+<pre class="file" data-file="Main.java">void main() {
+    String nome = IO.readln("Qual é o seu nome? ");
+    IO.println("Olá, " + nome + "!");
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ printf 'Ana\n' | java Main.java
+Qual é o seu nome? Olá, Ana!</pre>
+
+<p>Ele só lê linhas de texto (para números, combine com <code>Integer.parseInt</code>) e não existe antes do Java 25. Em código "de verdade" e em qualquer versão anterior, o <code>Scanner</code> continua sendo o padrão, e é ele que você vai encontrar nos livros, nas empresas e no restante deste guia. (Mais sobre o <code>main</code> compacto em <a href="primeiro-programa.html">Olá, Mundo</a> e em <a href="novidades.html">Novidades do Java 17 ao 25</a>.)</p>
+
+<hr>
+
+<h2>Qual método usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero ler…</th><th>Use</th><th>Digitado</th><th>Recebe</th></tr>
+<tr><td>Uma linha inteira (nome, frase)</td><td><code>nextLine()</code></td><td><code>Ana Souza</code></td><td><code>"Ana Souza"</code></td></tr>
+<tr><td>Uma palavra</td><td><code>next()</code></td><td><code>Ana Souza</code></td><td><code>"Ana"</code></td></tr>
+<tr><td>Um inteiro</td><td><code>nextInt()</code></td><td><code>29</code></td><td><code>29</code></td></tr>
+<tr><td>Um inteiro grande</td><td><code>nextLong()</code></td><td><code>9000000000</code></td><td><code>9000000000L</code></td></tr>
+<tr><td>Um decimal</td><td><code>nextDouble()</code></td><td><code>3,5</code> (pt_BR)</td><td><code>3.5</code></td></tr>
+<tr><td>Verdadeiro ou falso</td><td><code>nextBoolean()</code></td><td><code>true</code></td><td><code>true</code></td></tr>
+<tr><td>Saber se vem um inteiro</td><td><code>hasNextInt()</code></td><td></td><td><code>true</code>/<code>false</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … class Scanner"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        String nome = teclado.nextLine();
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:3: error: cannot find symbol
+        Scanner teclado = new Scanner(System.in);
+        ^
+  symbol:   class Scanner
+  location: class Main
+Main.java:3: error: cannot find symbol
+        Scanner teclado = new Scanner(System.in);
+                              ^
+  symbol:   class Scanner
+  location: class Main
+2 errors
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> o compilador não conhece a classe <code>Scanner</code>: dois erros, um para cada vez que o nome aparece na linha.</p>
+<p><strong>Como consertar:</strong> <code>import java.util.Scanner;</code> na primeira linha.</p>
+</div>
+
+<div class="cenario">
+<strong><code>InputMismatchException</code></strong>
+<p><strong>O que aconteceu:</strong> o <code>nextInt</code>/<code>nextDouble</code> encontrou algo que não é um número daquele tipo: texto ("vinte"), decimal num <code>nextInt</code> ("2.5"), ou o separador decimal errado para o locale ("3.5" num <code>Scanner</code> pt_BR).</p>
+<p><strong>Como resolver:</strong> digite no formato certo; use <code>useLocale(Locale.US)</code> se quiser ponto decimal; e valide com <code>hasNextInt</code>/<code>hasNextDouble</code> antes de ler.</p>
+</div>
+
+<div class="cenario">
+<strong>O programa "pulou" uma pergunta (o texto veio vazio)</strong>
+<p>Um <code>nextLine</code> logo depois de um <code>nextInt</code>, <code>nextDouble</code> ou <code>next</code> lê a sobra da linha anterior. Coloque um <code>teclado.nextLine();</code> extra entre eles, ou leia tudo com <code>nextLine</code> e converta. Veja <a href="#pegadinha">a pegadinha</a>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NoSuchElementException</code> ("No line found")</strong>
+<p><strong>O que aconteceu:</strong> a entrada acabou antes do que o programa esperava: a pessoa apertou <kbd>Ctrl</kbd>+<kbd>D</kbd>, faltaram linhas no <code>printf … |</code>, ou o <code>System.in</code> foi fechado por um <code>close()</code> anterior.</p>
+<p><strong>Como resolver:</strong> mande toda a entrada, use um único <code>Scanner</code> e só o feche no fim. Para ler "até a entrada acabar", use <code>while (teclado.hasNextLine())</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O programa parou e não acontece nada</strong>
+<p>Provavelmente ele está <strong>esperando você digitar</strong>. Um <code>nextLine</code> sem um <code>print</code> antes não mostra pergunta nenhuma; o cursor só fica piscando. Digite a resposta e aperte <kbd>Enter</kbd>, e sempre escreva uma pergunta antes de cada leitura. (Se nem digitando ele responde, pode ser um laço infinito: veja <a href="while.html">while</a>.)</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>import java.util.Scanner;</code></td><td>Permite usar o <code>Scanner</code></td></tr>
+<tr><td><code>Scanner sc = new Scanner(System.in);</code></td><td>Cria o leitor do teclado (um por programa)</td></tr>
+<tr><td><code>sc.nextLine()</code></td><td>Lê o resto da linha, até o <kbd>Enter</kbd> (que é descartado)</td></tr>
+<tr><td><code>sc.next()</code></td><td>Lê a próxima palavra</td></tr>
+<tr><td><code>sc.nextInt()</code>, <code>nextLong()</code>, <code>nextDouble()</code>, <code>nextBoolean()</code></td><td>Lê o próximo item já convertido; deixa o <code>\n</code> na entrada</td></tr>
+<tr><td><code>sc.hasNextInt()</code>, <code>hasNextDouble()</code>, <code>hasNextLine()</code></td><td>Pergunta se o próximo item é daquele tipo, sem consumir</td></tr>
+<tr><td><code>sc.useLocale(Locale.US)</code></td><td>Passa a usar ponto decimal na leitura</td></tr>
+<tr><td><code>sc.close()</code></td><td>Fecha o <code>Scanner</code> e o <code>System.in</code></td></tr>
+<tr><td><code>Integer.parseInt(texto)</code>, <code>Double.parseDouble(texto)</code></td><td>Convertem texto em número (o <code>parseDouble</code> sempre usa ponto)</td></tr>
+<tr><td><code>printf 'a\nb\n' | java Main.java</code></td><td>No terminal: manda a entrada pronta para o programa</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Criar o leitor</h3>
+<p>Complete para criar um <code>Scanner</code> que lê o teclado:</p>
+<div class="ex-code">Scanner teclado = new Scanner(<input data-answer="System.in" aria-label="origem">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Ler um inteiro</h3>
+<p>Complete para ler a quantidade como <code>int</code>:</p>
+<div class="ex-code">int quantidade = teclado.<input data-answer="nextInt()" aria-label="método">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Limpar a linha</h3>
+<p>Depois de <code>int idade = teclado.nextInt();</code>, qual instrução evita que o próximo <code>nextLine</code> venha vazio?</p>
+<div class="ex-code"><input data-answer="teclado.nextLine();" aria-label="instrução"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Num computador em português do Brasil, a pessoa digita <code>2.5</code> num <code>nextDouble()</code> sem <code>useLocale</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Lê 2.5 normalmente.</label>
+<label><input type="radio" name="q4"> <code>InputMismatchException</code>, porque o separador decimal esperado é a vírgula.</label>
+<label><input type="radio" name="q4"> Lê 25.</label>
+<label><input type="radio" name="q4"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. A pessoa digita <code>Ana Maria</code>. O que <code>teclado.next()</code> devolve?</p>
+<label><input type="radio" name="q5"> <code>"Ana Maria"</code></label>
+<label><input type="radio" name="q5"> <code>"Maria"</code></label>
+<label><input type="radio" name="q5"> Um texto vazio</label>
+<label><input type="radio" name="q5"> <code>"Ana"</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. No laço de validação com <code>hasNextInt</code>, por que é preciso chamar <code>teclado.next()</code> quando a entrada é inválida?</p>
+<label><input type="radio" name="q6"> Para descartar a palavra errada; senão o <code>hasNextInt</code> olharia a mesma palavra para sempre.</label>
+<label><input type="radio" name="q6"> Para fechar o <code>Scanner</code>.</label>
+<label><input type="radio" name="q6"> Para converter a palavra em número.</label>
+<label><input type="radio" name="q6"> Não é preciso.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">7. O que acontece se você fechar o <code>Scanner</code> e depois criar outro com <code>new Scanner(System.in)</code>?</p>
+<label><input type="radio" name="q7"> Funciona normalmente.</label>
+<label><input type="radio" name="q7"> Erro de compilação.</label>
+<label><input type="radio" name="q7"> O novo não consegue ler: o <code>System.in</code> já foi fechado (<code>NoSuchElementException</code>).</label>
+<label><input type="radio" name="q7"> O programa reinicia.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Soma: 35,src:nextInt" data-stdin="3\n10\n20\n5\n">
+<p class="try-task"><strong>Missão final:</strong> o programa lê primeiro <strong>quantos</strong> números virão e depois cada número, e mostra <code>Soma: </code> com o total. A entrada de teste é <code>3</code> (a quantidade) e os números <code>10</code>, <code>20</code> e <code>5</code>. Use um <code>for</code> que repete a leitura a quantidade de vezes.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Quantos números? ");
+        int quantidade = teclado.nextInt();
+        int soma = 0;
+        // leia e some os números aqui
+
+        System.out.println("Soma: " + soma);
+        teclado.close();
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Quantos números? ");
+        int quantidade = teclado.nextInt();
+        int soma = 0;
+        for (int i = 1; i &lt;= quantidade; i++) {
+            System.out.print("Número " + i + ": ");
+            soma += teclado.nextInt();
+        }
+        System.out.println("Soma: " + soma);
+        teclado.close();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>import java.util.Scanner;</code> e <code>Scanner teclado = new Scanner(System.in);</code>: um leitor só, para o programa todo.</li>
+  <li><code>nextLine()</code> lê a linha inteira; <code>next()</code>, uma palavra; <code>nextInt()</code>/<code>nextDouble()</code>, números já convertidos.</li>
+  <li>Num computador em <code>pt_BR</code>, o <code>nextDouble</code> quer <strong>vírgula</strong>; <code>3.5</code> dá <code>InputMismatchException</code>. Para usar ponto: <code>teclado.useLocale(Locale.US)</code>.</li>
+  <li><code>nextInt</code> seguido de <code>nextLine</code>: o <code>nextLine</code> vem vazio. Use um <code>nextLine()</code> extra ou leia tudo com <code>nextLine</code> + <code>Integer.parseInt</code>.</li>
+  <li>Valide com <code>hasNextInt()</code> antes de ler, e descarte a entrada errada com <code>next()</code>.</li>
+  <li>Fechar o <code>Scanner</code> fecha o <code>System.in</code> para sempre: feche só no fim.</li>
+  <li>Teste mandando a entrada pronta: <code>printf 'Ana\n29\n' | java Main.java</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
