@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Boas Práticas — checklist comentado e refatoração | Guia Java</title>
+<meta name="description" content="Checklist comentado de boas práticas em Java: nomes, métodos curtos, final e imutabilidade, não engolir exceções, equals e hashCode juntos, interfaces nos tipos, coleções vazias em vez de null, Optional só em retorno, try-with-resources, equals em Strings, BigDecimal para dinheiro, formatação, e uma refatoração antes × depois com saídas reais.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Boas Práticas</span></h1>
+
+<p class="intro">Um programa pode funcionar hoje e ser um pesadelo amanhã: difícil de ler, fácil de quebrar, com defeitos escondidos. As <strong>boas práticas</strong> são hábitos que programadores experientes aprenderam (muitas vezes do jeito difícil) para escrever código claro e seguro. Esta aula reúne as mais importantes num checklist, cada uma com o porquê e um exemplo real, e termina com uma refatoração completa, passo a passo.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>12 regras práticas, com o defeito real que cada uma evita.</li>
+  <li>Como transformar um código "que funciona mais ou menos" num código limpo, uma mudança por vez.</li>
+  <li>Onde estão as convenções oficiais de formatação (Oracle e Google).</li>
+</ul>
+</div>
+
+<p>Esta aula é uma revisão: cada item aponta para a aula onde o assunto foi explicado em detalhe. Use-a como lista de conferência antes de considerar um programa "pronto".</p>
+
+<hr>
+
+<h2>A ideia: o checklist do piloto</h2>
+<p>Antes de decolar, até o piloto mais experiente percorre um <strong>checklist</strong>: combustível, flapes, instrumentos. Não é falta de conhecimento; é que, com pressa ou cansaço, qualquer um esquece algo óbvio. Boas práticas de programação funcionam igual: são lembretes simples que evitam os erros mais comuns. E têm um efeito extra: código escrito com os mesmos hábitos é mais fácil para <strong>outras pessoas</strong> lerem. Lembre-se: o código é lido muito mais vezes do que é escrito.</p>
+
+<hr>
+
+<h2>1. Nomes que dizem o que a coisa é</h2>
+<p>O nome é a primeira documentação. Compare:</p>
+<pre class="file" data-file="ruim">double calc(ArrayList&lt;String&gt; x, String c) {
+    double t = 0;
+</pre>
+<pre class="file" data-file="melhor">BigDecimal totalDoCliente(List&lt;Venda&gt; vendas, String cliente) {
+    BigDecimal total = BigDecimal.ZERO;
+</pre>
+<p>No primeiro, você precisa ler o método inteiro para adivinhar o que é <code>x</code>, <code>c</code> e <code>t</code>. No segundo, a assinatura já conta a história. As convenções de Java para nomes:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O quê</th><th>Estilo</th><th>Exemplo</th></tr>
+<tr><td>Classes, interfaces, records, enums</td><td><code>PascalCase</code> (substantivo)</td><td><code>Conta</code>, <code>ItemDoPedido</code></td></tr>
+<tr><td>Métodos</td><td><code>camelCase</code> (verbo)</td><td><code>depositar</code>, <code>calcularFrete</code>, <code>isVazio</code></td></tr>
+<tr><td>Variáveis e atributos</td><td><code>camelCase</code></td><td><code>saldo</code>, <code>totalDoCliente</code></td></tr>
+<tr><td>Constantes (<code>static final</code>)</td><td><code>MAIUSCULAS_COM_SUBLINHADO</code></td><td><code>TAXA_DE_ENTREGA</code></td></tr>
+<tr><td>Pacotes</td><td>minúsculas, domínio ao contrário</td><td><code>br.com.ana.loja</code></td></tr>
+</table>
+</div>
+<p>Nomes de uma letra só são aceitáveis em laços muito curtos (<code>i</code>) e lambdas pequenas (<code>x -&gt; x * 2</code>). Português ou inglês? Os dois funcionam; o importante é <strong>não misturar</strong> no mesmo projeto (veja <a href="variaveis.html">Variáveis</a> e <a href="sintaxe.html">Sintaxe</a>).</p>
+
+<hr>
+
+<h2>2. Métodos curtos, que fazem uma coisa só</h2>
+<p>Se você precisa de "e" para descrever o que um método faz ("lê o arquivo <strong>e</strong> calcula o total <strong>e</strong> imprime o relatório"), ele está fazendo coisas demais. Divida em métodos menores, cada um com um nome que explica o passo (veja <a href="metodos.html">Métodos</a>). Vantagens: cada pedaço é fácil de entender, de testar com <a href="junit.html">JUnit</a> e de reaproveitar. Uma referência prática: se o método não cabe inteiro na tela, desconfie.</p>
+
+<hr>
+
+<h2>3. <code>final</code> e imutabilidade</h2>
+<p>Um valor que não muda é um valor em que você pode confiar: ninguém vai alterá-lo "pelas costas". Marque com <code>final</code> o que não deve mudar (veja <a href="final.html">final</a>), e o compilador vigia por você:</p>
+<pre class="file" data-file="Final.java">public class Final {
+    public static void main(String[] args) {
+        final double taxa = 0.05;
+        taxa = 0.10;
+    }
+}
+</pre>
+<pre class="term">$ java Final.java
+Final.java:4: error: cannot assign a value to final variable taxa
+        taxa = 0.10;
+        ^
+1 error
+error: compilation failed</pre>
+<p>Para objetos, prefira classes <strong>imutáveis</strong>: atributos <code>private final</code>, sem <code>set</code>. Os <a href="records.html">records</a> já nascem assim. E as listas criadas com <code>List.of</code> são imutáveis; tentar mudar dá erro na hora, em vez de um defeito silencioso depois:</p>
+<pre class="term">$ java Imutavel.java
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableCollection.add(ImmutableCollections.java:164)
+	at Imutavel.main(Imutavel.java:6)</pre>
+<p>(O <code>Imutavel.java</code> faz <code>List.of("maçã", "banana")</code> e depois <code>frutas.add("uva")</code>.)</p>
+
+<hr>
+
+<h2>4. Não engula exceções</h2>
+<p>"Engolir" uma exceção é capturá-la e não fazer nada, com um <code>catch</code> vazio. O erro some, e o programa segue com um valor errado:</p>
+<pre class="file" data-file="Engole.java">public class Engole {
+    public static void main(String[] args) {
+        int quantidade = 0;
+        try {
+            quantidade = Integer.parseInt("1O");
+        } catch (NumberFormatException e) {
+        }
+        System.out.println("Quantidade: " + quantidade);
+    }
+}
+</pre>
+<pre class="term">$ java Engole.java
+Quantidade: 0</pre>
+<p>Alguém digitou a letra <strong>O</strong> em vez do zero em <code>"10"</code>. O programa não reclamou e registrou quantidade 0. Ninguém vai saber por quê. Regras:</p>
+<ul>
+  <li>Se você sabe <strong>tratar</strong> o erro (pedir de novo, usar um valor padrão que faça sentido), trate, e de preferência <strong>avise</strong> (uma mensagem ou um <a href="depuracao.html">log</a>).</li>
+  <li>Se não sabe, <strong>não capture</strong>: deixe a exceção subir (veja <a href="throw-throws.html">throw e throws</a>). Um programa que para com uma mensagem clara é melhor que um que segue errado.</li>
+  <li>Capture o tipo específico (<code>NumberFormatException</code>), não <code>Exception</code>: assim você não esconde, sem querer, defeitos de outro tipo.</li>
+</ul>
+
+<hr>
+
+<h2>5. <code>equals</code> e <code>hashCode</code> sempre juntos</h2>
+<p>Quem sobrescreve <code>equals</code> (veja <a href="object.html">A Classe Object</a>) tem de sobrescrever <code>hashCode</code> também. Senão, as coleções que usam <em>hash</em>, como <code>HashSet</code> e <code>HashMap</code>, se comportam de forma absurda:</p>
+<pre class="file" data-file="Produto.java">import java.util.HashSet;
+import java.util.Set;
+
+public class Produto {
+    private final String codigo;
+
+    Produto(String codigo) {
+        this.codigo = codigo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof Produto p &amp;&amp; codigo.equals(p.codigo);
+    }
+
+    public static void main(String[] args) {
+        Produto a = new Produto("CAFE-500");
+        Produto b = new Produto("CAFE-500");
+        System.out.println(a.equals(b));
+        Set&lt;Produto&gt; estoque = new HashSet&lt;&gt;();
+        estoque.add(a);
+        estoque.add(b);
+        System.out.println(estoque.size());
+        System.out.println(estoque.contains(new Produto("CAFE-500")));
+    }
+}
+</pre>
+<pre class="term">$ java Produto.java
+true                « a e b são iguais pelo equals…
+2                   « …mas o conjunto (que não aceita repetidos) guardou os dois
+false               « e diz que não contém um produto igual</pre>
+<p>O <code>HashSet</code> primeiro usa o <code>hashCode</code> para escolher a "gaveta" do objeto, e só depois compara com <code>equals</code> dentro da gaveta. Sem <code>hashCode</code> próprio, objetos iguais caem em gavetas diferentes. Acrescentando, na mesma classe (no laboratório, numa cópia chamada <code>Produto2</code>):</p>
+<pre class="file" data-file="Produto2.java (trecho)">    @Override
+    public int hashCode() {
+        return codigo.hashCode();
+    }
+</pre>
+<pre class="term">$ java Produto2.java
+true
+1
+true</pre>
+<p>Regra: os campos usados no <code>equals</code> são os mesmos do <code>hashCode</code> (com vários campos, use <code>Objects.hash(campo1, campo2)</code>). Melhor ainda: se a classe é só um "pacote de dados", use um <a href="records.html">record</a>, que gera os dois corretamente sozinho. Veja também <a href="hashset.html">HashSet</a>.</p>
+
+<hr>
+
+<h2>6. Use interfaces nos tipos</h2>
+<pre class="file" data-file="ruim">ArrayList&lt;String&gt; nomes = new ArrayList&lt;&gt;();
+static double calc(ArrayList&lt;String&gt; x) { … }
+</pre>
+<pre class="file" data-file="melhor">List&lt;String&gt; nomes = new ArrayList&lt;&gt;();
+static BigDecimal total(List&lt;Venda&gt; vendas) { … }
+</pre>
+<p>Declare variáveis, parâmetros e retornos com a <strong>interface</strong> (<code>List</code>, <code>Set</code>, <code>Map</code>) e use a classe concreta só no <code>new</code>. Assim, o método aceita qualquer lista (<code>ArrayList</code>, <code>LinkedList</code>, <code>List.of</code>…), e trocar a implementação depois exige mudar uma linha só. É o <a href="polimorfismo.html">polimorfismo</a> trabalhando a seu favor (veja <a href="colecoes.html">Visão Geral das Coleções</a>).</p>
+
+<hr>
+
+<h2>7. Devolva coleção vazia, não <code>null</code></h2>
+<p>Um método que devolve uma lista não deveria devolver <code>null</code> quando "não tem nada". Quem chama quase sempre esquece de conferir:</p>
+<pre class="file" data-file="Nulos.java">import java.util.List;
+
+public class Nulos {
+    static List&lt;String&gt; pedidosDe(String cliente) {
+        if (cliente.equals("Bruno")) {
+            return List.of("café", "pão");
+        }
+        return null;
+    }
+
+    public static void main(String[] args) {
+        for (String p : pedidosDe("Bruno")) {
+            System.out.println("Bruno: " + p);
+        }
+        for (String p : pedidosDe("Carla")) {
+            System.out.println("Carla: " + p);
+        }
+    }
+}
+</pre>
+<pre class="term">$ java Nulos.java
+Bruno: café
+Bruno: pão
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "java.util.List.iterator()" because the return value of "Nulos.pedidosDe(String)" is null
+	at Nulos.main(Nulos.java:15)</pre>
+<p>Com <code>return List.of();</code> (uma lista vazia) no lugar do <code>return null;</code>, o <code>for</code> da Carla simplesmente não roda nenhuma vez, e o programa segue. Vale o mesmo para arrays (<code>new String[0]</code>), mapas (<code>Map.of()</code>) e textos (<code>""</code>, quando fizer sentido).</p>
+
+<hr>
+
+<h2>8. <code>Optional</code> só como retorno</h2>
+<p>Para um método que busca <strong>um</strong> valor que pode não existir, o retorno <a href="optional.html"><code>Optional</code></a> obriga quem chama a pensar no caso "não achou":</p>
+<pre class="file" data-file="bom">Optional&lt;Conta&gt; buscarPorTitular(String titular) { … }
+
+buscarPorTitular("Carla")
+        .ifPresentOrElse(c -&gt; System.out.println(c.getSaldo()),
+                         () -&gt; System.out.println("Conta não encontrada"));
+</pre>
+<p>Mas <code>Optional</code> foi feito para isso: <strong>retorno de método</strong>. Evite usá-lo como atributo de classe, como parâmetro (<code>void enviar(Optional&lt;String&gt; obs)</code> obriga quem chama a embrulhar o valor; prefira dois métodos, ou aceitar <code>null</code> e documentar) e dentro de coleções (<code>List&lt;Optional&lt;…&gt;&gt;</code>: simplesmente não ponha os vazios na lista). E nunca chame <code>.get()</code> sem saber se há valor: é trocar um <code>NullPointerException</code> por um <code>NoSuchElementException</code>.</p>
+
+<hr>
+
+<h2>9. <code>try-with-resources</code> para tudo que precisa ser fechado</h2>
+<p>Arquivos, conexões e <code>Scanner</code>s de arquivo ocupam recursos do sistema e precisam ser fechados, <strong>mesmo se der erro no meio</strong>. Em vez de lembrar de chamar <code>close()</code> num <code>finally</code>, declare o recurso entre parênteses no <code>try</code> e o Java fecha sozinho (veja <a href="finally.html">finally e try-with-resources</a>):</p>
+<pre class="file" data-file="bom">try (BufferedWriter saida = Files.newBufferedWriter(Path.of("vendas.txt"))) {
+    saida.write("Ana;café;10.90");
+    saida.newLine();
+}   // aqui o arquivo já foi fechado, com ou sem exceção
+</pre>
+
+<hr>
+
+<h2>10. Compare Strings com <code>equals</code>, nunca com <code>==</code></h2>
+<p>O <code>==</code> compara se são o <strong>mesmo objeto</strong>, não se têm o <strong>mesmo texto</strong> (veja <a href="strings.html">Strings</a> e <a href="operadores-comparacao.html">Operadores de Comparação</a>). O perigo: às vezes ele "funciona", e você acha que está certo:</p>
+<pre class="file" data-file="Strings.java">public class Strings {
+    public static void main(String[] args) {
+        String a = "Ana";
+        String b = "Ana";
+        String c = new StringBuilder("An").append("a").toString();
+        System.out.println(a == b);
+        System.out.println(a == c);
+        System.out.println(a.equals(c));
+    }
+}
+</pre>
+<pre class="term">$ java Strings.java
+true                « dois textos escritos no código: o Java reaproveita o mesmo objeto
+false               « o mesmo texto, montado durante a execução: outro objeto
+true                « equals compara o conteúdo: sempre certo</pre>
+<p>Textos que vêm do teclado, de arquivos ou de <code>split</code> são montados durante a execução, como o <code>c</code>. Por isso o <code>==</code> funciona nos seus testes rápidos (com textos escritos no código) e falha com dados de verdade. Use <code>equals</code> (ou <code>equalsIgnoreCase</code>). Com uma constante, escreva-a primeiro, <code>"Ana".equals(nome)</code>, que funciona mesmo se <code>nome</code> for <code>null</code>.</p>
+
+<div class="tryjava" data-goal="out:Bem-vinda\, Ana!,src:\.equals\(">
+<p class="try-task"><strong>Missão:</strong> o nome vem de um <code>split</code>, como se tivesse sido lido de um cadastro. Rode e veja que o <code>==</code> diz que não é a Ana. Corrija a comparação para aparecer <code>Bem-vinda, Ana!</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana Souza".split(" ")[0];
+        if (nome == "Ana") {
+            System.out.println("Bem-vinda, Ana!");
+        } else {
+            System.out.println("Quem é você, " + nome + "?");
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana Souza".split(" ")[0];
+        if (nome.equals("Ana")) {
+            System.out.println("Bem-vinda, Ana!");
+        } else {
+            System.out.println("Quem é você, " + nome + "?");
+        }
+    }
+}
+</pre>
+</div>
+<p>(No laboratório, a versão com <code>==</code> mostrou <code>Quem é você, Ana?</code>: o texto é "Ana", mas não é o mesmo objeto.)</p>
+
+<hr>
+
+<h2>11. <code>BigDecimal</code> para dinheiro</h2>
+<p><code>double</code> guarda números em binário e não consegue representar exatamente valores como 0,1 (veja <a href="decimais.html">double e float</a>). Para medir distâncias, tudo bem; para dinheiro, os centavos "fantasmas" viram problema:</p>
+<pre class="file" data-file="Dinheiro.java">import java.math.BigDecimal;
+
+public class Dinheiro {
+    public static void main(String[] args) {
+        System.out.println(0.1 + 0.2);
+        System.out.println(1.10 - 1.00);
+        BigDecimal x = new BigDecimal("0.1").add(new BigDecimal("0.2"));
+        System.out.println(x);
+        System.out.println(new BigDecimal("1.10").subtract(new BigDecimal("1.00")));
+        System.out.println(new BigDecimal(0.1));
+    }
+}
+</pre>
+<pre class="term">$ java Dinheiro.java
+0.30000000000000004
+0.10000000000000009
+0.3
+0.10
+0.1000000000000000055511151231257827021181583404541015625</pre>
+<p>Com <a href="bigdecimal.html"><code>BigDecimal</code></a> criado a partir de <strong>texto</strong> (<code>new BigDecimal("0.1")</code>), as contas são exatas. A última linha mostra a armadilha: <code>new BigDecimal(0.1)</code>, com o <code>double</code>, herda o erro do <code>double</code>. Use sempre a versão com aspas (ou <code>BigDecimal.valueOf(0.1)</code>).</p>
+
+<div class="tryjava" data-goal="out:Total: 15.10,src:BigDecimal">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou café (R$ 10,90) e leite (R$ 4,20). Com <code>double</code>, o total sai <code>15.100000000000001</code>. Reescreva com <code>BigDecimal</code> (criado a partir de texto) para mostrar <code>Total: 15.10</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double cafe = 10.90;
+        double leite = 4.20;
+        double total = cafe + leite;
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal cafe = new BigDecimal("10.90");
+        BigDecimal leite = new BigDecimal("4.20");
+        BigDecimal total = cafe.add(leite);
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>12. Formate o código (e deixe a ferramenta fazer isso)</h2>
+<p>Recuo, espaços e chaves não mudam o que o programa faz, mas mudam muito o quanto ele é fácil de ler. O importante é que <strong>todo o projeto siga o mesmo padrão</strong>. Os dois mais conhecidos:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Convenções da Oracle (<em>Code Conventions for the Java Programming Language</em>)</th><th>Google Java Style Guide</th></tr>
+<tr><td>Recuo</td><td>4 espaços</td><td>2 espaços</td></tr>
+<tr><td>Tamanho da linha</td><td>80 caracteres</td><td>100 caracteres</td></tr>
+<tr><td>Chave <code>{</code></td><td>No fim da linha</td><td>No fim da linha</td></tr>
+<tr><td><code>if</code> de uma linha</td><td>Sempre com chaves</td><td>Sempre com chaves</td></tr>
+<tr><td>Um comando por linha</td><td>Sim</td><td>Sim</td></tr>
+</table>
+</div>
+<p>Este guia usa 4 espaços e chaves no fim da linha, o mais comum. Não formate à mão: toda IDE formata o arquivo inteiro com um atalho (IntelliJ: <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd>; VS Code: <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> no Linux e Windows). Em equipes, ferramentas como o <code>google-java-format</code> e o Checkstyle conferem o padrão automaticamente no <a href="maven.html">build</a>. Veja também <a href="sintaxe.html">Sintaxe e Estrutura</a>.</p>
+
+<hr>
+
+<h2>Antes × depois: uma refatoração completa</h2>
+<p><strong>Refatorar</strong> é melhorar a estrutura do código <strong>sem mudar o que ele deveria fazer</strong>. A Ana encontrou este código antigo, que soma as compras de um cliente a partir de linhas no formato <code>cliente;produto;valor</code>:</p>
+
+<div class="warning"><strong>Este código tem defeitos de propósito</strong></div>
+<pre class="file" data-file="Antes.java">import java.util.*;
+
+public class Antes {
+    static ArrayList&lt;String&gt; v = new ArrayList&lt;&gt;();
+
+    static double calc(ArrayList&lt;String&gt; x, String c) {
+        double t = 0;
+        try {
+            for (int i = 0; i &lt; x.size(); i++) {
+                String[] p = x.get(i).split(";");
+                if (p[0] == c) {
+                    t = t + Double.parseDouble(p[2]);
+                }
+            }
+        } catch (Exception e) {
+        }
+        return t;
+    }
+
+    public static void main(String[] args) {
+        v.add("Ana;café;10.90");
+        v.add("Bruno;pão;0.80");
+        v.add("Ana;leite;4.20");
+        v.add("Ana;açúcar;x");
+        System.out.println("Total da Ana: " + calc(v, "Ana"));
+    }
+}
+</pre>
+<pre class="term">$ java Antes.java
+Total da Ana: 0.0</pre>
+<p>A Ana comprou R$ 15,10, e o programa diz zero. Corrigindo só o <code>==</code> (item 10) para <code>p[0].equals(c)</code>:</p>
+<pre class="term">$ java Antes2.java
+Total da Ana: 15.100000000000001</pre>
+<p>Melhorou, mas apareceram os centavos fantasmas do <code>double</code>, e a linha <code>Ana;açúcar;x</code> (com valor inválido) sumiu sem aviso, engolida pelo <code>catch</code> vazio. Pior: como o <code>try</code> envolve o laço inteiro, se essa linha estivesse no meio da lista, todas as seguintes também seriam ignoradas. A versão refatorada:</p>
+
+<pre class="file" data-file="Depois.java">import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Depois {
+
+    record Venda(String cliente, String produto, BigDecimal valor) {
+        static Venda ler(String linha) {
+            String[] partes = linha.split(";");
+            return new Venda(partes[0], partes[1], new BigDecimal(partes[2]));
+        }
+    }
+
+    static List&lt;Venda&gt; lerVendas(List&lt;String&gt; linhas) {
+        List&lt;Venda&gt; vendas = new ArrayList&lt;&gt;();
+        for (String linha : linhas) {
+            try {
+                vendas.add(Venda.ler(linha));
+            } catch (NumberFormatException e) {
+                System.err.println("Linha ignorada (valor inválido): " + linha);
+            }
+        }
+        return vendas;
+    }
+
+    static BigDecimal totalDoCliente(List&lt;Venda&gt; vendas, String cliente) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Venda venda : vendas) {
+            if (venda.cliente().equals(cliente)) {
+                total = total.add(venda.valor());
+            }
+        }
+        return total;
+    }
+
+    public static void main(String[] args) {
+        List&lt;String&gt; linhas = List.of(
+                "Ana;café;10.90",
+                "Bruno;pão;0.80",
+                "Ana;leite;4.20",
+                "Ana;açúcar;x");
+        List&lt;Venda&gt; vendas = lerVendas(linhas);
+        System.out.println("Total da Ana: " + totalDoCliente(vendas, "Ana"));
+    }
+}
+</pre>
+<pre class="term">$ java Depois.java
+Linha ignorada (valor inválido): Ana;açúcar;x
+Total da Ana: 15.10</pre>
+
+<p>Cada mudança, e o item do checklist que ela aplica:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Antes</th><th>Depois</th><th>Por quê</th></tr>
+<tr><td><code>import java.util.*;</code></td><td>Um <code>import</code> por classe usada</td><td>Fica claro de onde vem cada classe (a maioria das IDEs organiza sozinha)</td></tr>
+<tr><td>Cada venda é uma <code>String</code> partida com <code>split</code> em todo lugar que a usa</td><td><code>record Venda(cliente, produto, valor)</code> com o método <code>ler</code></td><td>Os dados ganham nome e tipo; o "como ler a linha" fica num lugar só; o record é imutável e já tem <code>equals</code>/<code>hashCode</code> (itens 3 e 5)</td></tr>
+<tr><td><code>calc</code>, <code>x</code>, <code>c</code>, <code>t</code>, <code>p</code>, <code>v</code></td><td><code>totalDoCliente</code>, <code>vendas</code>, <code>cliente</code>, <code>total</code>, <code>partes</code></td><td>Nomes que explicam (item 1)</td></tr>
+<tr><td>Um método que lê, confere e soma</td><td><code>lerVendas</code> e <code>totalDoCliente</code></td><td>Cada método faz uma coisa; dá para testar a soma sem passar por texto (item 2)</td></tr>
+<tr><td><code>static ArrayList&lt;String&gt; v</code>, um atributo que qualquer método pode mudar</td><td>Variáveis locais em <code>main</code>, passadas como parâmetro</td><td>Sem estado compartilhado escondido; o método recebe tudo o que usa</td></tr>
+<tr><td><code>ArrayList&lt;String&gt;</code> nos parâmetros</td><td><code>List&lt;…&gt;</code></td><td>Aceita qualquer lista, inclusive <code>List.of</code> (item 6)</td></tr>
+<tr><td><code>p[0] == c</code></td><td><code>venda.cliente().equals(cliente)</code></td><td>Comparar texto pelo conteúdo: era o defeito do total zero (item 10)</td></tr>
+<tr><td><code>double</code> e <code>Double.parseDouble</code></td><td><code>BigDecimal</code> criado do texto</td><td>Centavos exatos: <code>15.10</code> (item 11)</td></tr>
+<tr><td><code>catch (Exception e) { }</code> em volta do laço</td><td><code>catch (NumberFormatException e)</code> por linha, com aviso em <code>System.err</code></td><td>Não engole: avisa qual linha foi ignorada e continua com as outras (item 4)</td></tr>
+<tr><td><code>for (int i = 0; i &lt; x.size(); i++)</code> + <code>x.get(i)</code></td><td><code>for (String linha : linhas)</code></td><td>O <a href="for-each.html">for-each</a> diz a intenção ("para cada linha") e não deixa errar o índice</td></tr>
+<tr><td><code>t = t + …</code></td><td><code>total = total.add(…)</code></td><td><code>BigDecimal</code> é imutável: <code>add</code> devolve um novo valor (item 3)</td></tr>
+</table>
+</div>
+
+<p>O código ficou mais longo? Um pouco. Mas cada parte agora é óbvia, os dois defeitos sumiram, e o terceiro (a linha inválida) virou uma mensagem. Em código profissional, o objetivo não é escrever menos linhas, é escrever linhas que não enganam ninguém.</p>
+
+<div class="tryjava" data-goal="out:Total da Ana: 15.10,src:BigDecimal,src:\.equals\(">
+<p class="try-task"><strong>Missão final:</strong> refatore você mesmo. Comece pelo código antigo abaixo e aplique, uma por vez, as mudanças da tabela. No mínimo: <code>equals</code> no lugar de <code>==</code> e <code>BigDecimal</code> no lugar de <code>double</code>, até a saída ser <code>Total da Ana: 15.10</code>. Se quiser ir além, crie o <code>record Venda</code> e avise a linha inválida no <code>System.err</code>.</p>
+<pre class="script">import java.util.*;
+
+public class Main {
+    static ArrayList&lt;String&gt; v = new ArrayList&lt;&gt;();
+
+    static double calc(ArrayList&lt;String&gt; x, String c) {
+        double t = 0;
+        try {
+            for (int i = 0; i &lt; x.size(); i++) {
+                String[] p = x.get(i).split(";");
+                if (p[0] == c) {
+                    t = t + Double.parseDouble(p[2]);
+                }
+            }
+        } catch (Exception e) {
+        }
+        return t;
+    }
+
+    public static void main(String[] args) {
+        v.add("Ana;café;10.90");
+        v.add("Bruno;pão;0.80");
+        v.add("Ana;leite;4.20");
+        v.add("Ana;açúcar;x");
+        System.out.println("Total da Ana: " + calc(v, "Ana"));
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+
+    record Venda(String cliente, String produto, BigDecimal valor) {
+        static Venda ler(String linha) {
+            String[] partes = linha.split(";");
+            return new Venda(partes[0], partes[1], new BigDecimal(partes[2]));
+        }
+    }
+
+    static List&lt;Venda&gt; lerVendas(List&lt;String&gt; linhas) {
+        List&lt;Venda&gt; vendas = new ArrayList&lt;&gt;();
+        for (String linha : linhas) {
+            try {
+                vendas.add(Venda.ler(linha));
+            } catch (NumberFormatException e) {
+                System.err.println("Linha ignorada (valor inválido): " + linha);
+            }
+        }
+        return vendas;
+    }
+
+    static BigDecimal totalDoCliente(List&lt;Venda&gt; vendas, String cliente) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Venda venda : vendas) {
+            if (venda.cliente().equals(cliente)) {
+                total = total.add(venda.valor());
+            }
+        }
+        return total;
+    }
+
+    public static void main(String[] args) {
+        List&lt;String&gt; linhas = List.of(
+                "Ana;café;10.90",
+                "Bruno;pão;0.80",
+                "Ana;leite;4.20",
+                "Ana;açúcar;x");
+        List&lt;Venda&gt; vendas = lerVendas(linhas);
+        System.out.println("Total da Ana: " + totalDoCliente(vendas, "Ana"));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"Funcionava nos meus testes, mas com dados reais não"</strong>
+<p><strong>Suspeitos de sempre:</strong> <code>==</code> entre Strings (funciona com textos escritos no código, falha com textos lidos); <code>double</code> com dinheiro (os centavos aparecem só com alguns valores); <code>catch</code> vazio (o erro acontece só com certas entradas e some). Revise os itens 4, 10 e 11.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException</code> em lugares variados</strong>
+<p><strong>O que aconteceu:</strong> algum método devolve <code>null</code> para dizer "nada". <strong>Como resolver:</strong> devolva coleções vazias (item 7) ou <code>Optional</code> (item 8); leia a mensagem do <code>NullPointerException</code>, que diz qual valor era <code>null</code> (<code>because the return value of "Nulos.pedidosDe(String)" is null</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Objetos "iguais" duplicados num <code>HashSet</code> ou não encontrados num <code>HashMap</code></strong>
+<p><strong>O que aconteceu:</strong> <code>equals</code> sem <code>hashCode</code> (item 5), ou um objeto mutável que mudou depois de entrar na coleção. <strong>Como resolver:</strong> sobrescreva os dois com os mesmos campos, ou use um <code>record</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência: o checklist</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>#</th><th>Confira</th><th>Aula</th></tr>
+<tr><td>1</td><td>Os nomes dizem o que as coisas são? Seguem <code>PascalCase</code>/<code>camelCase</code>/<code>MAIUSCULAS</code>?</td><td><a href="variaveis.html">Variáveis</a></td></tr>
+<tr><td>2</td><td>Cada método faz uma coisa só e cabe na tela?</td><td><a href="metodos.html">Métodos</a></td></tr>
+<tr><td>3</td><td>O que não muda está <code>final</code>? Dá para usar <code>record</code>/<code>List.of</code>?</td><td><a href="final.html">final</a>, <a href="records.html">Records</a></td></tr>
+<tr><td>4</td><td>Algum <code>catch</code> vazio ou <code>catch (Exception e)</code> genérico?</td><td><a href="try-catch.html">try e catch</a></td></tr>
+<tr><td>5</td><td>Quem tem <code>equals</code> tem <code>hashCode</code>?</td><td><a href="object.html">A Classe Object</a></td></tr>
+<tr><td>6</td><td>Tipos declarados com <code>List</code>/<code>Set</code>/<code>Map</code>?</td><td><a href="colecoes.html">Coleções</a></td></tr>
+<tr><td>7</td><td>Algum método devolve <code>null</code> no lugar de coleção vazia?</td><td><a href="arraylist.html">ArrayList</a></td></tr>
+<tr><td>8</td><td><code>Optional</code> só em retornos, sem <code>.get()</code> às cegas?</td><td><a href="optional.html">Optional</a></td></tr>
+<tr><td>9</td><td>Arquivos e recursos abertos em <code>try (…)</code>?</td><td><a href="finally.html">finally e try-with-resources</a></td></tr>
+<tr><td>10</td><td>Strings comparadas com <code>equals</code>?</td><td><a href="strings.html">Strings</a></td></tr>
+<tr><td>11</td><td>Dinheiro em <code>BigDecimal</code> criado de texto?</td><td><a href="bigdecimal.html">BigDecimal</a></td></tr>
+<tr><td>12</td><td>Código formatado pela IDE, num padrão só?</td><td><a href="sintaxe.html">Sintaxe</a></td></tr>
+<tr><td>+</td><td>Há <a href="junit.html">testes</a> para as regras importantes? Os métodos públicos têm <a href="javadoc.html">Javadoc</a>?</td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Comparar textos</h3>
+<p>Complete para comparar o conteúdo de <code>senha</code> com <code>"1234"</code> de forma segura, mesmo se <code>senha</code> for <code>null</code>:</p>
+<div class="ex-code">if (<input data-answer="&quot;1234&quot;.equals(senha)" aria-label="comparação">) { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Lista vazia</h3>
+<p>Complete o retorno para "nenhum pedido", sem usar <code>null</code>:</p>
+<div class="ex-code">return <input data-answer="List.of();|List.of()|new ArrayList&lt;&gt;();|Collections.emptyList();" aria-label="retorno"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Dinheiro exato</h3>
+<p>Complete para criar o valor R$ 19,90 sem erro de arredondamento:</p>
+<div class="ex-code">BigDecimal preco = <input data-answer="new BigDecimal(&quot;19.90&quot;)|new BigDecimal(&quot;19.9&quot;)" aria-label="valor">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Uma classe sobrescreve <code>equals</code> mas não <code>hashCode</code>. O que pode acontecer?</p>
+<label><input type="radio" name="q4"> O código não compila.</label>
+<label><input type="radio" name="q4"> Nada: <code>hashCode</code> só serve para imprimir.</label>
+<label><input type="radio" name="q4"> Um <code>HashSet</code> guardar dois objetos iguais e não encontrar um objeto igual.</label>
+<label><input type="radio" name="q4"> O <code>equals</code> passa a comparar com <code>==</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual declaração segue a regra "interface no tipo"?</p>
+<label><input type="radio" name="q5"> <code>ArrayList&lt;String&gt; nomes = new ArrayList&lt;&gt;();</code></label>
+<label><input type="radio" name="q5"> <code>List&lt;String&gt; nomes = new ArrayList&lt;&gt;();</code></label>
+<label><input type="radio" name="q5"> <code>Object nomes = new ArrayList&lt;String&gt;();</code></label>
+<label><input type="radio" name="q5"> <code>var nomes = new List&lt;String&gt;();</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Onde o <code>Optional</code> é bem usado?</p>
+<label><input type="radio" name="q6"> Como atributo: <code>private Optional&lt;String&gt; apelido;</code></label>
+<label><input type="radio" name="q6"> Como parâmetro: <code>void salvar(Optional&lt;String&gt; obs)</code></label>
+<label><input type="radio" name="q6"> Dentro de uma lista: <code>List&lt;Optional&lt;Conta&gt;&gt;</code></label>
+<label><input type="radio" name="q6"> Como retorno de uma busca: <code>Optional&lt;Conta&gt; buscar(String titular)</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Nomes claros, métodos curtos com uma responsabilidade, e o que não muda marcado como <code>final</code> (ou records e <code>List.of</code>).</li>
+  <li>Nunca engula exceções: trate e avise, ou deixe subir. Capture tipos específicos.</li>
+  <li><code>equals</code> e <code>hashCode</code> sempre juntos (ou <code>record</code>).</li>
+  <li>Interfaces nos tipos (<code>List</code>, <code>Map</code>); coleções vazias no lugar de <code>null</code>; <code>Optional</code> só como retorno.</li>
+  <li><code>try-with-resources</code> para fechar recursos; <code>equals</code> para Strings; <code>BigDecimal</code> (de texto) para dinheiro.</li>
+  <li>Formate com a ferramenta, num padrão só (Oracle: 4 espaços; Google: 2).</li>
+  <li>Refatorar é melhorar a estrutura uma mudança por vez, conferindo a saída (ou os testes) a cada passo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
