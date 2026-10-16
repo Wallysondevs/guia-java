@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Lendo Erros do javac — os erros de compilação mais comuns | Guia Java</title>
+<meta name="description" content="Como ler uma mensagem de erro do javac (arquivo:linha: error: texto, a linha e o ^), os erros mais comuns de iniciante com a mensagem real e a correção: ';' expected, cannot find symbol, class is public, incompatible types, reached end of file, missing return, unclosed string literal, not a statement, else without if, might not have been initialized. Erro de compilação × erro em execução.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Lendo Erros do javac</span></h1>
+
+<p class="intro">Todo programador, do iniciante ao veterano, vê erros de compilação todos os dias. A diferença é que o veterano lê a mensagem e sabe o que fazer em segundos. As mensagens do <code>javac</code> são em inglês, mas seguem sempre o mesmo formato e usam um vocabulário pequeno. Nesta aula você aprende a ler esse formato e conhece, um por um, os erros mais comuns de quem começa, com a mensagem real e a correção.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As partes de uma mensagem do <code>javac</code>: arquivo, linha, descrição, a linha copiada e o <code>^</code>.</li>
+  <li>Um método para consertar erros: o primeiro, depois compilar de novo.</li>
+  <li>O pequeno vocabulário em inglês das mensagens.</li>
+  <li>Os erros mais comuns de iniciante, com código, mensagem real e correção.</li>
+  <li>A diferença entre erro de compilação e erro em tempo de execução.</li>
+</ul>
+</div>
+
+<p>Todos os códigos desta aula têm erros <strong>de propósito</strong> e foram compilados com o <code>javac</code> 25 na máquina da Ana; as mensagens são copiadas da tela, sem mudar nada.</p>
+
+<hr>
+
+<h2>A ideia: o corretor de redação</h2>
+<p>Pense numa professora corrigindo uma redação. Ela não reescreve o texto: marca a linha com caneta vermelha, sublinha a palavra e escreve na margem o que está errado ("falta vírgula", "concordância"). O <code>javac</code> faz o mesmo. Ele não conserta nada sozinho, mas diz <strong>onde</strong> está o problema e <strong>o que</strong> ele achou de errado. O seu trabalho é ler a anotação com calma.</p>
+
+<p>E um detalhe importante: um erro de compilação <strong>não quebra nada</strong>. O programa simplesmente não é gerado até o erro ser corrigido. Pode errar à vontade.</p>
+
+<hr>
+
+<h2>Anatomia de uma mensagem</h2>
+<p>A Ana esqueceu o ponto e vírgula no fim da linha 3:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana")
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: ';' expected
+        System.out.println("Olá, Ana")
+                                      ^
+1 error</pre>
+
+<dl class="anatomy">
+  <dt>Main.java</dt><dd>O <strong>arquivo</strong> onde está o erro. Em projetos com vários arquivos, é a primeira coisa a olhar.</dd>
+  <dt>:3</dt><dd>O número da <strong>linha</strong>. Os editores mostram os números na margem; a caixa Experimente também.</dd>
+  <dt>error:</dt><dd>O tipo da mensagem: <strong>erro</strong> (impede a compilação). Existe também <code>warning:</code> ("aviso"), que não impede.</dd>
+  <dt>';' expected</dt><dd>A <strong>descrição</strong>: "esperava um <code>;</code>".</dd>
+  <dt>System.out.println(…)</dt><dd>A <strong>linha do código</strong> copiada, para você não precisar procurar.</dd>
+  <dt>^</dt><dd>O <strong>acento circunflexo</strong> aponta a coluna exata onde o <code>javac</code> percebeu o problema. Aqui, logo depois do <code>)</code>, onde o <code>;</code> deveria estar.</dd>
+  <dt>1 error</dt><dd>A <strong>contagem</strong>: quantos erros no total.</dd>
+</dl>
+
+<p>Algumas mensagens têm linhas extras embaixo do <code>^</code>, com detalhes:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(ntoa);
+                           ^
+  symbol:   variable ntoa              « o que ele não achou: uma variável chamada ntoa
+  location: class Main                 « onde procurou: na classe Main
+1 error</pre>
+
+<div class="tip">
+<strong>O <code>^</code> mostra onde o <code>javac</code> percebeu, não necessariamente onde você errou</strong>
+<p>No primeiro exemplo, o erro é da linha 3, e a mensagem diz linha 3. Mas às vezes o compilador só percebe o problema mais adiante: uma chave esquecida no meio do arquivo pode ser acusada só na última linha. Se a linha apontada parece certa, olhe a linha <strong>de cima</strong>.</p>
+</div>
+
+<hr>
+
+<h2>O método: o primeiro erro, depois compilar de novo</h2>
+<ol class="passo">
+  <li><strong>Leia só o primeiro erro.</strong> Os seguintes muitas vezes são consequência dele.</li>
+  <li><strong>Vá à linha indicada</strong> e olhe onde o <code>^</code> aponta (e a linha de cima, se não achar nada).</li>
+  <li><strong>Traduza a descrição</strong> com a tabela de vocabulário abaixo.</li>
+  <li><strong>Conserte e compile de novo.</strong> Podem aparecer erros novos: é normal, e é progresso.</li>
+</ol>
+
+<p>Veja o passo 4 acontecer. Este código tem dois problemas, na linha 4 e na linha 5:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Oi");
+        System.out.println("Tchau")
+        System.out.println(total);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: ';' expected
+        System.out.println("Tchau")
+                                   ^
+1 error                                    « só um erro?</pre>
+
+<p>Só um erro foi mostrado. O <code>javac</code> trabalha em etapas: primeiro confere a "gramática" (pontuação, chaves); só se ela estiver toda certa ele passa a conferir os nomes. Depois de pôr o <code>;</code>:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: cannot find symbol
+        System.out.println(total);
+                           ^
+  symbol:   variable total
+  location: class Main
+1 error                                    « o erro de nome só aparece agora</pre>
+
+<p>O contrário também acontece: um único engano gera vários erros. O nome inválido <code>int class = 10;</code> produziu três mensagens na aula <a href="sintaxe.html">Sintaxe e Estrutura</a>. Consertado o engano, as três somem juntas.</p>
+
+<div class="tryjava" data-goal="compila,out:Oi,out:Tchau">
+<p class="try-task"><strong>Missão:</strong> conserte o programa acima usando o método: rode, conserte o primeiro erro, rode de novo. A variável <code>total</code> não existe; apague essa linha ou crie a variável antes dela (<code>int total = 10;</code>).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Oi");
+        System.out.println("Tchau")
+        System.out.println(total);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int total = 10;
+        System.out.println("Oi");
+        System.out.println("Tchau");
+        System.out.println(total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O vocabulário das mensagens</h2>
+<p>Com umas vinte palavras, você entende quase todas as mensagens:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Inglês</th><th>Quer dizer</th></tr>
+<tr><td><code>expected</code></td><td>esperado, "esperava encontrar"</td></tr>
+<tr><td><code>cannot find symbol</code></td><td>não consigo encontrar o símbolo (um nome: variável, método, classe)</td></tr>
+<tr><td><code>symbol</code> / <code>location</code></td><td>o nome procurado / onde ele foi procurado</td></tr>
+<tr><td><code>incompatible types</code></td><td>tipos incompatíveis</td></tr>
+<tr><td><code>cannot be converted to</code></td><td>não pode ser convertido em</td></tr>
+<tr><td><code>missing</code></td><td>faltando</td></tr>
+<tr><td><code>unclosed</code></td><td>não fechado</td></tr>
+<tr><td><code>illegal</code></td><td>inválido, proibido ali</td></tr>
+<tr><td><code>reached end of file</code></td><td>cheguei ao fim do arquivo</td></tr>
+<tr><td><code>while parsing</code></td><td>enquanto analisava (lia a estrutura do código)</td></tr>
+<tr><td><code>not a statement</code></td><td>não é uma instrução</td></tr>
+<tr><td><code>might not have been initialized</code></td><td>pode não ter recebido valor</td></tr>
+<tr><td><code>without</code></td><td>sem</td></tr>
+<tr><td><code>should be declared in</code></td><td>deveria estar declarada em</td></tr>
+<tr><td><code>does not exist</code></td><td>não existe</td></tr>
+<tr><td><code>already defined</code></td><td>já definido (nome repetido)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Os erros mais comuns de iniciante</h2>
+<p>Cada erro abaixo tem o código com o problema, a mensagem real, o que ela quer dizer e como consertar. Nos programas de verdade eles aparecem dentro de <code>public class Main</code> e do <code>main</code>; aqui, para economizar espaço, alguns mostram só o trecho importante, mas a mensagem é a do programa completo.</p>
+
+<h3 id="ponto-e-virgula">1. <code>';' expected</code></h3>
+<pre class="term">$ javac Main.java
+Main.java:3: error: ';' expected
+        System.out.println("Olá, Ana")
+                                      ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "esperava um ponto e vírgula". A instrução acabou e o <code>;</code> não veio. <strong>Conserto:</strong> ponha o <code>;</code> onde o <code>^</code> aponta. Variação: com um espaço no meio de um nome (<code>Sys tem.out</code>) ou um nome inválido (<code>int nota final</code>), o <code>javac</code> também pede um <code>;</code>, porque acha que a instrução acabou antes do espaço (veja <a href="sintaxe.html">Sintaxe e Estrutura</a>).</p>
+
+<h3 id="digitacao">2. <code>cannot find symbol</code>: erro de digitação</h3>
+<pre class="file" data-file="trecho · erro de propósito">int nota = 8;
+System.out.println(ntoa);</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(ntoa);
+                           ^
+  symbol:   variable ntoa
+  location: class Main
+1 error</pre>
+<p><strong>Quer dizer:</strong> "não encontrei nada chamado <code>ntoa</code>". O <code>symbol:</code> diz o que faltou e de que tipo (<code>variable</code>, <code>method</code>, <code>class</code>). <strong>Conserto:</strong> compare a grafia com a da declaração (<code>nota</code>). Também aparece quando a variável ainda não foi criada, foi criada mais abaixo, ou quando você esqueceu as aspas de um texto (<code>println(Olá)</code>).</p>
+
+<h3 id="maiuscula">3. <code>cannot find symbol</code>: maiúscula e minúscula</h3>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        string nome = "Ana";
+        ^
+  symbol:   class string
+  location: class Main
+1 error</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        System.out.Println("Oi");
+                  ^
+  symbol:   method Println(String)
+  location: variable out of type PrintStream
+1 error</pre>
+<p><strong>Quer dizer:</strong> no primeiro, "não existe a classe <code>string</code>" (o certo é <code>String</code>); no segundo, "não existe o método <code>Println</code> que recebe um <code>String</code>, no <code>out</code>" (o certo é <code>println</code>). <strong>Conserto:</strong> o Java diferencia maiúsculas: <code>String</code>, <code>System</code>, <code>println</code>. Com <code>system</code> minúsculo, a mensagem é outra: <code>error: package system does not exist</code>.</p>
+
+<h3 id="publica">4. <code>class Main is public, should be declared in a file named Main.java</code></h3>
+<pre class="term">$ javac Ola.java
+Ola.java:1: error: class Main is public, should be declared in a file named Main.java
+public class Main {
+       ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "a classe <code>Main</code> é pública e deveria estar num arquivo chamado <code>Main.java</code>". <strong>Conserto:</strong> renomeie o arquivo ou a classe para ficarem iguais, com as mesmas maiúsculas (veja <a href="primeiro-programa.html#nome-arquivo">Olá, Mundo</a>).</p>
+
+<h3 id="tipos">5. <code>incompatible types: String cannot be converted to int</code></h3>
+<pre class="file" data-file="trecho · erro de propósito">int idade = "29";</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: String cannot be converted to int
+        int idade = "29";
+                    ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "tipos incompatíveis: um texto (<code>String</code>) não pode ser convertido em inteiro (<code>int</code>)". Com aspas, <code>"29"</code> é texto, e a caixa <code>idade</code> só aceita números inteiros. <strong>Conserto:</strong> tire as aspas (<code>int idade = 29;</code>). Se o número vem mesmo de um texto (do teclado, por exemplo), ele precisa ser convertido (veja <a href="conversao-tipos.html">Conversão de Tipos</a>). Outras combinações aparecem com o mesmo começo: ao guardar <code>2.5</code> num <code>int</code>, a mensagem é <code>incompatible types: possible lossy conversion from double to int</code> ("possível perda na conversão de double para int").</p>
+
+<h3 id="fim-arquivo">6. <code>reached end of file while parsing</code></h3>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Oi");
+    }
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: reached end of file while parsing
+    }
+     ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "cheguei ao fim do arquivo enquanto analisava": faltou fechar uma chave, e o arquivo acabou com um bloco ainda aberto. O <code>^</code> aponta para depois da última chave. <strong>Conserto:</strong> conte as chaves; com o recuo certo, é fácil ver qual <code>{</code> ficou sem par (aqui, a da classe). Uma aspa ou um comentário <code>/*</code> sem fechar podem causar o mesmo erro.</p>
+
+<h3 id="return">7. <code>missing return statement</code></h3>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    static int dobro(int n) {
+        int r = n * 2;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(dobro(4));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: missing return statement
+    }
+    ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "falta a instrução <code>return</code>". O método <code>dobro</code> promete devolver um <code>int</code> (está escrito <code>int dobro</code>), mas chega à chave final sem devolver nada. Você vai criar métodos assim em <a href="metodos.html">Métodos</a> e <a href="retorno.html">Valores de Retorno</a>. <strong>Conserto:</strong> devolva o valor (<code>return r;</code>) antes da <code>}</code>. Se o método não deve devolver nada, ele deve ser <code>void</code>.</p>
+
+<h3 id="aspas">8. <code>unclosed string literal</code></h3>
+<pre class="term">$ javac Main.java
+Main.java:3: error: unclosed string literal
+        System.out.println("Olá, Ana);
+                           ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "texto não fechado": uma aspa abriu um texto e a linha acabou antes da aspa de fechamento. O <code>^</code> aponta a aspa que abriu. Repare que tudo depois dela, inclusive o <code>);</code>, virou parte do texto. <strong>Conserto:</strong> feche as aspas: <code>"Olá, Ana"</code>. Com aspas simples num texto (<code>'Olá'</code>), o erro parecido é <code>unclosed character literal</code>: em Java, aspas simples são só para <strong>um</strong> caractere (veja <a href="char-boolean.html">char e boolean</a>).</p>
+
+<h3 id="nao-instrucao">9. <code>not a statement</code></h3>
+<pre class="file" data-file="trecho · erro de propósito">int nota = 8;
+nota;</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: not a statement
+        nota;
+        ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "isto não é uma instrução": a linha tem um valor solto, que não faz nada (não escreve, não guarda, não chama ninguém). <strong>Conserto:</strong> diga o que fazer com o valor: <code>System.out.println(nota);</code> ou <code>nota = nota + 1;</code>. Também aparece em nomes inválidos, como <code>int 2notas = 10;</code>. No <a href="jshell.html">JShell</a>, ao contrário, um valor solto é permitido: ele mostra o valor.</p>
+
+<h3 id="else">10. <code>'else' without 'if'</code></h3>
+<pre class="file" data-file="trecho · erro de propósito">int nota = 8;
+if (nota &gt;= 7);
+    System.out.println("Aprovada");
+else
+    System.out.println("Reprovada");</pre>
+<pre class="term">$ javac Main.java
+Main.java:6: error: 'else' without 'if'
+        else
+        ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "um <code>else</code> sem <code>if</code>". O <code>if</code> está lá, mas o <code>;</code> logo depois do <code>if (nota &gt;= 7)</code> encerrou o <code>if</code> ali mesmo, com uma instrução vazia. O <code>println("Aprovada")</code> virou uma linha comum, e o <code>else</code> ficou órfão. Você vai estudar o <code>if</code> em <a href="if-else.html">if, else if, else</a>. <strong>Conserto:</strong> tire o <code>;</code> depois do parêntese e use chaves:</p>
+<pre class="file" data-file="trecho">if (nota &gt;= 7) {
+    System.out.println("Aprovada");
+} else {
+    System.out.println("Reprovada");
+}</pre>
+
+<h3 id="inicializada">11. <code>variable nota might not have been initialized</code></h3>
+<pre class="file" data-file="trecho · erro de propósito">int nota;
+System.out.println(nota);</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: variable nota might not have been initialized
+        System.out.println(nota);
+                           ^
+1 error</pre>
+<p><strong>Quer dizer:</strong> "a variável <code>nota</code> pode não ter recebido um valor". Ela foi criada (<code>int nota;</code>), mas a caixa está vazia, e o Java não deixa usar uma caixa vazia. <strong>Conserto:</strong> dê um valor antes de usar: <code>int nota = 8;</code> (veja <a href="variaveis.html">Variáveis</a>).</p>
+
+<div class="tryjava" data-goal="compila,out:Nota: 8">
+<p class="try-task"><strong>Missão:</strong> este programa junta três erros da lista (um <code>;</code>, uma maiúscula e uma variável sem valor). Rode, identifique cada um pela mensagem e conserte até aparecer <code>Nota: 8</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int nota;
+        String texto = "Nota: "
+        system.out.println(texto + nota);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int nota = 8;
+        String texto = "Nota: ";
+        System.out.println(texto + nota);
+    }
+}
+</pre>
+</div>
+
+<h3>Resumo dos erros</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa mais comum</th><th>Conserto</th></tr>
+<tr><td><code>';' expected</code></td><td>Faltou <code>;</code></td><td>Pôr o <code>;</code> no fim da instrução</td></tr>
+<tr><td><code>cannot find symbol</code></td><td>Nome digitado errado, maiúscula, variável não criada, texto sem aspas</td><td>Conferir a grafia com a declaração</td></tr>
+<tr><td><code>package system does not exist</code></td><td><code>system</code> minúsculo</td><td><code>System</code></td></tr>
+<tr><td><code>class X is public, should be declared in a file named X.java</code></td><td>Nome do arquivo ≠ nome da classe</td><td>Renomear um dos dois</td></tr>
+<tr><td><code>incompatible types</code></td><td>Valor do tipo errado (texto numa caixa de número)</td><td>Usar o tipo certo; tirar as aspas</td></tr>
+<tr><td><code>reached end of file while parsing</code></td><td>Faltou fechar <code>}</code></td><td>Contar as chaves</td></tr>
+<tr><td><code>missing return statement</code></td><td>Método sem <code>return</code></td><td><code>return valor;</code> ou <code>void</code></td></tr>
+<tr><td><code>unclosed string literal</code></td><td>Aspa sem par</td><td>Fechar as aspas</td></tr>
+<tr><td><code>not a statement</code></td><td>Valor solto; nome inválido</td><td>Usar o valor (<code>println</code>, atribuição)</td></tr>
+<tr><td><code>'else' without 'if'</code></td><td><code>;</code> depois do <code>if (…)</code></td><td>Tirar o <code>;</code>, usar chaves</td></tr>
+<tr><td><code>might not have been initialized</code></td><td>Variável usada sem valor</td><td>Dar um valor ao criar</td></tr>
+</table>
+</div>
+
+<p>A lista completa, com dezenas de outras mensagens, fica na referência <a href="ref-erros-javac.html">Erros do Compilador</a>.</p>
+
+<hr>
+
+<h2>Erro de compilação × erro em tempo de execução</h2>
+<p>Tudo nesta aula é <strong>erro de compilação</strong>: o <code>javac</code> recusa o código e nenhum programa é gerado. Existe outro tipo: código que compila sem reclamação, mas quebra <strong>enquanto roda</strong>, quando tenta fazer algo impossível. Esse é um <strong>erro em tempo de execução</strong>, e em Java ele aparece como uma <strong>exceção</strong>:</p>
+
+<pre class="term">$ javac Div.java                   « compilou sem erro nenhum
+$ java Div
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Div.main(Div.java:3)</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Erro de compilação</th><th>Erro em tempo de execução (exceção)</th></tr>
+<tr><td>Quando aparece</td><td>Ao compilar (<code>javac</code>)</td><td>Ao rodar (<code>java</code>)</td></tr>
+<tr><td>Quem avisa</td><td>O compilador</td><td>A JVM</td></tr>
+<tr><td>Formato</td><td><code>Main.java:3: error: …</code> + linha + <code>^</code></td><td><code>Exception in thread "main" java.lang.NomeDaExcecao: …</code> + <code>at …(Main.java:3)</code></td></tr>
+<tr><td>O programa rodou?</td><td>Não; nem existe <code>.class</code> novo</td><td>Sim, até a linha do problema</td></tr>
+<tr><td>Causa típica</td><td>Escrita: pontuação, nomes, tipos</td><td>Situação: divisão por zero, posição que não existe numa lista, valor vazio (<code>null</code>)</td></tr>
+<tr><td>Código de saída</td><td><code>javac</code> devolve 1</td><td><code>java</code> devolve 1</td></tr>
+<tr><td>Onde estudar</td><td>Esta aula e <a href="ref-erros-javac.html">Erros do Compilador</a></td><td><a href="excecoes.html">O que são Exceções</a> e <a href="ref-excecoes.html">Exceções Comuns</a></td></tr>
+</table>
+</div>
+
+<p>Os erros de compilação são os "bons": aparecem cedo, sempre, com a linha marcada. Um dos motivos de o Java conferir tantas coisas na compilação (como os tipos das variáveis) é transformar erros que só apareceriam rodando, talvez na frente de um cliente, em erros que aparecem na sua tela antes.</p>
+
+<div class="tryjava" data-goal="erro-javac:unclosed string literal">
+<p class="try-task"><strong>Missão:</strong> aqui o objetivo é o contrário: <strong>provoque</strong> o erro <code>unclosed string literal</code>. Apague a aspa de fechamento do texto e rode. Ver o erro de propósito ajuda a reconhecê-lo depois.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A linha do erro</h3>
+<p>A mensagem é <code>Loja.java:12: error: ';' expected</code>. Em que linha está o problema?</p>
+<div class="ex-code"><input data-answer="12" aria-label="linha"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que faltou</h3>
+<p>A mensagem é <code>error: reached end of file while parsing</code>. Que símbolo provavelmente faltou?</p>
+<div class="ex-code"><input data-answer="}" aria-label="símbolo"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O <code>javac</code> mostrou 5 erros. Qual é a melhor estratégia?</p>
+<label><input type="radio" name="q3"> Consertar o último primeiro.</label>
+<label><input type="radio" name="q3"> Consertar o primeiro e compilar de novo; outros podem sumir junto.</label>
+<label><input type="radio" name="q3"> Apagar o arquivo e começar do zero.</label>
+<label><input type="radio" name="q3"> Ignorar e rodar com <code>java</code>.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. <code>int idade = "29";</code> dá qual erro?</p>
+<label><input type="radio" name="q4"> <code>';' expected</code></label>
+<label><input type="radio" name="q4"> <code>cannot find symbol</code></label>
+<label><input type="radio" name="q4"> <code>not a statement</code></label>
+<label><input type="radio" name="q4"> <code>incompatible types: String cannot be converted to int</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Em <code>cannot find symbol</code> … <code>symbol: variable totl</code>, o que provavelmente aconteceu?</p>
+<label><input type="radio" name="q5"> O nome <code>total</code> foi digitado errado.</label>
+<label><input type="radio" name="q5"> Faltou um <code>;</code>.</label>
+<label><input type="radio" name="q5"> O arquivo tem o nome errado.</label>
+<label><input type="radio" name="q5"> O programa dividiu por zero.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. <code>Exception in thread "main" java.lang.ArithmeticException</code> é…</p>
+<label><input type="radio" name="q6"> um erro de compilação.</label>
+<label><input type="radio" name="q6"> um aviso que pode ser ignorado.</label>
+<label><input type="radio" name="q6"> um erro em tempo de execução: o programa compilou e quebrou ao rodar.</label>
+<label><input type="radio" name="q6"> uma mensagem do editor.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Formato: <code>Arquivo.java:LINHA: error: descrição</code>, a linha copiada, um <code>^</code> na coluna, e a contagem.</li>
+  <li>Leia o primeiro erro, conserte, compile de novo. Erros novos depois de um conserto são normais.</li>
+  <li>O <code>^</code> marca onde o <code>javac</code> percebeu; se a linha parece certa, olhe a de cima.</li>
+  <li>Os mais comuns: <code>';' expected</code>, <code>cannot find symbol</code>, <code>class … is public</code>, <code>incompatible types</code>, <code>reached end of file</code>, <code>missing return statement</code>, <code>unclosed string literal</code>, <code>not a statement</code>, <code>'else' without 'if'</code>, <code>might not have been initialized</code>.</li>
+  <li>Erro de compilação: nada roda. Exceção: rodou e quebrou. A referência completa é <a href="ref-erros-javac.html">Erros do Compilador</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
