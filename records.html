@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Records — classes de dados imutáveis em uma linha | Guia Java</title>
+<meta name="description" content="Records em Java (16+): o que um record gera sozinho (construtor, acessores nome(), equals, hashCode e toString, vistos com javap), o construtor compacto com validação, imutabilidade e quando usar record × classe comum. Saídas e erros reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Records</span></h1>
+
+<p class="intro">Muitas classes existem só para <strong>carregar dados</strong>: um aluno com nome e nota, um produto com nome e preço, um ponto com x e y. Para fazer uma classe dessas "do jeito certo", você escreve construtor, getters, <code>toString</code>, <code>equals</code> e <code>hashCode</code>: umas quarenta linhas para dizer "um aluno tem nome e nota". O <strong><code>record</code></strong>, do Java 16, diz exatamente isso em <strong>uma linha</strong>, e o compilador escreve o resto.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar um <code>record</code> e o que ele gera sozinho (com uma espiada pelo <code>javap</code>).</li>
+  <li>Os acessores <code>nome()</code> (sem <code>get</code>), o <code>toString</code> e o <code>equals</code> prontos.</li>
+  <li>Por que um record é imutável, e como "alterar" um criando outro.</li>
+  <li>O <strong>construtor compacto</strong>, para validar e ajustar os dados.</li>
+  <li>O que um record não pode ter, e quando usar record ou classe comum.</li>
+</ul>
+</div>
+
+<p><span class="versao">Java 16+</span> Records existem desde o Java 16. Num JDK 11 ou 8, use uma classe comum (a seção "O que o record gera" mostra como ela ficaria).</p>
+
+<hr>
+
+<h2>A ideia: um formulário preenchido</h2>
+<p>Pense numa ficha de inscrição já preenchida: nome, data, nota. Ela não "faz" nada; ela <strong>registra</strong> informações. Duas fichas com os mesmos dados são, para todos os efeitos, iguais. E, uma vez entregue, ninguém rasura: se algo mudou, preenche-se uma ficha nova.</p>
+
+<p>Um <code>record</code> ("registro", em inglês) é isso em Java: um objeto que é só a soma dos seus dados, que se compara pelos dados e que não muda depois de criado.</p>
+
+<hr>
+
+<h2>Um record em uma linha</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno ana = new Aluno("Ana", 9.5);
+        Aluno outra = new Aluno("Ana", 9.5);
+        Aluno bruno = new Aluno("Bruno", 6.0);
+
+        System.out.println(ana);
+        System.out.println(ana.nome() + " tirou " + ana.nota());
+        System.out.println(ana.equals(outra));
+        System.out.println(ana.equals(bruno));
+        System.out.println(ana == outra);
+        System.out.println(ana.hashCode() == outra.hashCode());
+    }
+}
+
+record Aluno(String nome, double nota) {
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>record</dt><dd>No lugar de <code>class</code>: "este tipo é um registro de dados".</dd>
+  <dt>Aluno</dt><dd>O nome do tipo.</dd>
+  <dt>(String nome, double nota)</dt><dd>Os <strong>componentes</strong> do record: os dados que ele carrega, com tipo e nome, como parâmetros de um método. Daqui o compilador tira tudo o mais.</dd>
+  <dt>{ }</dt><dd>O corpo. Pode ficar vazio, ou receber métodos (você verá adiante).</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Aluno[nome=Ana, nota=9.5]       « toString pronto: Tipo[componente=valor, …]
+Ana tirou 9.5                   « acessores nome() e nota()
+true                            « equals: mesmos dados = iguais
+false
+false                           « == : continuam sendo dois objetos diferentes
+true                            « hashCode igual para dados iguais</pre>
+
+<p>Repare na saída: o <code>println</code> mostrou os dados, sem você escrever <code>toString</code> (compare com o <code>Aluno@365c30cc</code> de <a href="sobrescrita.html">Sobrescrita</a>). O <code>equals</code> diz que duas "Anas com 9,5" são iguais, comparando os dados. O <code>==</code> continua dizendo que são dois objetos distintos na memória (a diferença entre os dois é o assunto de <a href="object.html">A Classe Object</a>).</p>
+
+<div class="tryjava" data-goal="out:Produto[nome=Café\, preco=18.9],src:record\s+Produto">
+<p class="try-task"><strong>Missão:</strong> crie o record <code>Produto</code>, com os componentes <code>String nome</code> e <code>double preco</code>. No <code>main</code>, crie o produto <code>"Café"</code> de <code>18.90</code> e mostre-o com <code>println</code>. A saída deve ser <code>Produto[nome=Café, preco=18.9]</code>. Depois, mostre só o preço com o acessor.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        // crie e mostre o produto
+    }
+}
+
+// crie aqui o record Produto
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Produto cafe = new Produto("Café", 18.90);
+        System.out.println(cafe);
+        System.out.println(cafe.preco());
+    }
+}
+
+record Produto(String nome, double preco) {
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O que o record gera</h2>
+<p>Para ver o que o compilador escreveu, a Ana compilou o record sozinho num arquivo e usou o <code>javap</code>, que lista os membros de uma classe compilada (você o conheceu em <a href="api-java.html">A Biblioteca Padrão</a>):</p>
+
+<pre class="file" data-file="Aluno.java">public record Aluno(String nome, double nota) {
+}
+</pre>
+
+<pre class="term">$ javac Aluno.java
+$ javap Aluno.class
+Compiled from "Aluno.java"
+public final class Aluno extends java.lang.Record {
+  public Aluno(java.lang.String, double);
+  public final java.lang.String toString();
+  public final int hashCode();
+  public final boolean equals(java.lang.Object);
+  public java.lang.String nome();
+  public double nota();
+}</pre>
+
+<p>Linha por linha, o que uma linha de record virou:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Gerado</th><th>O que é</th></tr>
+<tr><td><code>public final class Aluno</code></td><td>Uma classe <a href="final.html"><code>final</code></a>: ninguém herda de um record</td></tr>
+<tr><td><code>extends java.lang.Record</code></td><td>Todo record herda de <code>Record</code> (e por isso não pode herdar de mais nada)</td></tr>
+<tr><td><code>Aluno(String, double)</code></td><td>O <strong>construtor canônico</strong>: recebe todos os componentes, na ordem</td></tr>
+<tr><td><code>toString()</code></td><td><code>Aluno[nome=Ana, nota=9.5]</code></td></tr>
+<tr><td><code>hashCode()</code> e <code>equals(Object)</code></td><td>Baseados em <strong>todos</strong> os componentes</td></tr>
+<tr><td><code>nome()</code>, <code>nota()</code></td><td>Os <strong>acessores</strong>: um por componente, com o mesmo nome (sem <code>get</code>)</td></tr>
+<tr><td>(não aparece no <code>javap</code>)</td><td>Os atributos <code>private final String nome</code> e <code>private final double nota</code></td></tr>
+</table>
+</div>
+
+<p>Os atributos não aparecem porque são <code>private</code>, e o <code>javap</code> sem opções mostra só o que é visível de fora. Para comparar, a classe comum equivalente, que você escreveria antes do Java 16, seria assim:</p>
+
+<pre class="file" data-file="Aluno.java (classe comum equivalente)">import java.util.Objects;
+
+public final class Aluno {
+    private final String nome;
+    private final double nota;
+
+    public Aluno(String nome, double nota) {
+        this.nome = nome;
+        this.nota = nota;
+    }
+
+    public String nome() { return nome; }
+    public double nota() { return nota; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Aluno outro)) return false;
+        return Objects.equals(nome, outro.nome) &amp;&amp; Double.compare(nota, outro.nota) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nome, nota);
+    }
+
+    @Override
+    public String toString() {
+        return "Aluno[nome=" + nome + ", nota=" + nota + "]";
+    }
+}
+</pre>
+
+<p>Trinta linhas, com vários lugares para errar (esquecer um campo no <code>equals</code>, por exemplo). O record faz o mesmo em uma.</p>
+
+<div class="note">
+<strong>Por que <code>nome()</code> e não <code>getNome()</code>?</strong>
+<p>A convenção <code>getNome()</code> vem das classes comuns (veja <a href="encapsulamento.html">Encapsulamento</a>). Os criadores dos records preferiram que o acessor tenha exatamente o nome do componente. Na prática: em records, <code>ana.nome()</code>; em classes comuns, <code>ana.getNome()</code>. Cuidado ao misturar.</p>
+</div>
+
+<hr>
+
+<h2>Imutável: sem setters</h2>
+<p>Os atributos de um record são <code>private final</code>. Não há como mudá-los depois da criação: nem diretamente, nem por um setter, que simplesmente não existe:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno ana = new Aluno("Ana", 9.5);
+        ana.nome = "Ana Souza";
+        ana.setNome("Ana Souza");
+    }
+}
+
+record Aluno(String nome, double nota) {
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: nome has private access in Aluno
+        ana.nome = "Ana Souza";
+           ^
+Main.java:5: error: cannot find symbol
+        ana.setNome("Ana Souza");
+           ^
+  symbol:   method setNome(String)
+  location: variable ana of type Aluno
+2 errors</pre>
+
+<p>Para "mudar" um record, crie <strong>outro</strong> com os dados novos. É o que a ficha preenchida faria. Um padrão comum é um método que devolve a cópia alterada:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Produto cafe = new Produto("Café", 18.0);
+        Produto promocao = cafe.comDesconto(10);
+        System.out.println(cafe);
+        System.out.println(promocao);
+    }
+}
+
+record Produto(String nome, double preco) {
+    Produto comDesconto(double percentual) {
+        return new Produto(nome, preco - preco * percentual / 100);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Produto[nome=Café, preco=18.0]          « o original não mudou
+Produto[nome=Café, preco=16.2]          « um produto novo, com 10% a menos</pre>
+
+<p>Por que imutável é bom? Um objeto que não muda pode ser compartilhado à vontade, guardado em listas, usado como chave de um <a href="hashmap.html">HashMap</a> ou passado para outros métodos sem medo de alguém alterá-lo pelas suas costas. Mas lembre-se do que você viu em <a href="final.html">final</a>: se um componente for uma lista mutável (<code>List&lt;String&gt; materias</code> com um <code>ArrayList</code>), o record não troca a lista, mas a lista em si ainda aceita <code>add</code>.</p>
+
+<hr>
+
+<h2>O construtor compacto: validar os dados</h2>
+<p>Uma nota 11 não deveria existir. Um record pode conferir os dados na criação com um <strong>construtor compacto</strong>: um construtor sem a lista de parâmetros, que roda <strong>antes</strong> de os valores serem guardados nos atributos.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Aluno ana = new Aluno("  Ana ", 9.5);
+        System.out.println(ana + " aprovado? " + ana.aprovado());
+        Aluno erro = new Aluno("Bruno", 11);
+        System.out.println(erro);
+    }
+}
+
+record Aluno(String nome, double nota) {
+    Aluno {
+        if (nota &lt; 0 || nota &gt; 10) {
+            throw new IllegalArgumentException("nota inválida: " + nota);
+        }
+        nome = nome.trim();
+    }
+
+    boolean aprovado() {
+        return nota &gt;= 6;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Aluno {</dt><dd>O construtor compacto: o nome do record e as chaves, <strong>sem parênteses</strong>. Os parâmetros (<code>nome</code>, <code>nota</code>) existem automaticamente.</dd>
+  <dt>throw new IllegalArgumentException(…)</dt><dd>Se a nota é inválida, recusa a criação lançando uma exceção (veja <a href="throw-throws.html">throw e throws</a>). O objeto não chega a existir.</dd>
+  <dt>nome = nome.trim();</dt><dd>Ajusta o <strong>parâmetro</strong> antes de ele ser guardado: tira os espaços das pontas. Repare: sem <code>this.</code>.</dd>
+  <dt>boolean aprovado()</dt><dd>Um método comum. Records podem ter quantos métodos quiserem.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Aluno[nome=Ana, nota=9.5] aprovado? true       « os espaços de "  Ana " sumiram
+Exception in thread "main" java.lang.IllegalArgumentException: nota inválida: 11.0
+	at Aluno.&lt;init&gt;(Main.java:13)
+	at Main.main(Main.java:5)</pre>
+
+<p>A primeira aluna foi criada com o nome limpo. A segunda foi recusada. No rastro, <code>Aluno.&lt;init&gt;</code> é como a JVM chama um construtor (<em>init</em> de <em>initialize</em>, "inicializar"), e <code>Main.java:13</code> é a linha do <code>throw</code>. A nota aparece como <code>11.0</code> porque o <code>11</code> virou <code>double</code>.</p>
+
+<p>O que acontece por baixo: o compilador pega o seu construtor compacto e acrescenta, no fim, <code>this.nome = nome; this.nota = nota;</code>. Por isso você mexe nos parâmetros, e não nos atributos.</p>
+
+<hr>
+
+<h2>O que um record pode e não pode ter</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pode</th><th>Não pode</th></tr>
+<tr><td>Métodos de instância e <code>static</code></td><td>Atributos de instância além dos componentes</td></tr>
+<tr><td>Atributos <code>static</code> (constantes)</td><td><code>extends</code> (já herda de <code>Record</code>)</td></tr>
+<tr><td>Implementar interfaces (<code>implements Comparable&lt;Aluno&gt;</code>)</td><td>Ser herdado (é <code>final</code>)</td></tr>
+<tr><td>Construtor compacto e outros construtores (que chamam o canônico com <code>this(…)</code>)</td><td>Setters que mudem os componentes</td></tr>
+<tr><td>Sobrescrever <code>toString</code>, um acessor etc.</td><td>Componentes que mudam de valor</td></tr>
+</table>
+</div>
+
+<p>Tentando as duas proibições mais comuns:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:9: error: '{' expected
+record Aluno(String nome, double nota) extends Pessoa {
+                                      ^
+Main.java:13: error: field declaration must be static
+    int idade;
+        ^
+  (consider replacing field with record component)
+2 errors</pre>
+
+<ul>
+  <li><em>'{' expected</em>: depois dos componentes, o compilador esperava o corpo; <code>extends</code> não faz parte da gramática do record. Se precisa de um "tipo pai", use uma <a href="interfaces.html">interface</a>.</li>
+  <li><em>field declaration must be static</em> = "a declaração de atributo precisa ser <code>static</code>", e a dica: <em>consider replacing field with record component</em>, "considere trocar o atributo por um componente do record": acrescente <code>int idade</code> entre os parênteses.</li>
+</ul>
+
+<hr>
+
+<h2>Record ou classe comum?</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>O objeto é só um conjunto de dados (DTO, resultado de uma consulta, coordenada, item de pedido)</td><td><strong>record</strong></td></tr>
+<tr><td>Dois objetos com os mesmos dados devem ser considerados iguais</td><td><strong>record</strong></td></tr>
+<tr><td>Devolver dois ou mais valores de um método</td><td><strong>record</strong> (até local, dentro do método)</td></tr>
+<tr><td>O objeto muda com o tempo (uma conta com saldo, um carrinho de compras)</td><td>Classe comum</td></tr>
+<tr><td>Precisa herdar de outra classe ou ser herdado</td><td>Classe comum</td></tr>
+<tr><td>Precisa esconder os dados (não expor um acessor para cada um)</td><td>Classe comum</td></tr>
+<tr><td>Identidade importa mais que os dados (duas pessoas homônimas são pessoas diferentes)</td><td>Classe comum</td></tr>
+</table>
+</div>
+
+<p>Records também combinam com recursos modernos: os <strong>record patterns</strong> do Java 21 desmontam um record direto no <code>instanceof</code> ou no <code>switch</code> (<code>if (obj instanceof Aluno(String n, double nota))</code>); veja <a href="pattern-matching.html">Pattern Matching</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … method getNome()"</strong>
+<p><strong>O que aconteceu:</strong> o acessor de um record tem o nome do componente, sem <code>get</code>.</p>
+<p><strong>Como resolver:</strong> <code>ana.nome()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"… has private access in …" ao mudar um componente</strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: nome has private access in Aluno
+        ana.nome = "Ana Souza";
+           ^
+Main.java:5: error: cannot find symbol
+        ana.setNome("Ana Souza");
+           ^
+  symbol:   method setNome(String)
+  location: variable ana of type Aluno
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> tentativa de alterar um record (que é imutável).</p>
+<p><strong>Como resolver:</strong> crie um record novo: <code>ana = new Aluno("Ana Souza", ana.nota());</code>, ou escreva um método que devolva a cópia alterada.</p>
+</div>
+
+<div class="cenario">
+<strong>"field declaration must be static"</strong>
+<p><strong>O que aconteceu:</strong> um atributo comum declarado no corpo do record.</p>
+<p><strong>Como resolver:</strong> transforme-o em componente (entre os parênteses). Se for uma constante, <code>static final</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Exceção com <code>&lt;init&gt;</code> no rastro</strong>
+<p><strong>O que aconteceu:</strong> o construtor compacto recusou os dados (foi você que programou isso!).</p>
+<p><strong>Como resolver:</strong> confira os valores passados no <code>new</code> apontado pela linha seguinte do rastro (<code>at Main.main(Main.java:5)</code>).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>record Aluno(String nome, double nota) { }</code></td><td>Declara o record com dois componentes</td></tr>
+<tr><td><code>new Aluno("Ana", 9.5)</code></td><td>Construtor canônico (todos os componentes, na ordem)</td></tr>
+<tr><td><code>ana.nome()</code></td><td>Acessor (sem <code>get</code>)</td></tr>
+<tr><td><code>System.out.println(ana)</code></td><td><code>Aluno[nome=Ana, nota=9.5]</code></td></tr>
+<tr><td><code>a.equals(b)</code></td><td><code>true</code> se todos os componentes são iguais</td></tr>
+<tr><td><code>Aluno { … }</code></td><td>Construtor compacto: validar e ajustar os parâmetros</td></tr>
+<tr><td><code>record … implements Comparable&lt;Aluno&gt;</code></td><td>Records podem implementar interfaces</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Declarar</h3>
+<p>Complete a declaração de um ponto com <code>x</code> e <code>y</code> inteiros:</p>
+<div class="ex-code"><input data-answer="record Ponto(int x, int y)|record Ponto(int x,int y)" aria-label="declaração"> { }</div>
+</div>
+
+<div class="exercise">
+<h3>2. O acessor</h3>
+<p>Com <code>Ponto p = new Ponto(3, 4);</code>, complete para pegar o <code>x</code>:</p>
+<div class="ex-code">int a = <input data-answer="p.x()" aria-label="acessor">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. O toString pronto</h3>
+<p>O que <code>System.out.println(new Ponto(3, 4))</code> mostra?</p>
+<div class="ex-code"><input data-answer="Ponto[x=3, y=4]" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>new Ponto(1, 2).equals(new Ponto(1, 2))</code> vale…</p>
+<label><input type="radio" name="q4"> <code>false</code>, são objetos diferentes</label>
+<label><input type="radio" name="q4"> <code>true</code>, o record compara os componentes</label>
+<label><input type="radio" name="q4"> Não compila</label>
+<label><input type="radio" name="q4"> Depende do <code>hashCode</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destas coisas um record <strong>não</strong> pode ter?</p>
+<label><input type="radio" name="q5"> Um método <code>static</code></label>
+<label><input type="radio" name="q5"> <code>implements Comparable</code></label>
+<label><input type="radio" name="q5"> <code>extends</code> outra classe</label>
+<label><input type="radio" name="q5"> Um construtor compacto</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Qual destes é o melhor candidato a record?</p>
+<label><input type="radio" name="q6"> Uma conta bancária, cujo saldo muda a cada depósito</label>
+<label><input type="radio" name="q6"> Um jogo, que guarda o placar e avança as fases</label>
+<label><input type="radio" name="q6"> Uma classe que precisa herdar de <code>Animal</code></label>
+<label><input type="radio" name="q6"> Uma coordenada geográfica com latitude e longitude</label>
+</div>
+
+<div class="tryjava" data-goal="out:Produto[nome=Café\, preco=18.0],out:Produto[nome=Café\, preco=16.2],src:Produto\s+comDesconto">
+<p class="try-task"><strong>Missão final:</strong> o record <code>Produto</code> é imutável, então o desconto precisa criar um produto <strong>novo</strong>. Escreva no record o método <code>Produto comDesconto(double percentual)</code>, que devolve <code>new Produto(nome, preco - preco * percentual / 100)</code>. A saída deve mostrar o original intacto (<code>preco=18.0</code>) e a promoção (<code>preco=16.2</code>).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Produto cafe = new Produto("Café", 18.0);
+        Produto promocao = cafe.comDesconto(10);
+        System.out.println(cafe);
+        System.out.println(promocao);
+    }
+}
+
+record Produto(String nome, double preco) {
+    // escreva aqui o método comDesconto
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Produto cafe = new Produto("Café", 18.0);
+        Produto promocao = cafe.comDesconto(10);
+        System.out.println(cafe);
+        System.out.println(promocao);
+    }
+}
+
+record Produto(String nome, double preco) {
+    Produto comDesconto(double percentual) {
+        return new Produto(nome, preco - preco * percentual / 100);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>record Aluno(String nome, double nota) { }</code> cria uma classe <code>final</code> com atributos <code>private final</code>, construtor, acessores <code>nome()</code>/<code>nota()</code>, <code>equals</code>, <code>hashCode</code> e <code>toString</code>.</li>
+  <li>Records se comparam pelos dados: dois com os mesmos componentes são <code>equals</code>.</li>
+  <li>São imutáveis: para "mudar", crie outro (<code>comDesconto</code> devolve um produto novo).</li>
+  <li>O construtor compacto (<code>Aluno { … }</code>) valida e ajusta os parâmetros antes de guardá-los.</li>
+  <li>Não podem ter <code>extends</code> nem atributos de instância extras; podem ter métodos e implementar interfaces.</li>
+  <li>Use record para dados; classe comum para objetos que mudam, que herdam ou que escondem os dados.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
