@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Modificadores de Acesso — public, private, protected e padrão | Guia Java</title>
+<meta name="description" content="Modificadores de acesso em Java: public, private, protected e o acesso padrão (de pacote), tabela de visibilidade, métodos privados auxiliares e os erros reais has private access e is not public; cannot be accessed from outside package.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Modificadores de Acesso</span></h1>
+
+<p class="intro">Até aqui, qualquer parte do programa podia ler e mudar qualquer atributo: <code>conta.saldo = -1000000;</code> compilava sem reclamar. Os <strong>modificadores de acesso</strong> são palavras colocadas antes de classes, atributos, métodos e construtores para dizer <strong>quem pode usá-los</strong>. São quatro níveis: <code>public</code>, <code>protected</code>, o padrão (sem palavra nenhuma) e <code>private</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que cada um dos quatro níveis permite, com uma tabela de visibilidade.</li>
+  <li>Como <code>private</code> protege um atributo e o erro real <code>has private access</code>.</li>
+  <li>Métodos <code>private</code> como "ajudantes internos" da classe.</li>
+  <li>O acesso padrão (de pacote) e o erro <code>is not public … cannot be accessed from outside package</code>.</li>
+  <li>Quais modificadores valem para classes e quais são os modificadores que <strong>não</strong> são de acesso (<code>static</code>, <code>final</code>, <code>abstract</code>).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código: as portas da escola</h2>
+<p>A escola da Ana tem lugares com regras de entrada diferentes:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Lugar</th><th>Quem entra</th><th>Modificador</th></tr>
+<tr><td>O pátio e a recepção</td><td>Qualquer pessoa, de qualquer lugar</td><td><code>public</code> ("público")</td></tr>
+<tr><td>A sala dos professores</td><td>Quem trabalha naquele prédio, e também professores de outras unidades que são "da família" da escola</td><td><code>protected</code> ("protegido")</td></tr>
+<tr><td>O corredor interno</td><td>Só quem é do mesmo prédio</td><td>padrão, sem palavra ("de pacote")</td></tr>
+<tr><td>O cofre da diretoria</td><td>Só a diretoria</td><td><code>private</code> ("privado")</td></tr>
+</table>
+</div>
+<p>Em Java, o "prédio" é o <strong>pacote</strong> (uma pasta de classes; veja <a href="pacotes.html">Pacotes e import</a>), a "família" são as <strong>subclasses</strong> (veja <a href="heranca.html">Herança</a>) e a "diretoria" é a <strong>própria classe</strong>.</p>
+
+<hr>
+
+<h2>A tabela de visibilidade</h2>
+<p>Esta é a tabela que todo programador Java consulta. Cada linha é um modificador; cada coluna, um lugar de onde alguém tenta usar o membro (atributo, método ou construtor):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Modificador</th><th>Na própria classe</th><th>Mesmo pacote</th><th>Subclasse em outro pacote</th><th>Qualquer lugar</th></tr>
+<tr><td><code>public</code></td><td>sim</td><td>sim</td><td>sim</td><td>sim</td></tr>
+<tr><td><code>protected</code></td><td>sim</td><td>sim</td><td>sim</td><td>não</td></tr>
+<tr><td>(nenhum) — padrão / de pacote</td><td>sim</td><td>sim</td><td>não</td><td>não</td></tr>
+<tr><td><code>private</code></td><td>sim</td><td>não</td><td>não</td><td>não</td></tr>
+</table>
+</div>
+
+<p>Lida de cima para baixo, a tabela vai do mais aberto ao mais fechado. Na prática, o dia a dia usa quase só os extremos: <strong><code>private</code> para atributos</strong> e <strong><code>public</code> para os métodos que formam a "porta de entrada" da classe</strong>. O padrão e o <code>protected</code> aparecem em situações específicas.</p>
+
+<div class="note">
+<strong>Até agora, tudo era "padrão"</strong>
+<p>Nas aulas anteriores, os atributos e métodos não tinham modificador: eram de acesso padrão. Como todos os exemplos ficavam na mesma pasta, sem declaração de pacote, estavam no mesmo "pacote sem nome" e se enxergavam. Por isso nunca houve erro de acesso.</p>
+</div>
+
+<hr>
+
+<h2><code>private</code>: só a própria classe</h2>
+<p>A Ana marcou o saldo da conta como <code>private</code>. Agora, quem está fora da classe <code>Conta</code> não pode tocar nele:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">class Conta {
+    String titular;
+    private double saldo;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta();
+        c.saldo = 1000000;
+        System.out.println(c.saldo);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:9: error: saldo has private access in Conta
+        c.saldo = 1000000;
+         ^
+Main.java:10: error: saldo has private access in Conta
+        System.out.println(c.saldo);
+                            ^
+2 errors</pre>
+
+<p>"<code>saldo</code> tem acesso privado em <code>Conta</code>". Nem escrever nem ler: o <code>main</code> está em outra classe. Então como alguém deposita ou consulta? Pelos <strong>métodos</strong> da própria classe, que podem usar o atributo privado à vontade:</p>
+
+<pre class="file" data-file="Main.java">class Conta {
+    String titular;
+    private double saldo;
+
+    void depositar(double valor) {
+        if (valor &gt; 0) {
+            saldo = saldo + valor;
+        }
+    }
+
+    double consultarSaldo() {
+        return saldo;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta();
+        c.titular = "Ana";
+        c.depositar(500);
+        c.depositar(-1000);
+        System.out.println(c.titular + ": " + c.consultarSaldo());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Ana: 500.0          « o depósito negativo foi ignorado pela regra do método</pre>
+
+<dl class="anatomy">
+  <dt>private double saldo;</dt><dd>O modificador vem antes do tipo. Só o código escrito <strong>dentro</strong> das chaves de <code>class Conta</code> pode usar <code>saldo</code>.</dd>
+  <dt>void depositar(double valor)</dt><dd>Está dentro da classe: pode mexer em <code>saldo</code>. E impõe uma regra: só aceita valores positivos.</dd>
+  <dt>double consultarSaldo()</dt><dd>Deixa ler o saldo sem deixar mudá-lo.</dd>
+  <dt>c.depositar(-1000);</dt><dd>Quem está fora não consegue estragar o saldo: o único caminho passa pela regra.</dd>
+</dl>
+
+<p>Esse é o coração do <strong>encapsulamento</strong>, o primeiro pilar da POO: os dados ficam escondidos e só mudam por métodos que conferem o que está acontecendo. A aula <a href="encapsulamento.html">Encapsulamento</a> mostra o padrão completo, com <em>getters</em> e <em>setters</em>.</p>
+
+<div class="tryjava" data-goal="erro-javac:has private access">
+<p class="try-task"><strong>Missão (provoque o erro):</strong> torne o atributo <code>estoque</code> da classe <code>Fruta</code> privado e veja o <code>javac</code> recusar a linha do <code>main</code> que tenta mudá-lo. A missão está cumprida quando aparecer <code>has private access</code>.</p>
+<pre class="script">class Fruta {
+    String nome;
+    int estoque;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta f = new Fruta();
+        f.nome = "maçã";
+        f.estoque = -50;
+        System.out.println(f.nome + ": " + f.estoque);
+    }
+}
+</pre>
+<pre class="solucao">class Fruta {
+    String nome;
+    private int estoque;
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta f = new Fruta();
+        f.nome = "maçã";
+        f.estoque = -50;
+        System.out.println(f.nome + ": " + f.estoque);
+    }
+}
+</pre>
+</div>
+
+<h3>Métodos <code>private</code>: ajudantes internos</h3>
+<p>Métodos também podem ser privados. É útil para pedaços de lógica que só fazem sentido dentro da classe, como uma conferência usada por outros métodos:</p>
+
+<pre class="file" data-file="Main.java">class Conta {
+    private double saldo;
+    private double limite = 200;
+
+    boolean sacar(double valor) {
+        if (!podeSacar(valor)) {
+            System.out.println("Saque de " + valor + " recusado.");
+            return false;
+        }
+        saldo = saldo - valor;
+        System.out.println("Saque de " + valor + " feito. Saldo: " + saldo);
+        return true;
+    }
+
+    private boolean podeSacar(double valor) {
+        return valor &gt; 0 &amp;&amp; valor &lt;= saldo + limite;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta();
+        c.sacar(150);
+        c.sacar(100);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Saque de 150.0 feito. Saldo: -150.0     « usou o limite (cheque especial)
+Saque de 100.0 recusado.                « passaria de 200 negativos</pre>
+
+<p>Se o <code>main</code> tentar chamar o ajudante:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:25: error: podeSacar(double) has private access in Conta
+        c.podeSacar(10);
+         ^
+1 error</pre>
+
+<p>Vantagem: a Ana pode mudar ou apagar <code>podeSacar</code> amanhã sem quebrar nenhuma outra classe, porque ninguém de fora depende dele.</p>
+
+<hr>
+
+<h2>Padrão (de pacote) e <code>public</code></h2>
+<p>A diferença entre o acesso padrão e o <code>public</code> só aparece quando há <strong>pacotes</strong> diferentes. Um pacote é uma pasta de classes com uma declaração <code>package</code> no topo de cada arquivo; você vai estudá-los em <a href="pacotes.html">Pacotes e import</a>. Para ver os modificadores funcionando, a Ana separou o programa em duas pastas:</p>
+
+<pre class="file" data-file="estrutura das pastas">modif/
+├── banco/
+│   └── Conta.java      (package banco;)
+└── app/
+    └── Main.java       (package app;)
+</pre>
+
+<pre class="file" data-file="banco/Conta.java">package banco;
+
+public class Conta {
+    public String titular;
+    double saldo;
+    private String senha = "1234";
+
+    public Conta(String titular) {
+        this.titular = titular;
+    }
+
+    public void depositar(double valor) {
+        saldo = saldo + valor;
+    }
+
+    public double consultarSaldo() {
+        return saldo;
+    }
+}
+</pre>
+
+<pre class="file" data-file="app/Main.java — com erro de propósito">package app;
+
+import banco.Conta;
+
+public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta("Ana");
+        c.depositar(500);
+        System.out.println(c.titular + ": " + c.consultarSaldo());
+        System.out.println(c.saldo);
+        System.out.println(c.senha);
+    }
+}
+</pre>
+
+<pre class="term">$ javac -d out banco/Conta.java app/Main.java
+app/Main.java:10: error: saldo is not public in Conta; cannot be accessed from outside package
+        System.out.println(c.saldo);
+                            ^
+app/Main.java:11: error: senha has private access in Conta
+        System.out.println(c.senha);
+                            ^
+2 errors</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Membro de <code>Conta</code></th><th>Modificador</th><th>O <code>Main</code> (pacote <code>app</code>) pode usar?</th></tr>
+<tr><td><code>titular</code></td><td><code>public</code></td><td>Sim</td></tr>
+<tr><td>construtor, <code>depositar</code>, <code>consultarSaldo</code></td><td><code>public</code></td><td>Sim</td></tr>
+<tr><td><code>saldo</code></td><td>padrão</td><td>Não: <code>is not public in Conta; cannot be accessed from outside package</code></td></tr>
+<tr><td><code>senha</code></td><td><code>private</code></td><td>Não: <code>has private access in Conta</code></td></tr>
+</table>
+</div>
+
+<p>Tirando as duas linhas proibidas, o programa compila e roda. A opção <code>-d out</code> manda o <code>javac</code> colocar os <code>.class</code> na pasta <code>out</code>, organizados por pacote, e <code>-cp out</code> diz ao <code>java</code> onde procurá-los:</p>
+
+<pre class="term">$ javac -d out banco/Conta.java app/Main.java
+$ java -cp out app.Main
+Ana: 500.0</pre>
+
+<p>Repare que a <strong>classe</strong> <code>Conta</code> e o seu <strong>construtor</strong> também precisaram de <code>public</code>: sem isso, o pacote <code>app</code> não conseguiria nem enxergar a classe nem criar contas.</p>
+
+<h3>E o <code>protected</code>?</h3>
+<p><code>protected</code> é o padrão "com um extra": vale para o mesmo pacote <strong>e</strong> para as <strong>subclasses</strong>, mesmo em outro pacote. Ele só faz sentido com herança, então fica para a aula <a href="heranca.html">Herança</a> (e <a href="super.html">super</a>). Por enquanto, guarde a posição dele na tabela: entre o padrão e o <code>public</code>.</p>
+
+<hr>
+
+<h2>Modificadores em classes</h2>
+<p>Uma classe "de primeiro nível" (que não está dentro de outra) só aceita duas opções:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Declaração</th><th>Quem enxerga a classe</th><th>Regra</th></tr>
+<tr><td><code>public class Conta</code></td><td>Todo mundo</td><td>Tem de estar no arquivo <code>Conta.java</code>; só uma por arquivo</td></tr>
+<tr><td><code>class Conta</code></td><td>Só o mesmo pacote</td><td>Pode dividir o arquivo com outras classes</td></tr>
+</table>
+</div>
+
+<p><code>private</code> e <code>protected</code> não fazem sentido para uma classe de primeiro nível (privada de quem?):</p>
+
+<pre class="term">$ javac Main.java
+Main.java:1: error: modifier private not allowed here
+private class Conta {
+        ^
+1 error</pre>
+
+<p>Classes declaradas <strong>dentro</strong> de outras podem ser privadas; isso aparece em <a href="classes-internas.html">Classes Internas e Anônimas</a>.</p>
+
+<hr>
+
+<h2>Modificadores que não são de acesso</h2>
+<p>Existem outras palavras que aparecem no mesmo lugar, antes do tipo, mas que não falam de <strong>quem</strong> acessa, e sim de <strong>como</strong> a coisa funciona. Cada uma tem a sua aula:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Modificador</th><th>Em uma frase</th><th>Aula</th></tr>
+<tr><td><code>static</code></td><td>Pertence à classe, não a cada objeto</td><td><a href="static.html">static</a></td></tr>
+<tr><td><code>final</code></td><td>Não pode mudar: variável que não recebe outro valor, método que não pode ser sobrescrito, classe que não pode ser herdada</td><td><a href="final.html">final</a></td></tr>
+<tr><td><code>abstract</code></td><td>Incompleto de propósito: classe que não pode ser instanciada, método sem corpo</td><td><a href="abstratas.html">Classes Abstratas</a></td></tr>
+<tr><td><code>synchronized</code></td><td>Só uma <em>thread</em> por vez executa o método</td><td><a href="sincronizacao.html">synchronized e Locks</a></td></tr>
+</table>
+</div>
+
+<p>Um membro pode ter um modificador de acesso <strong>e</strong> vários outros: <code>public static void main</code>, <code>private static final double TAXA = 0.05;</code>. A ordem não muda o significado, mas a convenção é: <strong>acesso primeiro</strong>, depois <code>static</code>, depois <code>final</code>. Só não dá para usar dois modificadores de acesso juntos:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:2: error: illegal combination of modifiers: public and private
+    public private double saldo;
+                          ^
+1 error</pre>
+
+<hr>
+
+<h2>Qual usar? (regras práticas)</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O quê</th><th>Use</th><th>Por quê</th></tr>
+<tr><td>Atributos</td><td><code>private</code></td><td>Ninguém de fora estraga o estado; mudanças passam por métodos</td></tr>
+<tr><td>Métodos que outras classes devem usar</td><td><code>public</code></td><td>São a "porta de entrada" da classe</td></tr>
+<tr><td>Métodos auxiliares, internos</td><td><code>private</code></td><td>Liberdade para mudá-los depois</td></tr>
+<tr><td>Construtores</td><td><code>public</code> (em geral)</td><td>Para outras classes criarem objetos</td></tr>
+<tr><td>Constantes compartilhadas</td><td><code>public static final</code></td><td>Não mudam, então não há risco em expor (veja <a href="constantes.html">Constantes</a>)</td></tr>
+<tr><td>Na dúvida</td><td>O mais restrito que funcione</td><td>Abrir depois é fácil; fechar algo que outros já usam quebra o código deles</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"… has private access in …"</strong>
+<pre class="term">$ javac Main.java
+Main.java:9: error: saldo has private access in Conta
+        c.saldo = 1000000;
+         ^</pre>
+<p><strong>O que aconteceu:</strong> o código está fora da classe <code>Conta</code> e tentou usar um membro <code>private</code> dela (atributo, método ou construtor).</p>
+<p><strong>Como resolver:</strong> não tire o <code>private</code> por reflexo. Use (ou crie) um método público da classe que faça o que você precisa: <code>c.depositar(…)</code>, <code>c.consultarSaldo()</code>. Veja <a href="encapsulamento.html">Encapsulamento</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>"… is not public in …; cannot be accessed from outside package"</strong>
+<pre class="term">$ javac -d out banco/Conta.java app/Main.java
+app/Main.java:10: error: saldo is not public in Conta; cannot be accessed from outside package
+        System.out.println(c.saldo);
+                            ^</pre>
+<p><strong>O que aconteceu:</strong> o membro tem acesso padrão (nenhum modificador) e o código que tenta usá-lo está em <strong>outro pacote</strong>. A mesma mensagem aparece para classes e construtores sem <code>public</code>.</p>
+<p><strong>Como resolver:</strong> se o membro deve mesmo ser usado de fora, marque-o <code>public</code> (ou ofereça um método <code>public</code> que o use). Se não deve, o erro está certo: reorganize o código.</p>
+</div>
+
+<div class="cenario">
+<strong>"modifier private not allowed here"</strong>
+<p><strong>O que aconteceu:</strong> <code>private</code> ou <code>protected</code> numa classe de primeiro nível.</p>
+<p><strong>Como resolver:</strong> tire o modificador; para classes, use <code>public</code> ou nada. Atenção a um primo deste erro: variáveis <strong>locais</strong> (dentro de um método) não aceitam modificador de acesso, e <code>private int x = 0;</code> no meio do <code>main</code> produz uma cascata de mensagens que começa com <code>error: illegal start of expression</code>. Tire o <code>private</code>: o <a href="escopo.html">escopo</a> do método já esconde a variável.</p>
+</div>
+
+<div class="cenario">
+<strong>"illegal combination of modifiers"</strong>
+<p><strong>O que aconteceu:</strong> dois modificadores de acesso no mesmo membro (<code>public private</code>), ou outra combinação proibida (como <code>abstract final</code>).</p>
+<p><strong>Como resolver:</strong> escolha um só nível de acesso.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Modificador</th><th>Visível em</th><th>Uso típico</th></tr>
+<tr><td><code>public</code></td><td>Todo lugar</td><td>Classes, construtores e métodos da "porta de entrada"</td></tr>
+<tr><td><code>protected</code></td><td>Mesmo pacote + subclasses</td><td>Membros pensados para quem herda</td></tr>
+<tr><td>(nenhum)</td><td>Mesmo pacote</td><td>Classes e métodos de uso interno de um pacote</td></tr>
+<tr><td><code>private</code></td><td>Só a própria classe</td><td>Atributos e métodos auxiliares</td></tr>
+<tr><td>Erro <code>has private access</code></td><td colspan="2">Uso de membro <code>private</code> fora da classe</td></tr>
+<tr><td>Erro <code>is not public in …; cannot be accessed from outside package</code></td><td colspan="2">Uso de membro padrão fora do pacote</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: o termômetro protegido</h2>
+<div class="tryjava" data-goal="out:Temperatura: 22.5,out:Valor recusado: -300.0,src:private\s+double\s+\w+,src:public\s+void\s+ajustar\s*\(">
+<p class="try-task"><strong>Missão:</strong> torne o atributo <code>graus</code> privado e crie um método <code>public void ajustar(double novo)</code> que só aceite valores a partir de -273.15 (o zero absoluto); para valores menores, imprima <code>Valor recusado: </code> seguido do valor. O <code>main</code> já usa <code>ajustar</code> e <code>mostrar</code>.</p>
+<pre class="script">class Termometro {
+    double graus;
+
+    public void mostrar() {
+        System.out.println("Temperatura: " + graus);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Termometro t = new Termometro();
+        t.ajustar(22.5);
+        t.ajustar(-300);
+        t.mostrar();
+    }
+}
+</pre>
+<pre class="solucao">class Termometro {
+    private double graus;
+
+    public void ajustar(double novo) {
+        if (novo &lt; -273.15) {
+            System.out.println("Valor recusado: " + novo);
+            return;
+        }
+        graus = novo;
+    }
+
+    public void mostrar() {
+        System.out.println("Temperatura: " + graus);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Termometro t = new Termometro();
+        t.ajustar(22.5);
+        t.ajustar(-300);
+        t.mostrar();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O mais fechado</h3>
+<p>Qual modificador deixa um atributo visível só dentro da própria classe?</p>
+<div class="ex-code"><input data-answer="private" aria-label="modificador"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Declarar protegido</h3>
+<p>Complete a declaração de um atributo <code>double</code> chamado <code>saldo</code>, privado:</p>
+<div class="ex-code"><input data-answer="private double saldo;" aria-label="declaração"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O mais aberto</h3>
+<p>Qual modificador deixa um método visível em qualquer lugar do programa?</p>
+<div class="ex-code"><input data-answer="public" aria-label="modificador"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Um atributo sem modificador nenhum pode ser usado por…</p>
+<label><input type="radio" name="q4"> …qualquer classe de qualquer pacote.</label>
+<label><input type="radio" name="q4"> …só a própria classe.</label>
+<label><input type="radio" name="q4"> …classes do mesmo pacote.</label>
+<label><input type="radio" name="q4"> …ninguém: é erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. A classe <code>Conta</code> tem <code>private double saldo</code> e <code>double consultarSaldo() { return saldo; }</code>. O <code>main</code> (em outra classe do mesmo pacote) pode fazer <code>c.consultarSaldo()</code>?</p>
+<label><input type="radio" name="q5"> Sim: o método tem acesso padrão e o método pode ler o atributo privado da própria classe.</label>
+<label><input type="radio" name="q5"> Não: o método usa um atributo privado.</label>
+<label><input type="radio" name="q5"> Só se o método for <code>static</code>.</label>
+<label><input type="radio" name="q5"> Só se o <code>main</code> for <code>private</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Qual destas declarações de classe de primeiro nível é válida?</p>
+<label><input type="radio" name="q6"> <code>private class Fruta { }</code></label>
+<label><input type="radio" name="q6"> <code>class Fruta { }</code></label>
+<label><input type="radio" name="q6"> <code>protected class Fruta { }</code></label>
+<label><input type="radio" name="q6"> <code>public private class Fruta { }</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Modificadores de acesso dizem <strong>quem</strong> pode usar uma classe, atributo, método ou construtor.</li>
+  <li><code>public</code>: todos. <code>protected</code>: pacote + subclasses. Padrão (nada): só o pacote. <code>private</code>: só a própria classe.</li>
+  <li>Regra prática: atributos <code>private</code>, métodos da "porta de entrada" <code>public</code>, ajudantes <code>private</code>.</li>
+  <li>Erros: <code>has private access</code> (membro privado usado de fora) e <code>is not public in …; cannot be accessed from outside package</code> (membro padrão usado de outro pacote).</li>
+  <li>Classes de primeiro nível: só <code>public</code> ou nada.</li>
+  <li><code>static</code>, <code>final</code> e <code>abstract</code> também são modificadores, mas não de acesso; cada um tem a sua aula.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
