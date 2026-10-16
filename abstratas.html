@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Classes Abstratas — abstract class e métodos abstratos | Guia Java</title>
+<meta name="description" content="Classes abstratas em Java: abstract class, métodos abstratos sem corpo, por que não dá para instanciar (Forma is abstract; cannot be instantiated), a obrigação das subclasses (does not override abstract method) e quando usar classe abstrata × interface. Erros e saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Classes Abstratas</span></h1>
+
+<p class="intro">Na aula de <a href="polimorfismo.html">Polimorfismo</a>, a classe <code>Forma</code> tinha um método <code>area()</code> que devolvia <code>0</code>. Era uma gambiarra: "forma" é uma ideia geral, sem área definida. Só um retângulo ou um círculo de verdade têm área. As <strong>classes abstratas</strong> são o jeito certo de escrever essas ideias gerais: uma classe que serve de modelo para as subclasses, que não pode virar objeto sozinha e que pode <strong>obrigar</strong> as filhas a escrever certos métodos.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma classe abstrata (<code>abstract class</code>) e um método abstrato.</li>
+  <li>Por que não dá para criar um objeto de uma classe abstrata (o erro real).</li>
+  <li>Como o compilador obriga as subclasses a implementar os métodos abstratos.</li>
+  <li>Como misturar métodos abstratos e métodos prontos na mesma classe.</li>
+  <li>Quando usar uma classe abstrata e quando usar uma interface.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: "instrumento musical"</h2>
+<p>Numa loja de música, você pode comprar um violão, um piano, uma flauta. Mas não pode comprar "um instrumento musical", genérico. "Instrumento" é uma <strong>categoria</strong>: diz o que todos têm em comum (todo instrumento toca, tem um preço, tem uma marca), mas não existe sozinho. E, embora todo instrumento toque, <strong>cada um toca de um jeito</strong>: não dá para escrever o "tocar" de um instrumento genérico.</p>
+
+<p>Em Java:</p>
+<ul>
+  <li>A categoria é uma <strong>classe abstrata</strong>: não se cria objeto dela (<code>new Instrumento()</code> é proibido).</li>
+  <li>O "todo instrumento toca, mas cada um do seu jeito" é um <strong>método abstrato</strong>: declarado na classe abstrata, <strong>sem corpo</strong>, e escrito por cada subclasse.</li>
+</ul>
+
+<p>A palavra <code>abstract</code> vem do latim <em>abstractus</em>, "separado, retirado": algo pensado em geral, separado dos casos concretos. O oposto, nas aulas de Java, é <strong>concreto</strong>: uma classe comum, de que se pode criar objetos.</p>
+
+<hr>
+
+<h2>Uma <code>Forma</code> abstrata</h2>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Forma&gt; formas = List.of(new Retangulo("Tapete", 2, 3), new Circulo("Mesa", 1));
+        for (Forma f : formas) {
+            System.out.println(f.descrever());
+        }
+    }
+}
+
+abstract class Forma {
+    String nome;
+
+    Forma(String nome) {
+        this.nome = nome;
+    }
+
+    abstract double area();
+
+    String descrever() {
+        return nome + ": área " + area();
+    }
+}
+
+class Retangulo extends Forma {
+    double largura, altura;
+
+    Retangulo(String nome, double largura, double altura) {
+        super(nome);
+        this.largura = largura;
+        this.altura = altura;
+    }
+
+    @Override
+    double area() {
+        return largura * altura;
+    }
+}
+
+class Circulo extends Forma {
+    double raio;
+
+    Circulo(String nome, double raio) {
+        super(nome);
+        this.raio = raio;
+    }
+
+    @Override
+    double area() {
+        return Math.PI * raio * raio;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>abstract class Forma</dt><dd>Uma classe abstrata. Pode ter atributos, construtores e métodos como qualquer classe, mas <strong>não pode</strong> ser instanciada com <code>new</code>.</dd>
+  <dt>Forma(String nome)</dt><dd>Sim, classe abstrata tem construtor! Ele é chamado pelas subclasses com <code>super(nome)</code> (veja <a href="super.html">super</a>), para montar a "camada" <code>Forma</code> de cada objeto.</dd>
+  <dt>abstract double area();</dt><dd>Um <strong>método abstrato</strong>: só a assinatura, terminada em <code>;</code>, <strong>sem chaves e sem corpo</strong>. Ele diz "toda forma tem área", sem dizer como calcular.</dd>
+  <dt>String descrever()</dt><dd>Um método comum (concreto), pronto, que todas as subclasses herdam. Repare que ele <strong>usa</strong> <code>area()</code>, mesmo sem saber como ela é calculada.</dd>
+  <dt>@Override double area()</dt><dd>Em cada subclasse, a versão concreta. Escrever um método abstrato herdado também se chama <strong>implementar</strong> o método.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Tapete: área 6.0
+Mesa: área 3.141592653589793      « π × 1 × 1</pre>
+
+<p>Veja como as peças se encaixam: o <code>descrever()</code> foi escrito <strong>uma vez</strong>, em <code>Forma</code>. Ao rodar, ele chama <code>area()</code>, e o <a href="polimorfismo.html">despacho dinâmico</a> escolhe a versão do objeto: a do retângulo para o tapete, a do círculo para a mesa. A classe abstrata define o "roteiro"; as subclasses preenchem a parte que muda.</p>
+
+<div class="tryjava" data-goal="out:Azulejo: área 4.0,src:extends\s+Forma">
+<p class="try-task"><strong>Missão:</strong> crie a classe <code>Quadrado</code>, que herda de <code>Forma</code>, recebe <code>nome</code> e <code>lado</code> no construtor (chamando <code>super(nome)</code>) e implementa <code>area()</code> como <code>lado * lado</code>. Acrescente <code>new Quadrado("Azulejo", 2)</code> à lista. A saída deve ter <code>Azulejo: área 4.0</code>. Para ver a obrigação em ação, rode também uma vez com a classe <code>Quadrado</code> <strong>sem</strong> o método <code>area()</code>.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Forma&gt; formas = List.of(new Retangulo("Tapete", 2, 3));
+        for (Forma f : formas) {
+            System.out.println(f.descrever());
+        }
+    }
+}
+
+abstract class Forma {
+    String nome;
+
+    Forma(String nome) {
+        this.nome = nome;
+    }
+
+    abstract double area();
+
+    String descrever() {
+        return nome + ": área " + area();
+    }
+}
+
+class Retangulo extends Forma {
+    double largura, altura;
+
+    Retangulo(String nome, double largura, double altura) {
+        super(nome);
+        this.largura = largura;
+        this.altura = altura;
+    }
+
+    @Override
+    double area() {
+        return largura * altura;
+    }
+}
+
+// crie aqui a classe Quadrado
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Forma&gt; formas = List.of(new Retangulo("Tapete", 2, 3), new Quadrado("Azulejo", 2));
+        for (Forma f : formas) {
+            System.out.println(f.descrever());
+        }
+    }
+}
+
+abstract class Forma {
+    String nome;
+
+    Forma(String nome) {
+        this.nome = nome;
+    }
+
+    abstract double area();
+
+    String descrever() {
+        return nome + ": área " + area();
+    }
+}
+
+class Retangulo extends Forma {
+    double largura, altura;
+
+    Retangulo(String nome, double largura, double altura) {
+        super(nome);
+        this.largura = largura;
+        this.altura = altura;
+    }
+
+    @Override
+    double area() {
+        return largura * altura;
+    }
+}
+
+class Quadrado extends Forma {
+    double lado;
+
+    Quadrado(String nome, double lado) {
+        super(nome);
+        this.lado = lado;
+    }
+
+    @Override
+    double area() {
+        return lado * lado;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Não dá para instanciar</h2>
+<p>Uma forma genérica não tem área. Se fosse possível criar uma, o que <code>descrever()</code> mostraria? O compilador corta o problema pela raiz:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        Forma f = new Forma("Coisa");
+    }
+}
+
+// … as classes Forma, Retangulo e Circulo de antes
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: Forma is abstract; cannot be instantiated
+        Forma f = new Forma("Coisa");
+                  ^
+1 error</pre>
+
+<p><em>Forma is abstract; cannot be instantiated</em> = "<code>Forma</code> é abstrata; não pode ser instanciada" (instanciar = criar uma instância, um objeto). Repare onde está a seta: no <code>new Forma</code>. A <strong>variável</strong> do tipo <code>Forma</code> é permitida, e é muito útil: <code>Forma f = new Circulo("Mesa", 1);</code> funciona, e é assim que o polimorfismo usa as classes abstratas.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Com <code>abstract class Forma</code></th><th>Pode?</th></tr>
+<tr><td><code>new Forma("x")</code></td><td><strong>Não</strong></td></tr>
+<tr><td><code>Forma f = new Circulo("Mesa", 1);</code></td><td>Sim</td></tr>
+<tr><td><code>List&lt;Forma&gt;</code>, <code>void desenhar(Forma f)</code></td><td>Sim</td></tr>
+<tr><td><code>class Circulo extends Forma</code></td><td>Sim (é para isso que ela existe)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>A obrigação das subclasses</h2>
+<p>O método abstrato é uma <strong>promessa</strong>: "toda forma concreta terá <code>area()</code>". Por isso, uma subclasse concreta que esquece de implementá-lo não compila. A Ana escreveu o <code>Circulo</code> sem o <code>area()</code>:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:41: error: Circulo is not abstract and does not override abstract method area() in Forma
+class Circulo extends Forma {
+^
+1 error</pre>
+
+<p>"<code>Circulo</code> não é abstrata e não sobrescreve o método abstrato <code>area()</code> de <code>Forma</code>." A mensagem já sugere as duas saídas:</p>
+<ol>
+  <li><strong>Implementar</strong> o método (o caso normal): escrever <code>double area()</code> no <code>Circulo</code>.</li>
+  <li><strong>Declarar a subclasse também abstrata</strong>: <code>abstract class Poligono extends Forma</code> pode deixar <code>area()</code> para as filhas dela (<code>Triangulo</code>, <code>Hexagono</code>…). A obrigação só é cobrada da primeira classe <strong>concreta</strong> da descendência.</li>
+</ol>
+
+<p>Essa é a grande vantagem sobre a "gambiarra" do <code>return 0</code> da aula anterior: lá, quem esquecesse de sobrescrever teria uma área zero, em silêncio. Aqui, o programa nem compila.</p>
+
+<hr>
+
+<h2>As regras dos métodos abstratos</h2>
+
+<h3>Método abstrato não tem corpo</h3>
+<p>Nem chaves vazias. Um <code>abstract</code> com corpo é uma contradição:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:19: error: abstract methods cannot have a body
+    abstract double area() {
+                    ^
+1 error</pre>
+
+<p>"Métodos abstratos não podem ter corpo." Troque <code>{ … }</code> por <code>;</code>.</p>
+
+<h3>Método abstrato só em classe abstrata</h3>
+<p>Se a classe tem um método abstrato, ela precisa ser abstrata (senão daria para criar um objeto com um método "em branco"). Tirando o <code>abstract</code> da classe <code>Forma</code>:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:12: error: Forma is not abstract and does not override abstract method area() in Forma
+class Forma {
+^
+1 error</pre>
+
+<p>A mensagem é a mesma da subclasse esquecida, agora apontando a própria <code>Forma</code>. O contrário é permitido: uma classe abstrata <strong>sem nenhum</strong> método abstrato. Isso serve para impedir que alguém crie objetos de uma classe que só existe para ser herdada.</p>
+
+<h3><code>abstract</code> e <code>final</code> não combinam</h3>
+<p><code>abstract</code> quer dizer "precisa ser herdada"; <code>final</code> quer dizer "não pode ser herdada" (veja <a href="final.html">final</a>). Juntos:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:12: error: illegal combination of modifiers: abstract and final
+abstract final class Forma {
+               ^
+Main.java:26: error: cannot inherit from final Forma
+class Retangulo extends Forma {
+                        ^
+Main.java:41: error: cannot inherit from final Forma
+class Circulo extends Forma {
+                      ^
+3 errors</pre>
+
+<p>"Combinação ilegal de modificadores." O mesmo vale para métodos: um método abstrato não pode ser <code>final</code>, <code>private</code> (a subclasse não o enxergaria para implementá-lo) nem <code>static</code> (não haveria objeto para escolher a versão).</p>
+
+<hr>
+
+<h2>Classe abstrata × interface</h2>
+<p>A próxima aula apresenta as <a href="interfaces.html">interfaces</a>, que também declaram métodos sem corpo e também não podem ser instanciadas. Então, quando usar cada uma? A diferença principal:</p>
+
+<ul>
+  <li>Uma <strong>classe abstrata</strong> é uma "mãe incompleta": tem <strong>estado</strong> (atributos como <code>nome</code>), construtores e código pronto para compartilhar. Uma classe só pode herdar de <strong>uma</strong>.</li>
+  <li>Uma <strong>interface</strong> é um "contrato de habilidade": diz o que uma classe <strong>sabe fazer</strong> (<code>Comparable</code>: "sei me comparar"). Não tem atributos de objeto, e uma classe pode implementar <strong>várias</strong>.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>As classes são da mesma família ("é um") e compartilham atributos e código</td><td>Classe abstrata (<code>Forma</code>, <code>Funcionario</code>, <code>Conta</code>)</td></tr>
+<tr><td>Classes sem parentesco precisam de uma mesma habilidade</td><td>Interface (<code>Comparable</code>, <code>Imprimivel</code>, <code>Pagavel</code>)</td></tr>
+<tr><td>A classe precisa de mais de um "tipo pai"</td><td>Interfaces (só há uma superclasse)</td></tr>
+<tr><td>Há um construtor ou atributos que todas as filhas precisam</td><td>Classe abstrata</td></tr>
+</table>
+</div>
+
+<p>Muitas vezes as duas aparecem juntas: uma interface diz <strong>o que</strong> fazer, e uma classe abstrata implementa a parte comum para facilitar a vida das subclasses. A comparação completa, em tabela, está em <a href="interfaces.html">Interfaces</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"… is abstract; cannot be instantiated"</strong>
+<pre class="term">$ javac Main.java
+Main.java:5: error: Forma is abstract; cannot be instantiated
+        Forma f = new Forma("Coisa");
+                  ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> um <code>new</code> numa classe abstrata.</p>
+<p><strong>Como resolver:</strong> crie um objeto de uma subclasse concreta (<code>new Circulo(…)</code>). A variável pode continuar do tipo <code>Forma</code>. (Também é possível criar uma subclasse "na hora", sem nome, com uma <a href="classes-internas.html">classe anônima</a>.)</p>
+</div>
+
+<div class="cenario">
+<strong>"… is not abstract and does not override abstract method … in …"</strong>
+<pre class="term">$ javac Main.java
+Main.java:41: error: Circulo is not abstract and does not override abstract method area() in Forma
+class Circulo extends Forma {
+^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> uma classe concreta herdou um método abstrato e não o escreveu. Se o nome do método aparece com algo estranho, confira se a assinatura é idêntica (um <code>area(int x)</code> não conta).</p>
+<p><strong>Como resolver:</strong> implemente o método com <code>@Override</code>, ou declare a classe como <code>abstract</code> se ela também for uma ideia geral.</p>
+</div>
+
+<div class="cenario">
+<strong>"abstract methods cannot have a body"</strong>
+<p><strong>O que aconteceu:</strong> o método abstrato ganhou chaves.</p>
+<p><strong>Como resolver:</strong> se ele é abstrato, termine com <code>;</code>. Se você quer um comportamento padrão que as filhas podem trocar, tire o <code>abstract</code> e deixe o corpo: aí é um método comum, que pode ser sobrescrito.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>abstract class Forma { … }</code></td><td>Classe que não pode ser instanciada; serve de modelo</td></tr>
+<tr><td><code>abstract double area();</code></td><td>Método sem corpo; as subclasses concretas são obrigadas a implementar</td></tr>
+<tr><td>Método concreto em classe abstrata</td><td>Código pronto, herdado por todas as subclasses (pode chamar os abstratos)</td></tr>
+<tr><td>Construtor em classe abstrata</td><td>Permitido; chamado pelas subclasses com <code>super(…)</code></td></tr>
+<tr><td><code>abstract class B extends A</code></td><td>Subclasse abstrata: pode deixar os métodos abstratos para as filhas</td></tr>
+<tr><td><code>abstract</code> + <code>final</code>/<code>private</code>/<code>static</code></td><td>Combinações proibidas</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A classe-modelo</h3>
+<p>Complete para <code>Instrumento</code> não poder ser instanciado:</p>
+<div class="ex-code"><input data-answer="abstract class|abstract  class" aria-label="declaração"> Instrumento { }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Método sem corpo</h3>
+<p>Complete a declaração do método abstrato <code>tocar</code>, que não recebe nada e não devolve nada:</p>
+<div class="ex-code"><input data-answer="abstract void tocar();" aria-label="declaração"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Variável de tipo abstrato</h3>
+<p><code>Instrumento</code> é abstrata e <code>Violao</code> estende <code>Instrumento</code>. Complete com o objeto que pode ser criado:</p>
+<div class="ex-code">Instrumento i = <input data-answer="new Violao()" aria-label="objeto">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que uma classe abstrata <strong>não</strong> pode ter?</p>
+<label><input type="radio" name="q4"> Atributos</label>
+<label><input type="radio" name="q4"> Construtores</label>
+<label><input type="radio" name="q4"> Objetos criados com <code>new</code> dela mesma</label>
+<label><input type="radio" name="q4"> Métodos com corpo</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>Circulo extends Forma</code>, <code>Forma</code> tem <code>abstract double area();</code> e o <code>Circulo</code> não escreve <code>area()</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> Erro: <code>Circulo is not abstract and does not override abstract method area() in Forma</code></label>
+<label><input type="radio" name="q5"> <code>area()</code> devolve 0</label>
+<label><input type="radio" name="q5"> Exceção ao chamar <code>area()</code></label>
+<label><input type="radio" name="q5"> Compila, porque é opcional</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. <code>Cachorro</code>, <code>Gato</code> e <code>Vaca</code> compartilham os atributos <code>nome</code> e <code>idade</code> e o método <code>comer()</code>. O que é mais adequado para <code>Animal</code>?</p>
+<label><input type="radio" name="q6"> Uma interface</label>
+<label><input type="radio" name="q6"> Uma classe abstrata</label>
+<label><input type="radio" name="q6"> Uma classe <code>final</code></label>
+<label><input type="radio" name="q6"> Um <code>enum</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Caio: R$ 1600.0,out:Bia: R$ 5000.0,src:abstract\s+class\s+Funcionario,src:abstract\s+double\s+salario">
+<p class="try-task"><strong>Missão final:</strong> a loja tem funcionários mensalistas (salário fixo) e horistas (horas × valor da hora). Hoje, <code>Funcionario</code> é uma classe comum com <code>salario()</code> devolvendo 0, e o <code>main</code> cria um "funcionário genérico" sem sentido. Transforme: (1) <code>Funcionario</code> em classe abstrata; (2) <code>salario()</code> em método abstrato; (3) apague a linha do <code>generico</code>; (4) implemente <code>salario()</code> em <code>Horista</code> (<code>horas * valorHora</code>). A saída deve ter <code>Caio: R$ 1600.0</code> e <code>Bia: R$ 5000.0</code>.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        Funcionario generico = new Funcionario("Ninguém");
+        List&lt;Funcionario&gt; equipe = List.of(new Horista("Caio", 80, 20), new Mensalista("Bia", 5000));
+        for (Funcionario f : equipe) {
+            System.out.println(f.nome + ": R$ " + f.salario());
+        }
+    }
+}
+
+class Funcionario {
+    String nome;
+
+    Funcionario(String nome) {
+        this.nome = nome;
+    }
+
+    double salario() {
+        return 0;
+    }
+}
+
+class Mensalista extends Funcionario {
+    double fixo;
+
+    Mensalista(String nome, double fixo) {
+        super(nome);
+        this.fixo = fixo;
+    }
+
+    @Override
+    double salario() {
+        return fixo;
+    }
+}
+
+class Horista extends Funcionario {
+    double horas, valorHora;
+
+    Horista(String nome, double horas, double valorHora) {
+        super(nome);
+        this.horas = horas;
+        this.valorHora = valorHora;
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Funcionario&gt; equipe = List.of(new Horista("Caio", 80, 20), new Mensalista("Bia", 5000));
+        for (Funcionario f : equipe) {
+            System.out.println(f.nome + ": R$ " + f.salario());
+        }
+    }
+}
+
+abstract class Funcionario {
+    String nome;
+
+    Funcionario(String nome) {
+        this.nome = nome;
+    }
+
+    abstract double salario();
+}
+
+class Mensalista extends Funcionario {
+    double fixo;
+
+    Mensalista(String nome, double fixo) {
+        super(nome);
+        this.fixo = fixo;
+    }
+
+    @Override
+    double salario() {
+        return fixo;
+    }
+}
+
+class Horista extends Funcionario {
+    double horas, valorHora;
+
+    Horista(String nome, double horas, double valorHora) {
+        super(nome);
+        this.horas = horas;
+        this.valorHora = valorHora;
+    }
+
+    @Override
+    double salario() {
+        return horas * valorHora;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>abstract class</code> = uma ideia geral, que serve de modelo: tem atributos, construtores e métodos, mas <strong>não</strong> pode ser instanciada (<code>… is abstract; cannot be instantiated</code>).</li>
+  <li><code>abstract</code> num método = só a assinatura, terminada em <code>;</code>. Toda subclasse concreta é obrigada a implementá-lo (<code>… does not override abstract method …</code>).</li>
+  <li>Métodos concretos da classe abstrata podem chamar os abstratos: a mãe escreve o roteiro, as filhas preenchem as partes que mudam.</li>
+  <li>Variáveis, listas e parâmetros do tipo abstrato são o normal: <code>Forma f = new Circulo(…)</code>.</li>
+  <li>Classe abstrata: família com estado e código em comum (só uma superclasse). Interface: habilidade que várias classes, mesmo sem parentesco, podem ter. Próxima aula: <a href="interfaces.html">Interfaces</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
