@@ -1,30 +1,43 @@
 /* =====================================================================
-   javasim.js — simulador de Java (subconjunto grande do Java 25) para o
-   Guia Java. Roda no navegador (monta .tryjava e .tryjshell) e no Node
+   javasim.js — simulador de Java (Java 25) para o Guia Java.
+   Roda no navegador (monta .tryjava e .tryjshell) e no Node
    (tools/sim.js, tools/testar-missoes.js, tools/testes/rodar.js).
 
-   Etapas: lexer → parser (AST do Java) → verificação de tipos e de fluxo
-   (erros no formato exato do javac 25) → "compilação" da AST para funções
-   JavaScript → execução com a semântica do Java.
+   Etapas: lexer → parser (AST do Java, com as posições do javac) →
+   verificação de tipos (Attr) e de fluxo (Flow) com as mensagens exatas do
+   javac 25 → geração de funções JavaScript a partir da AST → execução com a
+   semântica do Java (int de 32 bits, long em BigInt, char numérico, pool de
+   Strings, cache de Integer, despacho dinâmico, exceções com stack trace…).
 
-   A biblioteca grande (coleções, streams, java.time, BigDecimal, arquivos…)
-   fica em assets/javasim-lib.js, carregado sob demanda.
+   A biblioteca grande (coleções, streams, java.time, BigDecimal, arquivos,
+   regex, concorrência) fica em assets/javasim-lib.js, carregado logo depois
+   que a página monta os componentes (o botão Rodar espera por ele).
+
+   Fidelidade: tools/testes/ compara ~350 programas com o JDK 25 real do
+   laboratório (98% idênticos byte a byte).
 
    LIMITAÇÕES CONHECIDAS (o que é diferente do JDK real):
    - Threads: tudo roda numa thread só, de forma determinística. Thread.start()
-     roda a tarefa até o fim na hora; ExecutorService executa as tarefas em
-     sequência; synchronized/locks não têm efeito; Thread.sleep é instantâneo.
-   - Recursão muito profunda: o limite de profundidade é menor que o da JVM
-     (StackOverflowError aparece antes, por volta de alguns milhares de chamadas).
-   - Reflexão, anotações em tempo de execução, JDBC, rede, interface gráfica,
-     módulos, serialização: não existem.
-   - Generics: a verificação de tipos cobre os casos comuns; inferência muito
-     complexa pode ser aceita onde o javac reclamaria (ou o contrário).
-   - Mensagens do javac: as mais comuns são idênticas; erros de sintaxe raros
-     podem vir com outro texto (o simulador para no primeiro erro de sintaxe que
-     não sabe recuperar).
-   - hashCode() de Object e o "@1b6d3586" do toString padrão são fictícios
-     (estáveis, mas não os mesmos da JVM).
+     roda a tarefa até o fim na hora; ExecutorService e CompletableFuture
+     executam as tarefas em sequência; synchronized/locks não mudam nada;
+     Thread.sleep é instantâneo (só avança o relógio fictício).
+   - hashCode() de Object (e o "@1b6d3586" do toString padrão) são fictícios,
+     estáveis; Set.of/Map.of iteram numa ordem fixa (na JVM ela varia).
+   - Recursão: StackOverflowError por volta de 2–3 mil chamadas (a JVM aguenta
+     mais); o stack trace tem as 1024 linhas como a JVM.
+   - Mensagens do lançador como "java Main" (classe), não "java Main.java".
+   - Erros de sintaxe: o simulador recupera os casos comuns (';', '(' e ')'
+     esperados, "not a statement") e para no primeiro erro que não sabe
+     recuperar; o javac às vezes lista mais erros em cascata.
+   - Inferência de generics: cobre os casos comuns (inclusive coletores
+     aninhados); inferências muito complexas podem ser aceitas onde o javac
+     reclamaria (ex.: println(stream.collect(...)) ambíguo).
+   - Entrada (Scanner/IO.readln): no navegador, o programa é executado de novo
+     do início a cada linha digitada (determinístico, invisível ao leitor).
+   - Limite de 10 milhões de passos (laço infinito): "(simulador) execução
+     interrompida…", código 130.
+   - Não existem: reflexão completa, anotações em tempo de execução, JDBC,
+     rede, interface gráfica, módulos, serialização.
    - Relógio fixo: 15/10/2026 10:30 (America/Sao_Paulo). Arquivos: um sistema
      de arquivos fictício (a pasta da Ana), que volta ao original a cada Rodar.
    ===================================================================== */
@@ -753,9 +766,13 @@
     return { k: "ArrayInit", pos: p, elems: el };
   };
   PP.parExpr = function () {
-    this.accept("(");
+    if (this.is("(")) this.next();
+    else if (this.t.k !== "eof") { this.errSoft(this.prev().end, "'(' expected"); this.recovered = true; }
+    else this.accept("(");
     var e = this.expr();
-    this.accept(")");
+    if (this.is(")")) this.next();
+    else if (this.t.k !== "eof" && (this.is("{") || this.file.lineOf(this.t.pos) > this.file.lineOf(this.prev().end))) { this.errSoft(this.prev().end, "')' expected"); this.recovered = true; }
+    else this.accept(")");
     return e;
   };
   PP.statement = function () {
@@ -872,7 +889,7 @@
   };
   PP.exprStatementExpr = function () {
     var e = this.expr();
-    if (!isStatementExpr(e)) this.err(e.pos, "not a statement");
+    if (!isStatementExpr(e)) { this.errSoft(e.pos, "not a statement"); this.recovered = true; }
     return e;
   };
   function isStatementExpr(e) {
@@ -1312,7 +1329,7 @@
       if (this.is("{")) {
         if (dims.length) this.err(this.t.pos, "';' expected");
         init = this.arrayInit();
-      } else if (!dims.length) this.err(this.prev().end, "array dimension missing");
+      } else if (!dims.length) { this.errSoft(this.prev().end, "array dimension missing"); this.recovered = true; }
       var res = { k: "NewArray", pos: p, elemType: ty, dims: dims, extraDims: extra, init: init };
       return res;
     }
