@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Valores de Retorno — return, tipo de retorno e void | Guia Java</title>
+<meta name="description" content="Como um método Java devolve um resultado com return: tipo de retorno, void, usar o valor devolvido, return para sair cedo e os erros reais missing return statement, unexpected return value e unreachable statement.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Valores de Retorno</span></h1>
+
+<p class="intro">Até aqui, os seus métodos só <strong>faziam</strong> coisas: imprimiam na tela. Muitas vezes, porém, você quer que o método <strong>calcule</strong> algo e entregue o resultado para quem chamou, que decide o que fazer com ele. Esse resultado é o <strong>valor de retorno</strong>, e a palavra que o entrega é <code>return</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar o <strong>tipo de retorno</strong> (<code>int</code>, <code>double</code>, <code>String</code>, <code>boolean</code>…) no lugar do <code>void</code>.</li>
+  <li>O que o <code>return</code> faz: devolve o valor <strong>e</strong> encerra o método.</li>
+  <li>Como usar o valor devolvido: imprimir, guardar numa variável, usar numa conta ou num <code>if</code>.</li>
+  <li>O <code>return;</code> sozinho, para sair cedo de um método <code>void</code>.</li>
+  <li>Os erros reais: <code>missing return statement</code>, <code>unexpected return value</code>, <code>unreachable statement</code> e outros.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código: a calculadora e o papel</h2>
+<p>Imagine que a Ana pede para o Bruno calcular a média de duas notas. Há dois jeitos de o Bruno responder:</p>
+<ol>
+  <li>Ele <strong>grita</strong> o resultado: "7,5!". Todo mundo ouve, mas a Ana não tem o número na mão. Se ela quiser saber se a média passa de 7, precisa ter prestado atenção e anotar. É o que um método <code>void</code> que imprime faz.</li>
+  <li>Ele <strong>escreve</strong> o resultado num papel e <strong>entrega</strong> para a Ana. Agora ela pode guardar, comparar, somar com outra coisa, imprimir quando quiser. É o que um método com <strong>retorno</strong> faz.</li>
+</ol>
+<p>O <code>System.out.println</code> é o grito; o <code>return</code> é o papel entregue na mão.</p>
+
+<hr>
+
+<h2>Seu primeiro método com retorno</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static double media(double nota1, double nota2) {
+        double resultado = (nota1 + nota2) / 2;
+        return resultado;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(media(7.0, 8.0));
+
+        double mediaBruno = media(6.5, 9.0);
+        System.out.println("Média do Bruno: " + mediaBruno);
+
+        if (media(5.0, 6.0) &gt;= 7) {
+            System.out.println("Carla: aprovada");
+        } else {
+            System.out.println("Carla: em recuperação");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+7.5
+Média do Bruno: 7.75
+Carla: em recuperação      « média 5.5: não chegou a 7</pre>
+
+<dl class="anatomy">
+  <dt>static</dt><dd>Como sempre nesta fase: método da classe (veja <a href="metodos.html#static">Por que static?</a>).</dd>
+  <dt>double</dt><dd>O <strong>tipo de retorno</strong>. No lugar do <code>void</code> ("não devolve nada") agora está o tipo do valor que o método entrega: um <code>double</code>.</dd>
+  <dt>media(double nota1, double nota2)</dt><dd>Nome e <a href="parametros.html">parâmetros</a>, como você já conhece.</dd>
+  <dt>return resultado;</dt><dd>"Devolva o valor de <code>resultado</code>". O valor vai para o lugar da chamada, e o método <strong>termina</strong> ali.</dd>
+</dl>
+
+<p>Repare no <code>main</code>: a chamada <code>media(7.0, 8.0)</code> funciona como se fosse o próprio número <code>7.5</code>. Por isso ela pode ir em qualquer lugar onde caberia um <code>double</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Onde a chamada aparece</th><th>O que acontece com o valor</th></tr>
+<tr><td><code>System.out.println(media(7.0, 8.0));</code></td><td>Vai direto para o <code>println</code>, que o imprime.</td></tr>
+<tr><td><code>double mediaBruno = media(6.5, 9.0);</code></td><td>É guardado numa variável, para usar depois.</td></tr>
+<tr><td><code>"Média: " + media(…)</code></td><td>Entra numa conta ou concatenação.</td></tr>
+<tr><td><code>if (media(5.0, 6.0) &gt;= 7)</code></td><td>É comparado numa condição.</td></tr>
+<tr><td><code>media(media(7, 8), 10)</code></td><td>Vira argumento de outra chamada.</td></tr>
+</table>
+</div>
+
+<p>Dá para encurtar: em vez de criar a variável <code>resultado</code>, o <code>return</code> pode receber a conta direto. As duas formas são equivalentes:</p>
+
+<pre class="file" data-file="trecho">static double media(double nota1, double nota2) {
+    return (nota1 + nota2) / 2;
+}
+</pre>
+
+<p>O <code>return</code> aceita qualquer <strong>expressão</strong>: uma variável, um número, uma conta, uma comparação, a chamada de outro método. O Java calcula a expressão e devolve o resultado.</p>
+
+<div class="tryjava" data-goal="out:10,out:42,src:static\s+int\s+dobro\s*\(\s*int\s+\w+\s*\),src:\breturn\b">
+<p class="try-task"><strong>Missão:</strong> escreva o método <code>static int dobro(int numero)</code> que <strong>devolva</strong> (com <code>return</code>, sem imprimir) o dobro do número. O <code>main</code> já imprime os resultados: <code>10</code> e <code>42</code>.</p>
+<pre class="script">public class Main {
+    // escreva o método dobro aqui
+
+    public static void main(String[] args) {
+        System.out.println(dobro(5));
+        int resposta = dobro(21);
+        System.out.println(resposta);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static int dobro(int numero) {
+        return numero * 2;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(dobro(5));
+        int resposta = dobro(21);
+        System.out.println(resposta);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Qualquer tipo pode ser devolvido</h2>
+<p>O tipo de retorno pode ser qualquer tipo do Java. Três exemplos da escola da Ana:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static boolean aprovado(double nota) {
+        return nota &gt;= 7;
+    }
+
+    static String situacao(double nota) {
+        if (nota &gt;= 7) {
+            return "aprovado";
+        } else if (nota &gt;= 5) {
+            return "recuperação";
+        } else {
+            return "reprovado";
+        }
+    }
+
+    static int dobro(int numero) {
+        return numero * 2;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(aprovado(8.5));
+        System.out.println(aprovado(4.0));
+        System.out.println("Nota 6: " + situacao(6));
+        System.out.println("Nota 9.5: " + situacao(9.5));
+        System.out.println("Nota 3: " + situacao(3));
+        System.out.println(dobro(dobro(5)));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+true
+false
+Nota 6: recuperação
+Nota 9.5: aprovado
+Nota 3: reprovado
+20                 « dobro(5) = 10; dobro(10) = 20</pre>
+
+<ul>
+  <li><strong><code>boolean aprovado</code></strong>: <code>nota &gt;= 7</code> já é um <code>true</code> ou <code>false</code> (veja <a href="booleanos.html">Expressões Booleanas</a>), então dá para devolvê-la direto. Não precisa de <code>if (nota &gt;= 7) return true; else return false;</code>.</li>
+  <li><strong><code>String situacao</code></strong>: o método tem <strong>três</strong> <code>return</code>, um em cada caminho do <code>if</code>. Só um deles roda em cada chamada: o primeiro que for alcançado encerra o método.</li>
+  <li><strong><code>dobro(dobro(5))</code></strong>: a chamada de dentro roda primeiro e devolve <code>10</code>; esse valor vira o argumento da chamada de fora.</li>
+</ul>
+
+<div class="warning">
+<strong>Um método devolve um valor só</strong>
+<p>Não existe <code>return a, b;</code> em Java. Se você precisa devolver várias informações (nome e média de um aluno, por exemplo), devolva um array, ou melhor, um objeto que agrupe tudo. A forma mais curta de criar esse objeto é um <a href="records.html">record</a>, que você verá mais adiante.</p>
+</div>
+
+<hr>
+
+<h2>O <code>return</code> encerra o método</h2>
+<p>O <code>return</code> faz duas coisas ao mesmo tempo: <strong>entrega</strong> o valor e <strong>sai</strong> do método. Nenhuma linha depois dele, no mesmo caminho, é executada. Isso explica por que o método <code>situacao</code> funciona: quando a nota é 9.5, o primeiro <code>return</code> já encerra tudo, e os outros nem são olhados.</p>
+
+<h3><code>return;</code> sozinho em métodos <code>void</code></h3>
+<p>Um método <code>void</code> não devolve nada, mas pode usar <code>return;</code> (sem valor) só para <strong>sair mais cedo</strong>. É comum para tratar um caso especial logo no começo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void mostrarRaiz(double numero) {
+        if (numero &lt; 0) {
+            System.out.println(numero + " é negativo: não tem raiz real.");
+            return;
+        }
+        System.out.println("Raiz de " + numero + " = " + Math.sqrt(numero));
+    }
+
+    public static void main(String[] args) {
+        mostrarRaiz(16);
+        mostrarRaiz(-4);
+        mostrarRaiz(2);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Raiz de 16.0 = 4.0
+-4.0 é negativo: não tem raiz real.      « o return; impediu a linha do Math.sqrt
+Raiz de 2.0 = 1.4142135623730951</pre>
+
+<p>Com <code>-4</code>, o <code>if</code> imprime o aviso e o <code>return;</code> encerra o método; a linha do <code>Math.sqrt</code> não roda. Esse padrão ("se o caso é ruim, avise e saia") se chama <strong>cláusula de guarda</strong> e evita <code>if</code>s dentro de <code>if</code>s.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo do método</th><th><code>return valor;</code></th><th><code>return;</code></th><th>Sem nenhum <code>return</code></th></tr>
+<tr><td><code>void</code></td><td>Erro: <code>unexpected return value</code></td><td>Permitido (sai cedo)</td><td>Permitido: termina no <code>}</code></td></tr>
+<tr><td><code>int</code>, <code>String</code>, …</td><td>Obrigatório em todo caminho</td><td>Erro: <code>missing return value</code></td><td>Erro: <code>missing return statement</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Imprimir ou devolver?</h2>
+<p>Esta é a dúvida mais comum de quem começa. Compare dois métodos que parecem fazer a mesma coisa:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Imprime</th><th>Devolve</th></tr>
+<tr><td><code>static void mostrarMedia(double a, double b) {<br>&nbsp;&nbsp;System.out.println((a + b) / 2);<br>}</code></td><td><code>static double media(double a, double b) {<br>&nbsp;&nbsp;return (a + b) / 2;<br>}</code></td></tr>
+<tr><td>O valor vai para a tela e some. O <code>main</code> não consegue comparar, guardar nem somar.</td><td>O valor volta para o <code>main</code>, que decide: imprimir, guardar, comparar, mandar para outro método.</td></tr>
+<tr><td>Útil para métodos cuja tarefa é <strong>mostrar</strong> (um cabeçalho, um menu, um relatório).</td><td>Útil para métodos cuja tarefa é <strong>calcular</strong> ou <strong>decidir</strong>.</td></tr>
+</table>
+</div>
+
+<p>Uma boa regra: <strong>métodos que calculam devolvem; quem decide o que mostrar é o <code>main</code></strong> (ou outro método de "tela"). Assim o mesmo <code>media</code> serve para imprimir, para um <code>if</code> e para uma planilha.</p>
+
+<h3>Ignorar o valor devolvido</h3>
+<p>O Java deixa você chamar um método que devolve algo e não usar o resultado. Compila e roda, sem aviso:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static double media(double nota1, double nota2) {
+        return (nota1 + nota2) / 2;
+    }
+
+    public static void main(String[] args) {
+        media(7.0, 8.0);
+        System.out.println("Calculei a média... mas onde ela está?");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Calculei a média... mas onde ela está?</pre>
+
+<p>A média (7.5) foi calculada e jogada fora: ninguém pegou o papel que o método entregou. É um engano comum: o <code>return</code> <strong>não imprime nada</strong>. Para ver o valor, imprima-o (<code>System.out.println(media(7.0, 8.0));</code>) ou guarde-o numa variável.</p>
+
+<h3>No JShell, o valor devolvido aparece sozinho</h3>
+<p>O <a href="jshell.html">JShell</a> mostra o valor de toda expressão. É um jeito rápido de ver o que um método devolve:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; int dobro(int n) { return n * 2; }
+|  created method dobro(int)
+
+jshell&gt; dobro(21)
+$2 ==&gt; 42
+
+jshell&gt; void saudar() { System.out.println("Oi!"); }
+|  created method saudar()
+
+jshell&gt; saudar()
+Oi!
+
+jshell&gt; int x = dobro(5) + 1
+x ==&gt; 11
+
+jshell&gt; /exit
+|  Goodbye</pre>
+
+<p>Compare: <code>dobro(21)</code> mostra <code>$2 ==&gt; 42</code>, um valor que o JShell guardou na variável automática <code>$2</code>. Já <code>saudar()</code> mostra só <code>Oi!</code>, que foi impresso; não há <code>==&gt;</code> porque um método <code>void</code> não devolve nada.</p>
+
+<div class="tryjshell" data-goal="out:==&gt; true">
+<p class="try-task"><strong>Missão:</strong> no JShell, declare <code>boolean par(int n) { return n % 2 == 0; }</code> e chame <code>par(10)</code>. O JShell deve mostrar o valor devolvido, <code>true</code>.</p>
+<pre class="solucao">boolean par(int n) { return n % 2 == 0; }
+par(10)</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de escrever o mesmo retorno</h2>
+<p>Os três métodos abaixo devolvem a mesma coisa. Todos estão certos:</p>
+
+<pre class="file" data-file="trecho">// 1. if com return e um return final
+static String situacao(double nota) {
+    if (nota &gt;= 7) {
+        return "aprovado";
+    }
+    return "reprovado";
+}
+
+// 2. operador ternário
+static String situacaoTernario(double nota) {
+    return nota &gt;= 7 ? "aprovado" : "reprovado";
+}
+
+// 3. variável e um único return no fim
+static String situacaoVariavel(double nota) {
+    String resultado;
+    if (nota &gt;= 7) {
+        resultado = "aprovado";
+    } else {
+        resultado = "reprovado";
+    }
+    return resultado;
+}
+</pre>
+
+<p>Num <code>main</code> que chama os três métodos, um ao lado do outro, com a nota 8 e depois com a nota 5:</p>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+aprovado aprovado aprovado
+reprovado reprovado reprovado</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td>1. <code>return</code> dentro do <code>if</code> + <code>return</code> final</td><td>Vários casos, cada um com sua saída. A mais comum. Note que, depois do <code>if</code> com <code>return</code>, o <code>else</code> é desnecessário.</td></tr>
+<tr><td>2. <a href="ternario.html">Ternário</a> <code>? :</code></td><td>Escolha simples entre dois valores, que cabe numa linha.</td></tr>
+<tr><td>3. Variável + um <code>return</code> no fim</td><td>Quando o valor é montado em etapas, ou quando você quer um ponto único de saída para depurar.</td></tr>
+<tr><td><a href="switch-expressoes.html">switch com setas</a>: <code>return switch (…) { … };</code></td><td>Muitos casos com valores fixos (dia da semana, código de produto).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"missing return statement"</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    static String situacao(double nota) {
+        if (nota &gt;= 7) {
+            return "aprovado";
+        } else if (nota &lt; 7) {
+            return "reprovado";
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(situacao(8));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:8: error: missing return statement
+    }
+    ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "falta a instrução return". Para você, <code>nota &gt;= 7</code> e <code>nota &lt; 7</code> cobrem todos os casos. Mas o compilador não analisa o significado das condições: ele vê um <code>if</code> e um <code>else if</code> <strong>sem <code>else</code></strong> e conclui que existe um caminho em que nenhum <code>return</code> roda. A setinha aponta para a chave que fecha o método: é ali que o método "cairia" sem valor.</p>
+<p><strong>Como resolver:</strong> troque o último <code>else if (…)</code> por <code>else</code>, ou coloque um <code>return</code> depois do <code>if</code>. Regra: num método com tipo de retorno, <strong>todo caminho possível</strong> precisa terminar num <code>return</code> (ou num <code>throw</code>, que você verá em <a href="throw-throws.html">throw e throws</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible types: unexpected return value"</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    static void saudar(String nome) {
+        return "Olá, " + nome;
+    }
+
+    public static void main(String[] args) {
+        saudar("Ana");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: unexpected return value
+        return "Olá, " + nome;
+                       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "valor de retorno inesperado". O método é <code>void</code> (promete não devolver nada) e tenta devolver um texto.</p>
+<p><strong>Como resolver:</strong> decida o que o método deve fazer. Se é para devolver o texto, troque <code>void</code> por <code>String</code>: <code>static String saudar(String nome)</code>. Se é só para mostrar, troque o <code>return</code> por <code>System.out.println(…)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"unreachable statement" (código depois do <code>return</code>)</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    static int dobro(int numero) {
+        return numero * 2;
+        System.out.println("Calculei o dobro!");
+    }
+
+    public static void main(String[] args) {
+        System.out.println(dobro(5));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: unreachable statement
+        System.out.println("Calculei o dobro!");
+        ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "instrução inalcançável". O <code>return</code> encerra o método; a linha de baixo nunca poderia rodar. Em vez de ignorá-la em silêncio, o Java recusa o código, porque quase sempre isso é um engano.</p>
+<p><strong>Como resolver:</strong> coloque a linha <strong>antes</strong> do <code>return</code>, ou apague-a.</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible types: missing return value"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: missing return value
+        return;
+        ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o método é <code>static int dobro(int numero)</code>, mas o <code>return;</code> não tem valor. Um método <code>int</code> precisa sempre devolver um <code>int</code>.</p>
+<p><strong>Como resolver:</strong> <code>return numero * 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"possible lossy conversion from double to int"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from double to int
+        return (a + b) / 2.0;
+                       ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o método promete devolver <code>int</code>, mas <code>(a + b) / 2.0</code> é um <code>double</code> (o <code>2.0</code> faz a conta virar decimal). Passar de <code>double</code> para <code>int</code> perderia as casas decimais, e o Java não faz isso sozinho.</p>
+<p><strong>Como resolver:</strong> mude o tipo de retorno para <code>double</code> ou converta de propósito com <code>(int)</code> (veja <a href="conversao-tipos.html">Conversão de Tipos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Usar o "valor" de um método <code>void</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:7: error: incompatible types: void cannot be converted to String
+        String frase = saudar("Ana");
+                             ^
+1 error</pre>
+<pre class="term">$ javac Main.java
+Main.java:7: error: 'void' type not allowed here
+        System.out.println(saudar("Ana"));
+                                 ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> <code>saudar</code> é <code>void</code>: não há valor para guardar numa variável nem para mandar ao <code>println</code>. A primeira mensagem diz "void não pode ser convertido em String"; a segunda, "o tipo void não é permitido aqui".</p>
+<p><strong>Como resolver:</strong> chame o método sozinho (<code>saudar("Ana");</code>) ou mude-o para devolver um <code>String</code> com <code>return</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>static Tipo nome(…) { … return valor; }</code></td><td>Método que devolve um valor do <code>Tipo</code></td></tr>
+<tr><td><code>static void nome(…) { … }</code></td><td>Método que não devolve nada</td></tr>
+<tr><td><code>return expressão;</code></td><td>Calcula a expressão, devolve o resultado e encerra o método</td></tr>
+<tr><td><code>return;</code></td><td>Encerra um método <code>void</code> antes do fim</td></tr>
+<tr><td><code>Tipo x = metodo(…);</code></td><td>Guarda o valor devolvido</td></tr>
+<tr><td><code>metodo(…);</code> (num método com retorno)</td><td>Permitido, mas o valor é descartado</td></tr>
+<tr><td><code>missing return statement</code></td><td>Algum caminho do método termina sem <code>return</code></td></tr>
+<tr><td><code>unexpected return value</code></td><td><code>return valor;</code> num método <code>void</code></td></tr>
+<tr><td><code>unreachable statement</code></td><td>Código depois de um <code>return</code></td></tr>
+<tr><td><code>missing return value</code></td><td><code>return;</code> sem valor num método que devolve algo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: o conceito da nota</h2>
+<div class="tryjava" data-goal="out:9.5 → A,out:7.0 → B,out:4.0 → C,src:static\s+String\s+conceito\s*\(\s*double\s+\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> escreva <code>static String conceito(double nota)</code> que devolva <code>"A"</code> para nota 9 ou mais, <code>"B"</code> para nota 7 ou mais e <code>"C"</code> para o resto. O <code>main</code> já está pronto. Cuidado com o <code>missing return statement</code>!</p>
+<pre class="script">public class Main {
+    // escreva o método conceito aqui
+
+    public static void main(String[] args) {
+        double[] notas = {9.5, 7.0, 4.0};
+        for (double n : notas) {
+            System.out.println(n + " → " + conceito(n));
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static String conceito(double nota) {
+        if (nota &gt;= 9) {
+            return "A";
+        }
+        if (nota &gt;= 7) {
+            return "B";
+        }
+        return "C";
+    }
+
+    public static void main(String[] args) {
+        double[] notas = {9.5, 7.0, 4.0};
+        for (double n : notas) {
+            System.out.println(n + " → " + conceito(n));
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O tipo de retorno</h3>
+<p>Complete para o método devolver a idade em meses (um número inteiro):</p>
+<div class="ex-code">static <input data-answer="int|long" aria-label="tipo de retorno"> emMeses(int anos) { return anos * 12; }</div>
+</div>
+
+<div class="exercise">
+<h3>2. A palavra que devolve</h3>
+<p>Complete o corpo do método que devolve o triplo:</p>
+<div class="ex-code">static int triplo(int n) { <input data-answer="return n * 3;|return n*3;|return 3 * n;|return 3*n;" aria-label="instrução"> }</div>
+</div>
+
+<div class="exercise">
+<h3>3. Guardar o resultado</h3>
+<p>O método <code>static double media(double a, double b)</code> já existe. Complete para guardar a média de 6 e 8 na variável <code>m</code>:</p>
+<div class="ex-code">double m = <input data-answer="media(6, 8);|media(6,8);|media(6.0, 8.0);|media(6.0,8.0);" aria-label="chamada">
+</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um método <code>static int f()</code> tem as linhas <code>return 1;</code> e, logo abaixo, <code>return 2;</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Devolve 1 e 2.</label>
+<label><input type="radio" name="q4"> Não compila: <code>unreachable statement</code> no segundo <code>return</code>.</label>
+<label><input type="radio" name="q4"> Devolve 2, o último.</label>
+<label><input type="radio" name="q4"> Devolve 3, a soma.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destas linhas é válida dentro de um método <code>void</code>?</p>
+<label><input type="radio" name="q5"> <code>return 0;</code></label>
+<label><input type="radio" name="q5"> <code>return "ok";</code></label>
+<label><input type="radio" name="q5"> <code>return null;</code></label>
+<label><input type="radio" name="q5"> <code>return;</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O programa chama <code>media(7, 8);</code> numa linha sozinha, e <code>media</code> devolve um <code>double</code> com <code>return</code>. O que aparece na tela?</p>
+<label><input type="radio" name="q6"> Nada: o valor é devolvido e descartado.</label>
+<label><input type="radio" name="q6"> <code>7.5</code></label>
+<label><input type="radio" name="q6"> Um erro de compilação.</label>
+<label><input type="radio" name="q6"> <code>return 7.5</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <strong>tipo de retorno</strong> fica antes do nome do método: <code>static double media(…)</code>. <code>void</code> quer dizer "não devolve nada".</li>
+  <li><code>return valor;</code> entrega o valor para quem chamou <strong>e</strong> encerra o método.</li>
+  <li>A chamada vale o valor devolvido: dá para imprimir, guardar, comparar e passar para outro método.</li>
+  <li><code>return</code> não imprime nada. Um valor devolvido e não usado é descartado.</li>
+  <li>Em métodos <code>void</code>, <code>return;</code> sai mais cedo (cláusula de guarda).</li>
+  <li>Todo caminho de um método com retorno precisa de <code>return</code> (<code>missing return statement</code>); código depois do <code>return</code> é <code>unreachable statement</code>; <code>return valor;</code> em <code>void</code> é <code>unexpected return value</code>.</li>
+  <li>Calcule com retorno; deixe a impressão para quem chama.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
