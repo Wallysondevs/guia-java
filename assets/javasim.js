@@ -5952,8 +5952,8 @@
   FL.daCond = function (e, st) {
     var self = this;
     while (e.k === "Paren") e = e.expr;
-    if (e.cv === true) { var t1 = st.copy(); this.daExpr(e, t1); return { t: t1, f: daDead() }; }
-    if (e.cv === false) { var f1 = st.copy(); this.daExpr(e, f1); return { t: daDead(), f: f1 }; }
+    if (e.cv === true) return { t: st.copy(), f: daDead() };
+    if (e.cv === false) return { t: daDead(), f: st.copy() };
     if (e.k === "Binary" && e.op === "&&") {
       var l = this.daCond(e.l, st);
       var r = this.daCond(e.r, l.t);
@@ -8112,11 +8112,11 @@
   // ---------- lambdas e referências de método ----------
   var LAMBDA_CLASSES = {};
   function lambdaClassFor(isym, sam, node) {
-    var key = isym.id;
+    var key = isym.id + "/" + (node || "Main");
     var c = LAMBDA_CLASSES[key];
     if (c) return c;
     c = new ClassSym(isym.name, "Main$$Lambda", "class");
-    c.bin = "Main$$Lambda/0x" + (0x7f0000 + isym.id * 0x40).toString(16).padStart(16, "0");
+    c.bin = (node || "Main") + "$$Lambda/0x" + (0x7f0000 + isym.id * 0x40).toString(16).padStart(16, "0");
     c.superT = OBJ(); c.ifaces = [isym.rawType()]; c.headerDone = true; c.completed = true; c.isLib = true; c.isLambda = true;
     var vt = Object.create(vtOf(L("java.lang.Object")));
     var all = Object.create(null);
@@ -8141,7 +8141,7 @@
     LAMBDA_CLASSES[key] = c;
     return c;
   }
-  function mkLambda(isym, sam, fn) { return { $c: lambdaClassFor(isym, sam), fn: fn }; }
+  function mkLambda(isym, sam, fn) { return { $c: lambdaClassFor(isym, sam, RT && RT.lambdaOwner), fn: fn }; }
   GN.lambdaName = function (ctx) {
     var top = ctx.cls; while (top.outer) top = top.outer;
     var m = ctx.method ? (ctx.method.name === "<init>" ? "new" : ctx.method.name) : (ctx.traceName && /clinit/.test(ctx.traceName) ? "static" : "new");
@@ -9563,6 +9563,7 @@
     var prevRT = RT;
     RT = rt;
     rt.setup();
+    rt.lambdaOwner = opts.principal || "Main";
     var status = 0, excecao = null, needInput = false, limitMsg = null;
     try {
       var mm = findMain(prog, opts.principal || "Main");
@@ -9980,6 +9981,7 @@
       }
     }
     if (isStr(v)) return jshellStrLit(S(v), '"');
+    if (v && v.$c && v.$c.isLambda) return toStr(v).replace(/^\$JShell\$\d+\$/, "");
     if (v instanceof JBox && UNBOX[v.$c.full] === "char") return jshellStrLit(String.fromCharCode(v.v), "'");
     if (v instanceof JArr) {
       var et = v.$c.elemType;
@@ -10105,6 +10107,7 @@
     var prev = RT; RT = this.rt;
     this.rt.chunks = []; this.rt.outLen = 0; this.rt.steps = 0; this.rt.stack = [];
     var res = { value: undefined, exc: null, out: "" };
+    this.rt.lambdaOwner = cls.bin;
     try {
       var m = (cls.methods.$run || [])[0];
       ensureInit(cls);
@@ -10194,7 +10197,8 @@
     var name = decl.vars[0].name;
     var id = this.nextId;
     var body = src.replace(/;\s*$/, "");
-    var w = this.wrap({ before: "        ", src: body, after: ";\n        return " + name + ";" }, id);
+    var semInit = !decl.vars[0].init;
+    var w = this.wrap({ before: "        ", src: body, after: semInit ? ";\n        return null;" : ";\n        return " + name + ";" }, id);
     var prog = this.compile(w.code);
     if (prog.errors.length) return this.errText(prog, body, w.offset);
     this.nextId++;
@@ -10204,7 +10208,7 @@
     (function find(x) { if (!x || vsym || typeof x !== "object") return; if (x.k === "LocalVar") { vsym = x.vars[0].vsym; return; } if (x.stats) x.stats.forEach(find); })(m.decl.body);
     var t = vsym ? vsym.type : OBJ();
     var r = this.run(prog, cls, id);
-    var v = r.value;
+    var v = semInit ? defaultValue(t) : r.value;
     if (t.k === "prim" && v instanceof JBox) v = v.v;
     if (r.exc) { this.declareVar(name, t, defaultValue(t), id); this.snips.push({ id: id, src: body + ";", kind: "var", name: name }); return r.out + this.excText(r.exc); }
     var exists = this.vars.some(function (x) { return x.name === name; });
@@ -10231,6 +10235,8 @@
     // atribuição a variável: "x ==> 20"
     var target = null;
     if (node && node.k === "Assign" && node.target.k === "Ident" && this.repl.fields[node.target.name]) target = node.target.name;
+    var bare = node && node.k === "Ident" && this.repl.fields[node.name] ? node.name : null;
+    if (bare) target = bare;
     this.snips.push({ id: id, src: src, kind: "expr" });
     if (r.exc) { this.declareVar("$" + id, t, defaultValue(t), id); return r.out + this.excText(r.exc); }
     if (target) return r.out + target + " ==> " + jshellValue(v, t) + "\n";

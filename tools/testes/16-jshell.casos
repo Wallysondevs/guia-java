@@ -1,0 +1,103 @@
+### js-basico [jshell]
+int x = 5
+int x = 7
+x
+String nome = "Ana"
+nome.toUpperCase()
+nome.charAt(10)
+Integer.parseInt("abc")
+int[] a = new int[3]
+a[5]
+var lista = new ArrayList<>(List.of(1, 2, 3))
+lista.add(4)
+lista
+Map<String, Integer> m = new HashMap<>()
+m.put("a", 1)
+m
+List.of(1, 2).add(3)
+10 / 3
+10 / 3.0
+(int) 3.99
+'a' + 'b'
+(char) ('a' + 1)
+Math.sqrt(16)
+Math.max(3, 7)
+String.format("%.2f", 2.5)
+record Ponto(int x, int y) {}
+Ponto p = new Ponto(1, 2)
+p.x()
+enum Cor { VERDE, AZUL }
+Cor.AZUL
+Cor.values()
+dobro.apply(21)
+List.of(3, 1, 2).stream().sorted().toList()
+int soma(int a, int b) { return a + b; }
+soma(2, 3)
+soma("a", 1)
+"texto" == "texto"
+new String("a") == "a"
+Integer i1 = 127, i2 = 127
+i1 == i2
+1.0 / 0
+0.1 + 0.2
+long big = 3000000000L
+big * 3
+boolean b = 5 > 3 && 2 > 1
+b
+StringBuilder sb = new StringBuilder("abc")
+sb.reverse()
+Object o = 42
+o instanceof Integer n ? n + 1 : 0
+double d
+d
+/exit
+### js-metodos [jshell]
+int quadrado(int x) {
+    return x * x;
+}
+quadrado(9)
+String saudar(String nome) { return "Olá, " + nome + "!"; }
+saudar("Ana")
+void dizer() { System.out.println("dito"); }
+dizer()
+quadrado(true)
+y
+int idade = 29
+idade + 1
+idade = idade * 2
+var texto = "abc"
+texto.length()
+"a".repeat(3)
+/vars
+/methods
+/exit
+### js-colecoes [jshell]
+List<String> frutas = new ArrayList<>()
+frutas.add("uva")
+frutas.add("maçã")
+frutas
+frutas.size()
+Map<String, Integer> estoque = new TreeMap<>()
+estoque.put("b", 2)
+estoque.put("a", 1)
+estoque
+Set<Integer> s = new TreeSet<>(List.of(5, 1, 3))
+s
+int[] nums = {3, 1, 2}
+Arrays.sort(nums)
+nums
+Arrays.toString(nums)
+String[] nomes = {"Ana", "Bia"}
+nomes
+List.of(1, 2, 3).stream().map(x -> x * 10).toList()
+Optional.of("x")
+Optional.empty()
+char c = 'z'
+c + 1
+(char) (c - 1)
+Math.round(2.5)
+Math.PI
+Integer.MAX_VALUE + 1
+Long.MAX_VALUE
+5 / 0
+/exit

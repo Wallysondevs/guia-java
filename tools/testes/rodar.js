@@ -12,7 +12,7 @@
       //// Conta.java                       ← (opcional) começa outro arquivo
       public class Conta { ... }
       ### outro [stdin="Ana\n29\n" args="a b" main="Prog"]
-      ### sessao [jshell]                   ← linhas digitadas no JShell (jshell -q)
+      ### sessao [jshell]                   ← linhas digitadas no JShell interativo (compara o feedback)
   "##" no início de uma linha (fora do código) é comentário só antes do primeiro ###.
 
   Uso:
@@ -74,7 +74,43 @@ function dividirArquivos(texto) {
 }
 
 // ---- laboratório ----
+// JShell interativo (feedback "normal"): roda "script -c jshell" no laboratório, um caso por vez
+function rodarLabJShell(casos) {
+  if (!casos.length) return {};
+  var entrada = casos.map(function (c) { return "\u001e" + c.id + "\n" + c.texto; }).join("");
+  var script = [
+    'D=/tmp/js; mkdir -p $D; cd $D; cat > todos',
+    'awk -v RS="\\x1e" "NR>1{f=\\"$D/caso\\" NR-1; printf \\"%s\\", \\$0 > f; close(f)}" todos',
+    'for f in $(ls $D/caso* | sort -V); do',
+    '  id=$(head -1 "$f"); tail -n +2 "$f" > $D/in.txt',
+    '  printf "\\x1d%s\\n" "$id"',
+    '  timeout 60 script -qfc jshell /dev/null < $D/in.txt 2>&1',
+    'done'
+  ].join("\n");
+  process.stderr.write("laboratório: JShell interativo, " + casos.length + " caso(s)...\n");
+  var r = cp.spawnSync("timeout", ["900", LAB, "-n", "testes", "--", "bash", "-c", script], { input: entrada, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  var res = {};
+  (r.stdout || "").split("\u001d").slice(1).forEach(function (b) { var i = b.indexOf("\n"); res[b.slice(0, i)] = normJShellReal(b.slice(i + 1)); });
+  return res;
+}
+function normJShellReal(t) {
+  t = t.replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, "").replace(/\x1b[()][A-Z0-9]/g, "").replace(/\x1b./g, function (m) { return /[=>]/.test(m[1]) ? "" : m.slice(1); }).replace(/\x1b/g, "").replace(/\r/g, "");
+  var i = t.indexOf("|  For an introduction type: /help intro");
+  if (i >= 0) t = t.slice(t.indexOf("\n", i) + 1);
+  return t.split("\n").map(function (l) { return l.replace(/=>\.\.\.\./g, "").replace(/^jshell> /, "").replace(/\s+$/, ""); }).filter(function (l) { return l !== ""; }).join("\n") + "\n";
+}
+function normJShellSim(t) {
+  return t.split("\n").filter(function (l) { return !/^(jshell> |   \.\.\.> )/.test(l); }).map(function (l) { return l.replace(/\s+$/, ""); }).filter(function (l) { return l !== ""; }).join("\n") + "\n";
+}
 function rodarLab(casos) {
+  var js = casos.filter(function (c) { return c.jshell; });
+  casos = casos.filter(function (c) { return !c.jshell; });
+  var resJ = rodarLabJShell(js);
+  var res0 = rodarLab0(casos);
+  Object.keys(resJ).forEach(function (k) { res0[k] = resJ[k]; });
+  return res0;
+}
+function rodarLab0(casos) {
   if (!casos.length) return {};
   var driver = fs.readFileSync(path.join(DIR, "Bateria.java"), "utf8");
   var entrada = casos.map(function (c) {
@@ -105,7 +141,7 @@ function carregarSim() {
 function rodarSim(c) {
   var J = carregarSim();
   if (J.erro) return "(simulador não carregou: " + J.erro.message + ")";
-  if (c.jshell) return J.rodarJShellTexto(c.texto);
+  if (c.jshell) return normJShellSim(J.rodarJShellTexto(c.texto.replace(/\n$/, "") + (/\/exit\s*$/.test(c.texto) ? "" : "\n/exit")));
   var r = J.rodarSync({ arquivos: c.arquivos, principal: c.main, args: c.args, stdin: c.stdin === null ? "" : c.stdin });
   return r.javac + (r.compilou ? r.texto + "[código de saída: " + r.status + "]\n" : "");
 }
@@ -152,6 +188,7 @@ function main(argv) {
     if (r === undefined) { difs.push({ c: c, real: "(sem resultado do laboratório)", sim: "" }); return; }
     var s;
     try { s = rodarSim(c); } catch (e) { s = "(exceção no simulador) " + (e && e.stack || e); }
+    if (c.jshell) r = normJShellReal(r);
     r = normalizar(r); s = normalizar(s);
     if (r === s) iguais++; else difs.push({ c: c, real: r, sim: s });
   });
