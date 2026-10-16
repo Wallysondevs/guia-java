@@ -1,0 +1,420 @@
+### divzero
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("antes");
+        System.out.println(10 / 0);
+    }
+}
+### removal-integer
+public class Main {
+    public static void main(String[] args) {
+        Integer i = new Integer(5);
+        System.out.println(i);
+    }
+}
+### unchecked-raw
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List lista = new ArrayList();
+        lista.add("a");
+        System.out.println(lista);
+    }
+}
+### nao-aplicavel
+public class Main {
+    static void f(int a) {}
+    public static void main(String[] args) {
+        f("a");
+    }
+}
+### nao-aplicavel-aridade
+public class Main {
+    static void f(int a) {}
+    public static void main(String[] args) {
+        f(1, 2);
+    }
+}
+### nenhum-adequado
+public class Main {
+    static void f(int a) {}
+    static void f(double a, int b) {}
+    public static void main(String[] args) {
+        f("a");
+    }
+}
+### metodo-inexistente
+public class Main {
+    public static void main(String[] args) {
+        String s = "abc";
+        s.foo();
+        System.out.printn("x");
+        Math.sqroot(2);
+        int n = s.size();
+    }
+}
+### classe-inexistente
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+    }
+}
+### classe-aninhada-tipo
+public class Main {
+    static class Pessoa { String nome; }
+    public static void main(String[] args) {
+        Pessoa p = "Ana";
+        int x = new Pessoa();
+    }
+}
+### ordem-attr-flow
+public class Main {
+    static int f() { }
+    public static void main(String[] args) {
+        int x;
+        System.out.println(x);
+        String s = 5;
+    }
+}
+### retorno-void
+public class Main {
+    static void f() { return 5; }
+    static int g() { return; }
+    static int h() { return "a"; }
+    public static void main(String[] args) { }
+}
+### if-atribuicao
+public class Main {
+    public static void main(String[] args) {
+        int x = 5;
+        if (x = 5) System.out.println("a");
+        while (1) {}
+    }
+}
+### final-reatribui
+public class Main {
+    static final int MAX = 10;
+    public static void main(String[] args) {
+        final int x = 1;
+        x = 2;
+        MAX = 20;
+        x++;
+    }
+}
+### else-sem-if
+public class Main {
+    public static void main(String[] args) {
+        int x = 5;
+        if (x > 3) System.out.println("a");;
+        else System.out.println("b");
+    }
+}
+### parentese
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("a";
+    }
+}
+### parentese2
+public class Main {
+    public static void main(String[] args) {
+        if (3 > 2 {
+            System.out.println("a");
+        }
+    }
+}
+### identificador-esperado
+public class Main {
+    System.out.println("fora");
+    public static void main(String[] args) { }
+}
+### abstrata
+public class Main {
+    static abstract class Animal { abstract String som(); }
+    static class Cachorro extends Animal { }
+    interface Forma { double area(); }
+    static class Quadrado implements Forma { }
+    public static void main(String[] args) {
+        Animal a = new Animal();
+    }
+}
+### privado
+class Pessoa {
+    private String nome;
+    private void segredo() {}
+}
+public class Main {
+    public static void main(String[] args) {
+        Pessoa p = new Pessoa();
+        p.nome = "Ana";
+        p.segredo();
+    }
+}
+### override-erro
+public class Main {
+    static class A { public void f() {} void g() {} }
+    static class B extends A {
+        void f() {}
+        @Override void h() {}
+        @Override public String toString() { return "B"; }
+        @Override public boolean equals(B b) { return true; }
+    }
+    public static void main(String[] args) { }
+}
+### super-construtor
+public class Main {
+    static class Animal { String n; Animal(String n) { this.n = n; } }
+    static class Gato extends Animal { Gato() { } }
+    static class Cao extends Animal { }
+    public static void main(String[] args) { }
+}
+### construtor-args
+public class Main {
+    static class Pessoa { Pessoa(String n, int i) {} }
+    public static void main(String[] args) {
+        Pessoa p = new Pessoa("Ana");
+        Pessoa q = new Pessoa();
+    }
+}
+### generic-primitivo
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<int> l = new ArrayList<>();
+    }
+}
+### generic-add-errado
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>();
+        l.add(5);
+        String s = l.get(0);
+        int n = l.get(0);
+    }
+}
+### switch-expr-nao-cobre
+public class Main {
+    public static void main(String[] args) {
+        int d = 3;
+        String s = switch (d) {
+            case 1 -> "um";
+            case 2 -> "dois";
+        };
+    }
+}
+### talvez-nao-inicializada
+public class Main {
+    public static void main(String[] args) {
+        String s;
+        if (args.length > 0) s = "a";
+        System.out.println(s);
+        int t;
+        for (int i = 0; i < 3; i++) t = i;
+        System.out.println(t);
+    }
+}
+### catch-nunca
+import java.io.*;
+public class Main {
+    public static void main(String[] args) {
+        try {
+            System.out.println("a");
+        } catch (IOException e) {
+        }
+    }
+}
+### catch-ja-capturada
+import java.io.*;
+public class Main {
+    static void f() throws IOException {}
+    public static void main(String[] args) {
+        try {
+            f();
+        } catch (Exception e) {
+        } catch (IOException e) {
+        }
+    }
+}
+### multicatch-relacionadas
+public class Main {
+    public static void main(String[] args) {
+        try {
+            int x = 1;
+        } catch (RuntimeException | ArithmeticException e) {
+        }
+    }
+}
+### lambda-efetivamente-final
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        int total = 0;
+        List<Integer> l = List.of(1, 2);
+        l.forEach(x -> total += x);
+        Runnable r = new Runnable() { public void run() { total++; } };
+    }
+}
+### lossy-composto
+public class Main {
+    public static void main(String[] args) {
+        int x = 10;
+        x += 2.7;
+        byte b = 10;
+        b = b + 1;
+        short s = 100000;
+        char c = 65;
+        char d = -1;
+        float f = 3.14;
+        long g = 3000000000;
+    }
+}
+### string-char
+public class Main {
+    public static void main(String[] args) {
+        char c = "a";
+        String s = 'a';
+        boolean b = "true";
+    }
+}
+### inalcancavel-loop
+public class Main {
+    public static void main(String[] args) {
+        while (true) {
+            System.out.println("x");
+        }
+        System.out.println("depois");
+    }
+}
+### inalcancavel-break
+public class Main {
+    public static void main(String[] args) {
+        for (int i = 0; i < 3; i++) {
+            break;
+            System.out.println(i);
+        }
+    }
+}
+### super-primeiro
+public class Main {
+    static class A { A(int x) {} }
+    static class B extends A {
+        B() {
+            System.out.println("antes");
+            super(1);
+        }
+    }
+    public static void main(String[] args) { new B(); }
+}
+### this-estatico
+public class Main {
+    int x;
+    public static void main(String[] args) {
+        this.x = 5;
+        System.out.println(this);
+    }
+}
+### operador-ruim
+public class Main {
+    public static void main(String[] args) {
+        boolean b = true;
+        int x = b + 1;
+        String s = "a";
+        s++;
+        boolean c = !5;
+        int y = -"a";
+        if (s > "b") {}
+    }
+}
+### comparacao-tipos
+public class Main {
+    public static void main(String[] args) {
+        String s = "a";
+        Integer i = 1;
+        if (s == 3) {}
+        if (i == "x") {}
+    }
+}
+### chamada-void-valor
+public class Main {
+    static void f() {}
+    public static void main(String[] args) {
+        int x = f();
+        System.out.println(f());
+        String s = "a" + f();
+    }
+}
+### array-erros
+public class Main {
+    public static void main(String[] args) {
+        int[] a = {1, 2, 3};
+        int x = a.length();
+        String s = a[0];
+        int[] b = new int[];
+        int[] c = {1, "a"};
+        a.size;
+    }
+}
+### expressao-nao-comando
+public class Main {
+    public static void main(String[] args) {
+        int x = 1;
+        x + 1;
+    }
+}
+### nome-errado-arquivo
+//// Main.java
+class Ajudante {}
+public class Programa {
+    public static void main(String[] args) {}
+}
+### varios-erros-contagem
+public class Main {
+    public static void main(String[] args) {
+        int a = "x";
+        int b = "y";
+        int c = "z";
+        System.out.println(d);
+    }
+}
+### char-unclosed
+public class Main {
+    public static void main(String[] args) {
+        char c = 'ab';
+    }
+}
+### classe-esperada
+public class Main {
+    public static void main(String[] args) {
+    }
+}
+}
+### var-erros
+public class Main {
+    var campo = 1;
+    public static void main(String[] args) {
+        var x;
+        var y = null;
+        var z = {1, 2};
+    }
+}
+### metodo-ja-definido
+public class Main {
+    static void f(int a) {}
+    static int f(int b) { return 1; }
+    public static void main(String[] args) { }
+}
+### main-faltando
+public class Main {
+    public static void principal(String[] args) {
+        System.out.println("x");
+    }
+}
+### instanceof-incompativel
+public class Main {
+    public static void main(String[] args) {
+        String s = "a";
+        if (s instanceof Integer) {}
+        Integer i = (Integer) s;
+    }
+}

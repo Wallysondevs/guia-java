@@ -1,0 +1,249 @@
+### npe-varios
+import java.util.*;
+public class Main {
+    String nome;
+    static String est;
+    static List<String> lista;
+    int[] arr;
+    static String f() { return null; }
+    public static void main(String[] args) {
+        Main m = new Main();
+        try { m.nome.length(); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { est.isEmpty(); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { lista.size(); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { f().trim(); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { int x = m.arr[0]; } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { int x = m.arr.length; } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        Main q = null;
+        try { q.nome = "a"; } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { String s = q.nome; } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        Integer i = null;
+        try { int y = i; } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { throw null; } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        String[] ss = new String[2];
+        try { ss[1].length(); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        long a = 1; double b = 2; String c = null;
+        try { c.charAt(0); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { m.g(null); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { Objects.requireNonNull(null, "nao pode"); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { String.valueOf((Object) null).length(); System.out.println("ok"); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { switch (c) { default -> {} } } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+        try { "a".equals(null); c.equals("a"); } catch (NullPointerException e) { System.out.println(e.getMessage()); }
+    }
+    void g(String p) { p.toUpperCase(); }
+}
+### hash-identidade
+public class Main {
+    public static void main(String[] args) {
+        Object o = new Object();
+        System.out.println(o);
+        System.out.println(new Main());
+        System.out.println(new int[3]);
+        System.out.println(new String[0]);
+        System.out.println(o.hashCode());
+    }
+}
+### main-faltando-ola
+//// Ola.java
+public class Ola {
+    public static void imprimir(String[] args) {
+        System.out.println("x");
+    }
+}
+### scanner-double [stdin="3.5\n"]
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        double d = sc.nextDouble();
+        System.out.println(d);
+    }
+}
+### scanner-milhar [stdin="1.234 2,5 1.234,5\n"]
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.println(sc.nextInt());
+        System.out.println(sc.nextDouble());
+        System.out.println(sc.nextDouble());
+        System.out.println(sc.hasNext());
+    }
+}
+### localizacao-tipos
+import java.util.*;
+public class Main {
+    enum Cor { A }
+    record P(int x) {}
+    interface I {}
+    public static void main(String[] args) {
+        Cor.foo();
+        P.foo();
+        I.foo();
+        List<String> l = new ArrayList<>();
+        l.foo();
+        "x".foo();
+        new P(1).bar;
+    }
+}
+### sem-adequado-multi
+public class Main {
+    static void f(int a) {}
+    static void f(double a) {}
+    static void g(int a, int b) {}
+    static void g(String a) {}
+    public static void main(String[] args) {
+        f("a");
+        g(1);
+        g(true, 1);
+    }
+}
+### ambiguo
+public class Main {
+    static void f(int a, double b) {}
+    static void f(double a, int b) {}
+    public static void main(String[] args) {
+        f(1, 2);
+    }
+}
+### import-errado
+import java.utl.Scanner;
+import java.util.Scaner;
+public class Main {
+    public static void main(String[] args) { }
+}
+### enter-e-attr
+//// Main.java
+public class Programa {
+    public static void main(String[] args) {
+        int x = "a";
+    }
+}
+### compact-sem-import
+void main() {
+    List<Integer> l = new ArrayList<>(List.of(3, 1, 2));
+    Collections.sort(l);
+    IO.println(l);
+    Scanner sc = new Scanner(System.in);
+    IO.println(sc.hasNext());
+}
+### instancia-main
+public class Main {
+    void main() {
+        System.out.println("instância " + this.getClass().getName());
+    }
+}
+### printf-varios
+public class Main {
+    public static void main(String[] args) {
+        System.out.printf("%5.1f|%-8.3f|%08d|%+.1f|%(d|%x|%X|%10s|%-5b|%c%n", 3.14159, 2.5, 42, -1.25, -7, 255, 255, "dir", true, 65);
+        System.out.printf("%.0f %.0f %.0f %.1f %.2f %.3f%n", 0.5, 1.5, 2.5, 0.05, 1.005, 2.0005);
+        System.out.printf("%e %.2e %g %.3g %a%n", 123.456, 0.000123, 123.456, 0.0001234, 1.0);
+        System.out.printf("%s %S %h %n", null, "abc", "hi");
+        System.out.printf("%,.2f %,d %d%n", 1234567.891, -1234567, Long.MIN_VALUE);
+        System.out.printf("%2$s %1$s %<s%n", "a", "b");
+        System.out.printf("%%|%n");
+        System.out.println(String.format("%.2f", 2.675) + " " + String.format("%.1f", 0.25) + " " + String.format("%.1f", 0.35));
+        System.out.println(String.format("%10.4f|%-10d|%x", Math.PI, 5, -1));
+        System.out.println(String.format("%s %s %s", 1.0, 1.0f, 'x'));
+        System.out.println(String.format("%.3s|%5.2s|", "abcdef", "xyz"));
+        System.out.println(String.format("%b %b %b", null, "x", false));
+        System.out.println(String.format("%o %x %X", 8, 255L, 3000000000L));
+        System.out.println(String.format("%f %f", 1.0, 1e10));
+    }
+}
+### printf-erros
+public class Main {
+    public static void main(String[] args) {
+        System.out.printf("%d%n", "texto");
+    }
+}
+### printf-faltando
+public class Main {
+    public static void main(String[] args) {
+        System.out.printf("%s e %s%n", "a");
+    }
+}
+### double-tostring
+public class Main {
+    public static void main(String[] args) {
+        double[] v = {1.0, 10.0, 0.1, 1e-3, 9.999e-4, 1e7, 9999999.0, 12345678.9, 1e21, 1e-7, 123456789012.0, 0.5, 2.0/3, 1/3.0, 100.0, 3.0e-5, 1.0E-10, Math.PI, Math.E, 4.35, 0.07, 1.1*1.1, 2e22, 9.007199254740993E15, -0.0, 1e100, 5e-324, 1.7976931348623157E308};
+        for (double d : v) System.out.println(d);
+        float[] f = {1.0f, 0.1f, 3.14159f, 1e10f, 1.0f/3, 100.5f, 1e-5f, 16777217f, 0.3f, 2.2f*3, 1.4E-45f, 3.4028235E38f};
+        for (float x : f) System.out.println(x);
+    }
+}
+### char-int
+public class Main {
+    public static void main(String[] args) {
+        char c = 'A';
+        c++;
+        System.out.println(c);
+        c += 2;
+        System.out.println(c);
+        System.out.println(c + 1);
+        System.out.println("" + c + 1);
+        System.out.println((int) c);
+        System.out.println('a' + 'b');
+        System.out.println("x" + 'a' + 'b');
+        System.out.println('a' + 'b' + "x");
+        char d = 66;
+        System.out.println(d);
+        int i = 'z';
+        System.out.println(i);
+        System.out.println(Character.isLetter('a') + " " + Character.toUpperCase('b') + " " + Character.getNumericValue('7'));
+        System.out.println((char) 97);
+        System.out.println(true ? 'a' : 0);
+        System.out.println(false ? 'a' : i);
+    }
+}
+### inteiros
+public class Main {
+    public static void main(String[] args) {
+        int max = Integer.MAX_VALUE;
+        System.out.println(max + 1);
+        System.out.println(max * 2);
+        long l = max + 1L;
+        System.out.println(l);
+        System.out.println(Long.MAX_VALUE + 1);
+        System.out.println(1000000 * 1000000);
+        System.out.println(1000000L * 1000000);
+        byte b = (byte) 200;
+        System.out.println(b);
+        short s = (short) 40000;
+        System.out.println(s);
+        System.out.println((byte) -129);
+        System.out.println(7 / 2 + " " + 7 % 3 + " " + -7 / 2 + " " + -7 % 3 + " " + 7.0 / 2 + " " + 7 % 2.5);
+        System.out.println(5 >> 1 + " " + (-16 >> 2) + " " + (-16 >>> 28) + " " + (1 << 33) + " " + (1L << 33));
+        System.out.println((5 & 3) + " " + (5 | 3) + " " + (5 ^ 3) + " " + (~5));
+        System.out.println(Integer.MIN_VALUE / -1);
+        System.out.println(Math.abs(Integer.MIN_VALUE));
+        System.out.println(Integer.toBinaryString(10) + " " + Integer.toHexString(255) + " " + Integer.toBinaryString(-1) + " " + Long.toHexString(-1L));
+        System.out.println(Integer.parseInt("-42") + Integer.valueOf("7") + Long.parseLong("9000000000"));
+        System.out.println((int) 'A' + (int) 3.7 + (int) -3.7 + (long) 1e19);
+        System.out.println(0x1F + 010 + 0b101 + 1_000_000);
+        int x = 5;
+        x += 3.7;
+        System.out.println(x);
+        x = x++ + ++x;
+        System.out.println(x);
+        System.out.println(Integer.compare(3, 5) + " " + Integer.max(3, 9) + " " + Integer.sum(2, 2) + " " + Integer.MIN_VALUE);
+        double d = 0.1 * 3;
+        System.out.println(d + " " + (float) d + " " + (d == 0.3) + " " + (int) (d * 10));
+        System.out.println(10 / 3 * 3 + " " + 10 / 3.0 * 3);
+    }
+}
+### math
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.sqrt(16) + " " + Math.pow(2, 10) + " " + Math.abs(-5) + " " + Math.abs(-5.5));
+        System.out.println(Math.max(3, 7) + " " + Math.min(2.5, 1) + " " + Math.ceil(4.1) + " " + Math.floor(-4.1));
+        System.out.println(Math.round(4.5) + " " + Math.round(-4.5) + " " + Math.round(4.49) + " " + Math.rint(2.5));
+        System.out.println(Math.PI + " " + Math.E + " " + Math.cbrt(27) + " " + Math.hypot(3, 4));
+        System.out.println(Math.sin(Math.PI / 2) + " " + Math.cos(0) + " " + Math.log(Math.E) + " " + Math.log10(1000) + " " + Math.exp(1));
+        System.out.println(Math.floorDiv(-7, 2) + " " + Math.floorMod(-7, 2) + " " + Math.signum(-3.2) + " " + Math.toRadians(180));
+        System.out.println(Math.pow(10, -2) + " " + Math.sqrt(-1) + " " + Math.pow(2, 0.5) + " " + Math.atan2(1, 1));
+        try { Math.addExact(Integer.MAX_VALUE, 1); } catch (ArithmeticException e) { System.out.println(e.getMessage()); }
+        System.out.println(Math.clamp(15, 0, 10));
+    }
+}

@@ -847,3 +847,35 @@ dl.glossario dd { margin: 4px 0 0; }
 figure { margin: 18px 0; }
 figure img { display: block; max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px; }
 figcaption { margin-top: 8px; font-size: .92rem; color: var(--muted); line-height: 1.5; }
+
+/* ---------------- Guia Java: editor .tryjava e console .tryjshell ---------------- */
+.tryjava, .tryjshell {
+  margin: 22px 0;
+  padding: 4px 18px 14px;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+}
+.tryjava .sim, .tryjshell .sim { max-width: 100%; }
+.tj .ts-code { tab-size: 4; }
+.tj-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.tj-tab {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  background: var(--bg);
+  color: var(--muted);
+  font: 600 13px "Ubuntu Mono", ui-monospace, Menlo, Consolas, monospace;
+  cursor: pointer;
+}
+.tj-tab.on { color: var(--text); border-color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.tj-tab:hover { color: var(--accent); }
+.tj-exec > div { white-space: pre-wrap; word-break: break-word; min-height: 1.5em; }
+.tj-shell .sim-screen { height: 300px; }
+.tj-shell .sim-cmd .sim-prompt { color: #8ae234; }
+.tj-shell .sim-out > div { white-space: pre-wrap; word-break: break-word; }
+.ts-saida .sim-info { color: #a9a9b2; font-style: italic; }
+@media (max-width: 600px) {
+  .tryjava, .tryjshell { padding: 4px 10px 12px; }
+  .tj-shell .sim-screen { height: 260px; }
+  .tj-tab { font-size: 12px; padding: 3px 7px; }
+}
