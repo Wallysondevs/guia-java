@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java ArrayList — a lista que cresce: add, get, set, remove | Guia Java</title>
+<meta name="description" content="ArrayList em Java do zero: criar, add, get, set, remove por índice e por objeto (e a pegadinha com Integer), size, contains, indexOf, percorrer, ordenar, IndexOutOfBoundsException e List.of imutável, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">ArrayList</span></h1>
+
+<p class="intro">A <code>ArrayList</code> é a coleção mais usada do Java: uma lista de elementos em ordem, cada um numa posição numerada, que <strong>cresce e encolhe</strong> conforme você acrescenta e remove. Pense nela como um array "elástico". Nesta aula você vai aprender cada operação, uma de cada vez, com as saídas reais e os erros mais comuns.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Criar uma <code>ArrayList</code> e acrescentar elementos com <code>add</code> (no fim ou numa posição).</li>
+  <li>Ler com <code>get</code>, trocar com <code>set</code> e saber o tamanho com <code>size</code>.</li>
+  <li>Remover por <strong>posição</strong> e por <strong>valor</strong>, e a pegadinha do <code>remove</code> com <code>Integer</code>.</li>
+  <li>Procurar com <code>contains</code> e <code>indexOf</code>.</li>
+  <li>Percorrer a lista de três jeitos e ordená-la.</li>
+  <li>O que são <code>IndexOutOfBoundsException</code> e <code>UnsupportedOperationException</code> (com <code>List.of</code>).</li>
+</ul>
+</div>
+
+<p>Se você caiu aqui direto, leia antes a <a href="colecoes.html">Visão Geral das Coleções</a>: ela explica por que existem coleções e o que quer dizer <code>List&lt;String&gt; x = new ArrayList&lt;&gt;()</code>. Todas as saídas abaixo vieram do JDK 25, na máquina da Ana.</p>
+
+<hr>
+
+<h2>A ideia: uma lista de compras</h2>
+<p>Na geladeira da Ana há uma lista de compras. Ela escreve um item embaixo do outro, às vezes encaixa um no meio, risca os que comprou e troca "feijão" por "feijão preto". Cada linha tem uma posição: o primeiro item, o segundo… A <code>ArrayList</code> é exatamente isso, com uma diferença: <strong>as posições começam em 0</strong>, como nos <a href="arrays.html">arrays</a>.</p>
+
+<pre class="syntax">posição:   0        1        2        3
+         [arroz] [leite] [feijão] [café]</pre>
+
+<p>Por dentro, a <code>ArrayList</code> guarda os elementos num array comum. Quando ele enche, ela cria outro array maior, copia tudo e continua; você nunca vê isso acontecer. Daí o nome: <em>Array</em> (guarda num array) + <em>List</em> (é uma lista).</p>
+
+<hr>
+
+<h2>Criar e acrescentar: <code>add</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; compras = new ArrayList&lt;&gt;();
+        System.out.println("Vazia: " + compras + " tamanho " + compras.size());
+
+        compras.add("arroz");
+        compras.add("feijão");
+        compras.add("café");
+        System.out.println("Depois de 3 add: " + compras);
+
+        compras.add(1, "leite");
+        System.out.println("add(1, \"leite\"): " + compras);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import java.util.ArrayList; import java.util.List;</dt><dd>Traz a classe <code>ArrayList</code> e a interface <code>List</code> do pacote <code>java.util</code>.</dd>
+  <dt>List&lt;String&gt; compras</dt><dd>Uma variável chamada <code>compras</code>, do tipo "lista de <code>String</code>". Só textos entram nela.</dd>
+  <dt>new ArrayList&lt;&gt;()</dt><dd>Cria a lista vazia. O <code>&lt;&gt;</code> ("diamante") repete o tipo do lado esquerdo.</dd>
+  <dt>compras.add("arroz")</dt><dd><code>add</code> (acrescentar) com <strong>um</strong> argumento põe o elemento <strong>no fim</strong>.</dd>
+  <dt>compras.add(1, "leite")</dt><dd>Com <strong>dois</strong> argumentos, o primeiro é a posição: "encaixe <code>leite</code> na posição 1". Quem estava ali e depois anda uma casa para a direita.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Vazia: [] tamanho 0
+Depois de 3 add: [arroz, feijão, café]
+add(1, "leite"): [arroz, leite, feijão, café]      « feijão e café andaram uma posição</pre>
+
+<p>Uma lista vazia aparece como <code>[]</code>. Depois do <code>add(1, "leite")</code>, o <code>feijão</code> (que estava na posição 1) foi para a 2, e o <code>café</code> foi da 2 para a 3. A posição pode ir de <code>0</code> até <code>size()</code>: <code>add(size(), x)</code> é o mesmo que <code>add(x)</code>.</p>
+
+<h2>Ler, trocar e contar: <code>get</code>, <code>set</code>, <code>size</code></h2>
+<p>Continuando o mesmo programa:</p>
+
+<pre class="file" data-file="Main.java">        String primeiro = compras.get(0);
+        System.out.println("get(0): " + primeiro);
+        System.out.println("get(3): " + compras.get(3));
+
+        String antigo = compras.set(2, "feijão preto");
+        System.out.println("set(2, ...) trocou " + antigo + ": " + compras);
+        System.out.println("Tamanho: " + compras.size());
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Tradução</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>get(i)</code></td><td>pegar</td><td>Lê o elemento da posição <code>i</code>, sem tirá-lo da lista. É o <code>lista[i]</code> dos arrays.</td><td>O elemento</td></tr>
+<tr><td><code>set(i, x)</code></td><td>definir</td><td>Troca o elemento da posição <code>i</code> por <code>x</code>. O tamanho não muda.</td><td>O elemento <strong>antigo</strong></td></tr>
+<tr><td><code>size()</code></td><td>tamanho</td><td>Quantos elementos há agora.</td><td>Um <code>int</code></td></tr>
+</table>
+</div>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Vazia: [] tamanho 0
+Depois de 3 add: [arroz, feijão, café]
+add(1, "leite"): [arroz, leite, feijão, café]
+get(0): arroz
+get(3): café
+set(2, ...) trocou feijão: [arroz, leite, feijão preto, café]   « set devolveu o valor que saiu
+Tamanho: 4</pre>
+
+<div class="warning">
+<strong><code>add(i, x)</code> encaixa; <code>set(i, x)</code> substitui</strong>
+<p>Com <code>add(1, "leite")</code> a lista ganhou um elemento (de 3 para 4). Com <code>set(2, "feijão preto")</code> ela continuou com 4: o feijão saiu e o feijão preto entrou no lugar. Trocar um pelo outro é um erro comum.</p>
+</div>
+
+<div class="tip">
+<strong>O último elemento</strong>
+<p>Como as posições começam em 0, o último está em <code>size() - 1</code>: <code>compras.get(compras.size() - 1)</code>. No Java 21 em diante também existe <code>compras.getLast()</code> (e <code>getFirst()</code>) <span class="versao">Java 21+</span>.</p>
+</div>
+
+<hr>
+
+<h2>Remover: por posição ou por valor</h2>
+<p>O <code>remove</code> tem <strong>duas versões</strong>, e é aqui que mora a maior pegadinha da <code>ArrayList</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Chamada</th><th>Remove…</th><th>Devolve</th></tr>
+<tr><td><code>remove(int posicao)</code></td><td>o elemento <strong>daquela posição</strong></td><td>o elemento removido</td></tr>
+<tr><td><code>remove(Object valor)</code></td><td>a <strong>primeira ocorrência</strong> daquele valor</td><td><code>true</code> se achou e removeu, <code>false</code> se não achou</td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Ana");
+        alunos.add("Bruno");
+        alunos.add("Carla");
+        alunos.add("Bruno");
+        System.out.println("Início: " + alunos);
+
+        String saiu = alunos.remove(0);
+        System.out.println("remove(0) tirou " + saiu + ": " + alunos);
+
+        boolean achou = alunos.remove("Bruno");
+        System.out.println("remove(\"Bruno\") -&gt; " + achou + ": " + alunos);
+
+        boolean achou2 = alunos.remove("Zeca");
+        System.out.println("remove(\"Zeca\") -&gt; " + achou2 + ": " + alunos);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Início: [Ana, Bruno, Carla, Bruno]
+remove(0) tirou Ana: [Bruno, Carla, Bruno]          « por posição: devolveu quem saiu
+remove("Bruno") -&gt; true: [Carla, Bruno]             « por valor: só o PRIMEIRO Bruno
+remove("Zeca") -&gt; false: [Carla, Bruno]             « não achou: false, e nada muda</pre>
+
+<p>Repare em três coisas: depois de <code>remove(0)</code> todos andaram uma casa para a <strong>esquerda</strong> (o Bruno virou o 0); <code>remove("Bruno")</code> tirou só o primeiro Bruno; e remover algo que não existe <strong>não é erro</strong>, só devolve <code>false</code>.</p>
+
+<h3 id="pegadinha">A pegadinha: <code>remove</code> numa lista de <code>Integer</code></h3>
+<p>Numa lista de textos, <code>remove(0)</code> e <code>remove("Bruno")</code> não se confundem: um é número, o outro é texto. Mas e numa lista de <strong>números</strong>? A Ana guarda as notas de uma prova e quer tirar a nota <strong>3</strong>, que foi lançada por engano:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;();
+        notas.add(10);
+        notas.add(7);
+        notas.add(3);
+        notas.add(5);
+        System.out.println("Notas: " + notas);
+
+        notas.remove(3);    // a Ana quer tirar a nota 3...
+        System.out.println("Depois de remove(3): " + notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Notas: [10, 7, 3, 5]
+Depois de remove(3): [10, 7, 3]          « saiu o 5! O 3 continua lá</pre>
+
+<p>Nenhum erro, nenhum aviso, e o resultado está <strong>errado</strong>. O que aconteceu: <code>3</code>, escrito assim, é um <code>int</code>. Entre as duas versões do <code>remove</code>, o Java escolhe a que encaixa <strong>sem conversão</strong>: <code>remove(int posicao)</code>. Então ele removeu o elemento da <strong>posição</strong> 3, que é o 5.</p>
+
+<p>Para dizer "remova o <strong>valor</strong> 3", o argumento precisa ser um objeto <code>Integer</code>, não um <code>int</code>. Há duas formas:</p>
+
+<pre class="file" data-file="Main.java">        notas.remove(Integer.valueOf(3));   // forma 1: cria um Integer
+        notas.remove((Integer) 7);          // forma 2: conversão (cast) para Integer
+        notas.remove(10);                   // isto é a POSIÇÃO 10...
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+remove(Integer.valueOf(3)): [10, 7, 5]
+remove((Integer) 7): [10, 5]
+Exception in thread "main" java.lang.IndexOutOfBoundsException: Index 10 out of bounds for length 2
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+	at java.base/java.util.Objects.checkIndex(Objects.java:365)
+	at java.base/java.util.ArrayList.remove(ArrayList.java:552)
+	at Main.main(Main.java:18)</pre>
+
+<p>As duas primeiras formas removeram o valor certo. A terceira mostra o outro lado da pegadinha: a Ana queria tirar a nota 10, mas <code>remove(10)</code> pediu a <strong>posição</strong> 10 de uma lista com 2 elementos, e o programa parou com <code>IndexOutOfBoundsException</code> (as linhas <code>at java.base/…</code> são o caminho dentro da biblioteca do Java; a que importa é a última, <code>Main.java:18</code>, a sua linha).</p>
+
+<div class="warning">
+<strong>Regra para listas de números</strong>
+<p>Em <code>List&lt;Integer&gt;</code>, <code>remove(numero)</code> é <strong>sempre por posição</strong>. Para remover por valor, use <code>remove(Integer.valueOf(numero))</code>. Mais sobre <code>int</code> × <code>Integer</code> em <a href="wrappers.html">Wrappers e Autoboxing</a>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Depois: [10\, 7\, 5]">
+<p class="try-task"><strong>Missão:</strong> rode e veja que a nota errada sai. Corrija a linha do <code>remove</code> para que saia a nota <strong>3</strong> (o valor) e a saída termine com <code>Depois: [10, 7, 5]</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;();
+        notas.add(10);
+        notas.add(7);
+        notas.add(3);
+        notas.add(5);
+        System.out.println("Notas: " + notas);
+
+        notas.remove(3);
+        System.out.println("Depois: " + notas);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;();
+        notas.add(10);
+        notas.add(7);
+        notas.add(3);
+        notas.add(5);
+        System.out.println("Notas: " + notas);
+
+        notas.remove(Integer.valueOf(3));
+        System.out.println("Depois: " + notas);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Procurar: <code>contains</code>, <code>indexOf</code>, <code>isEmpty</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;();
+        frutas.add("maçã");
+        frutas.add("banana");
+        frutas.add("uva");
+        frutas.add("banana");
+
+        System.out.println("contains(\"uva\"): " + frutas.contains("uva"));
+        System.out.println("contains(\"kiwi\"): " + frutas.contains("kiwi"));
+        System.out.println("contains(\"Uva\"): " + frutas.contains("Uva"));
+        System.out.println("indexOf(\"banana\"): " + frutas.indexOf("banana"));
+        System.out.println("lastIndexOf(\"banana\"): " + frutas.lastIndexOf("banana"));
+        System.out.println("indexOf(\"kiwi\"): " + frutas.indexOf("kiwi"));
+        System.out.println("isEmpty(): " + frutas.isEmpty());
+        frutas.clear();
+        System.out.println("depois de clear(): " + frutas + " isEmpty(): " + frutas.isEmpty());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+contains("uva"): true
+contains("kiwi"): false
+contains("Uva"): false              « maiúscula conta: "Uva" não é "uva"
+indexOf("banana"): 1                « a posição da PRIMEIRA banana
+lastIndexOf("banana"): 3            « a posição da ÚLTIMA
+indexOf("kiwi"): -1                 « -1 = "não está na lista"
+isEmpty(): false
+depois de clear(): [] isEmpty(): true</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Pergunta</th><th>Resposta</th></tr>
+<tr><td><code>contains(x)</code></td><td>"<code>x</code> está na lista?"</td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td><code>indexOf(x)</code></td><td>"Em que posição está o primeiro <code>x</code>?"</td><td>A posição, ou <code>-1</code></td></tr>
+<tr><td><code>lastIndexOf(x)</code></td><td>"E o último?"</td><td>A posição, ou <code>-1</code></td></tr>
+<tr><td><code>isEmpty()</code></td><td>"Está vazia?" (o mesmo que <code>size() == 0</code>)</td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td><code>clear()</code></td><td>Apaga tudo.</td><td>nada (<code>void</code>)</td></tr>
+</table>
+</div>
+
+<p>Para comparar, esses métodos usam o <code>equals</code> de cada elemento, o mesmo que você usa para comparar Strings (<code>"uva".equals("Uva")</code> é <code>false</code>). Com objetos criados por você, como uma classe <code>Aluno</code>, <code>contains</code> só funciona direito se a classe tiver <code>equals</code>; veja <a href="object.html">A Classe Object</a>.</p>
+
+<hr>
+
+<h2>Percorrer a lista</h2>
+<p>Há três jeitos comuns de passar por todos os elementos:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Ana");
+        alunos.add("Bruno");
+        alunos.add("Carla");
+
+        // 1. for com índice
+        for (int i = 0; i &lt; alunos.size(); i++) {
+            System.out.println((i + 1) + "º " + alunos.get(i));
+        }
+
+        // 2. for-each
+        for (String aluno : alunos) {
+            System.out.println("Olá, " + aluno + "!");
+        }
+
+        // 3. forEach com lambda
+        alunos.forEach(aluno -&gt; System.out.println("Tchau, " + aluno));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+1º Ana
+2º Bruno
+3º Carla
+Olá, Ana!
+Olá, Bruno!
+Olá, Carla!
+Tchau, Ana
+Tchau, Bruno
+Tchau, Carla</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>for (int i = 0; i &lt; lista.size(); i++)</code></td><td>Quando você precisa da <strong>posição</strong> (numerar, comparar com o vizinho, mexer só nos pares…). Repare: <code>size()</code>, não <code>length</code>.</td></tr>
+<tr><td><code>for (String aluno : lista)</code></td><td>O mais comum: "para cada aluno da lista". Mais curto e sem risco de errar o índice. Veja <a href="for-each.html">for-each</a>.</td></tr>
+<tr><td><code>lista.forEach(aluno -&gt; …)</code></td><td>Uma linha só, no estilo funcional. A setinha <code>-&gt;</code> é uma <a href="lambdas.html">lambda</a>, assunto do próximo grupo de aulas.</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Não remova dentro do for-each</strong>
+<p>Tirar elementos da lista enquanto um for-each passa por ela termina em <code>ConcurrentModificationException</code>. A aula <a href="iterator.html">Iterator</a> mostra o erro real e as soluções (<code>Iterator.remove</code> e <code>removeIf</code>).</p>
+</div>
+
+<hr>
+
+<h2>Ordenar</h2>
+<p>Há duas formas equivalentes de pôr a lista em ordem: o método estático <code>Collections.sort(lista)</code> (da classe <a href="collections.html">Collections</a>) e o método da própria lista, <code>lista.sort(…)</code>.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Carla");
+        alunos.add("ana");
+        alunos.add("Bruno");
+        alunos.add("Álvaro");
+        alunos.add("Ana");
+
+        Collections.sort(alunos);
+        System.out.println("Collections.sort: " + alunos);
+
+        alunos.sort(Comparator.reverseOrder());
+        System.out.println("ordem inversa:    " + alunos);
+
+        alunos.sort(String.CASE_INSENSITIVE_ORDER);
+        System.out.println("ignorando caixa:  " + alunos);
+
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(7, 10, 3, 8));
+        notas.sort(null);
+        System.out.println("notas.sort(null): " + notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Collections.sort: [Ana, Bruno, Carla, ana, Álvaro]      « maiúsculas antes, acentos no fim
+ordem inversa:    [Álvaro, ana, Carla, Bruno, Ana]
+ignorando caixa:  [ana, Ana, Bruno, Carla, Álvaro]
+notas.sort(null): [3, 7, 8, 10]</pre>
+
+<dl class="anatomy">
+  <dt>Collections.sort(alunos)</dt><dd>Ordena a própria lista (não cria outra) em <strong>ordem natural</strong>: números do menor para o maior, textos pela tabela de caracteres.</dd>
+  <dt>alunos.sort(Comparator.reverseOrder())</dt><dd><code>sort</code> da lista recebe um <strong>comparador</strong>, um objeto que diz como comparar. <code>reverseOrder()</code> = ordem natural ao contrário.</dd>
+  <dt>String.CASE_INSENSITIVE_ORDER</dt><dd>Um comparador pronto que ignora maiúsculas/minúsculas.</dd>
+  <dt>notas.sort(null)</dt><dd><code>null</code> no lugar do comparador quer dizer "use a ordem natural". É o mesmo que <code>Collections.sort(notas)</code>.</dd>
+</dl>
+
+<p>Por que <code>ana</code> ficou depois de <code>Carla</code>, e <code>Álvaro</code> por último? A ordem natural das Strings compara os <strong>códigos</strong> de cada caractere (veja <a href="char-boolean.html">char e boolean</a>): todas as maiúsculas sem acento (A=65 … Z=90) vêm antes das minúsculas (a=97 … z=122), e as letras acentuadas (Á=193) vêm depois de todas elas. Para ordenar como num dicionário, ou por qualquer critério seu (nota, idade, tamanho do nome), você vai usar comparadores na aula <a href="comparable-comparator.html">Comparable e Comparator</a>.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> acrescente nomes, troque a ordem do <code>sort</code>, experimente <code>Collections.reverse(nomes)</code> e <code>nomes.getFirst()</code>.</p>
+<pre class="script">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;();
+        nomes.add("Duda");
+        nomes.add("Bruno");
+        nomes.add("Ana");
+        nomes.add(0, "Carla");
+        System.out.println("Lista: " + nomes);
+
+        Collections.sort(nomes);
+        System.out.println("Ordenada: " + nomes);
+        System.out.println("Primeiro: " + nomes.get(0));
+        System.out.println("Último: " + nomes.get(nomes.size() - 1));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Listas prontas e imutáveis: <code>List.of</code></h2>
+<p>Quando você já sabe os elementos, <code>List.of(…)</code> cria a lista numa linha só. Mas ela é <strong>imutável</strong>: não aceita <code>add</code>, <code>remove</code>, <code>set</code> nem <code>sort</code>.</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; dias = List.of("seg", "ter", "qua", "qui", "sex");
+        System.out.println(dias + " tamanho " + dias.size());
+        System.out.println("get(2): " + dias.get(2));
+        dias.add("sáb");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[seg, ter, qua, qui, sex] tamanho 5
+get(2): qua
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableCollection.add(ImmutableCollections.java:164)
+	at Main.main(Main.java:8)</pre>
+
+<p>Ler funciona; mudar dá <code>UnsupportedOperationException</code> ("operação não suportada"). Repare que o erro aparece só <strong>na hora de rodar</strong>: o compilador aceitou o <code>add</code>, porque o tipo da variável é <code>List</code>, e toda <code>List</code> tem <code>add</code>.</p>
+
+<p>Isso é útil: uma lista que não pode ser alterada por engano. Quando você <strong>quer</strong> alterar, crie uma <code>ArrayList</code> a partir dela. O construtor <code>new ArrayList&lt;&gt;(outraColecao)</code> copia todos os elementos:</p>
+
+<pre class="file" data-file="Main.java">        List&lt;String&gt; fixa = List.of("seg", "ter", "qua");
+        List&lt;String&gt; dias = new ArrayList&lt;&gt;(fixa);
+        dias.add("qui");
+        System.out.println("fixa: " + fixa);
+        System.out.println("dias: " + dias);
+</pre>
+
+<pre class="term">$ java Main
+fixa: [seg, ter, qua]
+dias: [seg, ter, qua, qui]        « a cópia mudou; a original continua igual</pre>
+
+<h3>Formas de criar uma lista</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Pode mudar?</th><th>Quando usar</th></tr>
+<tr><td><code>new ArrayList&lt;&gt;()</code> + <code>add</code></td><td>Sim</td><td>A lista vai sendo preenchida durante o programa (lida do teclado, de um arquivo…).</td></tr>
+<tr><td><code>List.of("a", "b")</code></td><td>Não</td><td>Valores fixos, conhecidos ao escrever o código.</td></tr>
+<tr><td><code>new ArrayList&lt;&gt;(List.of("a", "b"))</code></td><td>Sim</td><td>Começar com alguns valores e depois mudar.</td></tr>
+<tr><td><code>new ArrayList&lt;&gt;(outraLista)</code></td><td>Sim</td><td>Fazer uma cópia para mexer sem estragar a original.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>IndexOutOfBoundsException</code>: posição que não existe</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Ana");
+        alunos.add("Bruno");
+        alunos.add("Carla");
+        System.out.println("Último: " + alunos.get(alunos.size() - 1));
+        System.out.println(alunos.get(3));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+$ java Main
+Último: Carla
+Exception in thread "main" java.lang.IndexOutOfBoundsException: Index 3 out of bounds for length 3
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+	at java.base/java.util.Objects.checkIndex(Objects.java:365)
+	at java.base/java.util.ArrayList.get(ArrayList.java:428)
+	at Main.main(Main.java:11)</pre>
+<p><strong>O que quer dizer:</strong> "índice 3 fora dos limites para tamanho 3". Com 3 elementos, as posições válidas são 0, 1 e 2. O nome é parecido com o do array (<code>ArrayIndexOutOfBoundsException</code>), mas aqui é <code>IndexOutOfBoundsException</code>. A pilha (<em>stack trace</em>) mostra o caminho pela biblioteca; procure a primeira linha com o seu arquivo: <code>Main.java:11</code>.</p>
+<p><strong>Atenção à lista vazia:</strong> <code>get(0)</code> numa lista sem nada dá <code>Index 0 out of bounds for length 0</code>. Antes de ler, confira com <code>isEmpty()</code>.</p>
+<p><strong>Como consertar:</strong> use posições de <code>0</code> a <code>size() - 1</code>, e laços com <code>i &lt; lista.size()</code> (nunca <code>&lt;=</code>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>UnsupportedOperationException</code>: mexeu numa lista imutável</strong>
+<pre class="term">$ java Main
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableCollection.add(ImmutableCollections.java:164)
+	at Main.main(Main.java:8)</pre>
+<p><strong>O que quer dizer:</strong> a lista veio de <code>List.of</code> (ou de outro lugar que devolve listas imutáveis, como <code>Collections.unmodifiableList</code> e <code>stream().toList()</code>). A mensagem não tem texto: só o nome da exceção. A segunda linha diz qual operação foi recusada: <code>.add</code>.</p>
+<p><strong>Como consertar:</strong> faça uma cópia mutável: <code>List&lt;String&gt; dias = new ArrayList&lt;&gt;(List.of(…));</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>remove</code> tirou o número errado (e não deu erro)</strong>
+<p><strong>O que aconteceu:</strong> numa <code>List&lt;Integer&gt;</code>, <code>remove(3)</code> remove a <strong>posição</strong> 3, não o valor 3. Veja <a href="#pegadinha">a pegadinha</a>.</p>
+<p><strong>Como consertar:</strong> <code>remove(Integer.valueOf(3))</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo → resultado (lista <code>[a, b, c]</code>)</th></tr>
+<tr><td><code>add(x)</code></td><td>Acrescenta no fim</td><td><code>add("d")</code> → <code>[a, b, c, d]</code></td></tr>
+<tr><td><code>add(i, x)</code></td><td>Encaixa na posição <code>i</code></td><td><code>add(0, "z")</code> → <code>[z, a, b, c]</code></td></tr>
+<tr><td><code>get(i)</code></td><td>Lê a posição <code>i</code></td><td><code>get(1)</code> → <code>b</code></td></tr>
+<tr><td><code>set(i, x)</code></td><td>Troca a posição <code>i</code>; devolve o antigo</td><td><code>set(1, "B")</code> → <code>[a, B, c]</code>, devolve <code>b</code></td></tr>
+<tr><td><code>remove(i)</code></td><td>Remove a posição <code>i</code>; devolve o removido</td><td><code>remove(0)</code> → <code>[b, c]</code>, devolve <code>a</code></td></tr>
+<tr><td><code>remove(x)</code></td><td>Remove a 1ª ocorrência de <code>x</code></td><td><code>remove("c")</code> → <code>[a, b]</code>, devolve <code>true</code></td></tr>
+<tr><td><code>size()</code></td><td>Quantidade</td><td><code>3</code></td></tr>
+<tr><td><code>isEmpty()</code></td><td>Está vazia?</td><td><code>false</code></td></tr>
+<tr><td><code>contains(x)</code></td><td>Contém <code>x</code>?</td><td><code>contains("b")</code> → <code>true</code></td></tr>
+<tr><td><code>indexOf(x)</code> / <code>lastIndexOf(x)</code></td><td>Posição da 1ª / última ocorrência</td><td><code>indexOf("z")</code> → <code>-1</code></td></tr>
+<tr><td><code>clear()</code></td><td>Apaga tudo</td><td><code>[]</code></td></tr>
+<tr><td><code>sort(null)</code> / <code>Collections.sort(l)</code></td><td>Ordem natural</td><td>—</td></tr>
+<tr><td><code>sort(Comparator.reverseOrder())</code></td><td>Ordem inversa</td><td><code>[c, b, a]</code></td></tr>
+<tr><td><code>getFirst()</code> / <code>getLast()</code> <span class="versao">Java 21+</span></td><td>Primeiro / último</td><td><code>a</code> / <code>c</code></td></tr>
+<tr><td><code>forEach(x -&gt; …)</code></td><td>Faz algo com cada um</td><td>—</td></tr>
+<tr><td><code>List.of(…)</code></td><td>Lista pronta e imutável</td><td>—</td></tr>
+<tr><td><code>new ArrayList&lt;&gt;(col)</code></td><td>Cópia mutável de outra coleção</td><td>—</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O primeiro</h3>
+<p>Complete para ler o <strong>primeiro</strong> elemento da lista <code>alunos</code>:</p>
+<div class="ex-code">String primeiro = alunos.<input data-answer="get(0)" aria-label="método">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Trocar sem aumentar</h3>
+<p>A posição 2 tem "feijão". Complete para trocar por "lentilha", sem mudar o tamanho da lista:</p>
+<div class="ex-code">compras.<input data-answer="set(2, &quot;lentilha&quot;)|set(2,&quot;lentilha&quot;)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Remover o valor</h3>
+<p>Na <code>List&lt;Integer&gt; notas</code>, complete para remover o <strong>valor</strong> 8 (e não a posição 8):</p>
+<div class="ex-code">notas.remove(<input data-answer="Integer.valueOf(8)|(Integer) 8|(Integer)8" aria-label="argumento">);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. A lista é <code>[10, 20, 30]</code> (de <code>Integer</code>). Como ela fica depois de <code>remove(1)</code>?</p>
+<label><input type="radio" name="q4"> <code>[20, 30]</code></label>
+<label><input type="radio" name="q4"> <code>[10, 30]</code></label>
+<label><input type="radio" name="q4"> <code>[10, 20, 30]</code>, porque não existe o valor 1</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que <code>frutas.indexOf("kiwi")</code> devolve se não houver kiwi?</p>
+<label><input type="radio" name="q5"> <code>0</code></label>
+<label><input type="radio" name="q5"> <code>null</code></label>
+<label><input type="radio" name="q5"> <code>-1</code></label>
+<label><input type="radio" name="q5"> Lança uma exceção</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. <code>List.of("a", "b").add("c")</code>…</p>
+<label><input type="radio" name="q6"> compila, mas lança <code>UnsupportedOperationException</code> ao rodar.</label>
+<label><input type="radio" name="q6"> não compila.</label>
+<label><input type="radio" name="q6"> funciona e a lista fica <code>[a, b, c]</code>.</label>
+</div>
+
+<div class="tryjava" data-goal="out:[arroz\, café\, leite] - 3 itens,src:new ArrayList,src:\.sort\(|Collections\.sort">
+<p class="try-task"><strong>Missão final:</strong> o programa quebra porque a lista veio de <code>List.of</code>. Faça uma cópia mutável com <code>new ArrayList&lt;&gt;(…)</code>; depois coloque <code>"leite"</code> no <strong>começo</strong>, remova <code>"feijão"</code>, ordene e mostre a lista seguida do tamanho. A saída deve ser <code>[arroz, café, leite] - 3 itens</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; compras = List.of("arroz", "feijão", "café");
+        compras.add(0, "leite");
+        System.out.println(compras + " - " + compras.size() + " itens");
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; compras = new ArrayList&lt;&gt;(List.of("arroz", "feijão", "café"));
+        compras.add(0, "leite");
+        compras.remove("feijão");
+        compras.sort(null);
+        System.out.println(compras + " - " + compras.size() + " itens");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>List&lt;String&gt; l = new ArrayList&lt;&gt;();</code> cria uma lista vazia que cresce sozinha. Posições começam em 0.</li>
+  <li><code>add(x)</code> põe no fim; <code>add(i, x)</code> encaixa; <code>set(i, x)</code> substitui; <code>get(i)</code> lê; <code>size()</code> conta.</li>
+  <li><code>remove(i)</code> remove por posição; <code>remove(objeto)</code> remove por valor e devolve <code>true</code>/<code>false</code>.</li>
+  <li>Em <code>List&lt;Integer&gt;</code>, <code>remove(3)</code> é a <strong>posição</strong> 3; para o valor, <code>remove(Integer.valueOf(3))</code>.</li>
+  <li><code>contains</code>, <code>indexOf</code> (<code>-1</code> = não achou) e <code>isEmpty</code> procuram; comparam com <code>equals</code>.</li>
+  <li>Percorra com for-each (o mais comum), com índice (quando precisa da posição) ou com <code>forEach</code>.</li>
+  <li>Ordene com <code>Collections.sort(l)</code> ou <code>l.sort(null)</code>; a ordem natural das Strings põe maiúsculas antes e acentos no fim.</li>
+  <li>Posição inválida: <code>IndexOutOfBoundsException</code>. Mudar uma <code>List.of</code>: <code>UnsupportedOperationException</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="linkedlist.html">LinkedList</a>, a outra lista do Java, e quando (quase nunca) preferi-la.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
