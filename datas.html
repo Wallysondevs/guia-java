@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Datas e Horas — LocalDate, LocalTime e java.time | Guia Java</title>
+<meta name="description" content="Datas e horas em Java com java.time: LocalDate, LocalTime, LocalDateTime, plusDays, getDayOfWeek em português, Period, Duration, ChronoUnit.DAYS.between, DateTimeFormatter dd/MM/yyyy, parse e DateTimeParseException, fusos com ZonedDateTime e por que não usar Date e Calendar. Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Datas e Horas</span></h1>
+
+<p class="intro">Vencimento de uma conta, idade de um cliente, quantos dias faltam para o Natal, a hora de uma reunião em outro país: datas aparecem em quase todo programa. O Java tem um pacote moderno e bem feito para isso, o <code>java.time</code> <span class="versao">Java 8+</span>. Nesta aula você aprende as classes principais, as contas com datas, a conversão de e para o formato brasileiro <code>dd/MM/yyyy</code> e o que fazer quando a data digitada é inválida.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>LocalDate</code> (data), <code>LocalTime</code> (hora) e <code>LocalDateTime</code> (as duas juntas).</li>
+  <li>Criar datas com <code>now()</code> e <code>of(…)</code>, somar com <code>plusDays</code>, comparar com <code>isBefore</code>.</li>
+  <li>O dia da semana em inglês (<code>FRIDAY</code>) e em português (<code>sexta-feira</code>).</li>
+  <li>Medir intervalos: <code>Period</code>, <code>Duration</code> e <code>ChronoUnit.DAYS.between</code>.</li>
+  <li>Formatar e ler datas com <code>DateTimeFormatter.ofPattern("dd/MM/yyyy")</code>, e a <code>DateTimeParseException</code>.</li>
+  <li>Fusos horários com <code>ZonedDateTime</code> e <code>America/Sao_Paulo</code>.</li>
+  <li>Por que não usar as classes antigas <code>Date</code> e <code>Calendar</code>.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodaram na máquina da Ana no dia <strong>16 de outubro de 2026</strong>, no fuso de São Paulo. Quando um exemplo usa <code>now()</code> ("agora"), no seu computador a saída vai mostrar a sua data e a sua hora.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense em três objetos da casa da Ana: um <strong>calendário de parede</strong> (só datas: dia, mês, ano), um <strong>relógio</strong> (só horas) e a <strong>agenda</strong>, onde cada compromisso tem data <strong>e</strong> hora. O <code>java.time</code> tem uma classe para cada um:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Classe</th><th>Guarda</th><th>Exemplo impresso</th><th>Use para</th></tr>
+<tr><td><code>LocalDate</code></td><td>Data</td><td><code>2026-10-16</code></td><td>Aniversários, vencimentos, feriados</td></tr>
+<tr><td><code>LocalTime</code></td><td>Hora</td><td><code>18:30</code></td><td>Horário de abertura da loja</td></tr>
+<tr><td><code>LocalDateTime</code></td><td>Data e hora</td><td><code>2026-11-03T14:45</code></td><td>Uma consulta marcada</td></tr>
+<tr><td><code>ZonedDateTime</code></td><td>Data, hora e fuso</td><td><code>2026-11-03T14:00-03:00[America/Sao_Paulo]</code></td><td>Reunião com gente de outro país</td></tr>
+</table>
+</div>
+
+<p>"Local" quer dizer "sem fuso horário": é a data e a hora como aparecem no calendário e no relógio de um lugar, sem dizer qual lugar. Todas ficam no pacote <code>java.time</code> e precisam de <code>import</code>.</p>
+
+<div class="note">
+<strong>Objetos que não mudam</strong>
+<p>Assim como a <code>String</code>, as datas do <code>java.time</code> são <strong>imutáveis</strong>: <code>plusDays</code> não altera a data, devolve uma <strong>nova</strong>. Guarde o resultado: <code>data = data.plusDays(1);</code>. Esquecer isso é o erro número 1 com datas (veja <a href="#errado">Quando dá errado</a>).</p>
+</div>
+
+<hr>
+
+<h2><code>LocalDate</code>: a data</h2>
+
+<pre class="file" data-file="Main.java">import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.format.TextStyle;
+import java.util.Locale;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate hoje = LocalDate.now();
+        LocalDate aniversario = LocalDate.of(1997, 3, 14);
+        System.out.println("Hoje: " + hoje);
+        System.out.println("Nascimento da Ana: " + aniversario);
+        System.out.println("Ano: " + hoje.getYear() + ", mês: " + hoje.getMonthValue() + ", dia: " + hoje.getDayOfMonth());
+        System.out.println("Mês: " + hoje.getMonth());
+        DayOfWeek dia = hoje.getDayOfWeek();
+        System.out.println("Dia da semana: " + dia);
+        System.out.println("Em português: " + dia.getDisplayName(TextStyle.FULL, Locale.of("pt", "BR")));
+        System.out.println("Abreviado: " + dia.getDisplayName(TextStyle.SHORT, Locale.of("pt", "BR")));
+        System.out.println("Mês em português: " + hoje.getMonth().getDisplayName(TextStyle.FULL, Locale.of("pt", "BR")));
+        System.out.println("Daqui a 30 dias: " + hoje.plusDays(30));
+        System.out.println("Mês passado: " + hoje.minusMonths(1));
+        System.out.println("Ano bissexto? " + hoje.isLeapYear());
+        System.out.println("Dias neste mês: " + hoje.lengthOfMonth());
+        System.out.println("Aniversário antes de hoje? " + aniversario.isBefore(hoje));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Hoje: 2026-10-16
+Nascimento da Ana: 1997-03-14
+Ano: 2026, mês: 10, dia: 16
+Mês: OCTOBER
+Dia da semana: FRIDAY
+Em português: sexta-feira
+Abreviado: sex.
+Mês em português: outubro
+Daqui a 30 dias: 2026-11-15
+Mês passado: 2026-09-16
+Ano bissexto? false
+Dias neste mês: 31
+Aniversário antes de hoje? true</pre>
+
+<dl class="anatomy">
+  <dt>LocalDate.now()</dt><dd>A data de hoje, pelo relógio do computador.</dd>
+  <dt>LocalDate.of(1997, 3, 14)</dt><dd>Uma data específica: ano, mês, dia. O mês é o número normal (março = 3).</dd>
+  <dt>println(hoje)</dt><dd>Mostra no formato internacional ISO 8601: <code>ano-mês-dia</code>. Para o formato brasileiro, veja <a href="#formatar">Formatar</a>.</dd>
+  <dt>getYear(), getMonthValue(), getDayOfMonth()</dt><dd>As partes da data, como números.</dd>
+  <dt>getMonth(), getDayOfWeek()</dt><dd>Devolvem <a href="enums.html">enums</a>: <code>OCTOBER</code>, <code>FRIDAY</code>. Os nomes das constantes são em inglês, sempre.</dd>
+  <dt>getDisplayName(TextStyle.FULL, Locale.of("pt", "BR"))</dt><dd>O nome para gente ler, no idioma pedido: <code>sexta-feira</code>, <code>outubro</code>. <code>TextStyle.SHORT</code> dá a abreviação (<code>sex.</code>). O <code>Locale</code> foi explicado em <a href="formatacao.html">Formatar Texto</a>.</dd>
+  <dt>plusDays(30), minusMonths(1)</dt><dd>Contas com datas. Existem <code>plus</code>/<code>minus</code> para <code>Days</code>, <code>Weeks</code>, <code>Months</code>, <code>Years</code>. O Java cuida dos meses de 30 e 31 dias e dos anos bissextos.</dd>
+  <dt>isBefore, isAfter, isEqual</dt><dd>Comparações: "é antes de?", "é depois de?", "é o mesmo dia?".</dd>
+</dl>
+
+<div class="tip">
+<strong>Somar meses no fim do mês</strong>
+<p><code>LocalDate.of(2026, 1, 31).plusMonths(1)</code> dá <code>2026-02-28</code>: fevereiro não tem dia 31, e o Java usa o último dia válido em vez de "transbordar" para março.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Compra: 16/10/2026,out:Vencimento: 15/11/2026,src:plusDays">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou a prazo em 16/10/2026, e a conta vence 30 dias depois. Calcule o vencimento com <code>plusDays</code> e mostre as duas datas no formato brasileiro (o formatador já está pronto): <code>Vencimento: 15/11/2026</code>.</p>
+<pre class="script">import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate compra = LocalDate.of(2026, 10, 16);
+        DateTimeFormatter br = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.println("Compra: " + compra.format(br));
+    }
+}
+</pre>
+<pre class="solucao">import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate compra = LocalDate.of(2026, 10, 16);
+        LocalDate vencimento = compra.plusDays(30);
+        DateTimeFormatter br = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        System.out.println("Compra: " + compra.format(br));
+        System.out.println("Vencimento: " + vencimento.format(br));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>LocalTime</code> e <code>LocalDateTime</code></h2>
+<p>As horas e as datas com hora funcionam do mesmo jeito: <code>now()</code>, <code>of(…)</code>, <code>plus…</code>, <code>minus…</code>, <code>isBefore</code>…</p>
+
+<pre class="file" data-file="Main.java">import java.time.LocalDateTime;
+import java.time.LocalTime;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalTime abertura = LocalTime.of(8, 0);
+        LocalTime fechamento = LocalTime.of(18, 30);
+        System.out.println("A loja abre às " + abertura + " e fecha às " + fechamento);
+        System.out.println("Agora: " + LocalTime.now());
+        System.out.println("Almoço: " + abertura.plusHours(4));
+        System.out.println("Fecha depois das 18h? " + fechamento.isAfter(LocalTime.of(18, 0)));
+
+        LocalDateTime consulta = LocalDateTime.of(2026, 11, 3, 14, 45);
+        System.out.println("Consulta: " + consulta);
+        System.out.println("Remarcada: " + consulta.plusWeeks(1).withHour(9));
+        System.out.println("Agora: " + LocalDateTime.now());
+        System.out.println("Só a data: " + consulta.toLocalDate() + ", só a hora: " + consulta.toLocalTime());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+A loja abre às 08:00 e fecha às 18:30
+Agora: 18:51:24.493991268
+Almoço: 12:00
+Fecha depois das 18h? true
+Consulta: 2026-11-03T14:45
+Remarcada: 2026-11-10T09:45
+Agora: 2026-10-16T18:51:24.494870731
+Só a data: 2026-11-03, só a hora: 14:45</pre>
+
+<dl class="anatomy">
+  <dt>LocalTime.of(8, 0)</dt><dd>Hora e minuto (dá para passar segundos também). Mostrado como <code>08:00</code>.</dd>
+  <dt>LocalTime.now()</dt><dd>Agora, com segundos e frações: <code>18:51:24.493991268</code> (até nanossegundos, bilionésimos de segundo).</dd>
+  <dt>LocalDateTime.of(2026, 11, 3, 14, 45)</dt><dd>Ano, mês, dia, hora, minuto. Impresso com um <code>T</code> (de <em>time</em>) separando data e hora: <code>2026-11-03T14:45</code>.</dd>
+  <dt>plusWeeks(1).withHour(9)</dt><dd>Encadeamento: uma semana depois e, nessa nova data, com a hora trocada para 9. Os métodos <code>with…</code> trocam um campo (<code>withDayOfMonth</code>, <code>withYear</code>…).</dd>
+  <dt>toLocalDate(), toLocalTime()</dt><dd>Separam as duas partes.</dd>
+</dl>
+
+<hr>
+
+<h2>Intervalos: <code>Period</code>, <code>Duration</code> e <code>ChronoUnit</code></h2>
+<p>"Quantos anos a Ana tem?", "quantos dias faltam?", "quanto tempo dura o expediente?". Para as datas de exemplo não mudarem a cada dia, aqui "hoje" é fixo, com <code>of</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate nascimento = LocalDate.of(1997, 3, 14);
+        LocalDate hoje = LocalDate.of(2026, 10, 16);
+
+        Period idade = Period.between(nascimento, hoje);
+        System.out.println("Period: " + idade);
+        System.out.println("A Ana tem " + idade.getYears() + " anos, "
+            + idade.getMonths() + " meses e " + idade.getDays() + " dias");
+
+        long dias = ChronoUnit.DAYS.between(nascimento, hoje);
+        System.out.println("Dias de vida: " + dias);
+        LocalDate natal = LocalDate.of(2026, 12, 25);
+        System.out.println("Faltam " + ChronoUnit.DAYS.between(hoje, natal) + " dias para o Natal");
+        System.out.println("Semanas até o Natal: " + ChronoUnit.WEEKS.between(hoje, natal));
+
+        Duration expediente = Duration.between(LocalTime.of(8, 0), LocalTime.of(18, 30));
+        System.out.println("Duration: " + expediente);
+        System.out.println("Em minutos: " + expediente.toMinutes());
+        System.out.println("Horas e minutos: " + expediente.toHours() + "h" + expediente.toMinutesPart() + "min");
+        System.out.println("Ao contrário: " + ChronoUnit.DAYS.between(natal, hoje));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Period: P29Y7M2D
+A Ana tem 29 anos, 7 meses e 2 dias
+Dias de vida: 10808
+Faltam 70 dias para o Natal
+Semanas até o Natal: 10
+Duration: PT10H30M
+Em minutos: 630
+Horas e minutos: 10h30min
+Ao contrário: -70</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ferramenta</th><th>Mede</th><th>Impresso como</th><th>Use para</th></tr>
+<tr><td><code>Period.between(a, b)</code></td><td>Anos, meses e dias "de calendário"</td><td><code>P29Y7M2D</code> (<em>Period</em>, 29 <em>Years</em>, 7 <em>Months</em>, 2 <em>Days</em>)</td><td>Idade, tempo de casa. <code>getYears()</code> é a idade</td></tr>
+<tr><td><code>ChronoUnit.DAYS.between(a, b)</code></td><td>O total numa unidade só</td><td><code>70</code> (um <code>long</code>)</td><td>"Faltam N dias", multas por dia de atraso. Também <code>WEEKS</code>, <code>MONTHS</code>, <code>YEARS</code>, <code>HOURS</code>, <code>MINUTES</code></td></tr>
+<tr><td><code>Duration.between(a, b)</code></td><td>Horas, minutos, segundos exatos</td><td><code>PT10H30M</code> (<em>Period of Time</em>, 10 <em>Hours</em>, 30 <em>Minutes</em>)</td><td>Expedientes, cronômetros. <code>toMinutes()</code>, <code>toHours()</code>, <code>toMinutesPart()</code></td></tr>
+</table>
+</div>
+
+<p>Repare na última linha: a ordem importa. <code>between(natal, hoje)</code> dá <code>-70</code>, porque vai do Natal "para trás". E os nomes são parecidos de propósito: <code>Period</code> é para <strong>datas</strong>, <code>Duration</code> é para <strong>horas</strong>.</p>
+
+<hr>
+
+<h2 id="formatar">Formatar e ler: <code>DateTimeFormatter</code></h2>
+<p>O formato <code>2026-10-16</code> é ótimo para computadores, mas no Brasil se escreve <code>16/10/2026</code>. O <code>DateTimeFormatter</code> ("formatador de data e hora") converte nos dois sentidos, a partir de um <strong>padrão</strong> de letras:</p>
+
+<pre class="file" data-file="Main.java">import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate data = LocalDate.of(2026, 10, 16);
+        LocalDateTime consulta = LocalDateTime.of(2026, 11, 3, 14, 45);
+
+        DateTimeFormatter br = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter brHora = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        DateTimeFormatter extenso = DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM 'de' yyyy");
+
+        System.out.println(data.format(br));
+        System.out.println(consulta.format(brHora));
+        System.out.println(data.format(extenso));
+        System.out.println(data.format(DateTimeFormatter.ofPattern("d/M/yy")));
+        System.out.println(data.format(DateTimeFormatter.ofPattern("MMM yyyy")));
+
+        LocalDate natal = LocalDate.parse("25/12/2026", br);
+        System.out.println("Lido: " + natal + " (" + natal.getDayOfWeek() + ")");
+        LocalDate iso = LocalDate.parse("2026-12-25");
+        System.out.println("ISO: " + iso);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+16/10/2026
+03/11/2026 14:45
+sexta-feira, 16 de outubro de 2026
+16/10/26
+out. 2026
+Lido: 2026-12-25 (FRIDAY)
+ISO: 2026-12-25</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Letra</th><th>Significa</th><th>Exemplo</th></tr>
+<tr><td><code>d</code> / <code>dd</code></td><td>Dia do mês (com <code>dd</code>, sempre 2 dígitos)</td><td><code>3</code> / <code>03</code></td></tr>
+<tr><td><code>M</code> / <code>MM</code></td><td>Mês em número</td><td><code>11</code> / <code>11</code></td></tr>
+<tr><td><code>MMM</code> / <code>MMMM</code></td><td>Mês em texto, curto / completo</td><td><code>out.</code> / <code>outubro</code></td></tr>
+<tr><td><code>yy</code> / <code>yyyy</code></td><td>Ano com 2 / 4 dígitos</td><td><code>26</code> / <code>2026</code></td></tr>
+<tr><td><code>EEE</code> / <code>EEEE</code></td><td>Dia da semana curto / completo</td><td><code>sex.</code> / <code>sexta-feira</code></td></tr>
+<tr><td><code>HH</code></td><td>Hora de 0 a 23</td><td><code>14</code></td></tr>
+<tr><td><code>mm</code></td><td>Minutos (<strong>minúsculo</strong>! <code>MM</code> é mês)</td><td><code>45</code></td></tr>
+<tr><td><code>ss</code></td><td>Segundos</td><td><code>07</code></td></tr>
+<tr><td><code>'texto'</code></td><td>Texto fixo, entre aspas simples</td><td><code>'de'</code></td></tr>
+</table>
+</div>
+
+<p>Os nomes em texto (<code>outubro</code>, <code>sexta-feira</code>) saíram em português porque o <code>ofPattern</code> usa o locale padrão, <code>pt_BR</code> na máquina da Ana. Para fixar o idioma, passe o locale: <code>DateTimeFormatter.ofPattern("EEEE", Locale.of("pt", "BR"))</code>.</p>
+
+<p>O caminho inverso é o <code>parse</code> ("analisar"): <code>LocalDate.parse("25/12/2026", br)</code> lê o texto usando o mesmo padrão. Sem formatador, <code>LocalDate.parse("2026-12-25")</code> espera o formato ISO.</p>
+
+<h3>Quando o texto não é uma data válida: <code>DateTimeParseException</code></h3>
+<p>Texto digitado por pessoas vem errado com frequência. Se o texto não combina com o padrão, o <code>parse</code> lança <code>DateTimeParseException</code> (uma <a href="checked-unchecked.html">unchecked</a>, filha de <code>DateTimeException</code>):</p>
+
+<pre class="file" data-file="Main.java">import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class Main {
+    public static void main(String[] args) {
+        DateTimeFormatter br = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate data = LocalDate.parse("25-12-2026", br);
+        System.out.println(data);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Exception in thread "main" java.time.format.DateTimeParseException: Text '25-12-2026' could not be parsed at index 2
+	at java.base/java.time.format.DateTimeFormatter.parseResolved0(DateTimeFormatter.java:2108)
+	at java.base/java.time.format.DateTimeFormatter.parse(DateTimeFormatter.java:2010)
+	at java.base/java.time.LocalDate.parse(LocalDate.java:437)
+	at Main.main(Main.java:7)</pre>
+
+<p>"O texto '25-12-2026' não pôde ser analisado na posição 2": as posições contam a partir de 0, e na posição 2 o padrão esperava <code>/</code> e encontrou <code>-</code>. Com <a href="try-catch.html">try e catch</a>, o programa pode avisar e seguir. Testando vários textos:</p>
+
+<pre class="file" data-file="Main.java">import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+
+public class Main {
+    public static void main(String[] args) {
+        DateTimeFormatter br = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String[] textos = {"25/12/2026", "25-12-2026", "32/01/2026", "31/02/2026", "29/02/2028"};
+        for (String t : textos) {
+            try {
+                LocalDate d = LocalDate.parse(t, br);
+                System.out.println(t + " -&gt; " + d);
+            } catch (DateTimeParseException e) {
+                System.out.println(t + " -&gt; erro: " + e.getMessage());
+            }
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+25/12/2026 -&gt; 2026-12-25
+25-12-2026 -&gt; erro: Text '25-12-2026' could not be parsed at index 2
+32/01/2026 -&gt; erro: Text '32/01/2026' could not be parsed: Invalid value for DayOfMonth (valid values 1 - 28/31): 32
+31/02/2026 -&gt; 2026-02-28
+29/02/2028 -&gt; 2028-02-29</pre>
+
+<p>O dia 32 foi recusado ("valor inválido para dia do mês: valores válidos de 1 a 28/31"). Mas olhe o <strong>31/02/2026</strong>: não deu erro, virou <code>2026-02-28</code>! Por padrão, o formatador é "esperto" (modo <code>SMART</code>): aceita dias de 1 a 31 em qualquer mês e, se o dia não existe naquele mês, usa o último dia válido. Para um formulário, isso é perigoso: a pessoa digitou uma data impossível e o programa aceitou outra. Para recusar, use o modo <strong>estrito</strong>:</p>
+
+<pre class="file" data-file="Main.java (trecho)">        DateTimeFormatter rigoroso = DateTimeFormatter.ofPattern("dd/MM/uuuu")
+                                                     .withResolverStyle(ResolverStyle.STRICT);
+</pre>
+
+<pre class="term">$ java Main.java
+25/12/2026 -&gt; 2026-12-25
+31/02/2026 -&gt; erro: Text '31/02/2026' could not be parsed: Invalid date 'FEBRUARY 31'
+29/02/2028 -&gt; 2028-02-29</pre>
+
+<p>Dois detalhes: <code>ResolverStyle</code> vem de <code>java.time.format</code> (precisa de <code>import java.time.format.ResolverStyle;</code>), e no modo estrito o ano deve ser escrito <code>uuuu</code>, não <code>yyyy</code>. (A letra <code>y</code> é o "ano da era", que no modo estrito exige também a era, "depois de Cristo"; <code>u</code> é o ano simples.) O ano 2028 é bissexto, por isso <code>29/02/2028</code> é válido.</p>
+
+<hr>
+
+<h2>Fusos horários: <code>ZonedDateTime</code></h2>
+<p>A Ana marcou uma reunião às 14h, horário de São Paulo, com uma cliente em Lisboa e outra em Tóquio. Que horas são lá? Para isso, a data e a hora precisam de um <strong>fuso</strong> (<code>ZoneId</code>), identificado por "continente/cidade":</p>
+
+<pre class="file" data-file="Main.java">import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Fuso do sistema: " + ZoneId.systemDefault());
+        ZonedDateTime reuniao = ZonedDateTime.of(
+            LocalDateTime.of(2026, 11, 3, 14, 0), ZoneId.of("America/Sao_Paulo"));
+        System.out.println("São Paulo: " + reuniao);
+        System.out.println("Lisboa:    " + reuniao.withZoneSameInstant(ZoneId.of("Europe/Lisbon")));
+        System.out.println("Manaus:    " + reuniao.withZoneSameInstant(ZoneId.of("America/Manaus")));
+        System.out.println("Tóquio:    " + reuniao.withZoneSameInstant(ZoneId.of("Asia/Tokyo")));
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("dd/MM HH:mm z");
+        System.out.println(reuniao.withZoneSameInstant(ZoneId.of("Europe/Lisbon")).format(f));
+        System.out.println("Agora: " + ZonedDateTime.now());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Fuso do sistema: America/Sao_Paulo
+São Paulo: 2026-11-03T14:00-03:00[America/Sao_Paulo]
+Lisboa:    2026-11-03T17:00Z[Europe/Lisbon]
+Manaus:    2026-11-03T13:00-04:00[America/Manaus]
+Tóquio:    2026-11-04T02:00+09:00[Asia/Tokyo]
+03/11 17:00 WET
+Agora: 2026-10-16T18:51:55.388086963-03:00[America/Sao_Paulo]</pre>
+
+<dl class="anatomy">
+  <dt>ZoneId.of("America/Sao_Paulo")</dt><dd>O fuso de Brasília. Os nomes vêm de um banco de dados mundial de fusos (o <em>tz database</em>), que guarda também a história dos horários de verão de cada lugar.</dd>
+  <dt>ZonedDateTime.of(localDateTime, zona)</dt><dd>"Estas data e hora, neste lugar".</dd>
+  <dt>-03:00</dt><dd>A diferença para o UTC, o horário de referência mundial: São Paulo está 3 horas atrás. <code>Z</code> (de "zero", em Lisboa) quer dizer exatamente UTC.</dd>
+  <dt>withZoneSameInstant(zona)</dt><dd>"O mesmo instante, visto de outro lugar": às 14h de São Paulo são 17h em Lisboa, 13h em Manaus e 2h <strong>do dia seguinte</strong> em Tóquio.</dd>
+  <dt>z no padrão</dt><dd>A abreviação do fuso (<code>WET</code>, <em>Western European Time</em>).</dd>
+</dl>
+
+<p>Use <code>LocalDate</code>/<code>LocalDateTime</code> quando o fuso não importa (um aniversário é no mesmo dia em qualquer lugar). Use <code>ZonedDateTime</code> quando o mesmo instante precisa ser mostrado em lugares diferentes, ou quando o horário de verão pode afetar a conta. Para registrar "o instante exato em que algo aconteceu" (num log, num banco de dados), existe também o <code>Instant</code>, um ponto na linha do tempo em UTC.</p>
+
+<hr>
+
+<h2>Por que não usar <code>Date</code> e <code>Calendar</code></h2>
+<p>Antes do Java 8, as datas eram feitas com <code>java.util.Date</code> e <code>java.util.Calendar</code>. Você ainda vai vê-las em código antigo e em tutoriais velhos. Veja por que elas foram substituídas:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+
+public class Main {
+    public static void main(String[] args) {
+        Date agora = new Date();
+        System.out.println(agora);
+        System.out.println("Ano pelo Date: " + agora.getYear());
+
+        Calendar prova = new GregorianCalendar(2026, 10, 16);
+        System.out.println("Mês 10 é: " + prova.getTime());
+
+        Calendar estranha = new GregorianCalendar(2026, 1, 31);
+        System.out.println("31 de fevereiro virou: " + estranha.getTime());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Main.java:9: warning: [deprecation] getYear() in Date has been deprecated
+        System.out.println("Ano pelo Date: " + agora.getYear());
+                                                    ^
+1 warning
+Fri Oct 16 18:51:56 GMT-03:00 2026
+Ano pelo Date: 126
+Mês 10 é: Mon Nov 16 00:00:00 GMT-03:00 2026
+31 de fevereiro virou: Tue Mar 03 00:00:00 GMT-03:00 2026</pre>
+
+<ul>
+  <li><strong>O ano</strong>: <code>getYear()</code> devolve <code>126</code>, os anos desde 1900. O próprio <code>javac</code> avisa que o método está obsoleto (<em>deprecated</em>).</li>
+  <li><strong>Os meses começam em 0</strong>: no <code>Calendar</code>, janeiro é 0. O "mês 10" que a Ana escreveu pensando em outubro virou <strong>novembro</strong>.</li>
+  <li><strong>Datas impossíveis viram outras, em silêncio</strong>: o mês 1 é fevereiro, e o "31 de fevereiro" virou 3 de março, sem exceção nenhuma.</li>
+  <li><strong>São mutáveis</strong>: um <code>Date</code> passado para um método pode ser alterado lá dentro, mudando a data de quem chamou.</li>
+  <li><strong>Um <code>Date</code> não é uma data</strong>: é um instante com hora, e o <code>toString</code> mistura o fuso do computador.</li>
+</ul>
+
+<p>Em código novo, use sempre o <code>java.time</code>. Se precisar conversar com uma biblioteca antiga, há conversões prontas: <code>date.toInstant()</code> e <code>Date.from(instant)</code>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A data não mudou depois do <code>plusDays</code></strong>
+<pre class="file" data-file="Main.java">import java.time.LocalDate;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate prova = LocalDate.of(2026, 10, 16);
+        prova.plusDays(7);
+        System.out.println("Prova adiada para: " + prova);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Prova adiada para: 2026-10-16</pre>
+<p><strong>O que aconteceu:</strong> datas do <code>java.time</code> são imutáveis. O <code>plusDays(7)</code> criou uma data nova (23/10) e ela foi jogada fora. Não há erro nem aviso.</p>
+<p><strong>Como resolver:</strong> guarde o resultado: <code>prova = prova.plusDays(7);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>DateTimeException: Invalid date 'FEBRUARY 30'</code></strong>
+<pre class="file" data-file="Main.java">import java.time.LocalDate;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate prova = LocalDate.of(2026, 2, 30);
+        System.out.println(prova);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Exception in thread "main" java.time.DateTimeException: Invalid date 'FEBRUARY 30'
+	at java.base/java.time.LocalDate.create(LocalDate.java:461)
+	at java.base/java.time.LocalDate.of(LocalDate.java:277)
+	at Main.main(Main.java:5)</pre>
+<p><strong>O que aconteceu:</strong> ao contrário do <code>Calendar</code>, o <code>LocalDate.of</code> recusa datas que não existem.</p>
+<p><strong>Como resolver:</strong> confira os valores. Se eles vêm do usuário, trate <code>DateTimeException</code> com <code>try</code>/<code>catch</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"could not be parsed at index N"</strong>
+<p><strong>O que aconteceu:</strong> o texto não segue o padrão do formatador. O índice diz em que caractere (contando de 0) a leitura falhou.</p>
+<p><strong>Como resolver:</strong> confira o separador (<code>/</code> ou <code>-</code>), a quantidade de dígitos (<code>dd</code> exige <code>05</code>, não <code>5</code>; para aceitar os dois, use <code>d</code>) e a ordem (dia/mês/ano ou ano-mês-dia).</p>
+</div>
+
+<div class="cenario">
+<strong>Os minutos saíram como mês</strong>
+<p><strong>O que aconteceu:</strong> no padrão, <code>MM</code> (maiúsculo) é mês e <code>mm</code> (minúsculo) é minuto. <code>"HH:MM"</code> mostra a hora e o <strong>mês</strong>.</p>
+<p><strong>Como resolver:</strong> <code>"HH:mm"</code> para horas, <code>"dd/MM/yyyy"</code> para datas.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>LocalDate.now()</code>, <code>LocalDate.of(a, m, d)</code></td><td>Hoje; uma data específica</td></tr>
+<tr><td><code>LocalTime.of(h, min)</code>, <code>LocalDateTime.of(a, m, d, h, min)</code></td><td>Hora; data e hora</td></tr>
+<tr><td><code>plusDays/Weeks/Months/Years(n)</code>, <code>minus…</code></td><td>Somar e subtrair (devolve uma data nova)</td></tr>
+<tr><td><code>getDayOfWeek()</code>, <code>getMonth()</code></td><td>Enums em inglês: <code>FRIDAY</code>, <code>OCTOBER</code></td></tr>
+<tr><td><code>getDisplayName(TextStyle.FULL, Locale.of("pt","BR"))</code></td><td>Nome em português: <code>sexta-feira</code></td></tr>
+<tr><td><code>isBefore</code>, <code>isAfter</code>, <code>isEqual</code></td><td>Comparar</td></tr>
+<tr><td><code>Period.between(a, b)</code></td><td>Anos, meses, dias (<code>getYears()</code>)</td></tr>
+<tr><td><code>ChronoUnit.DAYS.between(a, b)</code></td><td>Total de dias</td></tr>
+<tr><td><code>Duration.between(h1, h2)</code></td><td>Horas, minutos, segundos (<code>toMinutes()</code>)</td></tr>
+<tr><td><code>DateTimeFormatter.ofPattern("dd/MM/yyyy")</code></td><td>Formatador brasileiro</td></tr>
+<tr><td><code>data.format(f)</code> / <code>LocalDate.parse(texto, f)</code></td><td>Data → texto / texto → data</td></tr>
+<tr><td><code>.withResolverStyle(ResolverStyle.STRICT)</code> + <code>uuuu</code></td><td>Recusar datas impossíveis como 31/02</td></tr>
+<tr><td><code>ZonedDateTime.of(ldt, ZoneId.of("America/Sao_Paulo"))</code></td><td>Data e hora num fuso</td></tr>
+<tr><td><code>withZoneSameInstant(zona)</code></td><td>O mesmo instante em outro fuso</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Uma semana depois</h3>
+<p>Complete para obter a data uma semana depois de <code>hoje</code>:</p>
+<div class="ex-code">LocalDate proxima = hoje.<input data-answer="plusWeeks(1)|plusDays(7)" aria-label="método">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Padrão brasileiro com hora</h3>
+<p>Complete o padrão para mostrar <code>03/11/2026 14:45</code>:</p>
+<div class="ex-code">DateTimeFormatter.ofPattern("<input data-answer="dd/MM/yyyy HH:mm|dd/MM/uuuu HH:mm" aria-label="padrão">")</div>
+</div>
+
+<div class="exercise">
+<h3>3. Quantos dias</h3>
+<p>Complete para calcular os dias entre <code>inicio</code> e <code>fim</code>:</p>
+<div class="ex-code">long dias = ChronoUnit.<input data-answer="DAYS" aria-label="unidade">.between(inicio, fim);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>LocalDate.of(2026, 10, 16).getDayOfWeek()</code> mostra no <code>println</code>?</p>
+<label><input type="radio" name="q4"> <code>sexta-feira</code></label>
+<label><input type="radio" name="q4"> <code>6</code></label>
+<label><input type="radio" name="q4"> <code>FRIDAY</code></label>
+<label><input type="radio" name="q4"> <code>sex.</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>LocalDate d = LocalDate.of(2026, 1, 10); d.plusDays(5); System.out.println(d);</code> mostra:</p>
+<label><input type="radio" name="q5"> <code>2026-01-15</code></label>
+<label><input type="radio" name="q5"> <code>2026-01-10</code></label>
+<label><input type="radio" name="q5"> Erro de compilação.</label>
+<label><input type="radio" name="q5"> <code>2026-01-05</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Para calcular a idade de uma pessoa em anos, o mais adequado é:</p>
+<label><input type="radio" name="q6"> <code>Period.between(nascimento, hoje).getYears()</code></label>
+<label><input type="radio" name="q6"> <code>Duration.between(nascimento, hoje)</code></label>
+<label><input type="radio" name="q6"> <code>hoje.getYear() - 1900</code></label>
+<label><input type="radio" name="q6"> <code>new Date().getYear()</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:A Ana tem 29 anos,out:Ela nasceu numa sexta-feira,src:Period\.between,src:getDisplayName">
+<p class="try-task"><strong>Missão final:</strong> a Ana nasceu em 14/03/1997 e "hoje" é 16/10/2026. Calcule a idade dela com <code>Period.between(…).getYears()</code> e o dia da semana em que ela nasceu, em português, com <code>getDisplayName(TextStyle.FULL, Locale.of("pt", "BR"))</code>. A saída deve ser <code>A Ana tem 29 anos</code> e <code>Ela nasceu numa sexta-feira</code>.</p>
+<pre class="script">import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.TextStyle;
+import java.util.Locale;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate nascimento = LocalDate.of(1997, 3, 14);
+        LocalDate hoje = LocalDate.of(2026, 10, 16);
+        // calcule a idade e o dia da semana
+    }
+}
+</pre>
+<pre class="solucao">import java.time.LocalDate;
+import java.time.Period;
+import java.time.format.TextStyle;
+import java.util.Locale;
+
+public class Main {
+    public static void main(String[] args) {
+        LocalDate nascimento = LocalDate.of(1997, 3, 14);
+        LocalDate hoje = LocalDate.of(2026, 10, 16);
+        int anos = Period.between(nascimento, hoje).getYears();
+        String dia = nascimento.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.of("pt", "BR"));
+        System.out.println("A Ana tem " + anos + " anos");
+        System.out.println("Ela nasceu numa " + dia);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Use o <code>java.time</code>: <code>LocalDate</code> (data), <code>LocalTime</code> (hora), <code>LocalDateTime</code> (as duas), <code>ZonedDateTime</code> (com fuso).</li>
+  <li>Crie com <code>now()</code> ou <code>of(…)</code>; o mês é o número normal (outubro = 10).</li>
+  <li>As datas são imutáveis: <code>data = data.plusDays(1);</code>.</li>
+  <li><code>getDayOfWeek()</code> dá <code>FRIDAY</code>; para português, <code>getDisplayName(TextStyle.FULL, Locale.of("pt", "BR"))</code>.</li>
+  <li>Intervalos: <code>Period</code> (anos/meses/dias), <code>ChronoUnit.DAYS.between</code> (total), <code>Duration</code> (horas/minutos).</li>
+  <li><code>DateTimeFormatter.ofPattern("dd/MM/yyyy")</code> formata e lê; texto inválido lança <code>DateTimeParseException</code>. Para recusar 31/02, use <code>ResolverStyle.STRICT</code> com <code>uuuu</code>.</li>
+  <li><code>Date</code> e <code>Calendar</code> são antigos: ano a partir de 1900, meses a partir de 0, datas impossíveis aceitas em silêncio. Evite.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
