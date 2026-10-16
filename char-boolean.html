@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java char e boolean — caracteres e verdadeiro/falso | Guia Java</title>
+<meta name="description" content="Os tipos char e boolean em Java: aspas simples, Unicode, por que 'A' + 1 dá 66, casting com (char), os métodos de Character (isDigit, isLetter, toUpperCase), true e false, e por que boolean não é 0 ou 1, com erros e saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">char e boolean</span></h1>
+
+<p class="intro">Faltam dois tipos primitivos para fechar a lista: o <code>char</code>, que guarda <strong>um único caractere</strong> (uma letra, um dígito, um símbolo), e o <code>boolean</code>, que guarda só <strong>verdadeiro ou falso</strong>. Eles parecem simples, e são, mas cada um tem uma característica que surpreende quem começa: o <code>char</code> é, por dentro, um número; e o <code>boolean</code>, ao contrário de outras linguagens, <strong>não</strong> é um número.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um <code>char</code> (aspas simples) e a diferença para uma <code>String</code>.</li>
+  <li>O que é Unicode e por que <code>'A' + 1</code> dá <code>66</code>.</li>
+  <li>Como transformar número em letra e letra em número com <code>(char)</code> e <code>(int)</code>.</li>
+  <li>Os métodos úteis de <code>Character</code>: <code>isDigit</code>, <code>isLetter</code>, <code>toUpperCase</code>…</li>
+  <li>Como usar <code>boolean</code>, <code>true</code> e <code>false</code>, e os erros de quem tenta usar 0 e 1.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>Parte 1: <code>char</code>, um caractere</h2>
+<p><code>char</code> vem de <em>character</em>, "caractere": qualquer símbolo que você digita, como <code>A</code>, <code>z</code>, <code>7</code>, <code>@</code>, <code>ç</code> ou um espaço. Uma variável <code>char</code> guarda <strong>exatamente um</strong>. O valor vai entre <strong>aspas simples</strong>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        char turma = 'B';
+        char simbolo = '@';
+        char digito = '7';
+        char acento = 'ç';
+        char unicode = 'é';
+        char espaco = ' ';
+        System.out.println(turma);
+        System.out.println(simbolo);
+        System.out.println(digito);
+        System.out.println(acento);
+        System.out.println(unicode);
+        System.out.println("[" + espaco + "]");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+B
+@
+7
+ç
+é                  « 'é' é o código Unicode do é
+[ ]                « o espaço também é um caractere</pre>
+
+<dl class="anatomy">
+  <dt>char</dt><dd>O tipo: um caractere.</dd>
+  <dt>turma</dt><dd>O nome da variável.</dd>
+  <dt>'B'</dt><dd>O valor, entre <strong>aspas simples</strong>. Dentro delas cabe um caractere só.</dd>
+</dl>
+
+<p>Repare em <code>char digito = '7';</code>: é o <strong>símbolo</strong> 7, como aparece num teclado ou numa placa de carro, e não o número sete. Você vai ver daqui a pouco que <code>'7'</code> e <code>7</code> são coisas bem diferentes.</p>
+
+<h3><code>'A'</code> × <code>"A"</code></h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>'A'</code></th><th><code>"A"</code></th></tr>
+<tr><td>Tipo</td><td><code>char</code> (primitivo)</td><td><code>String</code> (objeto)</td></tr>
+<tr><td>Aspas</td><td>Simples</td><td>Duplas</td></tr>
+<tr><td>Quantos caracteres</td><td>Exatamente um</td><td>Zero, um ou muitos (<code>""</code>, <code>"Ana"</code>)</td></tr>
+<tr><td>Tem métodos?</td><td>Não (use <code>Character.xxx(c)</code>)</td><td>Sim (<code>"Ana".length()</code>)</td></tr>
+</table>
+</div>
+
+<p>Trocar as aspas é o erro mais comum com <code>char</code>; veja os erros reais em <a href="#erros">Quando dá errado</a>.</p>
+
+<h3>Unicode: cada caractere tem um número</h3>
+<p>O computador só guarda números. Para guardar letras, existe uma tabela gigante que dá um número a cada caractere de todos os idiomas: o <strong>Unicode</strong>. Nela, <code>A</code> é 65, <code>B</code> é 66, <code>a</code> é 97, <code>é</code> é 233. O <code>char</code> guarda, na verdade, esse número (de 0 a 65.535, em 16 bits), e o Java o mostra como letra.</p>
+
+<p>Você pode escrever qualquer caractere pelo código, no formato <code>'\uXXXX'</code>, com o número em hexadecimal (<code>é</code> = 233 = <code>é</code>). Isso é útil para símbolos que não estão no teclado, como <code>'°'</code> (o <code>°</code> de graus).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Caracteres</th><th>Códigos</th></tr>
+<tr><td><code>'0'</code> a <code>'9'</code></td><td>48 a 57</td></tr>
+<tr><td><code>'A'</code> a <code>'Z'</code></td><td>65 a 90</td></tr>
+<tr><td><code>'a'</code> a <code>'z'</code></td><td>97 a 122</td></tr>
+<tr><td><code>' '</code> (espaço)</td><td>32</td></tr>
+</table>
+</div>
+
+<p>As letras estão em sequência na tabela. É isso que permite "fazer contas" com letras.</p>
+
+<h3>Contas com <code>char</code>: <code>'A' + 1</code></h3>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println('A' + 1);
+        System.out.println((char) ('A' + 1));
+        System.out.println((int) 'A');
+        System.out.println((int) 'a');
+        System.out.println((char) 97);
+        char c = 'A';
+        c++;
+        System.out.println(c);
+        c += 2;
+        System.out.println(c);
+        System.out.println('A' + 'B');
+        System.out.println("" + 'A' + 'B');
+        System.out.println('7' - '0');
+        System.out.println('a' &lt; 'b');
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+66                 « 'A' + 1: a conta usou o código do A (65)
+B                  « (char) transforma o 66 de volta em letra
+65
+97
+a
+B                  « c++ avançou para a próxima letra
+D                  « c += 2 avançou mais duas
+131                « 'A' + 'B' = 65 + 66, não "AB"!
+AB                 « começando com "", vira texto
+7                  « '7' - '0' = 55 - 48
+true               « 'a' vem antes de 'b' na tabela</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>Resultado</th><th>Por quê</th></tr>
+<tr><td><code>'A' + 1</code></td><td><code>66</code></td><td>Numa conta, o <code>char</code> vira o seu código (<code>int</code>). 65 + 1 = 66, e o resultado é <code>int</code>.</td></tr>
+<tr><td><code>(char) ('A' + 1)</code></td><td><code>B</code></td><td><code>(char)</code> é um <strong>casting</strong>: "trate este número como caractere". Os parênteses em volta da conta são necessários.</td></tr>
+<tr><td><code>(int) 'A'</code></td><td><code>65</code></td><td>O caminho inverso: mostra o código do caractere.</td></tr>
+<tr><td><code>c++</code> e <code>c += 2</code></td><td><code>B</code>, <code>D</code></td><td>Esses operadores mantêm o tipo <code>char</code>, então o resultado continua sendo letra.</td></tr>
+<tr><td><code>'A' + 'B'</code></td><td><code>131</code></td><td>Dois <code>char</code> somados são dois números somados. Para juntar como texto, comece com uma <code>String</code>: <code>"" + 'A' + 'B'</code>.</td></tr>
+<tr><td><code>'7' - '0'</code></td><td><code>7</code></td><td>Truque clássico para transformar o dígito <code>'7'</code> no número 7: os dígitos estão em sequência a partir do <code>'0'</code> (48).</td></tr>
+</table>
+</div>
+
+<p>Casting e as regras de qual tipo resulta de cada conta estão em <a href="conversao-tipos.html">Conversão de Tipos</a>. Os operadores <code>++</code> e <code>+=</code> estão em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a> e <a href="operadores-atribuicao.html">Operadores de Atribuição</a>.</p>
+
+<div class="tryjava" data-goal="out:K,src:\(char\)">
+<p class="try-task"><strong>Missão:</strong> o programa deveria mostrar a letra que vem <strong>depois</strong> de <code>J</code>, mas mostra <code>75</code>. Use um casting <code>(char)</code> para que ele mostre <code>K</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        char letra = 'J';
+        System.out.println(letra + 1);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        char letra = 'J';
+        System.out.println((char) (letra + 1));
+    }
+}
+</pre>
+</div>
+
+<h3>A classe <code>Character</code>: perguntas sobre um caractere</h3>
+<p>Como <code>char</code> é primitivo, ele não tem métodos. Mas a classe <code>Character</code> (o <a href="wrappers.html">wrapper</a> do <code>char</code>) tem vários métodos que <strong>recebem</strong> um caractere entre parênteses e respondem perguntas sobre ele:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        char c = '7';
+        System.out.println(Character.isDigit(c));
+        System.out.println(Character.isLetter(c));
+        System.out.println(Character.isLetter('ç'));
+        System.out.println(Character.isUpperCase('A'));
+        System.out.println(Character.isLowerCase('A'));
+        System.out.println(Character.isWhitespace(' '));
+        System.out.println(Character.isLetterOrDigit('#'));
+        System.out.println(Character.toUpperCase('a'));
+        System.out.println(Character.toLowerCase('Ç'));
+        System.out.println(Character.getNumericValue('7'));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+true               « '7' é dígito
+false              « '7' não é letra
+true               « ç é letra (o Java conhece todos os idiomas)
+true
+false
+true
+false              « # não é letra nem dígito
+A
+ç
+7                  « o número 7, a partir do caractere '7'</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Pergunta / faz</th><th>Tradução do nome</th></tr>
+<tr><td><code>Character.isDigit(c)</code></td><td>É um dígito de 0 a 9?</td><td><em>is digit</em> = "é dígito"</td></tr>
+<tr><td><code>Character.isLetter(c)</code></td><td>É uma letra (de qualquer idioma)?</td><td>"é letra"</td></tr>
+<tr><td><code>Character.isLetterOrDigit(c)</code></td><td>É letra ou dígito?</td><td>"é letra ou dígito"</td></tr>
+<tr><td><code>Character.isUpperCase(c)</code> / <code>isLowerCase(c)</code></td><td>É maiúscula? / minúscula?</td><td><em>upper case</em> = "caixa alta"</td></tr>
+<tr><td><code>Character.isWhitespace(c)</code></td><td>É espaço, tab ou quebra de linha?</td><td>"é espaço em branco"</td></tr>
+<tr><td><code>Character.toUpperCase(c)</code> / <code>toLowerCase(c)</code></td><td>Devolve a versão maiúscula / minúscula</td><td>"para maiúscula"</td></tr>
+<tr><td><code>Character.getNumericValue(c)</code></td><td>Devolve o valor numérico do dígito (<code>'7'</code> → 7)</td><td>"obter valor numérico"</td></tr>
+</table>
+</div>
+
+<p>Os métodos <code>is…</code> respondem <code>true</code> ou <code>false</code>, que são exatamente os valores do próximo tipo. Eles brilham quando você percorre um texto letra por letra (validar uma senha, contar vogais), assunto de <a href="metodos-string.html">Métodos de String</a> e <a href="for.html">for</a>.</p>
+
+<hr>
+
+<h2>Parte 2: <code>boolean</code>, verdadeiro ou falso</h2>
+<p>Um interruptor só tem duas posições: ligado ou desligado. O <code>boolean</code> é a mesma coisa: só existem dois valores, <code>true</code> (verdadeiro) e <code>false</code> (falso). São palavras reservadas do Java, escritas sem aspas e em minúsculas. O nome homenageia George Boole, matemático que criou a "álgebra" do verdadeiro e falso.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        boolean ligado = true;
+        boolean pago = false;
+        int idade = 17;
+        boolean maiorDeIdade = idade &gt;= 18;
+        System.out.println(ligado);
+        System.out.println(pago);
+        System.out.println(maiorDeIdade);
+        System.out.println("Pode dirigir? " + maiorDeIdade);
+        pago = true;
+        System.out.println(!pago);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+true
+false
+false              « 17 &gt;= 18 é falso
+Pode dirigir? false
+false              « !pago: o contrário de true</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>boolean ligado = true;</code></td><td>Guarda o valor verdadeiro.</td></tr>
+<tr><td><code>boolean maiorDeIdade = idade &gt;= 18;</code></td><td>Guarda o <strong>resultado de uma pergunta</strong>: "idade é maior ou igual a 18?". Toda comparação dá um <code>boolean</code> (<a href="operadores-comparacao.html">Operadores de Comparação</a>).</td></tr>
+<tr><td><code>!pago</code></td><td>O <code>!</code> ("não") inverte: <code>!true</code> é <code>false</code> (<a href="operadores-logicos.html">Operadores Lógicos</a>).</td></tr>
+</table>
+</div>
+
+<p>Raramente você escreve <code>true</code> ou <code>false</code> diretamente. Quase sempre, o <code>boolean</code> nasce de uma comparação e é usado para <strong>decidir</strong> o que o programa faz, num <a href="if-else.html">if</a> ou num <a href="while.html">while</a>. Isso é o assunto de <a href="booleanos.html">Expressões Booleanas</a>.</p>
+
+<div class="tip">
+<strong>Dê nomes que soam como perguntas</strong>
+<p>Variáveis <code>boolean</code> ficam mais legíveis com nomes de sim/não: <code>pago</code>, <code>maiorDeIdade</code>, <code>temEstoque</code>, <code>estaAtivo</code>, <code>podeEntrar</code>. Assim, <code>if (temEstoque)</code> se lê como uma frase.</p>
+</div>
+
+<h3><code>boolean</code> não é 0 nem 1</h3>
+<p>Em C, JavaScript e Python, 0 vale "falso" e qualquer outro número vale "verdadeiro". Em Java, <strong>não</strong>: <code>boolean</code> e números são tipos completamente separados, e o Java não converte um no outro de jeito nenhum, nem com casting. Os erros reais estão logo abaixo, em <a href="#erros">Quando dá errado</a>. Parece rígido, mas evita uma classe inteira de erros, como o famoso <code>if (x = 5)</code> que em C compila e faz a coisa errada.</p>
+
+<div class="tryjava" data-goal="compila,out:Frete grátis? true,src:\bboolean\s+freteGratis\b">
+<p class="try-task"><strong>Missão:</strong> a loja da Ana dá frete grátis em compras a partir de 100 reais. Crie a variável <code>boolean freteGratis</code> com o resultado da comparação <code>total &gt;= 100</code> e mostre <code>Frete grátis? true</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double total = 135.50;
+        // crie a variável freteGratis aqui
+
+        System.out.println("Frete grátis? " + freteGratis);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double total = 135.50;
+        boolean freteGratis = total &gt;= 100;
+        System.out.println("Frete grátis? " + freteGratis);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"String cannot be converted to char" (aspas duplas num char)</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        char letra = "A";
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: String cannot be converted to char
+        char letra = "A";
+                     ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>"A"</code>, com aspas duplas, é uma <code>String</code> de uma letra, não um <code>char</code>.</p>
+<p><strong>Como consertar:</strong> aspas simples: <code>char letra = 'A';</code>. Ou, se você queria texto, <code>String letra = "A";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"unclosed character literal" (mais de um caractere)</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: unclosed character literal
+        char letras = 'AB';
+                      ^
+Main.java:3: error: unclosed character literal
+        char letras = 'AB';
+                         ^
+Main.java:3: error: not a statement
+        char letras = 'AB';
+                        ^
+3 errors</pre>
+<p><strong>O que quer dizer:</strong> "literal de caractere não fechado". Depois de <code>'A</code> o Java esperava a aspa de fechamento e encontrou um <code>B</code>; daí em diante se perdeu e gerou mais dois erros. Quando o <code>javac</code> mostra vários erros na mesma linha, corrija o <strong>primeiro</strong>: os outros costumam ser consequência.</p>
+<p><strong>Como consertar:</strong> um caractere só por <code>char</code>; mais de um é <code>String</code>: <code>String letras = "AB";</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"empty character literal"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: empty character literal
+        char vazio = '';
+                     ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> não existe <code>char</code> vazio; ele sempre tem exatamente um caractere. (Uma <code>String</code> pode ser vazia: <code>""</code>.)</p>
+<p><strong>Como consertar:</strong> use um espaço (<code>' '</code>) se a ideia era "em branco", ou uma <code>String</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Emoji num <code>char</code>: "character literal contains more than one UTF-16 code unit"</strong>
+<p><strong>O que quer dizer:</strong> a maioria dos emojis tem código acima de 65.535 e não cabe em 16 bits; o Java os representa com <strong>dois</strong> <code>char</code>. Por isso <code>char</code> com um emoji não compila.</p>
+<p><strong>Como consertar:</strong> guarde emojis em <code>String</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"int cannot be converted to boolean" (0 e 1 não são booleanos)</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int estoque = 5;
+        if (estoque) {
+            System.out.println("Tem estoque");
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: int cannot be converted to boolean
+        if (estoque) {
+            ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o <code>if</code> exige uma condição <code>boolean</code>, e <code>estoque</code> é um <code>int</code>. Em outras linguagens, "5" valeria "verdadeiro"; em Java, não. O mesmo erro aparece em <code>boolean ativo = 1;</code>.</p>
+<p><strong>Como consertar:</strong> escreva a pergunta completa: <code>if (estoque &gt; 0)</code>. Para guardar: <code>boolean ativo = true;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"boolean cannot be converted to int" (nem com casting)</strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: boolean cannot be converted to int
+        int x = (int) ativo;
+                      ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> nem o casting converte <code>boolean</code> em número.</p>
+<p><strong>Como consertar:</strong> se você precisa de 1 ou 0, decida com o <a href="ternario.html">operador ternário</a>: <code>int x = ativo ? 1 : 0;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … variable True"</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        boolean ativo = True;
+                        ^
+  symbol:   variable True
+  location: class Main
+1 error</pre>
+<p><strong>O que quer dizer:</strong> com maiúscula, <code>True</code> não é o valor verdadeiro; o Java procura uma variável com esse nome. (Quem vem do Python cai muito nessa.)</p>
+<p><strong>Como consertar:</strong> <code>true</code> e <code>false</code>, sempre minúsculos. E sem aspas: <code>boolean ativo = "true";</code> dá <code>String cannot be converted to boolean</code>.</p>
+</div>
+
+<div class="tryjshell" data-goal="out:231">
+<p class="try-task"><strong>Missão:</strong> no JShell, descubra o código Unicode do <code>ç</code>. Digite <code>(int) 'ç'</code>. Depois experimente o caminho contrário, <code>(char) 231</code>.</p>
+<pre class="solucao">(int) 'ç'</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>'A'</code></td><td>Literal <code>char</code></td><td><code>char c = 'A';</code></td></tr>
+<tr><td><code>'é'</code></td><td><code>char</code> pelo código Unicode (hexadecimal)</td><td><code>é</code></td></tr>
+<tr><td><code>(int) c</code></td><td>Código do caractere</td><td><code>(int) 'A'</code> → <code>65</code></td></tr>
+<tr><td><code>(char) n</code></td><td>Caractere do código</td><td><code>(char) 66</code> → <code>B</code></td></tr>
+<tr><td><code>c - '0'</code></td><td>Dígito para número</td><td><code>'7' - '0'</code> → <code>7</code></td></tr>
+<tr><td><code>"" + c1 + c2</code></td><td>Juntar caracteres como texto</td><td><code>"" + 'A' + 'B'</code> → <code>AB</code></td></tr>
+<tr><td><code>Character.isDigit(c)</code></td><td>É dígito?</td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td><code>Character.toUpperCase(c)</code></td><td>Maiúscula</td><td><code>'a'</code> → <code>A</code></td></tr>
+<tr><td><code>true</code>, <code>false</code></td><td>Literais <code>boolean</code></td><td><code>boolean pago = true;</code></td></tr>
+<tr><td><code>boolean b = x &gt; 0;</code></td><td>Guardar o resultado de uma comparação</td><td></td></tr>
+<tr><td><code>!b</code></td><td>"Não": inverte</td><td><code>!true</code> → <code>false</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. As aspas do char</h3>
+<p>Complete para guardar a letra C na variável:</p>
+<div class="ex-code">char nota = <input data-answer="'C'" aria-label="valor">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Verdadeiro</h3>
+<p>Complete com o valor "verdadeiro":</p>
+<div class="ex-code">boolean aprovado = <input data-answer="true" aria-label="valor">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. É dígito?</h3>
+<p>Complete para perguntar se <code>c</code> é um dígito:</p>
+<div class="ex-code">boolean ehNumero = Character.<input data-answer="isDigit" aria-label="método">(c);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>System.out.println('A' + 'B');</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>AB</code></label>
+<label><input type="radio" name="q4"> <code>A B</code></label>
+<label><input type="radio" name="q4"> <code>131</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O que acontece com <code>boolean ativo = 1;</code>?</p>
+<label><input type="radio" name="q5"> Compila e <code>ativo</code> vale <code>true</code>.</label>
+<label><input type="radio" name="q5"> Não compila: <code>int cannot be converted to boolean</code>.</label>
+<label><input type="radio" name="q5"> Compila e <code>ativo</code> vale <code>false</code>.</label>
+<label><input type="radio" name="q5"> Dá erro só ao executar.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Qual o resultado de <code>'9' - '0'</code>?</p>
+<label><input type="radio" name="q6"> <code>'9'</code></label>
+<label><input type="radio" name="q6"> <code>57</code></label>
+<label><input type="radio" name="q6"> <code>"90"</code></label>
+<label><input type="radio" name="q6"> <code>9</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>char</code> guarda <strong>um</strong> caractere, entre aspas simples: <code>'A'</code>. Texto, com aspas duplas, é <code>String</code>.</li>
+  <li>Por dentro, o <code>char</code> é o código Unicode do caractere (<code>'A'</code> = 65). Em contas ele vira número: <code>'A' + 1</code> = <code>66</code>; <code>(char) 66</code> = <code>B</code>.</li>
+  <li><code>Character.isDigit</code>, <code>isLetter</code>, <code>isUpperCase</code>, <code>toUpperCase</code>… respondem perguntas sobre um caractere.</li>
+  <li><code>boolean</code> só tem <code>true</code> e <code>false</code> (minúsculos, sem aspas). Quase sempre nasce de uma comparação: <code>idade &gt;= 18</code>.</li>
+  <li>Em Java, <code>boolean</code> não é número: <code>if (5)</code>, <code>boolean b = 1</code> e <code>(int) true</code> não compilam.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
