@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java JAR — empacotar o programa num arquivo só | Guia Java</title>
+<meta name="description" content="O que é um arquivo JAR (um zip com as classes), jar cf, jar tf, o MANIFEST.MF com Main-Class, jar cfe, java -jar, o erro real &quot;nenhum atributo de manifesto principal&quot;, classpath com -cp e Class-Path, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Empacotar em JAR</span></h1>
+
+<p class="intro">Até agora, cada programa seu era uma pasta cheia de arquivos <code>.class</code>. Para mandar o programa para outra pessoa, você teria de mandar todos eles, na estrutura de pastas certa. O <strong>JAR</strong> resolve isso: junta todas as classes num <strong>arquivo só</strong>, que roda com <code>java -jar programa.jar</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um arquivo JAR (spoiler: é um <code>.zip</code>) e por que ele existe.</li>
+  <li>Criar, listar e extrair um JAR com <code>jar cf</code>, <code>jar tf</code> e <code>jar xf</code>.</li>
+  <li>O que é o <code>MANIFEST.MF</code> e a linha <code>Main-Class</code>.</li>
+  <li>Criar um JAR executável com <code>jar cfe</code> e rodá-lo com <code>java -jar</code>.</li>
+  <li>O erro <code>nenhum atributo de manifesto principal</code> (<code>no main manifest attribute</code>) e como consertar.</li>
+  <li>O que é o <strong>classpath</strong>, a opção <code>-cp</code> e a linha <code>Class-Path</code>.</li>
+</ul>
+</div>
+
+<p>Todos os exemplos acontecem na máquina fictícia <strong>notebook</strong>, na pasta da usuária <strong>ana</strong>, com o <strong>JDK 25</strong>. Se você ainda não sabe compilar com <code>javac</code> e rodar com <code>java</code>, veja antes <a href="compilar-executar.html">javac e java</a>; os pacotes (<code>package</code>) estão em <a href="pacotes.html">Pacotes e import</a>.</p>
+
+<hr>
+
+<h2>A ideia: uma caixa de mudança</h2>
+<p>Imagine que a Ana vai mudar de casa. Ela poderia carregar cada prato, cada copo e cada livro na mão, um por um. Ou pode pôr tudo em <strong>caixas</strong>, com uma etiqueta do lado de fora dizendo o que tem dentro ("cozinha: abrir primeiro").</p>
+<p>O JAR é essa caixa:</p>
+<ul>
+  <li>Os pratos e copos são os arquivos <code>.class</code> (o programa compilado).</li>
+  <li>A etiqueta é o <strong>manifesto</strong> (<code>MANIFEST.MF</code>): um arquivo de texto dentro do JAR que diz, entre outras coisas, <strong>por qual classe começar</strong>.</li>
+</ul>
+<p><strong>JAR</strong> vem de <em>Java ARchive</em>, "arquivo Java" (e é também a palavra inglesa para "pote"). Tecnicamente, é um arquivo <strong>ZIP</strong> comum, com a extensão trocada para <code>.jar</code> e uma pasta <code>META-INF</code> dentro. Tudo o que você usa em Java "de fora", como bibliotecas, o Maven e o próprio JUnit, chega até você em forma de JAR.</p>
+
+<hr>
+
+<h2>O programa que vamos empacotar</h2>
+<p>Um programa com duas classes, para o JAR ter mais de um arquivo. A classe <code>Saudacao</code> monta a frase; a <code>Main</code> tem o <code>main</code> e usa a <code>Saudacao</code>.</p>
+
+<pre class="file" data-file="Saudacao.java">public class Saudacao {
+    private final String nome;
+
+    public Saudacao(String nome) {
+        this.nome = nome;
+    }
+
+    public String texto() {
+        return "Olá, " + nome + "! Este programa veio de um JAR.";
+    }
+}
+</pre>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Saudacao s = new Saudacao("Ana");
+        System.out.println(s.texto());
+    }
+}
+</pre>
+
+<p>A Ana salvou os dois arquivos na pasta <code>~/jar-aula</code> e compilou. O <code>javac *.java</code> compila todos os <code>.java</code> da pasta de uma vez:</p>
+
+<pre class="term">$ cd jar-aula
+$ javac *.java
+$ ls
+Main.class
+Main.java
+Saudacao.class
+Saudacao.java</pre>
+
+<p>São dois <code>.class</code>. É isso que vai para a caixa (os <code>.java</code> são o código-fonte; quem roda o programa não precisa deles).</p>
+
+<div class="tryjava" data-goal="out:Olá, Bruno! Este programa veio de um JAR.">
+<p class="try-task"><strong>Missão:</strong> este é o programa que vai virar JAR. Para caber numa caixa só do editor, as duas classes estão no mesmo arquivo (a <code>Saudacao</code> sem <code>public</code>; o <code>javac</code> gera mesmo assim dois <code>.class</code>). Faça a saudação ser para o <strong>Bruno</strong> e clique em Rodar.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Saudacao s = new Saudacao("Ana");
+        System.out.println(s.texto());
+    }
+}
+
+class Saudacao {
+    private final String nome;
+
+    Saudacao(String nome) {
+        this.nome = nome;
+    }
+
+    String texto() {
+        return "Olá, " + nome + "! Este programa veio de um JAR.";
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Saudacao s = new Saudacao("Bruno");
+        System.out.println(s.texto());
+    }
+}
+
+class Saudacao {
+    private final String nome;
+
+    Saudacao(String nome) {
+        this.nome = nome;
+    }
+
+    String texto() {
+        return "Olá, " + nome + "! Este programa veio de um JAR.";
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>1. Criar o JAR: <code>jar cf</code></h2>
+<p>O JDK traz um programa chamado <code>jar</code>, que funciona parecido com o <code>tar</code> do Linux: as letras logo depois do nome dizem o que fazer.</p>
+
+<dl class="anatomy">
+  <dt>jar</dt><dd>A ferramenta do JDK que cria e lê arquivos JAR.</dd>
+  <dt>c</dt><dd><em>create</em>, "criar" um JAR novo.</dd>
+  <dt>f</dt><dd><em>file</em>, "arquivo": o próximo argumento é o nome do JAR. Sem o <code>f</code>, o <code>jar</code> escreveria o resultado na tela.</dd>
+  <dt>app.jar</dt><dd>O nome do arquivo que será criado.</dd>
+  <dt>*.class</dt><dd>O que vai dentro: todos os <code>.class</code> da pasta (o Bash troca <code>*.class</code> por <code>Main.class Saudacao.class</code>).</dd>
+</dl>
+
+<pre class="term">$ jar cf app.jar *.class
+$ ls -l app.jar
+-rw-rw-r-- 1 ana ana 1352 out 16 18:18 app.jar          « um arquivo só, de 1352 bytes</pre>
+
+<p>O <code>jar</code> não mostra nada quando dá certo (como a maioria dos comandos do Linux). O arquivo <code>app.jar</code> apareceu.</p>
+
+<h3>Ver o que tem dentro: <code>jar tf</code></h3>
+<p>Trocando o <code>c</code> por <code>t</code> (<em>table</em>, "tabela de conteúdo"), o <code>jar</code> lista o que está na caixa:</p>
+
+<pre class="term">$ jar tf app.jar
+META-INF/                  « pasta criada pelo jar
+META-INF/MANIFEST.MF       « a etiqueta da caixa
+Main.class
+Saudacao.class</pre>
+
+<p>Além das suas duas classes, o <code>jar</code> criou sozinho a pasta <code>META-INF</code> (de <em>meta-information</em>, "informação sobre o próprio pacote") com o arquivo <code>MANIFEST.MF</code>. Com a letra <code>v</code> (<em>verbose</em>, "detalhado"), aparecem também o tamanho e a data de cada arquivo:</p>
+
+<pre class="term">$ jar tvf app.jar
+     0 Fri Oct 16 18:18:48 GMT-03:00 2026 META-INF/
+    84 Fri Oct 16 18:18:48 GMT-03:00 2026 META-INF/MANIFEST.MF
+   486 Fri Oct 16 18:18:46 GMT-03:00 2026 Main.class
+   836 Fri Oct 16 18:18:46 GMT-03:00 2026 Saudacao.class</pre>
+
+<h3>Prova de que é um zip</h3>
+<p>Qualquer programa de ZIP abre um JAR. O <code>unzip -l</code> do Linux lista o conteúdo, igualzinho:</p>
+
+<pre class="term">$ unzip -l app.jar
+Archive:  app.jar
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+        0  2026-10-16 18:18   META-INF/
+       66  2026-10-16 18:18   META-INF/MANIFEST.MF
+      486  2026-10-16 18:18   Main.class
+      836  2026-10-16 18:18   Saudacao.class
+---------                     -------
+     1388                     4 files</pre>
+
+<p>No Windows, se você renomear <code>app.jar</code> para <code>app.zip</code>, o Explorer abre como uma pasta comum. É só um zip.</p>
+
+<h3>Tirar da caixa: <code>jar xf</code></h3>
+<p>O <code>x</code> (<em>extract</em>, "extrair") faz o caminho contrário e solta os arquivos na pasta atual. Por isso a Ana cria uma pasta vazia antes:</p>
+
+<pre class="term">$ mkdir extraido && cd extraido && jar xf ../app.jar && ls -R && cd ..
+.:
+Main.class
+META-INF
+Saudacao.class
+
+./META-INF:
+MANIFEST.MF</pre>
+
+<hr>
+
+<h2>2. Rodar o JAR: a primeira tentativa dá erro</h2>
+<p>Para rodar um JAR, a forma natural é <code>java -jar</code>. Veja o que acontece com o JAR que acabamos de criar:</p>
+
+<pre class="term">$ java -jar app.jar
+nenhum atributo de manifesto principal em app.jar
+$ echo $?
+1                          « código de saída 1: deu erro</pre>
+
+<p>Em computadores configurados em inglês, a mesma mensagem aparece assim:</p>
+
+<pre class="term">$ java -jar app.jar
+no main manifest attribute, in app.jar</pre>
+
+<p>O que ela quer dizer: "o manifesto deste JAR <strong>não diz qual é a classe principal</strong>". O Java abriu a caixa, leu a etiqueta e não achou a linha "comece por aqui". Ele não tenta adivinhar: um JAR pode ter centenas de classes, várias com <code>main</code>. Para entender, vamos olhar a etiqueta.</p>
+
+<h3>O manifesto: <code>META-INF/MANIFEST.MF</code></h3>
+<p>O <code>unzip -p</code> mostra o conteúdo de um arquivo de dentro do zip, sem extrair:</p>
+
+<pre class="term">$ unzip -p app.jar META-INF/MANIFEST.MF
+Manifest-Version: 1.0
+Created-By: 25.0.4.1 (Eclipse Adoptium)
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que diz</th></tr>
+<tr><td><code>Manifest-Version: 1.0</code></td><td>A versão do formato do manifesto (é sempre 1.0).</td></tr>
+<tr><td><code>Created-By: 25.0.4.1 (Eclipse Adoptium)</code></td><td>Quem criou o JAR: o <code>jar</code> do JDK 25.0.4.1 da Adoptium (o Temurin).</td></tr>
+</table>
+</div>
+
+<p>Cada linha é um <strong>atributo</strong> no formato <code>Nome: valor</code>. Falta justamente o atributo que o <code>java -jar</code> procura: <code>Main-Class</code> ("classe principal").</p>
+
+<hr>
+
+<h2>3. JAR executável: <code>jar cfe</code></h2>
+<p>A letra <code>e</code> (<em>entry point</em>, "ponto de entrada") manda o <code>jar</code> escrever a linha <code>Main-Class</code> no manifesto. O nome da classe vem logo depois do nome do JAR:</p>
+
+<dl class="anatomy">
+  <dt>c f e</dt><dd>Criar, num arquivo, com ponto de entrada.</dd>
+  <dt>app.jar</dt><dd>O nome do JAR (é o argumento do <code>f</code>).</dd>
+  <dt>Main</dt><dd>A classe principal (é o argumento do <code>e</code>). Os argumentos vêm <strong>na mesma ordem das letras</strong>: primeiro o do <code>f</code>, depois o do <code>e</code>.</dd>
+  <dt>*.class</dt><dd>O conteúdo.</dd>
+</dl>
+
+<pre class="term">$ jar cfe app.jar Main *.class
+$ unzip -p app.jar META-INF/MANIFEST.MF
+Manifest-Version: 1.0
+Created-By: 25.0.4.1 (Eclipse Adoptium)
+Main-Class: Main           « a linha nova
+$ java -jar app.jar
+Olá, Ana! Este programa veio de um JAR.</pre>
+
+<p>Funcionou. Esse <code>app.jar</code> é um <strong>JAR executável</strong>: qualquer pessoa com Java instalado roda com <code>java -jar app.jar</code>, sem saber quais classes existem lá dentro. Em muitos ambientes gráficos, dar dois cliques num JAR executável também o abre (para programas com janela).</p>
+
+<div class="tip">
+<strong>A mesma coisa, com nomes longos</strong>
+<p>O <code>jar</code> também aceita opções por extenso, mais fáceis de ler num script:</p>
+<pre class="term">$ jar --create --file app4.jar --main-class Main Main.class Saudacao.class
+$ java -jar app4.jar
+Olá, Ana! Este programa veio de um JAR.</pre>
+<p><code>--create</code> = <code>c</code>, <code>--file</code> = <code>f</code>, <code>--main-class</code> = <code>e</code>, <code>--list</code> = <code>t</code>, <code>--extract</code> = <code>x</code>.</p>
+</div>
+
+<h3>Outra forma: escrever o manifesto à mão (<code>jar cfm</code>)</h3>
+<p>Você também pode escrever um arquivo de texto com as linhas que quer acrescentar ao manifesto e entregá-lo com a letra <code>m</code> (<em>manifest</em>). Essa forma é útil quando há mais de um atributo, como você vai ver no <code>Class-Path</code>.</p>
+
+<pre class="term">$ printf 'Main-Class: Main\n' &gt; manifesto.txt     « um arquivo com uma linha (e o Enter no fim)
+$ jar cfm app2.jar manifesto.txt Main.class Saudacao.class
+$ java -jar app2.jar
+Olá, Ana! Este programa veio de um JAR.</pre>
+
+<div class="warning">
+<strong>A armadilha do Enter que falta</strong>
+<p>O manifesto exige que <strong>toda linha termine com uma quebra de linha</strong>, inclusive a última. Se o seu arquivo terminar sem Enter, a última linha é <strong>ignorada em silêncio</strong>:</p>
+<pre class="term">$ printf 'Main-Class: Main' &gt; sem-enter.txt     « sem o \n no fim
+$ jar cfm app3.jar sem-enter.txt Main.class Saudacao.class
+$ java -jar app3.jar
+nenhum atributo de manifesto principal em app3.jar</pre>
+<p>O <code>jar</code> não reclama; o erro só aparece na hora de rodar. Se você escreve o manifesto num editor, aperte <kbd>Enter</kbd> depois da última linha.</p>
+</div>
+
+<hr>
+
+<h2>4. O classpath: onde o Java procura as classes</h2>
+<p>Quando o programa usa a classe <code>Saudacao</code>, a JVM precisa achar o arquivo <code>Saudacao.class</code>. A lista de lugares (pastas e JARs) onde ela procura se chama <strong>classpath</strong> ("caminho das classes"). Pense numa lista de endereços que o carteiro percorre até achar o destinatário.</p>
+
+<ul>
+  <li>Se você não diz nada, o classpath é só a <strong>pasta atual</strong> (<code>.</code>).</li>
+  <li>Com a opção <code>-cp</code> (ou <code>-classpath</code>, ou <code>--class-path</code>), você dá a lista.</li>
+  <li>Com <code>java -jar</code>, o classpath é o <strong>próprio JAR</strong> (mais o que o manifesto disser).</li>
+</ul>
+
+<p>Veja a diferença. Na pasta de cima (<code>~</code>), o <code>Main.class</code> não está na pasta atual:</p>
+
+<pre class="term">$ cd ..
+$ java Main
+Erro: Não foi possível localizar nem carregar a classe principal Main
+Causada por: java.lang.ClassNotFoundException: Main
+$ java -cp jar-aula Main                « procure na pasta jar-aula
+Olá, Ana! Este programa veio de um JAR.</pre>
+
+<p>Um JAR também pode estar no classpath, mesmo sem <code>Main-Class</code>. Lembra do primeiro <code>app.jar</code>, que deu erro com <code>java -jar</code>? Ele roda se você disser qual classe usar:</p>
+
+<pre class="term">$ java -cp app.jar Main
+Olá, Ana! Este programa veio de um JAR.</pre>
+
+<dl class="anatomy">
+  <dt>-cp app.jar</dt><dd>"Procure as classes dentro de <code>app.jar</code>."</dd>
+  <dt>Main</dt><dd>"Comece pela classe <code>Main</code>." Aqui é você quem faz o papel do <code>Main-Class</code>.</dd>
+</dl>
+
+<h3>Quando falta uma classe no JAR</h3>
+<p>Se a caixa foi montada sem uma das peças, o programa começa a rodar e só quebra quando precisa da peça que falta:</p>
+
+<pre class="term">$ jar cf sem-saudacao.jar Main.class         « esqueceu a Saudacao.class
+$ java -cp sem-saudacao.jar Main
+Exception in thread "main" java.lang.NoClassDefFoundError: Saudacao
+	at Main.main(Main.java:3)
+Caused by: java.lang.ClassNotFoundException: Saudacao
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:580)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
+	... 1 more</pre>
+
+<p>Leia de cima para baixo: <code>NoClassDefFoundError: Saudacao</code> ("não achei a definição da classe Saudacao"), na linha 3 do <code>Main.java</code> (o <code>new Saudacao("Ana")</code>). A causa (<code>Caused by</code>) é a <code>ClassNotFoundException</code>: a classe não estava em nenhum lugar do classpath. Para ler esse tipo de mensagem com calma, veja <a href="excecoes.html">O que são Exceções</a>.</p>
+
+<hr>
+
+<h2>5. Um projeto de verdade: pacotes e uma biblioteca</h2>
+<p>Programas reais têm classes em <a href="pacotes.html">pacotes</a> e usam bibliotecas (JARs feitos por outras pessoas). A Ana separou o seu caixa de loja em duas partes:</p>
+<ul>
+  <li>uma "biblioteca" <code>util.jar</code> com a classe <code>br.com.ana.util.Moeda</code>, que formata valores em reais;</li>
+  <li>o programa <code>caixa.jar</code>, com a classe <code>br.com.ana.loja.Caixa</code>, que soma os preços recebidos nos <a href="args.html">argumentos</a>.</li>
+</ul>
+
+<pre class="file" data-file="src/br/com/ana/util/Moeda.java">package br.com.ana.util;
+
+public class Moeda {
+    public static String formatar(double valor) {
+        return String.format("R$ %.2f", valor);
+    }
+}
+</pre>
+
+<pre class="file" data-file="src/br/com/ana/loja/Caixa.java">package br.com.ana.loja;
+
+import br.com.ana.util.Moeda;
+
+public class Caixa {
+    public static void main(String[] args) {
+        double total = 0;
+        for (String a : args) {
+            total += Double.parseDouble(a);
+        }
+        System.out.println("Itens: " + args.length);
+        System.out.println("Total: " + Moeda.formatar(total));
+    }
+}
+</pre>
+
+<h3>Passo 1: a biblioteca</h3>
+<pre class="term">$ javac -d classes src/br/com/ana/util/Moeda.java
+$ jar cf util.jar -C classes .
+$ jar tf util.jar
+META-INF/
+META-INF/MANIFEST.MF
+br/
+br/com/
+br/com/ana/
+br/com/ana/util/
+br/com/ana/util/Moeda.class</pre>
+
+<dl class="anatomy">
+  <dt>javac -d classes</dt><dd>Compila e põe os <code>.class</code> na pasta <code>classes</code>, já nas subpastas do pacote (<code>classes/br/com/ana/util/Moeda.class</code>).</dd>
+  <dt>-C classes .</dt><dd>"Entre (<em>change</em>) na pasta <code>classes</code> e ponha tudo (<code>.</code>) de lá." Assim o JAR fica com <code>br/com/ana/…</code> na raiz, e não <code>classes/br/…</code>. A estrutura de pastas dentro do JAR <strong>precisa</strong> ser igual ao nome do pacote.</dd>
+</dl>
+
+<h3>Passo 2: compilar o programa usando a biblioteca</h3>
+<p>O <code>javac</code> também tem classpath. Sem dizer onde está a <code>Moeda</code>, ele não compila:</p>
+
+<pre class="term">$ rm -r classes
+$ javac -d classes src/br/com/ana/loja/Caixa.java
+src/br/com/ana/loja/Caixa.java:3: error: package br.com.ana.util does not exist
+import br.com.ana.util.Moeda;
+                      ^
+src/br/com/ana/loja/Caixa.java:12: error: cannot find symbol
+        System.out.println("Total: " + Moeda.formatar(total));
+                                       ^
+  symbol:   variable Moeda
+  location: class Caixa
+2 errors
+$ javac -cp util.jar -d classes src/br/com/ana/loja/Caixa.java     « agora sim
+$ jar cfe caixa.jar br.com.ana.loja.Caixa -C classes .</pre>
+
+<p>Repare que o <code>Main-Class</code> usa o <strong>nome completo</strong> da classe, com o pacote: <code>br.com.ana.loja.Caixa</code>.</p>
+
+<h3>Passo 3: rodar (e o erro clássico)</h3>
+<pre class="term">$ java -jar caixa.jar 4.50 10 2.25
+Itens: 3
+Exception in thread "main" java.lang.NoClassDefFoundError: br/com/ana/util/Moeda
+	at br.com.ana.loja.Caixa.main(Caixa.java:12)
+Caused by: java.lang.ClassNotFoundException: br.com.ana.util.Moeda
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:580)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
+	... 1 more</pre>
+
+<p>O programa começou (mostrou <code>Itens: 3</code>) e quebrou na linha 12, a primeira que usa a <code>Moeda</code>: a biblioteca não está no classpath. Há duas soluções.</p>
+
+<p><strong>Solução A: dar o classpath na linha de comando.</strong> Vários lugares são separados por <code>:</code> no Linux e no macOS (no Windows, por <code>;</code>). Com <code>-cp</code>, você também diz a classe principal:</p>
+
+<pre class="term">$ java -cp caixa.jar:util.jar br.com.ana.loja.Caixa 4.50 10 2.25
+Itens: 3
+Total: R$ 16,75</pre>
+
+<p>(A vírgula em <code>16,75</code> vem do idioma do computador, pt_BR; veja <a href="formatacao.html">Formatar Texto</a>.)</p>
+
+<div class="warning">
+<strong><code>-cp</code> e <code>-jar</code> não se misturam</strong>
+<p>Com <code>-jar</code>, o Java <strong>ignora</strong> o <code>-cp</code>, sem avisar. Por isso <code>java -cp util.jar -jar caixa.jar</code> dá o mesmo <code>NoClassDefFoundError</code>. Ou você usa <code>-cp</code> com o nome da classe, ou usa <code>-jar</code> com o <code>Class-Path</code> no manifesto.</p>
+</div>
+
+<p><strong>Solução B: escrever <code>Class-Path</code> no manifesto.</strong> O atributo <code>Class-Path</code> lista outros JARs, <strong>relativos à pasta onde o JAR está</strong>, separados por espaço:</p>
+
+<pre class="term">$ printf 'Main-Class: br.com.ana.loja.Caixa\nClass-Path: util.jar\n' &gt; manifesto.txt
+$ jar cfm caixa.jar manifesto.txt -C classes .
+$ java -jar caixa.jar 4.50 10 2.25
+Itens: 3
+Total: R$ 16,75</pre>
+
+<p>Agora basta entregar os dois arquivos, <code>caixa.jar</code> e <code>util.jar</code>, na mesma pasta. Em projetos com dezenas de bibliotecas, ninguém faz isso à mão: o <a href="maven.html">Maven</a> e o <a href="gradle.html">Gradle</a> baixam as bibliotecas, montam o classpath e criam o JAR.</p>
+
+<div class="tryjava" data-args="4.50 10 2.25" data-goal="out:Itens: 3,out:Maior: 10.0">
+<p class="try-task"><strong>Missão:</strong> este é um caixa simplificado, sem pacote. Ele já recebe os preços <code>4.50 10 2.25</code> como argumentos (o que viria depois de <code>java -jar caixa.jar</code>). Complete o laço para descobrir o <strong>maior</strong> preço e mostrar <code>Maior: 10.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double maior = 0;
+        for (String a : args) {
+            double v = Double.parseDouble(a);
+            // compare v com maior aqui
+        }
+        System.out.println("Itens: " + args.length);
+        System.out.println("Maior: " + maior);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double maior = 0;
+        for (String a : args) {
+            double v = Double.parseDouble(a);
+            if (v &gt; maior) {
+                maior = v;
+            }
+        }
+        System.out.println("Itens: " + args.length);
+        System.out.println("Maior: " + maior);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>6. Formas diferentes de rodar um programa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Arquivo-fonte direto</td><td><code>java Main.java</code></td><td>Programas de um arquivo, estudando e testando (veja <a href="compilar-executar.html">javac e java</a>).</td></tr>
+<tr><td>Classes numa pasta</td><td><code>java -cp classes br.com.ana.loja.Caixa</code></td><td>Durante o desenvolvimento, depois do <code>javac</code>.</td></tr>
+<tr><td>JAR no classpath</td><td><code>java -cp caixa.jar:util.jar br.com.ana.loja.Caixa</code></td><td>Quando o JAR não tem <code>Main-Class</code>, ou para escolher outra classe com <code>main</code>.</td></tr>
+<tr><td>JAR executável</td><td><code>java -jar caixa.jar</code></td><td>Para entregar o programa: a pessoa não precisa saber o nome da classe.</td></tr>
+<tr><td>Instalador nativo</td><td><code>jpackage …</code></td><td>Para quem não tem Java instalado (veja abaixo).</td></tr>
+</table>
+</div>
+
+<h3>Uma palavra sobre o <code>jpackage</code></h3>
+<p>Desde o Java 16, o JDK traz o <code>jpackage</code>, que transforma o seu JAR num <strong>instalador nativo</strong>: <code>.deb</code> ou <code>.rpm</code> no Linux, <code>.msi</code> ou <code>.exe</code> no Windows, <code>.dmg</code> no macOS. O instalador leva junto uma cópia enxuta do Java, então quem instala nem precisa ter o Java no computador.</p>
+<pre class="term">$ jpackage --version
+25.0.4.1</pre>
+<p>Ele exige ferramentas de cada sistema (por exemplo, o <code>dpkg</code> para gerar <code>.deb</code>) e tem muitas opções, por isso fica fora desta aula. A ideia por trás dele, o Java "enxuto", é o <code>jlink</code>, que você vê em <a href="modulos.html">Módulos (JPMS)</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>nenhum atributo de manifesto principal em app.jar</code></strong>
+<pre class="term">$ java -jar app.jar
+nenhum atributo de manifesto principal em app.jar</pre>
+<p><strong>O que aconteceu:</strong> o manifesto não tem <code>Main-Class</code> (em inglês: <code>no main manifest attribute, in app.jar</code>). Ou o JAR foi criado com <code>jar cf</code>, sem o <code>e</code>, ou o arquivo do manifesto escrito à mão não terminava com Enter.</p>
+<p><strong>Como confirmar:</strong> <code>unzip -p app.jar META-INF/MANIFEST.MF</code> e procure a linha <code>Main-Class</code>.</p>
+<p><strong>Como resolver:</strong> recrie com <code>jar cfe app.jar Main *.class</code>, ou rode sem <code>-jar</code>: <code>java -cp app.jar Main</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>Não foi possível localizar nem carregar a classe principal</code></strong>
+<pre class="term">$ jar cfe errado.jar Principal *.class
+$ java -jar errado.jar
+Erro: Não foi possível localizar nem carregar a classe principal Principal
+Causada por: java.lang.ClassNotFoundException: Principal</pre>
+<p><strong>O que aconteceu:</strong> o <code>Main-Class</code> aponta para uma classe que não está no JAR. O <code>jar</code> não confere o nome. Erros comuns: digitar errado, esquecer o pacote (<code>Caixa</code> em vez de <code>br.com.ana.loja.Caixa</code>) ou escrever <code>Main.class</code> (o certo é só <code>Main</code>).</p>
+<p><strong>Como resolver:</strong> veja com <code>jar tf</code> o caminho do <code>.class</code>, troque as <code>/</code> por <code>.</code>, tire o <code>.class</code>: <code>br/com/ana/loja/Caixa.class</code> → <code>br.com.ana.loja.Caixa</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NoClassDefFoundError</code> no meio do programa</strong>
+<p><strong>O que aconteceu:</strong> o programa começou, mas uma classe usada mais adiante não está no classpath: faltou pôr no JAR, faltou o <code>-cp</code> da biblioteca, ou você usou <code>-cp</code> junto com <code>-jar</code> (que ignora o <code>-cp</code>).</p>
+<p><strong>Como resolver:</strong> confira com <code>jar tf</code> se a classe está lá; para bibliotecas, use <code>java -cp app.jar:lib.jar Classe</code> ou <code>Class-Path</code> no manifesto.</p>
+</div>
+
+<div class="cenario">
+<strong><code>package … does not exist</code> ao compilar</strong>
+<p><strong>O que aconteceu:</strong> o <code>javac</code> não achou a biblioteca. O classpath vale para o <code>javac</code> também.</p>
+<p><strong>Como resolver:</strong> <code>javac -cp util.jar …</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>jar cf app.jar *.class</code></td><td>Cria um JAR com as classes (sem classe principal)</td></tr>
+<tr><td><code>jar cfe app.jar Main *.class</code></td><td>Cria um JAR executável com <code>Main-Class: Main</code></td></tr>
+<tr><td><code>jar cfm app.jar manifesto.txt *.class</code></td><td>Cria um JAR acrescentando as linhas de <code>manifesto.txt</code> ao manifesto</td></tr>
+<tr><td><code>jar cf app.jar -C classes .</code></td><td>Põe o conteúdo da pasta <code>classes</code> na raiz do JAR</td></tr>
+<tr><td><code>jar tf app.jar</code> / <code>jar tvf app.jar</code></td><td>Lista o conteúdo (com detalhes, no <code>v</code>)</td></tr>
+<tr><td><code>jar xf app.jar</code></td><td>Extrai tudo na pasta atual</td></tr>
+<tr><td><code>unzip -p app.jar META-INF/MANIFEST.MF</code></td><td>Mostra o manifesto</td></tr>
+<tr><td><code>java -jar app.jar arg1 arg2</code></td><td>Roda a classe do <code>Main-Class</code>, com argumentos</td></tr>
+<tr><td><code>java -cp a.jar:b.jar pacote.Classe</code></td><td>Roda uma classe procurando em vários JARs (<code>;</code> no Windows)</td></tr>
+<tr><td><code>javac -cp lib.jar -d classes Arquivo.java</code></td><td>Compila usando uma biblioteca</td></tr>
+<tr><td><code>Main-Class: pacote.Classe</code></td><td>Atributo do manifesto: classe principal</td></tr>
+<tr><td><code>Class-Path: lib1.jar lib/lib2.jar</code></td><td>Atributo do manifesto: outros JARs, relativos ao JAR</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Criar um JAR executável</h3>
+<p>Complete para criar <code>loja.jar</code> com todas as classes da pasta e a classe principal <code>Loja</code>:</p>
+<div class="ex-code">jar <input data-answer="cfe loja.jar Loja *.class|cfe loja.jar Loja Loja.class" aria-label="opções e argumentos"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Ver o conteúdo</h3>
+<p>Complete para listar o que tem dentro de <code>loja.jar</code>:</p>
+<div class="ex-code">jar <input data-answer="tf loja.jar|tvf loja.jar|--list --file loja.jar" aria-label="opções"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Classe principal com pacote</h3>
+<p>O <code>jar tf</code> mostrou <code>br/com/ana/agenda/App.class</code>. Complete a linha do manifesto:</p>
+<div class="ex-code">Main-Class: <input data-answer="br.com.ana.agenda.App" aria-label="classe principal"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que é, por dentro, um arquivo <code>.jar</code>?</p>
+<label><input type="radio" name="q4"> Um programa nativo do Linux, como o <code>ls</code>.</label>
+<label><input type="radio" name="q4"> Um arquivo ZIP com as classes e uma pasta <code>META-INF</code>.</label>
+<label><input type="radio" name="q4"> Um arquivo <code>.java</code> muito grande.</label>
+<label><input type="radio" name="q4"> Uma cópia da JVM.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. <code>java -jar app.jar</code> mostrou <code>nenhum atributo de manifesto principal em app.jar</code>. Qual comando roda o programa <strong>sem recriar</strong> o JAR, sabendo que a classe com <code>main</code> é <code>Main</code>?</p>
+<label><input type="radio" name="q5"> <code>java app.jar</code></label>
+<label><input type="radio" name="q5"> <code>java -jar app.jar Main</code></label>
+<label><input type="radio" name="q5"> <code>java -cp app.jar Main</code></label>
+<label><input type="radio" name="q5"> <code>javac app.jar</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O <code>caixa.jar</code> precisa do <code>util.jar</code>. Qual destes comandos <strong>não</strong> encontra a biblioteca?</p>
+<label><input type="radio" name="q6"> <code>java -cp util.jar -jar caixa.jar</code> (sem <code>Class-Path</code> no manifesto)</label>
+<label><input type="radio" name="q6"> <code>java -cp caixa.jar:util.jar br.com.ana.loja.Caixa</code></label>
+<label><input type="radio" name="q6"> <code>java -jar caixa.jar</code> com <code>Class-Path: util.jar</code> no manifesto</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>JAR</strong> é um ZIP com as classes compiladas e a pasta <code>META-INF</code>; serve para entregar o programa (ou uma biblioteca) num arquivo só.</li>
+  <li><code>jar cf</code> cria, <code>jar tf</code> lista, <code>jar xf</code> extrai. Os argumentos seguem a ordem das letras.</li>
+  <li>O <code>META-INF/MANIFEST.MF</code> é a etiqueta. <code>Main-Class</code> diz por qual classe começar; <code>jar cfe app.jar Main …</code> escreve essa linha.</li>
+  <li><code>java -jar app.jar</code> roda um JAR executável. Sem <code>Main-Class</code>: <code>nenhum atributo de manifesto principal</code> (<code>no main manifest attribute</code>).</li>
+  <li>O <strong>classpath</strong> é a lista de pastas e JARs onde o Java procura classes: <code>-cp a.jar:b.jar</code> (<code>;</code> no Windows) ou <code>Class-Path</code> no manifesto. Com <code>-jar</code>, o <code>-cp</code> é ignorado.</li>
+  <li>Manifesto escrito à mão: termine a última linha com Enter.</li>
+  <li><code>jpackage</code> gera instaladores nativos; o Maven e o Gradle fazem o JAR por você.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
