@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Anotações — @Override, @FunctionalInterface, @Deprecated e @SuppressWarnings | Guia Java</title>
+<meta name="description" content="O que são anotações no Java: @Override, @FunctionalInterface, @Deprecated (com o aviso real do javac) e @SuppressWarnings, anotações de frameworks como JUnit e Spring, e como criar uma anotação simples.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Anotações</span></h1>
+
+<p class="intro">Uma <strong>anotação</strong> é uma etiqueta que começa com <code>@</code> e fica grudada numa classe, num método ou num campo: <code>@Override</code>, <code>@Deprecated</code>, <code>@Test</code>. Ela não muda o que o código faz; ela <strong>informa</strong> algo sobre o código para quem vai lê-lo: o compilador, uma ferramenta ou um framework.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma anotação e onde ela pode ficar.</li>
+  <li>As quatro que você mais vai ver: <code>@Override</code>, <code>@FunctionalInterface</code>, <code>@Deprecated</code> e <code>@SuppressWarnings</code>, com os erros e avisos reais do <code>javac</code>.</li>
+  <li>Para que servem as anotações dos frameworks (<code>@Test</code> do JUnit, <code>@GetMapping</code> do Spring…).</li>
+  <li>Como criar uma anotação sua, com elementos e valores padrão, e lê-la com reflexão.</li>
+</ul>
+</div>
+
+<p>Você já usou <code>@Override</code> na aula de <a href="sobrescrita.html">sobrescrita</a> e talvez <code>@FunctionalInterface</code> em <a href="interfaces-funcionais.html">interfaces funcionais</a>. Agora vamos entender o que esse <code>@</code> é. Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense nas etiquetas que a Ana cola nas caixas da loja: "FRÁGIL", "ESTE LADO PARA CIMA", "PROMOÇÃO ATÉ SEXTA". A etiqueta não muda o que tem dentro da caixa. Mas quem pega a caixa <strong>lê a etiqueta e age</strong> de acordo: o entregador carrega com cuidado; o caixa aplica o desconto.</p>
+<p>Uma anotação é a mesma coisa no código. <code>@Override</code> é uma etiqueta que diz ao compilador "este método substitui um da classe mãe; confira para mim". <code>@Deprecated</code> diz "este método está aposentado; avise quem usar". Quem lê as etiquetas pode ser:</p>
+<ul>
+  <li>o <strong>compilador</strong> (<code>javac</code>), na hora de compilar;</li>
+  <li>uma <strong>ferramenta</strong>, como o <a href="javadoc.html">Javadoc</a> ou o IDE;</li>
+  <li>o próprio <strong>programa</strong> ou um framework, enquanto roda, usando <a href="reflexao.html">reflexão</a>.</li>
+</ul>
+
+<h3>Como se escreve</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando</th></tr>
+<tr><td>Só o nome</td><td><code>@Override</code></td><td>A anotação não precisa de informação extra</td></tr>
+<tr><td>Um valor</td><td><code>@SuppressWarnings("deprecation")</code></td><td>Tem um elemento principal (chamado <code>value</code>)</td></tr>
+<tr><td>Pares nome = valor</td><td><code>@Deprecated(since = "2.0", forRemoval = true)</code></td><td>Vários elementos</td></tr>
+<tr><td>Uma lista</td><td><code>@SuppressWarnings({"deprecation", "unchecked"})</code></td><td>O elemento aceita vários valores</td></tr>
+</table>
+</div>
+<p>A anotação fica <strong>logo antes</strong> do que ela etiqueta, normalmente na linha de cima. Pode etiquetar classes, métodos, campos, parâmetros e variáveis locais.</p>
+
+<hr>
+
+<h2>1. <code>@Override</code>: "confira que estou sobrescrevendo"</h2>
+<p>A classe <code>Produto</code> quer mostrar um texto bonito no <code>println</code>. Para isso, ela precisa sobrescrever o método <code>toString()</code> que herda de <a href="object.html">Object</a>. A Ana digitou o nome com um <code>s</code> minúsculo:</p>
+
+<pre class="file" data-file="Main.java">class Produto {
+    String nome;
+    double preco;
+
+    Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    public String tostring() {
+        return nome + " (R$ " + preco + ")";
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Produto p = new Produto("Café", 12.5);
+        System.out.println(p);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Produto@1dbd16a6</pre>
+
+<p>Compilou sem reclamar e mostrou um texto estranho: o <code>toString()</code> padrão do <code>Object</code> (o nome da classe, <code>@</code> e um número que muda de uma execução para outra). Para o Java, <code>tostring</code> é só <strong>mais um método</strong>, com outro nome, que ninguém chama. O erro passou despercebido.</p>
+
+<p>Agora com a etiqueta:</p>
+
+<pre class="file" data-file="Main.java">    @Override
+    public String tostring() {
+        return nome + " (R$ " + preco + ")";
+    }
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:10: error: method does not override or implement a method from a supertype
+    @Override
+    ^
+1 error</pre>
+
+<p>"O método não sobrescreve nem implementa um método de um supertipo (classe mãe ou interface)." O compilador leu a etiqueta, foi conferir e achou o problema <strong>antes</strong> de o programa rodar. Corrigindo para <code>toString</code>:</p>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Café (R$ 12.5)</pre>
+
+<dl class="anatomy">
+  <dt>@</dt><dd>Marca o início de uma anotação.</dd>
+  <dt>Override</dt><dd>"Sobrescrever", em inglês. É uma anotação que vem com o Java (<code>java.lang.Override</code>), por isso não precisa de <code>import</code>.</dd>
+</dl>
+
+<p>Regra de ouro: <strong>sempre</strong> que sobrescrever um método, escreva <code>@Override</code>. Ela custa uma linha e pega erros de digitação, de parâmetros e de nomes que mudaram na classe mãe.</p>
+
+<div class="tryjava" data-goal="out:Café (R$ 12.5),src:@Override">
+<p class="try-task"><strong>Missão:</strong> acrescente <code>@Override</code> acima do método <code>tostring</code> e rode: veja o <code>javac</code> acusar o problema. Depois corrija o nome do método para que o programa mostre <code>Café (R$ 12.5)</code>.</p>
+<pre class="script">class Produto {
+    String nome;
+    double preco;
+
+    Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    public String tostring() {
+        return nome + " (R$ " + preco + ")";
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Produto p = new Produto("Café", 12.5);
+        System.out.println(p);
+    }
+}
+</pre>
+<pre class="solucao">class Produto {
+    String nome;
+    double preco;
+
+    Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    @Override
+    public String toString() {
+        return nome + " (R$ " + preco + ")";
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Produto p = new Produto("Café", 12.5);
+        System.out.println(p);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>@FunctionalInterface</code>: "esta interface é para lambdas"</h2>
+<p>Uma <a href="interfaces-funcionais.html">interface funcional</a> tem <strong>exatamente um</strong> método abstrato, e por isso pode receber uma <a href="lambdas.html">lambda</a>. A etiqueta <code>@FunctionalInterface</code> pede ao compilador que garanta isso. Se alguém acrescentar um segundo método abstrato:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">@FunctionalInterface
+interface Desconto {
+    double aplicar(double preco);
+    double reverter(double preco);
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:1: error: Unexpected @FunctionalInterface annotation
+@FunctionalInterface
+^
+  Desconto is not a functional interface
+    multiple non-overriding abstract methods found in interface Desconto
+1 error</pre>
+
+<p>"Anotação <code>@FunctionalInterface</code> inesperada: <code>Desconto</code> não é uma interface funcional; foram encontrados vários métodos abstratos." Sem a etiqueta, a interface compilaria, e o erro só apareceria em outro arquivo, no dia em que alguém tentasse usar uma lambda com ela. Com um método só, tudo funciona:</p>
+
+<pre class="file" data-file="Main.java">@FunctionalInterface
+interface Desconto {
+    double aplicar(double preco);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Desconto metade = preco -&gt; preco / 2;
+        Desconto dezReais = preco -&gt; preco - 10;
+        System.out.println(metade.aplicar(80.0));
+        System.out.println(dezReais.aplicar(80.0));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+40.0
+70.0</pre>
+
+<hr>
+
+<h2>3. <code>@Deprecated</code>: "aposentado, não use"</h2>
+<p><em>Deprecated</em> quer dizer "desaprovado", "obsoleto". Quando um método antigo foi substituído por um melhor, mas ainda não pode ser apagado (porque tem gente usando), ele ganha essa etiqueta. O código continua funcionando, mas o compilador <strong>avisa</strong> quem o usa.</p>
+
+<pre class="file" data-file="Main.java">class Loja {
+    @Deprecated
+    static double precoAntigo(double valor) {
+        return valor + 10;
+    }
+
+    static double preco(double valor) {
+        return valor + 8;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(Loja.precoAntigo(100));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Note: Main.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+$ javac -Xlint:deprecation Main.java
+Main.java:14: warning: [deprecation] precoAntigo(double) in Loja has been deprecated
+        System.out.println(Loja.precoAntigo(100));
+                               ^
+1 warning
+$ java Main
+110.0</pre>
+
+<p>Repare nos três momentos:</p>
+<ol>
+  <li>O <code>javac</code> comum mostra só duas <strong>notas</strong> ("<code>Main.java</code> usa ou sobrescreve uma API obsoleta"; "recompile com <code>-Xlint:deprecation</code> para ver os detalhes"). O arquivo <code>.class</code> <strong>foi gerado</strong>: nota não é erro.</li>
+  <li>Com a opção <code>-Xlint:deprecation</code>, aparece o <strong>aviso</strong> (<em>warning</em>) completo, com linha e setinha: "<code>precoAntigo(double)</code> em <code>Loja</code> <strong>has been deprecated</strong>" (foi marcado como obsoleto).</li>
+  <li>O programa roda normalmente.</li>
+</ol>
+
+<h3>Marcado para remoção</h3>
+<p>A anotação aceita dois elementos: <code>since</code> ("desde qual versão") e <code>forRemoval</code> ("vai ser removido"). Com <code>forRemoval = true</code>, o aviso fica mais forte e aparece <strong>mesmo sem</strong> o <code>-Xlint</code>:</p>
+
+<pre class="file" data-file="Main.java">class Loja {
+    @Deprecated(since = "2.0", forRemoval = true)
+    static double precoAntigo(double valor) {
+        return valor + 10;
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Main.java:10: warning: [removal] precoAntigo(double) in Loja has been deprecated and marked for removal
+        System.out.println(Loja.precoAntigo(100));
+                               ^
+1 warning
+110.0</pre>
+
+<p>"…foi marcado como obsoleto <strong>e para remoção</strong>." Ou seja: numa versão futura, esse método vai sumir, e o seu código vai parar de compilar. Hora de trocar para o método novo.</p>
+
+<p>A própria biblioteca do Java usa essa etiqueta. O construtor <code>new Integer(5)</code> é obsoleto desde o Java 9 (o certo é <code>Integer.valueOf(5)</code> ou só <code>5</code>, veja <a href="wrappers.html">wrappers</a>):</p>
+
+<pre class="term" data-cwd="~/java">$ javac -Xlint:deprecation Main.java
+Main.java:3: warning: [deprecation] Integer(int) in Integer has been deprecated
+        Integer quantidade = new Integer(5);
+                             ^
+1 warning</pre>
+
+<div class="tip">
+<strong>Documente o substituto</strong>
+<p>Junto com <code>@Deprecated</code>, escreva no comentário de documentação o que usar no lugar: <code>/** @deprecated use {@link #preco(double)} */</code>. A etiqueta avisa; o comentário explica. Veja <a href="javadoc.html">Javadoc</a>.</p>
+</div>
+
+<hr>
+
+<h2>4. <code>@SuppressWarnings</code>: "eu sei, pode ficar quieto"</h2>
+<p><em>Suppress warnings</em> = "suprimir avisos". Às vezes você usa algo obsoleto de propósito (por exemplo, enquanto migra um sistema antigo) e não quer que o aviso esconda outros mais importantes. A etiqueta diz qual <strong>categoria</strong> de aviso calar, o nome que aparece entre colchetes na mensagem (<code>[deprecation]</code>, <code>[removal]</code>, <code>[unchecked]</code>…):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    @SuppressWarnings("deprecation")
+    public static void main(String[] args) {
+        Integer quantidade = new Integer(5);
+        System.out.println(quantidade);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+5</pre>
+
+<p>Sem notas e sem avisos. Use com moderação e no menor pedaço possível (um método, não a classe inteira): um aviso calado é um aviso que ninguém mais vai ver.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Valor</th><th>Cala o aviso de…</th></tr>
+<tr><td><code>"deprecation"</code></td><td>Uso de algo <code>@Deprecated</code></td></tr>
+<tr><td><code>"removal"</code></td><td>Uso de algo <code>@Deprecated(forRemoval = true)</code></td></tr>
+<tr><td><code>"unchecked"</code></td><td>Conversões de <a href="generics.html">generics</a> que o compilador não consegue conferir</td></tr>
+<tr><td><code>"rawtypes"</code></td><td>Uso de <code>List</code> sem <code>&lt;…&gt;</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. Anotações de frameworks</h2>
+<p>Até aqui, quem lia as etiquetas era o compilador. Mas as anotações mais famosas do mundo Java são lidas por <strong>frameworks</strong> (bibliotecas grandes que "chamam o seu código") enquanto o programa roda. Você não precisa saber usá-las agora; só reconhecer o padrão quando encontrar:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Anotação</th><th>De onde</th><th>O que diz</th></tr>
+<tr><td><code>@Test</code></td><td>JUnit</td><td>"Este método é um teste: rode-o e confira." Você vai usar na aula de <a href="junit.html">JUnit</a>.</td></tr>
+<tr><td><code>@BeforeEach</code></td><td>JUnit</td><td>"Rode isto antes de cada teste."</td></tr>
+<tr><td><code>@Component</code>, <code>@Service</code></td><td>Spring</td><td>"Crie um objeto desta classe e entregue a quem precisar."</td></tr>
+<tr><td><code>@GetMapping("/produtos")</code></td><td>Spring</td><td>"Quando alguém acessar o endereço <code>/produtos</code> no site, chame este método."</td></tr>
+<tr><td><code>@Entity</code>, <code>@Id</code></td><td>Jakarta Persistence (JPA)</td><td>"Esta classe vira uma tabela do banco de dados; este campo é a chave."</td></tr>
+</table>
+</div>
+
+<p>Como um framework "lê" uma etiqueta? Com <a href="reflexao.html">reflexão</a>: ele examina as suas classes enquanto o programa roda, procura os métodos com <code>@Test</code> e os chama. Na próxima seção você faz isso em miniatura.</p>
+
+<hr>
+
+<h2>6. Criando uma anotação</h2>
+<p>Você pode criar suas próprias etiquetas. A Ana quer marcar os métodos que são tarefas da loja, com o nome do responsável e uma prioridade. Esta seção é uma <strong>apresentação</strong>: criar anotações é mais comum em quem escreve bibliotecas do que no dia a dia.</p>
+
+<pre class="file" data-file="Main.java">import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Comparator;
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+@interface Tarefa {
+    String responsavel();
+    int prioridade() default 1;
+}
+
+public class Main {
+    @Tarefa(responsavel = "Ana", prioridade = 3)
+    static void conferirEstoque() { }
+
+    @Tarefa(responsavel = "Bruno")
+    static void limparVitrine() { }
+
+    static void almocar() { }
+
+    public static void main(String[] args) {
+        Method[] metodos = Main.class.getDeclaredMethods();
+        Arrays.sort(metodos, Comparator.comparing(Method::getName));
+        for (Method m : metodos) {
+            Tarefa t = m.getAnnotation(Tarefa.class);
+            if (t != null) {
+                System.out.println(m.getName() + " -&gt; " + t.responsavel() + ", prioridade " + t.prioridade());
+            }
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+conferirEstoque -&gt; Ana, prioridade 3
+limparVitrine -&gt; Bruno, prioridade 1</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>@interface Tarefa</code></td><td>Declara uma anotação (repare no <code>@</code> antes de <code>interface</code>). O nome é o da etiqueta: <code>@Tarefa</code>.</td></tr>
+<tr><td><code>String responsavel();</code></td><td>Um <strong>elemento</strong>: parece um método, mas é um "campo" da etiqueta. Sem valor padrão, é <strong>obrigatório</strong>.</td></tr>
+<tr><td><code>int prioridade() default 1;</code></td><td>Elemento com valor padrão: quem não informar recebe 1 (foi o caso do Bruno).</td></tr>
+<tr><td><code>@Retention(RetentionPolicy.RUNTIME)</code></td><td>"Retenção": a etiqueta deve <strong>continuar existindo enquanto o programa roda</strong>. Sem isso, ela some depois da compilação, e a reflexão não a enxerga.</td></tr>
+<tr><td><code>@Target(ElementType.METHOD)</code></td><td>"Alvo": esta etiqueta só pode ser colada em <strong>métodos</strong>.</td></tr>
+<tr><td><code>getDeclaredMethods()</code></td><td>Reflexão: a lista dos métodos da classe <code>Main</code>. Ela vem em ordem qualquer, por isso o <code>Arrays.sort</code> por nome.</td></tr>
+<tr><td><code>m.getAnnotation(Tarefa.class)</code></td><td>Lê a etiqueta <code>@Tarefa</code> do método, ou <code>null</code> se ele não tiver (o <code>almocar</code> e o próprio <code>main</code>).</td></tr>
+</table>
+</div>
+
+<p>Repare que as anotações <code>@Retention</code> e <code>@Target</code> são <strong>anotações sobre a anotação</strong> (os nomes técnicos são "meta-anotações"). É exatamente assim que o JUnit define o <code>@Test</code>.</p>
+
+<hr>
+
+<h2>Qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Anotação</th></tr>
+<tr><td>Você sobrescreveu um método da classe mãe ou de uma interface</td><td><code>@Override</code> (sempre)</td></tr>
+<tr><td>Criou uma interface para receber lambdas</td><td><code>@FunctionalInterface</code></td></tr>
+<tr><td>Um método seu foi substituído por outro melhor</td><td><code>@Deprecated</code> (+ <code>since</code>, e <code>forRemoval = true</code> se vai sumir)</td></tr>
+<tr><td>Usa algo obsoleto de propósito e quer calar o aviso</td><td><code>@SuppressWarnings("deprecation")</code>, no menor trecho possível</td></tr>
+<tr><td>Escreve testes</td><td><code>@Test</code> do <a href="junit.html">JUnit</a></td></tr>
+<tr><td>Quer marcar código para uma ferramenta sua ler</td><td>Uma anotação própria com <code>@Retention(RUNTIME)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3><code>method does not override or implement a method from a supertype</code></h3>
+<p>Um método com <code>@Override</code> não corresponde a nenhum método da classe mãe ou das interfaces: nome digitado errado (<code>tostring</code>), parâmetros diferentes ou classe que não herda de quem você pensa. <strong>Conserto:</strong> confira nome, parâmetros e o <code>extends</code>/<code>implements</code>. <strong>Não</strong> apague o <code>@Override</code> para "fazer compilar": ele está mostrando um erro de verdade.</p>
+</div>
+
+<div class="cenario">
+<h3><code>Unexpected @FunctionalInterface annotation</code></h3>
+<p>A interface tem mais de um método abstrato (seção 2). <strong>Conserto:</strong> deixe só um abstrato; os outros podem virar <code>default</code> (com corpo), ou tire a anotação se a interface não é mesmo para lambdas.</p>
+</div>
+
+<div class="cenario">
+<h3>Faltou um elemento obrigatório</h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">    @Tarefa(prioridade = 2)
+    static void conferirEstoque() { }
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:14: error: annotation @Tarefa is missing a default value for the element 'responsavel'
+    @Tarefa(prioridade = 2)
+    ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "falta um valor para o elemento <code>responsavel</code>", que não tem <code>default</code>. <strong>Conserto:</strong> <code>@Tarefa(responsavel = "Ana", prioridade = 2)</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>Etiqueta no lugar errado</h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">@Tarefa(responsavel = "Ana")
+public class Main {
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:13: error: annotation interface not applicable to this kind of declaration
+@Tarefa(responsavel = "Ana")
+^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "a anotação não se aplica a este tipo de declaração". O <code>@Target(ElementType.METHOD)</code> só permite métodos, e ela foi colada numa classe. <strong>Conserto:</strong> mova-a para um método, ou acrescente <code>ElementType.TYPE</code> ao <code>@Target</code>: <code>@Target({ElementType.METHOD, ElementType.TYPE})</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>Avisos de <code>deprecated</code> não são erros</h3>
+<p>As linhas <code>Note: … uses or overrides a deprecated API.</code> e <code>warning: [deprecation] …</code> não impedem a compilação: o <code>.class</code> é gerado e o programa roda. Mas leve-as a sério, principalmente <code>[removal]</code>: numa próxima versão, aquele código deixa de compilar.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Anotação</th><th>Onde</th><th>Quem lê</th><th>Efeito</th></tr>
+<tr><td><code>@Override</code></td><td>Método</td><td><code>javac</code></td><td>Erro se não sobrescrever nada</td></tr>
+<tr><td><code>@FunctionalInterface</code></td><td>Interface</td><td><code>javac</code></td><td>Erro se não tiver exatamente 1 método abstrato</td></tr>
+<tr><td><code>@Deprecated</code></td><td>Qualquer declaração</td><td><code>javac</code>, Javadoc, IDE</td><td>Nota/aviso para quem usa</td></tr>
+<tr><td><code>@Deprecated(since = "…", forRemoval = true)</code></td><td>Qualquer declaração</td><td><code>javac</code></td><td>Aviso <code>[removal]</code> sempre</td></tr>
+<tr><td><code>@SuppressWarnings("…")</code></td><td>Classe, método, variável</td><td><code>javac</code></td><td>Cala uma categoria de aviso</td></tr>
+<tr><td><code>@SafeVarargs</code></td><td>Método com <code>…</code></td><td><code>javac</code></td><td>Cala um aviso de generics com varargs</td></tr>
+<tr><td><code>@Retention</code>, <code>@Target</code></td><td>Declaração de anotação</td><td><code>javac</code>, JVM</td><td>Por quanto tempo existe; onde pode ser usada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete com a anotação que pede ao compilador para conferir a sobrescrita:</p>
+<div class="ex-code"><input data-answer="@Override"><br>public String toString() { return "Café"; }</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete para marcar o método como obsoleto e com remoção prevista:</p>
+<div class="ex-code">@Deprecated(since = "2.0", <input data-answer="forRemoval = true|forRemoval=true">)</div>
+</div>
+
+<div class="exercise">
+<p>3. Complete para calar os avisos de uso de API obsoleta:</p>
+<div class="ex-code">@SuppressWarnings("<input data-answer="deprecation">")</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Sem <code>@Override</code>, um método <code>tostring()</code> (com <code>s</code> minúsculo) numa classe…</p>
+<label><input type="radio" name="q4"> não compila.</label>
+<label><input type="radio" name="q4"> compila, mas é um método novo que ninguém chama; o <code>println</code> usa o <code>toString()</code> padrão.</label>
+<label><input type="radio" name="q4"> é corrigido automaticamente para <code>toString</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Para que um framework encontre a sua anotação enquanto o programa roda, ela precisa de…</p>
+<label><input type="radio" name="q5"> <code>@Target(ElementType.METHOD)</code></label>
+<label><input type="radio" name="q5"> <code>@Deprecated</code></label>
+<label><input type="radio" name="q5"> <code>@Retention(RetentionPolicy.RUNTIME)</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:40.0,out:70.0,src:@FunctionalInterface">
+<p class="try-task"><strong>Missão final:</strong> etiquete a interface <code>Desconto</code> com <code>@FunctionalInterface</code> e crie as duas lambdas que faltam: <code>metade</code> (divide o preço por 2) e <code>dezReais</code> (tira 10). O programa deve mostrar <code>40.0</code> e <code>70.0</code>. Depois, para ver a etiqueta trabalhando, tente acrescentar um segundo método abstrato à interface.</p>
+<pre class="script">interface Desconto {
+    double aplicar(double preco);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        // crie as lambdas metade e dezReais aqui
+
+        System.out.println(metade.aplicar(80.0));
+        System.out.println(dezReais.aplicar(80.0));
+    }
+}
+</pre>
+<pre class="solucao">@FunctionalInterface
+interface Desconto {
+    double aplicar(double preco);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Desconto metade = preco -&gt; preco / 2;
+        Desconto dezReais = preco -&gt; preco - 10;
+        System.out.println(metade.aplicar(80.0));
+        System.out.println(dezReais.aplicar(80.0));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma anotação (<code>@Nome</code>) é uma etiqueta: não muda o que o código faz, mas informa o compilador, ferramentas ou frameworks.</li>
+  <li><code>@Override</code> faz o <code>javac</code> conferir a sobrescrita (<code>method does not override or implement a method from a supertype</code>). Use sempre.</li>
+  <li><code>@FunctionalInterface</code> garante um único método abstrato.</li>
+  <li><code>@Deprecated</code> gera nota/aviso <code>has been deprecated</code>; com <code>forRemoval = true</code>, o aviso <code>[removal]</code> aparece sempre.</li>
+  <li><code>@SuppressWarnings("categoria")</code> cala avisos, no menor trecho possível.</li>
+  <li>Frameworks (JUnit, Spring, JPA) leem anotações com reflexão. Você cria as suas com <code>@interface</code>, <code>@Retention</code> e <code>@Target</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="reflexao.html">Reflexão</a>, o jeito de um programa examinar a si mesmo.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
