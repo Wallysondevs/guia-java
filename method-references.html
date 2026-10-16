@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Referências de Métodos — o operador :: | Guia Java</title>
+<meta name="description" content="Referências de métodos em Java: o operador ::, os quatro tipos (Classe::metodoEstatico, objeto::metodo, Classe::metodoDeInstancia, Classe::new), a tabela de equivalência com lambdas e os erros reais do javac, com saídas do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Referências de Métodos</span></h1>
+
+<p class="intro">Muitas lambdas não fazem nada além de <strong>chamar um método que já existe</strong>: <code>n -&gt; System.out.println(n)</code>, <code>s -&gt; s.toUpperCase()</code>, <code>nome -&gt; new Aluno(nome)</code>. Para esses casos, o Java tem um atalho: a <strong>referência de método</strong>, escrita com dois-pontos duplos (<code>::</code>). Em vez de descrever o que fazer, você <strong>aponta</strong> para o método que faz: <code>System.out::println</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o operador <code>::</code> e quando ele pode substituir uma lambda.</li>
+  <li>Os quatro tipos: método estático, método de um objeto, método de instância "de qualquer um" e construtor.</li>
+  <li>A tabela de equivalência: cada referência e a lambda que ela substitui.</li>
+  <li>Quando é melhor continuar com a lambda.</li>
+  <li>Os erros <code>invalid method reference</code> e <code>';' expected</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: apontar em vez de explicar</h2>
+<p>Se alguém pergunta como chegar à biblioteca, você pode explicar o caminho todo ("vire à direita, ande duas quadras…") ou simplesmente <strong>apontar</strong> para o mapa da escola onde o caminho já está desenhado. A lambda explica; a referência de método aponta.</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("Ana", "Bruno", "Carla");
+
+        nomes.forEach(n -&gt; System.out.println(n));
+        nomes.forEach(System.out::println);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Ana
+Bruno
+Carla
+Ana              « a segunda forma faz exatamente o mesmo
+Bruno
+Carla</pre>
+
+<dl class="anatomy">
+  <dt>n -&gt; System.out.println(n)</dt><dd>A lambda recebe <code>n</code> e só o repassa para <code>println</code>.</dd>
+  <dt>System.out::println</dt><dd>"Use o método <code>println</code> do objeto <code>System.out</code>." O parâmetro não aparece: o Java entende que cada elemento deve ser passado para <code>println</code>.</dd>
+  <dt>::</dt><dd>O operador de referência de método. Atenção: <strong>sem parênteses</strong> depois do nome do método. Você não está <em>chamando</em> o método agora; está indicando qual método chamar depois.</dd>
+</dl>
+
+<p>Assim como a lambda, uma referência de método só pode ser usada onde se espera uma <a href="interfaces-funcionais.html">interface funcional</a>. O compilador confere se o método apontado "encaixa" no método da interface (mesmos parâmetros, retorno compatível).</p>
+
+<hr>
+
+<h2>Tipo 1: método estático — <code>Classe::metodoEstatico</code></h2>
+<p>Aponta para um método <a href="static.html">estático</a>. Os parâmetros da lambda viram os argumentos do método.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+public class Main {
+    static boolean aprovado(int nota) {
+        return nota &gt;= 7;
+    }
+
+    public static void main(String[] args) {
+        Function&lt;String, Integer&gt; converter = Integer::parseInt;
+        int nota = converter.apply("8") + 1;
+        System.out.println("nota + 1 = " + nota);
+
+        Function&lt;Integer, Integer&gt; absoluto = Math::abs;
+        System.out.println("abs(-5) = " + absoluto.apply(-5));
+
+        Predicate&lt;Integer&gt; passou = Main::aprovado;
+        List&lt;Integer&gt; notas = new ArrayList&lt;&gt;(List.of(9, 4, 7, 5));
+        notas.removeIf(passou.negate());
+        System.out.println("aprovadas: " + notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+nota + 1 = 9
+abs(-5) = 5
+aprovadas: [9, 7]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Referência</th><th>Lambda equivalente</th></tr>
+<tr><td><code>Integer::parseInt</code></td><td><code>s -&gt; Integer.parseInt(s)</code></td></tr>
+<tr><td><code>Math::abs</code></td><td><code>x -&gt; Math.abs(x)</code></td></tr>
+<tr><td><code>Main::aprovado</code></td><td><code>n -&gt; Main.aprovado(n)</code></td></tr>
+<tr><td><code>Integer::sum</code> (visto no <a href="hashmap.html">HashMap</a>)</td><td><code>(a, b) -&gt; Integer.sum(a, b)</code></td></tr>
+</table>
+</div>
+
+<p>Repare em <code>Main::aprovado</code>: você pode apontar para os seus próprios métodos. É uma ótima forma de dar <strong>nome</strong> a uma regra: <code>removeIf(Main::reprovado)</code> se lê melhor que uma lambda comprida.</p>
+
+<hr>
+
+<h2>Tipo 2: método de um objeto específico — <code>objeto::metodo</code></h2>
+<p>Aponta para um método de <strong>um objeto que já existe</strong>. Os parâmetros da lambda viram os argumentos; o objeto é sempre o mesmo. <code>System.out::println</code> é desse tipo: <code>System.out</code> é um objeto (o "terminal").</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+public class Main {
+    public static void main(String[] args) {
+        String prefixo = "Prof. ";
+        Function&lt;String, String&gt; titulo = prefixo::concat;
+        System.out.println(titulo.apply("Ana"));
+
+        List&lt;String&gt; chamada = new ArrayList&lt;&gt;();
+        Consumer&lt;String&gt; matricular = chamada::add;
+        matricular.accept("Bruno");
+        matricular.accept("Carla");
+        System.out.println(chamada);
+
+        List.of("x", "y").forEach(System.out::println);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Prof. Ana                « prefixo.concat("Ana")
+[Bruno, Carla]           « chamada.add("Bruno"), chamada.add("Carla")
+x
+y</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Referência</th><th>Lambda equivalente</th></tr>
+<tr><td><code>System.out::println</code></td><td><code>x -&gt; System.out.println(x)</code></td></tr>
+<tr><td><code>prefixo::concat</code></td><td><code>s -&gt; prefixo.concat(s)</code></td></tr>
+<tr><td><code>chamada::add</code></td><td><code>x -&gt; chamada.add(x)</code></td></tr>
+<tr><td><code>this::calcular</code></td><td><code>x -&gt; this.calcular(x)</code> (dentro de um método de objeto)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Tipo 3: método de instância de "qualquer um" — <code>Classe::metodoDeInstancia</code></h2>
+<p>Este é o que mais confunde. Parece o tipo 1 (<code>Classe::</code> na frente), mas o método <strong>não é estático</strong>. Então, em qual objeto ele é chamado? No <strong>primeiro parâmetro da lambda</strong>: cada elemento que chega vira o objeto que executa o método.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.function.Function;
+
+public class Main {
+    public static void main(String[] args) {
+        Function&lt;String, String&gt; maiusculas = String::toUpperCase;
+        Function&lt;String, Integer&gt; tamanho = String::length;
+        System.out.println(maiusculas.apply("ana") + " " + tamanho.apply("ana"));
+
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;(List.of("carla", "Bruno", "ana"));
+        nomes.sort(String::compareToIgnoreCase);
+        System.out.println(nomes);
+
+        nomes.sort(Comparator.comparing(String::length).reversed());
+        System.out.println(nomes);
+
+        nomes.replaceAll(String::toUpperCase);
+        System.out.println(nomes);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+ANA 3
+[ana, Bruno, carla]          « a.compareToIgnoreCase(b)
+[Bruno, carla, ana]          « do maior nome para o menor
+[BRUNO, CARLA, ANA]</pre>
+
+<dl class="anatomy">
+  <dt>String::toUpperCase</dt><dd>"Para cada String <code>s</code> que chegar, chame <code>s.toUpperCase()</code>." O <code>s</code> é o próprio objeto, não um argumento.</dd>
+  <dt>String::length</dt><dd><code>s -&gt; s.length()</code>.</dd>
+  <dt>String::compareToIgnoreCase</dt><dd>Com <strong>dois</strong> parâmetros: o primeiro é o objeto, o segundo vira argumento: <code>(a, b) -&gt; a.compareToIgnoreCase(b)</code>. Por isso serve como <code>Comparator</code>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Referência</th><th>Lambda equivalente</th></tr>
+<tr><td><code>String::toUpperCase</code></td><td><code>s -&gt; s.toUpperCase()</code></td></tr>
+<tr><td><code>String::length</code></td><td><code>s -&gt; s.length()</code></td></tr>
+<tr><td><code>String::isEmpty</code></td><td><code>s -&gt; s.isEmpty()</code></td></tr>
+<tr><td><code>String::compareToIgnoreCase</code></td><td><code>(a, b) -&gt; a.compareToIgnoreCase(b)</code></td></tr>
+<tr><td><code>Aluno::nota</code> (visto em <a href="comparable-comparator.html">Comparator</a>)</td><td><code>a -&gt; a.nota()</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Tipo 1 ou tipo 3?</strong>
+<p>Os dois começam com o nome da classe. A diferença está no método: se ele é <code>static</code> (<code>Integer.parseInt</code>, <code>Math.abs</code>), é o tipo 1 e todos os parâmetros viram argumentos. Se é de instância (<code>"ana".toUpperCase()</code>), é o tipo 3 e o primeiro parâmetro vira o objeto. Você não precisa decorar: o compilador descobre sozinho.</p>
+</div>
+
+<div class="tryjava" data-goal="out:ANA,out:BRUNO,out:CARLA,src:String::toUpperCase,src:System\.out::println">
+<p class="try-task"><strong>Missão:</strong> troque as duas lambdas por referências de métodos (<code>String::toUpperCase</code> e <code>System.out::println</code>). A saída deve continuar <code>ANA</code>, <code>BRUNO</code>, <code>CARLA</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;(List.of("ana", "bruno", "carla"));
+        nomes.replaceAll(n -&gt; n.toUpperCase());
+        nomes.forEach(n -&gt; System.out.println(n));
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;(List.of("ana", "bruno", "carla"));
+        nomes.replaceAll(String::toUpperCase);
+        nomes.forEach(System.out::println);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Tipo 4: construtor — <code>Classe::new</code></h2>
+<p>Aponta para um <a href="construtores.html">construtor</a>. Os parâmetros da lambda viram os argumentos do <code>new</code>.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+record Aluno(String nome) { }
+
+public class Main {
+    public static void main(String[] args) {
+        Supplier&lt;List&lt;String&gt;&gt; novaLista = ArrayList::new;
+        List&lt;String&gt; l = novaLista.get();
+        l.add("primeiro");
+        System.out.println(l);
+
+        Function&lt;String, Aluno&gt; criar = Aluno::new;
+        Aluno a = criar.apply("Duda");
+        System.out.println(a);
+
+        Function&lt;String, StringBuilder&gt; sb = StringBuilder::new;
+        System.out.println(sb.apply("abc").reverse());
+
+        List&lt;Aluno&gt; turma = new ArrayList&lt;&gt;();
+        for (String nome : List.of("Ana", "Bruno")) {
+            turma.add(criar.apply(nome));
+        }
+        System.out.println(turma);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[primeiro]
+Aluno[nome=Duda]
+cba
+[Aluno[nome=Ana], Aluno[nome=Bruno]]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Referência</th><th>Usada como</th><th>Lambda equivalente</th></tr>
+<tr><td><code>ArrayList::new</code></td><td><code>Supplier&lt;List&lt;String&gt;&gt;</code></td><td><code>() -&gt; new ArrayList&lt;&gt;()</code></td></tr>
+<tr><td><code>Aluno::new</code></td><td><code>Function&lt;String, Aluno&gt;</code></td><td><code>nome -&gt; new Aluno(nome)</code></td></tr>
+<tr><td><code>StringBuilder::new</code></td><td><code>Function&lt;String, StringBuilder&gt;</code></td><td><code>s -&gt; new StringBuilder(s)</code></td></tr>
+<tr><td><code>int[]::new</code></td><td><code>IntFunction&lt;int[]&gt;</code></td><td><code>n -&gt; new int[n]</code></td></tr>
+</table>
+</div>
+
+<p>Repare que <code>StringBuilder::new</code> poderia apontar para vários construtores (com texto, sem nada, com capacidade). O compilador escolhe o que encaixa no tipo: <code>Function&lt;String, …&gt;</code> recebe uma <code>String</code>, então é <code>new StringBuilder(String)</code>. Referências a construtores aparecem muito com <a href="collectors.html">Collectors</a> (<code>Collectors.toCollection(TreeSet::new)</code>).</p>
+
+<hr>
+
+<h2>A tabela completa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Forma</th><th>Exemplo</th><th>Lambda equivalente</th></tr>
+<tr><td>1. Método estático</td><td><code>Classe::metodoEstatico</code></td><td><code>Integer::parseInt</code></td><td><code>s -&gt; Integer.parseInt(s)</code></td></tr>
+<tr><td>2. Método de um objeto</td><td><code>objeto::metodo</code></td><td><code>System.out::println</code></td><td><code>x -&gt; System.out.println(x)</code></td></tr>
+<tr><td>3. Método de instância de qualquer objeto</td><td><code>Classe::metodoDeInstancia</code></td><td><code>String::length</code></td><td><code>s -&gt; s.length()</code></td></tr>
+<tr><td>3. (com dois parâmetros)</td><td><code>Classe::metodoDeInstancia</code></td><td><code>String::compareTo</code></td><td><code>(a, b) -&gt; a.compareTo(b)</code></td></tr>
+<tr><td>4. Construtor</td><td><code>Classe::new</code></td><td><code>Aluno::new</code></td><td><code>n -&gt; new Aluno(n)</code></td></tr>
+</table>
+</div>
+
+<h3>Referência ou lambda?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Prefira</th></tr>
+<tr><td>A lambda só repassa os parâmetros, na mesma ordem, para um método</td><td>Referência: <code>String::length</code></td></tr>
+<tr><td>A lambda faz uma conta ou combina coisas (<code>n -&gt; n * 2</code>, <code>s -&gt; "[" + s + "]"</code>)</td><td>Lambda (não existe método pronto para apontar)</td></tr>
+<tr><td>A lambda passa um valor fixo (<code>s -&gt; s.startsWith("B")</code>)</td><td>Lambda</td></tr>
+<tr><td>A lambda ficou comprida</td><td>Crie um método com nome e use <code>Classe::metodo</code></td></tr>
+<tr><td>A referência ficou mais difícil de entender do que a lambda</td><td>Lambda. Clareza vem primeiro.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"';' expected": parênteses depois do nome</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        Function&lt;String, Integer&gt; tamanho = String::length();
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:5: error: ';' expected
+        Function&lt;String, Integer&gt; tamanho = String::length();
+                                                          ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> depois de <code>String::length</code> o compilador esperava o fim da instrução. Numa referência de método você não chama o método, então não há parênteses.</p>
+<p><strong>Como consertar:</strong> <code>String::length</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"invalid method reference … reference to toString is ambiguous"</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        Function&lt;Integer, String&gt; texto = Integer::toString;
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:5: error: incompatible types: invalid method reference
+        Function&lt;Integer, String&gt; texto = Integer::toString;
+                                          ^
+    reference to toString is ambiguous
+      both method toString(int) in Integer and method toString() in Integer match
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "a referência a toString é ambígua". <code>Integer</code> tem um <code>toString(int)</code> <strong>estático</strong> (tipo 1: <code>n -&gt; Integer.toString(n)</code>) e um <code>toString()</code> de instância (tipo 3: <code>n -&gt; n.toString()</code>). Os dois encaixam, e o compilador não escolhe por você.</p>
+<p><strong>Como consertar:</strong> use uma lambda, que é explícita: <code>n -&gt; n.toString()</code>, ou outro método: <code>String::valueOf</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"invalid method reference … unexpected instance method … found in unbound lookup"</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        Supplier&lt;Integer&gt; tamanho = String::length;
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:5: error: incompatible types: invalid method reference
+        Supplier&lt;Integer&gt; tamanho = String::length;
+                                    ^
+    unexpected instance method length() found in unbound lookup
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>String::length</code> é do tipo 3: precisa de uma String para ser chamado. Mas um <code>Supplier</code> não recebe nada, então não há de qual String medir o tamanho.</p>
+<p><strong>Como consertar:</strong> use uma interface que receba a String (<code>Function&lt;String, Integer&gt;</code>), ou aponte para um objeto específico (tipo 2): <code>"Carla"::length</code>.</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Mostrar cada um</h3>
+<p>Complete com uma referência de método para mostrar cada elemento:</p>
+<div class="ex-code">nomes.forEach(<input data-answer="System.out::println" aria-label="referência">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Converter</h3>
+<p>Complete com a referência equivalente a <code>s -&gt; Integer.parseInt(s)</code>:</p>
+<div class="ex-code">Function&lt;String, Integer&gt; f = <input data-answer="Integer::parseInt" aria-label="referência">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Fábrica</h3>
+<p>Complete com a referência ao construtor de <code>Aluno</code>:</p>
+<div class="ex-code">Function&lt;String, Aluno&gt; criar = <input data-answer="Aluno::new" aria-label="referência">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. <code>String::trim</code> equivale a qual lambda?</p>
+<label><input type="radio" name="q4"> <code>() -&gt; String.trim()</code></label>
+<label><input type="radio" name="q4"> <code>s -&gt; String.trim(s)</code></label>
+<label><input type="radio" name="q4"> <code>s -&gt; s.trim()</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual lambda <strong>não</strong> pode virar uma referência de método simples?</p>
+<label><input type="radio" name="q5"> <code>x -&gt; System.out.println(x)</code></label>
+<label><input type="radio" name="q5"> <code>n -&gt; n * 2</code></label>
+<label><input type="radio" name="q5"> <code>s -&gt; s.length()</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:[Produto[nome=caderno]\, Produto[nome=lápis]],src:Produto::new">
+<p class="try-task"><strong>Missão final:</strong> crie a fábrica de produtos com uma referência ao construtor (<code>Produto::new</code>) no lugar da lambda. A saída deve continuar <code>[Produto[nome=caderno], Produto[nome=lápis]]</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+record Produto(String nome) { }
+
+public class Main {
+    public static void main(String[] args) {
+        Function&lt;String, Produto&gt; fabrica = nome -&gt; new Produto(nome);
+        List&lt;Produto&gt; estoque = new ArrayList&lt;&gt;();
+        for (String nome : List.of("caderno", "lápis")) {
+            estoque.add(fabrica.apply(nome));
+        }
+        System.out.println(estoque);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+record Produto(String nome) { }
+
+public class Main {
+    public static void main(String[] args) {
+        Function&lt;String, Produto&gt; fabrica = Produto::new;
+        List&lt;Produto&gt; estoque = new ArrayList&lt;&gt;();
+        for (String nome : List.of("caderno", "lápis")) {
+            estoque.add(fabrica.apply(nome));
+        }
+        System.out.println(estoque);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma referência de método (<code>::</code>) substitui uma lambda que só chama um método existente.</li>
+  <li>Quatro tipos: <code>Classe::estatico</code>, <code>objeto::metodo</code>, <code>Classe::metodoDeInstancia</code> (o 1º parâmetro vira o objeto) e <code>Classe::new</code>.</li>
+  <li>Sem parênteses depois do nome: você aponta, não chama.</li>
+  <li>Só funciona onde se espera uma interface funcional, e o método precisa encaixar nela.</li>
+  <li>Se a referência ficar ambígua ou menos clara, volte para a lambda.</li>
+</ul>
+
+<p>Próxima aula: <a href="streams.html">Streams</a>, onde lambdas e referências de métodos viram uma linha de montagem de dados.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
