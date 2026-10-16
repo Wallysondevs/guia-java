@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Conversão de Tipos — casting, parseInt e promoção | Guia Java</title>
+<meta name="description" content="Conversão de tipos em Java: conversão automática (alargamento), casting manual com perda ((int) 9.99, (byte) 200), número para texto e texto para número (Integer.parseInt, NumberFormatException, String.valueOf), char e int, e a promoção em expressões (byte + byte = int), com erros e saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Conversão de Tipos</span></h1>
+
+<p class="intro">Você já viu que cada variável tem um tipo fixo. Mas os programas vivem trocando valores de um tipo para outro: uma soma de inteiros que precisa virar média decimal, uma idade digitada como texto que precisa virar número, um número que precisa virar texto para aparecer numa mensagem. Esta aula reúne todas essas <strong>conversões</strong>: as que o Java faz sozinho, as que você pede com um <em>casting</em> e as que exigem um método.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A <strong>conversão automática</strong> (alargamento): quando o Java converte sem você pedir.</li>
+  <li>O <strong>casting</strong> (estreitamento): como pedir uma conversão que pode perder informação, e o que se perde.</li>
+  <li>Como transformar número em texto e texto em número (<code>Integer.parseInt</code>, <code>String.valueOf</code>).</li>
+  <li>Como converter entre <code>char</code> e <code>int</code>.</li>
+  <li>A <strong>promoção</strong> em contas: por que <code>byte + byte</code> dá <code>int</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: potes de tamanhos diferentes</h2>
+<p>Volte à imagem dos potes de <a href="tipos-primitivos.html">Tipos Primitivos</a>. Despejar o conteúdo de um pote <strong>pequeno</strong> num pote <strong>grande</strong> é sempre seguro: cabe tudo. Despejar um pote grande num pequeno pode transbordar. O Java segue exatamente essa lógica:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Direção</th><th>Nome técnico</th><th>Quem faz</th><th>Risco</th></tr>
+<tr><td>Do menor para o maior (<code>int</code> → <code>double</code>)</td><td>Alargamento (<em>widening</em>)</td><td>O Java, sozinho</td><td>Nenhum (quase: veja <code>float</code> adiante)</td></tr>
+<tr><td>Do maior para o menor (<code>double</code> → <code>int</code>)</td><td>Estreitamento (<em>narrowing</em>)</td><td>Você, com um <em>casting</em></td><td>Perder a parte decimal ou "dar a volta"</td></tr>
+<tr><td>Entre texto e número (<code>"42"</code> ↔ <code>42</code>)</td><td>Conversão por método</td><td>Você, chamando um método</td><td>O texto pode não ser um número</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Conversão automática (alargamento)</h2>
+<p>Quando o valor vai para um tipo maior, o Java converte sem você escrever nada:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int alunos = 32;
+        long grande = alunos;
+        double media = alunos;
+        float f = alunos;
+        char letra = 'A';
+        int codigo = letra;
+        System.out.println(grande);
+        System.out.println(media);
+        System.out.println(f);
+        System.out.println(codigo);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+32
+32.0               « o int virou double
+32.0
+65                 « o char virou o seu código Unicode</pre>
+
+<p>O caminho do alargamento segue esta ordem; qualquer tipo pode ir automaticamente para qualquer um à sua direita:</p>
+
+<pre class="file" data-file="ordem do alargamento">byte → short → int → long → float → double
+               ↑
+             char</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>De</th><th>Vai sozinho para</th></tr>
+<tr><td><code>byte</code></td><td><code>short</code>, <code>int</code>, <code>long</code>, <code>float</code>, <code>double</code></td></tr>
+<tr><td><code>short</code></td><td><code>int</code>, <code>long</code>, <code>float</code>, <code>double</code></td></tr>
+<tr><td><code>char</code></td><td><code>int</code>, <code>long</code>, <code>float</code>, <code>double</code></td></tr>
+<tr><td><code>int</code></td><td><code>long</code>, <code>float</code>, <code>double</code></td></tr>
+<tr><td><code>long</code></td><td><code>float</code>, <code>double</code></td></tr>
+<tr><td><code>float</code></td><td><code>double</code></td></tr>
+<tr><td><code>boolean</code></td><td>nenhum (não converte para nada, nem de nada)</td></tr>
+</table>
+</div>
+
+<p>Repare que <code>char</code> e <code>short</code> não convertem automaticamente um no outro: <code>char</code> não tem negativos e <code>short</code> não chega a 65.535, então nenhum "cabe" inteiro no outro.</p>
+
+<div class="warning">
+<strong>A exceção: inteiros grandes em <code>float</code> e <code>double</code></strong>
+<p><code>long</code> → <code>float</code> é automático, mas o <code>float</code> só guarda 6 a 7 dígitos exatos. O valor cabe (a faixa é enorme), mas os dígitos finais se perdem:</p>
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+123456789123456789         « o long original
+1.2345679E17               « no float: só 8 dígitos sobreviveram
+1.2345678912345678E17      « no double: 17 dígitos, ainda falta o último 9
+1.2345679E8                « até um int (123456789) perde dígitos num float</pre>
+<p>Para números inteiros grandes, fique em <code>long</code>. Veja <a href="decimais.html">double e float</a>.</p>
+</div>
+
+<hr>
+
+<h2>2. Casting: conversão com perda (estreitamento)</h2>
+<p>Do maior para o menor, o Java não converte sozinho. Ele recusa com um erro que você já conhece:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        double preco = 9.99;
+        int inteiro = preco;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: possible lossy conversion from double to int
+        int inteiro = preco;
+                      ^
+1 error</pre>
+
+<p>Se você sabe o que está fazendo e aceita a perda, pode <strong>forçar</strong> a conversão escrevendo o tipo de destino entre parênteses antes do valor. Isso se chama <strong>casting</strong> (do inglês <em>cast</em>, "moldar", como derramar metal num molde):</p>
+
+<dl class="anatomy">
+  <dt>int inteiro =</dt><dd>A variável de destino, do tipo menor.</dd>
+  <dt>(int)</dt><dd>O <strong>operador de casting</strong>: "converta o que vem a seguir para <code>int</code>; eu assumo o risco".</dd>
+  <dt>preco;</dt><dd>O valor a converter.</dd>
+</dl>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double preco = 9.99;
+        int inteiro = (int) preco;
+        System.out.println(inteiro);
+        System.out.println((int) -9.99);
+        System.out.println(Math.round(9.99));
+        System.out.println((int) Math.round(9.49));
+        System.out.println((byte) 200);
+        System.out.println((short) 70000);
+        System.out.println((int) 3.0e10);
+        System.out.println((long) 3.0e10);
+        System.out.println((int) 'A');
+        System.out.println((char) 66);
+        System.out.println((double) 7 / 2);
+        System.out.println((double) (7 / 2));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+9                  « (int) 9.99: a parte decimal foi CORTADA, não arredondada
+-9                 « com negativos também corta: -9.99 vira -9
+10                 « Math.round arredonda de verdade
+9
+-56                « (byte) 200: 200 não cabe num byte e "deu a volta"
+4464               « (short) 70000: também deu a volta
+2147483647         « (int) 30 bilhões: decimal grande demais vira o MAX_VALUE
+30000000000        « num long, cabe
+65
+B
+3.5                « (double) 7 / 2: converte o 7, depois divide
+3.0                « (double) (7 / 2): divide (dá 3), depois converte</pre>
+
+<p>Vamos por partes, porque cada linha ensina uma regra:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Casting</th><th>Resultado</th><th>Regra</th></tr>
+<tr><td><code>(int) 9.99</code></td><td><code>9</code></td><td>De decimal para inteiro, a parte decimal é <strong>descartada</strong> (truncada). Nunca arredonda.</td></tr>
+<tr><td><code>(int) -9.99</code></td><td><code>-9</code></td><td>O corte vai sempre "em direção ao zero".</td></tr>
+<tr><td><code>Math.round(9.99)</code></td><td><code>10</code></td><td>Para <strong>arredondar</strong>, use <code>Math.round</code>. Ele devolve um <code>long</code>; se precisar de <code>int</code>, faça o casting do resultado: <code>(int) Math.round(x)</code>. Veja <a href="math.html">Math</a>.</td></tr>
+<tr><td><code>(byte) 200</code></td><td><code>-56</code></td><td>Entre inteiros, o valor que não cabe "dá a volta", como no <a href="inteiros.html">overflow</a>: 200 − 256 = −56.</td></tr>
+<tr><td><code>(int) 3.0e10</code></td><td><code>2147483647</code></td><td>De decimal para inteiro, valores grandes demais param no limite do tipo (<code>Integer.MAX_VALUE</code>).</td></tr>
+<tr><td><code>(double) 7 / 2</code></td><td><code>3.5</code></td><td>O casting vale só para o valor <strong>logo à direita</strong> (o <code>7</code>). Com um <code>double</code> na conta, a divisão é decimal.</td></tr>
+<tr><td><code>(double) (7 / 2)</code></td><td><code>3.0</code></td><td>Os parênteses fazem a divisão inteira acontecer <strong>antes</strong>: <code>7 / 2</code> dá <code>3</code>, e só então vira <code>3.0</code>. Tarde demais.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>O casting não muda a variável original</strong>
+<p><code>(int) preco</code> cria um <strong>novo valor</strong> do tipo <code>int</code>; a variável <code>preco</code> continua sendo <code>double</code> e continua valendo <code>9.99</code>. O tipo de uma variável nunca muda.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Média: 7.5,src:\(double\)">
+<p class="try-task"><strong>Missão:</strong> a soma das notas é 15 e são 2 provas, ambas em variáveis <code>int</code>. O programa mostra <code>Média: 7.0</code>. Use um casting <code>(double)</code> no lugar certo para ele mostrar <code>Média: 7.5</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int soma = 15;
+        int provas = 2;
+        double media = soma / provas;
+        System.out.println("Média: " + media);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int soma = 15;
+        int provas = 2;
+        double media = (double) soma / provas;
+        System.out.println("Média: " + media);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Número ↔ texto</h2>
+<p><code>String</code> não é um tipo primitivo, e o casting não converte entre texto e número: <code>(int) "42"</code> não compila. Para isso existem métodos.</p>
+
+<h3>Número → texto</h3>
+<p>Há três formas, e todas dão o mesmo resultado:</p>
+
+<pre class="file" data-file="trecho">int idade = 29;
+String a = "" + idade;                 // concatenar com um texto vazio
+String b = String.valueOf(idade);      // "valor de": funciona com qualquer tipo
+String c = Integer.toString(idade);    // método da classe Integer</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>"" + idade</code></td><td>Rápido e comum, mas parece "truque". Normal quando o número já vai ser colado num texto: <code>"Idade: " + idade</code> (<a href="concatenacao.html">Concatenação</a>).</td></tr>
+<tr><td><code>String.valueOf(idade)</code></td><td><strong>A mais clara.</strong> Funciona com <code>int</code>, <code>double</code>, <code>char</code>, <code>boolean</code>…</td></tr>
+<tr><td><code>Integer.toString(idade)</code></td><td>Equivalente; existe também <code>Double.toString</code>, <code>Long.toString</code>…</td></tr>
+</table>
+</div>
+
+<h3>Texto → número: <code>Integer.parseInt</code></h3>
+<p>Isso acontece o tempo todo: tudo o que o usuário digita chega como texto, e os argumentos da linha de comando também (<a href="args.html">Argumentos da Linha de Comando</a>). Para transformar <code>"42"</code> no número 42, use <code>Integer.parseInt</code> (<em>parse</em> = "analisar, interpretar"):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 29;
+        String a = "" + idade;
+        String b = String.valueOf(idade);
+        String c = Integer.toString(idade);
+        String d = String.valueOf(1.65);
+        System.out.println(a + b + c);
+        System.out.println(d);
+        String texto = "42";
+        int numero = Integer.parseInt(texto);
+        System.out.println(numero + 1);
+        System.out.println(texto + 1);
+        double altura = Double.parseDouble("1.65");
+        System.out.println(altura * 2);
+        long l = Long.parseLong("8100000000");
+        System.out.println(l);
+        boolean ok = Boolean.parseBoolean("true");
+        System.out.println(ok);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+292929             « três textos "29" colados
+1.65
+43                 « numero + 1: conta de verdade
+421                « texto + 1: "42" colado com "1"
+3.3
+8100000000
+true</pre>
+
+<p>Compare as linhas 3 e 4 da saída: com o número, <code>+ 1</code> soma; com o texto, <code>+ 1</code> cola. É a prova de que <code>parseInt</code> mudou o tipo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Texto para…</th><th>Método</th><th>Exemplo</th></tr>
+<tr><td><code>int</code></td><td><code>Integer.parseInt(texto)</code></td><td><code>Integer.parseInt("42")</code> → <code>42</code></td></tr>
+<tr><td><code>long</code></td><td><code>Long.parseLong(texto)</code></td><td><code>Long.parseLong("8100000000")</code></td></tr>
+<tr><td><code>double</code></td><td><code>Double.parseDouble(texto)</code></td><td><code>Double.parseDouble("1.65")</code> → <code>1.65</code></td></tr>
+<tr><td><code>boolean</code></td><td><code>Boolean.parseBoolean(texto)</code></td><td><code>"true"</code> → <code>true</code>; qualquer outro texto → <code>false</code></td></tr>
+</table>
+</div>
+
+<h3>Quando o texto não é um número: <code>NumberFormatException</code></h3>
+<p>O compilador não tem como saber o que vai estar dentro de uma <code>String</code>. Se o texto não for um número válido, o erro aparece só na <strong>execução</strong>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String quantidade = "doze";
+        int n = Integer.parseInt(quantidade);
+        System.out.println(n);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.NumberFormatException: For input string: "doze"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:4)</pre>
+
+<p>O programa compilou, começou a rodar e <strong>parou</strong> na linha 4 com uma exceção: <code>NumberFormatException</code> ("exceção de formato de número"), seguida do texto que causou o problema: <code>For input string: "doze"</code> ("para o texto de entrada "doze""). As linhas <code>at</code> mostram o caminho: o erro nasceu lá dentro de <code>Integer.parseInt</code>, chamado pela linha 4 do <code>Main.java</code> (a última linha <code>at</code> é a que interessa: a sua). O <code>println</code> nunca rodou.</p>
+
+<p>O <code>parseInt</code> é exigente. Veja o que ele aceita e o que recusa (todas as recusas dão a mesma exceção, com o texto entre aspas):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Texto</th><th><code>Integer.parseInt</code></th></tr>
+<tr><td><code>"42"</code>, <code>"-15"</code>, <code>"+15"</code></td><td>Aceita: <code>42</code>, <code>-15</code>, <code>15</code></td></tr>
+<tr><td><code>"doze"</code></td><td><code>NumberFormatException: For input string: "doze"</code></td></tr>
+<tr><td><code>"3.5"</code></td><td><code>NumberFormatException: For input string: "3.5"</code> (não é inteiro; use <code>Double.parseDouble</code>)</td></tr>
+<tr><td><code>" 15"</code> (com espaço)</td><td><code>NumberFormatException: For input string: " 15"</code> (limpe antes com <code>texto.strip()</code>, de <a href="metodos-string.html">Métodos de String</a>)</td></tr>
+<tr><td><code>""</code> (vazio)</td><td><code>NumberFormatException: For input string: ""</code></td></tr>
+<tr><td><code>"3000000000"</code></td><td>Recusa: não cabe num <code>int</code> (use <code>Long.parseLong</code>)</td></tr>
+</table>
+</div>
+
+<p>Para o programa não parar, você pode "capturar" a exceção e mostrar uma mensagem amigável; isso é assunto de <a href="try-catch.html">try e catch</a>.</p>
+
+<div class="tryjava" data-goal="out:Ano que vem: 30,src:Integer\.parseInt">
+<p class="try-task"><strong>Missão:</strong> a idade chegou como texto e o programa mostra <code>Ano que vem: 291</code>. Converta <code>idadeTexto</code> para <code>int</code> com <code>Integer.parseInt</code> antes de somar, para mostrar <code>Ano que vem: 30</code>. Depois, por curiosidade, troque <code>"29"</code> por <code>"vinte"</code> e rode de novo.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String idadeTexto = "29";
+        System.out.println("Ano que vem: " + idadeTexto + 1);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String idadeTexto = "29";
+        int idade = Integer.parseInt(idadeTexto);
+        System.out.println("Ano que vem: " + (idade + 1));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>char</code> ↔ <code>int</code></h2>
+<p>Como você viu em <a href="char-boolean.html">char e boolean</a>, um <code>char</code> é um código numérico. Isso cria uma armadilha: converter o caractere <code>'7'</code> em <code>int</code> dá o <strong>código</strong> dele (55), não o número 7.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        char digito = '7';
+        int valor = digito - '0';
+        int valor2 = Character.getNumericValue(digito);
+        int errado = digito;
+        System.out.println(valor);
+        System.out.println(valor2);
+        System.out.println(errado);
+        int n = 4;
+        char c = (char) ('0' + n);
+        System.out.println(c);
+        String s = "Ana";
+        char primeira = s.charAt(0);
+        System.out.println(primeira);
+        String deChar = String.valueOf('Z');
+        System.out.println(deChar);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+7                  « '7' - '0'
+7                  « Character.getNumericValue('7')
+55                 « int errado = '7': o código Unicode!
+4                  « (char) ('0' + 4): número para dígito
+A                  « primeiro caractere da String
+Z                  « char para String</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero</th><th>Use</th><th>Exemplo → resultado</th></tr>
+<tr><td>Código Unicode de um <code>char</code></td><td><code>(int) c</code> (ou só atribuir a um <code>int</code>)</td><td><code>(int) 'A'</code> → <code>65</code></td></tr>
+<tr><td><code>char</code> de um código</td><td><code>(char) n</code></td><td><code>(char) 66</code> → <code>B</code></td></tr>
+<tr><td>Dígito <code>'7'</code> → número 7</td><td><code>c - '0'</code> ou <code>Character.getNumericValue(c)</code></td><td><code>7</code></td></tr>
+<tr><td>Número 4 → dígito <code>'4'</code></td><td><code>(char) ('0' + n)</code></td><td><code>'4'</code></td></tr>
+<tr><td><code>char</code> → <code>String</code></td><td><code>String.valueOf(c)</code></td><td><code>"Z"</code></td></tr>
+<tr><td><code>String</code> → <code>char</code></td><td><code>texto.charAt(posição)</code> (começa em 0)</td><td><code>"Ana".charAt(0)</code> → <code>'A'</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. Promoção em expressões: <code>byte + byte</code> = <code>int</code></h2>
+<p>Até aqui, as conversões aconteceram ao <strong>guardar</strong> um valor. Mas elas também acontecem no meio das <strong>contas</strong>. Antes de calcular, o Java "promove" os valores segundo duas regras:</p>
+
+<ol>
+  <li><code>byte</code>, <code>short</code> e <code>char</code> viram <strong><code>int</code></strong> antes de qualquer conta. O processador trabalha com no mínimo 32 bits.</li>
+  <li>Se os dois lados têm tipos diferentes, o menor vira o maior: <code>int</code> com <code>long</code> dá <code>long</code>; qualquer coisa com <code>double</code> dá <code>double</code>.</li>
+</ol>
+
+<p>A regra 1 produz um erro que surpreende todo mundo:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        byte a = 10;
+        byte b = 20;
+        byte soma = a + b;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: incompatible types: possible lossy conversion from int to byte
+        byte soma = a + b;
+                      ^
+1 error</pre>
+
+<p>"Mas eu só somei dois bytes!" Sim, só que <code>a + b</code> é calculado como <code>int</code> (regra 1), e guardar um <code>int</code> num <code>byte</code> é estreitamento. Repare que o <code>^</code> aponta para o <code>+</code>: é a <strong>conta</strong> que tem tipo <code>int</code>. Há duas saídas: guardar num <code>int</code> ou fazer o casting do resultado inteiro, com parênteses em volta da conta:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        byte a = 10;
+        byte b = 20;
+        byte soma = (byte) (a + b);
+        int somaInt = a + b;
+        System.out.println(soma);
+        System.out.println(somaInt);
+        short s = 1;
+        char c = 'A';
+        System.out.println(s + c);
+        int i = 5;
+        long l = 10L;
+        float f = 1.5f;
+        double d = 2.0;
+        System.out.println(i + l);
+        System.out.println(i + f);
+        System.out.println(l + d);
+        System.out.println(5 / 2 * 2.0);
+        System.out.println(5 * 2.0 / 2);
+        System.out.println(5 / 2.0 * 2);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+30
+30
+66                 « short + char: os dois viram int (1 + 65)
+15                 « int + long = long
+6.5                « int + float = float
+12.0               « long + double = double
+4.0                « 5 / 2 = 2 (inteiros!), depois 2 * 2.0 = 4.0
+5.0                « 5 * 2.0 = 10.0, depois 10.0 / 2 = 5.0
+5.0                « 5 / 2.0 = 2.5, depois 2.5 * 2 = 5.0</pre>
+
+<p>As três últimas linhas mostram que a promoção acontece <strong>a cada operação</strong>, da esquerda para a direita. Em <code>5 / 2 * 2.0</code>, a primeira operação (<code>5 / 2</code>) só tem inteiros e perde o <code>.5</code> antes de o <code>2.0</code> entrar na história. Por isso, ao calcular médias e porcentagens, coloque o valor decimal (ou o casting) <strong>no começo</strong> da conta. A ordem das operações é o assunto de <a href="precedencia.html">Precedência</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Os dois lados da conta</th><th>Resultado</th></tr>
+<tr><td><code>byte</code>, <code>short</code>, <code>char</code>, <code>int</code> (qualquer mistura)</td><td><code>int</code></td></tr>
+<tr><td>algum <code>long</code> (e nenhum decimal)</td><td><code>long</code></td></tr>
+<tr><td>algum <code>float</code> (e nenhum <code>double</code>)</td><td><code>float</code></td></tr>
+<tr><td>algum <code>double</code></td><td><code>double</code></td></tr>
+<tr><td>algum <code>String</code> com <code>+</code></td><td><code>String</code> (concatenação)</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>E por que <code>b += 1</code> funciona com <code>byte</code>?</strong>
+<p>Os operadores compostos (<code>+=</code>, <code>-=</code>…) fazem o casting de volta <strong>sozinhos</strong>. É um detalhe importante, explicado em <a href="operadores-atribuicao.html">Operadores de Atribuição</a>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"possible lossy conversion from double to int" (e parecidos)</strong>
+<p><strong>O que quer dizer:</strong> você tentou guardar um valor de um tipo maior num menor sem casting. A mensagem diz de qual tipo para qual: <code>from double to int</code>, <code>from long to int</code>, <code>from int to byte</code>.</p>
+<p><strong>Como consertar:</strong> primeiro pergunte se o tipo da variável está certo (talvez ela devesse ser <code>double</code>). Se a perda for aceitável, use casting: <code>(int) valor</code>. Se a ideia era arredondar, <code>(int) Math.round(valor)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"String cannot be converted to int" e "int cannot be converted to String"</strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: String cannot be converted to int
+        int numero = texto;
+                     ^
+1 error</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: int cannot be converted to String
+        String texto = idade;
+                       ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> texto e número não se convertem por atribuição nem por casting.</p>
+<p><strong>Como consertar:</strong> <code>int numero = Integer.parseInt(texto);</code> e <code>String texto = String.valueOf(idade);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"NumberFormatException: For input string"</strong>
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.NumberFormatException: For input string: "3.5"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:3)</pre>
+<p><strong>O que quer dizer:</strong> o texto entre aspas não é um inteiro válido. Olhe com atenção o que está entre as aspas: espaços, vírgulas, pontos e letras aparecem ali.</p>
+<p><strong>Como consertar:</strong> use o método certo para o formato (<code>Double.parseDouble</code> para <code>"3.5"</code>), limpe espaços com <code>strip()</code>, ou trate o erro com <a href="try-catch.html">try e catch</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>O resultado do casting "não faz sentido"</strong>
+<p><strong>O que aconteceu:</strong> <code>(byte) 200</code> deu <code>-56</code>, <code>(int) 9.99</code> deu <code>9</code>, <code>(double) (7 / 2)</code> deu <code>3.0</code>. Não é erro do Java: é exatamente o que o casting promete. Ele corta, dá a volta, e só converte o valor que está à sua direita.</p>
+<p><strong>Como consertar:</strong> confira se o valor cabe no tipo de destino, use <code>Math.round</code> para arredondar e coloque o casting antes da divisão: <code>(double) soma / n</code>.</p>
+</div>
+
+<div class="tryjava" data-goal="excecao:NumberFormatException">
+<p class="try-task"><strong>Missão (provoque o erro):</strong> mude o texto <code>"150"</code> de modo que o <code>Integer.parseInt</code> lance <code>NumberFormatException</code>. Tente algumas formas diferentes (letras, vírgula, espaço) e leia a mensagem de cada uma.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String estoqueTexto = "150";
+        int estoque = Integer.parseInt(estoqueTexto);
+        System.out.println("Estoque: " + estoque);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String estoqueTexto = "150 caixas";
+        int estoque = Integer.parseInt(estoqueTexto);
+        System.out.println("Estoque: " + estoque);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Conversão</th><th>Como</th><th>Exemplo → resultado</th></tr>
+<tr><td>Menor → maior</td><td>Automática</td><td><code>double d = 32;</code> → <code>32.0</code></td></tr>
+<tr><td>Maior → menor</td><td><code>(tipo) valor</code></td><td><code>(int) 9.99</code> → <code>9</code></td></tr>
+<tr><td>Decimal → inteiro arredondado</td><td><code>Math.round(x)</code> (devolve <code>long</code>)</td><td><code>Math.round(9.99)</code> → <code>10</code></td></tr>
+<tr><td>Número → <code>String</code></td><td><code>String.valueOf(n)</code>, <code>"" + n</code>, <code>Integer.toString(n)</code></td><td><code>"29"</code></td></tr>
+<tr><td><code>String</code> → <code>int</code></td><td><code>Integer.parseInt(s)</code></td><td><code>Integer.parseInt("42")</code> → <code>42</code></td></tr>
+<tr><td><code>String</code> → <code>double</code></td><td><code>Double.parseDouble(s)</code></td><td><code>Double.parseDouble("1.65")</code> → <code>1.65</code></td></tr>
+<tr><td><code>String</code> → <code>long</code></td><td><code>Long.parseLong(s)</code></td><td></td></tr>
+<tr><td><code>char</code> → código</td><td><code>(int) c</code></td><td><code>(int) 'A'</code> → <code>65</code></td></tr>
+<tr><td>Dígito → número</td><td><code>c - '0'</code>, <code>Character.getNumericValue(c)</code></td><td><code>'7'</code> → <code>7</code></td></tr>
+<tr><td><code>boolean</code> ↔ número</td><td>Não existe; use <code>b ? 1 : 0</code> ou <code>n != 0</code></td><td></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Casting</h3>
+<p>Complete para guardar a parte inteira de <code>altura</code> (um <code>double</code>):</p>
+<div class="ex-code">int metros = <input data-answer="(int)|(int) altura|(int)altura" aria-label="casting"> altura;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Texto para número</h3>
+<p>Complete para transformar o texto <code>"35"</code> em <code>int</code>:</p>
+<div class="ex-code">int idade = <input data-answer="Integer.parseInt" aria-label="método">("35");</div>
+</div>
+
+<div class="exercise">
+<h3>3. Número para texto</h3>
+<p>Complete com o método que transforma qualquer valor em <code>String</code>:</p>
+<div class="ex-code">String texto = String.<input data-answer="valueOf" aria-label="método">(42);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>System.out.println((int) 7.9);</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>8</code></label>
+<label><input type="radio" name="q4"> <code>7</code></label>
+<label><input type="radio" name="q4"> <code>7.9</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que <code>byte soma = a + b;</code> (com <code>a</code> e <code>b</code> do tipo <code>byte</code>) não compila?</p>
+<label><input type="radio" name="q5"> Porque bytes não podem ser somados.</label>
+<label><input type="radio" name="q5"> Porque a soma sempre passa de 127.</label>
+<label><input type="radio" name="q5"> Porque a conta é feita em <code>int</code>, e <code>int</code> não vai para <code>byte</code> sem casting.</label>
+<label><input type="radio" name="q5"> Porque faltou o sufixo <code>b</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que acontece com <code>Integer.parseInt("12,5")</code>?</p>
+<label><input type="radio" name="q6"> O programa para com <code>NumberFormatException: For input string: "12,5"</code>.</label>
+<label><input type="radio" name="q6"> Devolve <code>12</code>.</label>
+<label><input type="radio" name="q6"> Devolve <code>125</code>.</label>
+<label><input type="radio" name="q6"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Qual destas expressões dá <code>3.5</code>?</p>
+<label><input type="radio" name="q7"> <code>(double) (7 / 2)</code></label>
+<label><input type="radio" name="q7"> <code>7 / 2</code></label>
+<label><input type="radio" name="q7"> <code>(int) 3.5</code></label>
+<label><input type="radio" name="q7"> <code>(double) 7 / 2</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Alargamento</strong> (menor → maior: <code>byte → short → int → long → float → double</code>, e <code>char → int</code>) é automático.</li>
+  <li><strong>Estreitamento</strong> exige casting, <code>(int) valor</code>, e pode perder informação: corta decimais (<code>(int) 9.99</code> = 9) ou dá a volta (<code>(byte) 200</code> = -56). Para arredondar, <code>Math.round</code>.</li>
+  <li>O casting vale para o valor logo à direita: <code>(double) 7 / 2</code> = 3.5, mas <code>(double) (7 / 2)</code> = 3.0.</li>
+  <li>Texto → número: <code>Integer.parseInt</code>, <code>Double.parseDouble</code>; texto inválido lança <code>NumberFormatException</code> na execução. Número → texto: <code>String.valueOf</code>.</li>
+  <li><code>'7'</code> vale 55 como <code>int</code>; para o número 7, use <code>'7' - '0'</code>.</li>
+  <li>Nas contas, <code>byte</code>, <code>short</code> e <code>char</code> viram <code>int</code>, e o tipo menor vira o maior: <code>byte + byte</code> é <code>int</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
