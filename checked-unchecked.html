@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Checked × Unchecked — exceções verificadas | Guia Java</title>
+<meta name="description" content="A diferença entre exceções checked (o compilador obriga a tratar ou declarar: unreported exception … must be caught or declared to be thrown) e unchecked (RuntimeException), quando usar cada uma e por que Error, OutOfMemoryError e StackOverflowError não se tratam. Com erros e saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Checked × Unchecked</span></h1>
+
+<p class="intro">Algumas exceções o <code>javac</code> deixa passar sem dizer nada; outras ele exige que você trate ou declare, e se recusa a compilar até você fazer isso. As primeiras se chamam <strong>unchecked</strong> ("não verificadas") e as segundas, <strong>checked</strong> ("verificadas"). Saber a diferença acaba com um dos erros de compilação mais comuns do Java e ajuda você a escolher que exceção lançar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que o erro <code>unreported exception …; must be caught or declared to be thrown</code> quer dizer e as duas formas de resolvê-lo.</li>
+  <li>Quais exceções são checked e quais são unchecked, olhando a hierarquia.</li>
+  <li>A ideia por trás da divisão: problemas "do mundo lá fora" × erros de programação.</li>
+  <li>Quando usar cada uma ao lançar as suas exceções.</li>
+  <li>Por que <code>Error</code> (<code>OutOfMemoryError</code>, <code>StackOverflowError</code>) não se trata.</li>
+</ul>
+</div>
+
+<p>Esta aula usa <code>throw</code> e <code>throws</code>, da <a href="throw-throws.html">aula anterior</a>, e a hierarquia da aula <a href="excecoes.html#hierarquia">O que são Exceções</a>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense em dois tipos de problema na vida da Ana:</p>
+<ul>
+  <li><strong>Coisas que podem acontecer mesmo se ela fizer tudo certo</strong>: o ônibus atrasa, a internet cai, o arquivo que o chefe mandou não está na pasta. Ela não controla isso; só pode se <strong>preparar</strong> (sair mais cedo, ter um plano B). Um bom chefe <strong>exige</strong> que ela tenha um plano para essas coisas.</li>
+  <li><strong>Erros dela mesma</strong>: somar errado, digitar o nome do cliente trocado. Para esses, não adianta ter "plano B" em cada linha; o certo é <strong>não errar</strong>, revisar, corrigir o processo.</li>
+</ul>
+<p>O Java separa as exceções do mesmo jeito. As do primeiro tipo são <strong>checked</strong>: o compilador é o chefe exigente e confere ("<em>checks</em>") se você tem um plano. As do segundo tipo são <strong>unchecked</strong>: o compilador não confere, porque elas indicam um defeito que deve ser consertado no código, não tratado.</p>
+
+<hr>
+
+<h2>O erro que o <code>javac</code> mostra</h2>
+<p>A Ana quer mostrar o conteúdo do arquivo de lembretes com <code>Files.readString</code>, que lê um arquivo inteiro como texto (veja <a href="arquivos.html">Ler e Escrever Arquivos</a>):</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) {
+        String texto = Files.readString(Path.of("Documentos/notas.txt"));
+        System.out.print(texto);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Main.java:6: error: unreported exception IOException; must be caught or declared to be thrown
+        String texto = Files.readString(Path.of("Documentos/notas.txt"));
+                                       ^
+1 error
+error: compilation failed</pre>
+
+<dl class="anatomy">
+  <dt>Main.java:6: error:</dt><dd>Erro de compilação na linha 6. O programa nem rodou: nenhuma linha foi executada.</dd>
+  <dt>unreported exception IOException</dt><dd>"Exceção <code>IOException</code> não informada". O <code>Files.readString</code> declara, na assinatura dele, <code>throws IOException</code>. O seu código chama esse método, mas não diz o que fazer se a exceção vier.</dd>
+  <dt>must be caught</dt><dd>"precisa ser capturada" (com <code>try</code>/<code>catch</code>)…</dd>
+  <dt>or declared to be thrown</dt><dd>"…ou declarada para ser lançada" (com <code>throws</code> no seu método).</dd>
+  <dt>^</dt><dd>O acento circunflexo aponta a chamada que pode lançar: o parêntese de <code>readString(</code>.</dd>
+</dl>
+
+<p>O arquivo existe, o código está "certo", mas o compilador não quer saber: arquivos podem sumir, o disco pode falhar, a permissão pode mudar. Uma <code>IOException</code> (exceção de entrada e saída) é o exemplo clássico de problema do "mundo lá fora". O <code>javac</code> exige um plano.</p>
+
+<h3>Solução 1: capturar (<code>try</code>/<code>catch</code>)</h3>
+<p>Se você sabe o que fazer quando a leitura falhar, trate ali mesmo:</p>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            String texto = Files.readString(Path.of("Documentos/notas.txt"));
+            System.out.print(texto);
+        } catch (IOException e) {
+            System.out.println("Não consegui ler o arquivo: " + e.getMessage());
+        }
+    }
+}
+</pre>
+
+<p>Repare no <code>import java.io.IOException;</code>: a classe fica no pacote <code>java.io</code>, que não é importado automaticamente. Rodando na pasta da Ana:</p>
+
+<pre class="term">$ java Main.java
+Comprar café
+Ligar para o João
+Estudar Bash
+Fazer backup das fotos
+$ sed -i 's/notas.txt/notas2.txt/' Main.java
+$ java Main.java
+Não consegui ler o arquivo: Documentos/notas2.txt</pre>
+
+<p>O <code>sed</code> trocou o nome do arquivo no código por um que não existe (veja o <code>sed</code> no Guia Bash), e o <code>catch</code> entrou em ação. Repare que a mensagem da <code>NoSuchFileException</code> é só o caminho do arquivo, o que fica estranho sozinho: com exceções de arquivo, mostre também o tipo (<code>"… " + e</code>, como em <a href="throw-throws.html">throw e throws</a>).</p>
+
+<h3>Solução 2: declarar (<code>throws</code>)</h3>
+<p>Se o método não sabe o que fazer, ele passa a responsabilidade adiante declarando <code>throws IOException</code>. No <code>main</code>, isso quer dizer: se a exceção vier, o programa encerra com o stack trace.</p>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        String texto = Files.readString(Path.of("Documentos/notas.txt"));
+        System.out.print(texto);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Comprar café
+Ligar para o João
+Estudar Bash
+Fazer backup das fotos</pre>
+
+<p>Compila e roda. Num método que não é o <code>main</code>, o <code>throws</code> transfere a obrigação para quem chama: ele, por sua vez, vai ter que capturar ou declarar. A exigência "sobe" junto com a exceção, até alguém tratar.</p>
+
+<div class="tip">
+<strong>Capturar ou declarar?</strong>
+<p>Pergunte: "<strong>este</strong> método sabe o que fazer se der errado?". Se sim (mostrar um aviso, usar um valor padrão, tentar de novo), capture. Se não (um método que só lê o arquivo não sabe se o programa deve parar ou pedir outro nome), declare e deixe quem chamou decidir.</p>
+</div>
+
+<hr>
+
+<h2>Outras exceções checked</h2>
+<p>A <code>IOException</code> não é a única. Esperar um tempo com <code>Thread.sleep</code> (o programa "dorme" alguns milissegundos) pode ser interrompido por outra parte do programa, e por isso declara <code>InterruptedException</code>, também checked:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Esperando 1 segundo...");
+        Thread.sleep(1000);
+        System.out.println("Pronto!");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Main.java:4: error: unreported exception InterruptedException; must be caught or declared to be thrown
+        Thread.sleep(1000);
+                    ^
+1 error
+error: compilation failed</pre>
+
+<p>E a própria classe <code>Exception</code> é checked. Se você lançar uma <code>Exception</code> "pura", o compilador cobra do seu método a mesma coisa que cobrou do <code>readString</code>:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    static void retirar(int estoque) {
+        if (estoque == 0) {
+            throw new Exception("estoque vazio");
+        }
+        System.out.println("Retirado. Restam " + (estoque - 1));
+    }
+
+    public static void main(String[] args) {
+        retirar(5);
+        retirar(0);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Main.java:4: error: unreported exception Exception; must be caught or declared to be thrown
+            throw new Exception("estoque vazio");
+            ^
+1 error
+error: compilation failed</pre>
+
+<div class="tryjava" data-goal="compila,out:Retirado. Restam 4,out:Erro: estoque vazio,src:throws\s+Exception">
+<p class="try-task"><strong>Missão:</strong> faça este programa compilar <strong>sem trocar o tipo da exceção</strong>: declare <code>throws Exception</code> no método <code>retirar</code> e, no <code>main</code>, capture a exceção mostrando <code>Erro: </code> seguido da mensagem.</p>
+<pre class="script">public class Main {
+    static void retirar(int estoque) {
+        if (estoque == 0) {
+            throw new Exception("estoque vazio");
+        }
+        System.out.println("Retirado. Restam " + (estoque - 1));
+    }
+
+    public static void main(String[] args) {
+        retirar(5);
+        retirar(0);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static void retirar(int estoque) throws Exception {
+        if (estoque == 0) {
+            throw new Exception("estoque vazio");
+        }
+        System.out.println("Retirado. Restam " + (estoque - 1));
+    }
+
+    public static void main(String[] args) {
+        try {
+            retirar(5);
+            retirar(0);
+        } catch (Exception e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Unchecked: o compilador não cobra</h2>
+<p>Agora, um programa que pode lançar <code>NumberFormatException</code> (se o texto não fosse número) e <code>ArrayIndexOutOfBoundsException</code> (se o índice estivesse errado), sem nenhum <code>try</code> nem <code>throws</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int n = Integer.parseInt("42");
+        int[] notas = new int[3];
+        System.out.println(n + notas[0]);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+42</pre>
+
+<p>Compilou sem reclamação. Essas exceções são <strong>unchecked</strong>: herdam de <code>RuntimeException</code>. Imagine se não fossem: <strong>toda</strong> divisão (pode ser por zero), <strong>todo</strong> acesso a array (pode estar fora), <strong>toda</strong> chamada de método num objeto (pode ser <code>null</code>) precisaria de <code>try</code>/<code>catch</code>. O código ficaria ilegível. Em vez disso, o Java confia que você vai escrever o código certo, e, se não escrever, a exceção aparece na hora de testar e aponta o defeito.</p>
+
+<h2>Como saber se é checked ou unchecked</h2>
+<p>A regra está toda na <a href="excecoes.html#hierarquia">hierarquia</a>. Siga as "mães" de uma exceção até o topo:</p>
+
+<pre>Throwable
+ ├─ Error ......................... UNCHECKED  (não trate)
+ └─ Exception ..................... CHECKED
+     ├─ IOException ............... CHECKED
+     │   ├─ FileNotFoundException . CHECKED
+     │   └─ NoSuchFileException ... CHECKED
+     ├─ InterruptedException ...... CHECKED
+     └─ RuntimeException .......... UNCHECKED
+         ├─ ArithmeticException ... UNCHECKED
+         ├─ NullPointerException .. UNCHECKED
+         ├─ IllegalArgumentException
+         │   └─ NumberFormatException   UNCHECKED
+         └─ … todas as filhas ..... UNCHECKED</pre>
+
+<ul>
+  <li>Se passa por <code>RuntimeException</code> ou por <code>Error</code>: <strong>unchecked</strong>.</li>
+  <li>Se chega em <code>Exception</code> sem passar por <code>RuntimeException</code>: <strong>checked</strong>.</li>
+</ul>
+
+<p>Na prática, você também descobre pelo <code>javac</code> (se ele reclamar com <code>unreported exception</code>, é checked) e pela documentação: métodos que lançam exceções checked mostram <code>throws</code> na assinatura, como <code>public static String readString(Path path) throws IOException</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Checked</th><th>Unchecked</th></tr>
+<tr><td>Herda de</td><td><code>Exception</code> (fora do ramo <code>RuntimeException</code>)</td><td><code>RuntimeException</code> ou <code>Error</code></td></tr>
+<tr><td>O <code>javac</code> obriga a tratar ou declarar?</td><td><strong>Sim</strong> (<code>unreported exception</code>)</td><td>Não</td></tr>
+<tr><td>Representa</td><td>Problema externo, previsível, fora do seu controle</td><td>Erro de programação (ou, no caso de <code>Error</code>, falha grave da JVM)</td></tr>
+<tr><td>O que fazer</td><td>Ter um plano: capturar ou declarar</td><td>Corrigir o código; capturar só quando faz sentido</td></tr>
+<tr><td>Exemplos</td><td><code>IOException</code>, <code>FileNotFoundException</code>, <code>NoSuchFileException</code>, <code>InterruptedException</code>, <code>SQLException</code></td><td><code>NullPointerException</code>, <code>ArithmeticException</code>, <code>IllegalArgumentException</code>, <code>NumberFormatException</code>, <code>ArrayIndexOutOfBoundsException</code>, <code>IllegalStateException</code></td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>Os nomes "checked" e "unchecked"</strong>
+<p>"Checked" vem de "<em>checked by the compiler</em>", verificada pelo compilador. Não tem a ver com a exceção acontecer ou não: as duas acontecem durante a execução. A diferença é só o que o <code>javac</code> cobra <strong>antes</strong>.</p>
+</div>
+
+<hr>
+
+<h2>Quando usar cada uma (nas suas exceções)</h2>
+<p>Ao lançar uma exceção com <code>throw</code>, você escolhe o tipo, e a escolha decide se quem chama vai ser obrigado a tratar. Um guia prático:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Escolha</th><th>Exemplo</th></tr>
+<tr><td>Quem chamou passou um valor errado (defeito no código dele)</td><td>Unchecked: <code>IllegalArgumentException</code></td><td><code>cadastrar("Bruno", -3)</code></td></tr>
+<tr><td>Chamaram o método na hora errada</td><td>Unchecked: <code>IllegalStateException</code></td><td>Vender com o caixa fechado</td></tr>
+<tr><td>Algo externo pode falhar e quem chama <strong>consegue</strong> reagir</td><td>Checked (ou deixe a <code>IOException</code> passar com <code>throws</code>)</td><td>Ler um arquivo que o usuário escolheu</td></tr>
+<tr><td>Uma regra do negócio que quem chama precisa tratar</td><td>Checked própria (ou unchecked, por escolha do projeto)</td><td>Saldo insuficiente (veja <a href="excecoes-proprias.html">Criar suas Exceções</a>)</td></tr>
+<tr><td>Nada que quem chama possa fazer</td><td>Unchecked</td><td>Arquivo de configuração interno corrompido</td></tr>
+</table>
+</div>
+
+<p>Muitos programadores e bibliotecas modernas preferem exceções unchecked para quase tudo, porque o <code>throws</code> obrigatório "contamina" todos os métodos do caminho. Outros gostam da segurança do compilador. Os dois estilos existem no mundo real; o importante é ser consistente dentro do mesmo programa. Quando precisar transformar uma checked em unchecked (por exemplo, dentro de um <a href="lambdas.html">lambda</a>, que não aceita <code>throws</code>), embrulhe-a: <code>throw new UncheckedIOException(e);</code> ou <code>throw new RuntimeException(e);</code>. Esse "embrulho" (a <strong>causa</strong>) é explicado em <a href="excecoes-proprias.html">Criar suas Exceções</a>.</p>
+
+<div class="tryjava" data-goal="compila,excecao:IllegalStateException,out:Retirado. Restam 4,src:new\s+IllegalStateException">
+<p class="try-task"><strong>Missão:</strong> o mesmo programa do estoque, agora com outra solução: em vez de tratar ou declarar, troque <code>Exception</code> por uma exceção <strong>unchecked</strong> adequada, <code>IllegalStateException</code>. O programa vai compilar sem <code>throws</code> nem <code>try</code>, e a exceção vai aparecer na execução.</p>
+<pre class="script">public class Main {
+    static void retirar(int estoque) {
+        if (estoque == 0) {
+            throw new Exception("estoque vazio");
+        }
+        System.out.println("Retirado. Restam " + (estoque - 1));
+    }
+
+    public static void main(String[] args) {
+        retirar(5);
+        retirar(0);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static void retirar(int estoque) {
+        if (estoque == 0) {
+            throw new IllegalStateException("estoque vazio");
+        }
+        System.out.println("Retirado. Restam " + (estoque - 1));
+    }
+
+    public static void main(String[] args) {
+        retirar(5);
+        retirar(0);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>Error</code>: não se trata</h2>
+<p>O ramo <code>Error</code> da árvore também é unchecked, mas por outro motivo: não é defeito "pequeno" do seu código, é a JVM dizendo que não consegue continuar. Os dois mais conhecidos:</p>
+
+<h3><code>StackOverflowError</code>: a pilha estourou</h3>
+<p>Cada chamada de método ocupa um "prato" na pilha (lembra do <a href="excecoes.html">stack trace</a>?). A pilha tem tamanho limitado. Uma <a href="recursao.html">recursão</a> sem caso de parada empilha pratos até não caber mais:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static int contar(int n) {
+        return contar(n + 1);
+    }
+    public static void main(String[] args) {
+        contar(1);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main 2&gt;&amp;1 | head -4
+Exception in thread "main" java.lang.StackOverflowError
+	at Main.contar(Main.java:3)
+	at Main.contar(Main.java:3)
+	at Main.contar(Main.java:3)
+$ java Main 2&gt;&amp;1 | wc -l
+1025</pre>
+
+<p>O stack trace é tão grande que usamos o <code>head -4</code> para ver só o começo (o <code>2&gt;&amp;1</code> junta a saída de erro com a normal, para o <code>head</code> receber o stack trace; é o redirecionamento, ensinado no Guia Bash). O <code>wc -l</code> conta as linhas: 1025, ou seja, a linha do título e 1024 linhas <code>at Main.contar</code>. A JVM corta o rastro em 1024 molduras; a pilha real tinha milhares de chamadas, e o <code>main</code> nem aparece.</p>
+
+<h3><code>OutOfMemoryError</code>: a memória acabou</h3>
+<p>A JVM tem um limite de memória para os objetos (o <em>heap</em>). A opção <code>-Xmx64m</code> limita esse espaço a 64 MB, e o programa pede um array de 50 milhões de <code>long</code> (8 bytes cada, 400 MB):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Pedindo 400 MB de memória...");
+        long[] enorme = new long[50_000_000];
+        System.out.println("Consegui: " + enorme.length);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java -Xmx64m Main
+Pedindo 400 MB de memória...
+Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+	at Main.main(Main.java:4)
+$ echo $?
+1</pre>
+
+<p>"Falta de memória: espaço do heap do Java". O nome diz <code>Error</code>, não <code>Exception</code>, e a primeira linha ainda começa com <code>Exception in thread</code>: esse texto é usado para qualquer <code>Throwable</code> não tratado.</p>
+
+<h3>Por que não tratar</h3>
+<ul>
+  <li><strong>Não há o que fazer</strong>: se a memória acabou, até o código do <code>catch</code> pode não ter memória para rodar. Se a pilha estourou, a JVM está num estado em que quase nada é seguro.</li>
+  <li><strong>O conserto é no código ou na configuração</strong>: a recursão precisa de um caso de parada; o programa precisa usar menos memória ou ganhar mais (<code>-Xmx</code>).</li>
+  <li>Por isso, <strong>nunca</strong> escreva <code>catch (Throwable e)</code> ou <code>catch (Error e)</code> em programas comuns: você estaria escondendo exatamente os problemas mais graves.</li>
+</ul>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"unreported exception X; must be caught or declared to be thrown"</strong>
+<p><strong>O que aconteceu:</strong> você chamou um método (ou usou <code>throw</code>) com uma exceção checked e não disse o que fazer com ela.</p>
+<p><strong>Como resolver:</strong> escolha uma: envolva a linha em <code>try { … } catch (X e) { … }</code>, ou acrescente <code>throws X</code> na assinatura do seu método. Se a exceção é sua e indica erro de programação, considere trocá-la por uma unchecked.</p>
+</div>
+
+<div class="cenario">
+<strong>"exception IOException is never thrown in body of corresponding try statement"</strong>
+<pre class="file" data-file="Main.java">import java.io.IOException;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            System.out.println("Olá");
+        } catch (IOException e) {
+            System.out.println("Erro de leitura");
+        }
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:7: error: exception IOException is never thrown in body of corresponding try statement
+        } catch (IOException e) {
+          ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> o contrário do erro anterior. Para exceções checked, o <code>javac</code> sabe exatamente quem pode lançá-las, e nada dentro do <code>try</code> lança <code>IOException</code>: o <code>catch</code> seria código morto. (Com unchecked, como <code>catch (NumberFormatException e)</code>, o <code>javac</code> não reclama, porque elas podem surgir de qualquer lugar.)</p>
+<p><strong>Como resolver:</strong> apague o <code>catch</code> desnecessário, ou confira se a chamada que lança ficou fora do <code>try</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Coloquei <code>throws Exception</code> em tudo e "resolveu"</strong>
+<p><strong>O que aconteceu:</strong> compila, mas agora todo método que chama esses métodos também precisa tratar ou declarar <code>Exception</code>, que é genérica demais: quem chama não sabe <strong>o que</strong> pode dar errado.</p>
+<p><strong>Como resolver:</strong> declare o tipo específico (<code>throws IOException</code>) e trate no ponto em que se sabe o que fazer.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Item</th><th>Resumo</th></tr>
+<tr><td>Checked</td><td>Filhas de <code>Exception</code> fora de <code>RuntimeException</code>; <code>javac</code> exige <code>catch</code> ou <code>throws</code></td></tr>
+<tr><td>Unchecked</td><td><code>RuntimeException</code> e filhas, <code>Error</code> e filhas; <code>javac</code> não exige nada</td></tr>
+<tr><td><code>unreported exception X; must be caught or declared to be thrown</code></td><td>Exceção checked sem tratamento nem declaração</td></tr>
+<tr><td><code>exception X is never thrown in body of corresponding try statement</code></td><td><code>catch</code> de checked que nada no <code>try</code> lança</td></tr>
+<tr><td><code>IOException</code> (<code>java.io</code>)</td><td>Checked: entrada e saída (arquivos, rede)</td></tr>
+<tr><td><code>InterruptedException</code></td><td>Checked: <code>Thread.sleep</code> e esperas</td></tr>
+<tr><td><code>StackOverflowError</code></td><td>Pilha estourou (recursão sem fim)</td></tr>
+<tr><td><code>OutOfMemoryError: Java heap space</code></td><td>Memória dos objetos acabou (<code>-Xmx</code> define o limite)</td></tr>
+<tr><td><code>throw new UncheckedIOException(e)</code></td><td>Embrulha uma <code>IOException</code> numa unchecked</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A classe que separa</h3>
+<p>Toda exceção que herda desta classe é unchecked (complete o nome):</p>
+<div class="ex-code"><input data-answer="RuntimeException" aria-label="classe"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Declarar</h3>
+<p>Complete para o <code>main</code> deixar a <code>InterruptedException</code> do <code>Thread.sleep</code> passar:</p>
+<div class="ex-code">public static void main(String[] args) <input data-answer="throws InterruptedException|throws Exception" aria-label="declaração"> {</div>
+</div>
+
+<div class="exercise">
+<h3>3. Checked ou unchecked?</h3>
+<p><code>FileNotFoundException</code> é filha de <code>IOException</code>. Ela é checked ou unchecked?</p>
+<div class="ex-code"><input data-answer="checked" aria-label="checked ou unchecked"></div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual destas exceções o <code>javac</code> obriga você a tratar ou declarar?</p>
+<label><input type="radio" name="q4"> <code>NullPointerException</code></label>
+<label><input type="radio" name="q4"> <code>NumberFormatException</code></label>
+<label><input type="radio" name="q4"> <code>ArithmeticException</code></label>
+<label><input type="radio" name="q4"> <code>IOException</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O programa terminou com <code>java.lang.StackOverflowError</code>. Qual a melhor atitude?</p>
+<label><input type="radio" name="q5"> Colocar <code>catch (StackOverflowError e)</code> em volta da chamada.</label>
+<label><input type="radio" name="q5"> Procurar a recursão sem caso de parada e corrigi-la.</label>
+<label><input type="radio" name="q5"> Declarar <code>throws StackOverflowError</code> no <code>main</code>.</label>
+<label><input type="radio" name="q5"> Trocar <code>int</code> por <code>long</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Um método seu recebe uma porcentagem e ela veio como <code>150</code>. Que exceção lançar?</p>
+<label><input type="radio" name="q6"> <code>Exception</code>, para obrigar todos a tratar.</label>
+<label><input type="radio" name="q6"> <code>IOException</code>.</label>
+<label><input type="radio" name="q6"> <code>IllegalArgumentException</code> (unchecked): é um valor errado de quem chamou.</label>
+<label><input type="radio" name="q6"> <code>OutOfMemoryError</code>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Checked</strong>: filhas de <code>Exception</code> fora de <code>RuntimeException</code> (<code>IOException</code>, <code>InterruptedException</code>, a própria <code>Exception</code>). O <code>javac</code> exige: <code>unreported exception …; must be caught or declared to be thrown</code>.</li>
+  <li>Duas saídas: <strong>capturar</strong> (<code>try</code>/<code>catch</code>) se o método sabe o que fazer; <strong>declarar</strong> (<code>throws</code>) se não sabe.</li>
+  <li><strong>Unchecked</strong>: <code>RuntimeException</code> e filhas. Indicam defeitos no código; o <code>javac</code> não cobra nada.</li>
+  <li>Nas suas exceções: valor ou estado errado → unchecked (<code>IllegalArgumentException</code>, <code>IllegalStateException</code>); problema externo que quem chama pode resolver → checked.</li>
+  <li><code>Error</code> (<code>StackOverflowError</code>, <code>OutOfMemoryError</code>) é unchecked e <strong>não se trata</strong>: conserte o código ou a configuração. Nunca <code>catch (Throwable e)</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
