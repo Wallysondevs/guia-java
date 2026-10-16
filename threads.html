@@ -131,7 +131,7 @@ Todos os pedidos embalados.</pre>
 
 <div class="warning">
 <strong>No editor do guia, a ordem é sempre a mesma</strong>
-<p>O simulador do guia não tem threads de verdade: ele executa as tarefas <strong>em sequência</strong>, uma depois da outra, sempre na mesma ordem, para que as missões possam ser conferidas (veja <a href="simulador.html">O Editor do Guia</a>). A saída dele é <strong>uma</strong> das ordens possíveis, nunca a mistura. Por isso as saídas desta aula, nos blocos de terminal, são do JDK real, e as missões só conferem o que é garantido: que cada linha aparece, e o que vem depois de um <code>join</code>.</p>
+<p>O simulador do guia não tem threads de verdade: tudo roda numa thread só, de forma <strong>determinística</strong> (sempre igual), para que as missões possam ser conferidas. Lá, o <code>start()</code> roda a tarefa inteira na hora, antes de voltar, e o <code>Thread.sleep</code> não espera de verdade (veja <a href="simulador.html">O Editor do Guia</a>). A saída dele é <strong>uma</strong> das ordens possíveis, nunca a mistura. Por isso as saídas desta aula, nos blocos de terminal, são do JDK real, e as missões só conferem o que é garantido: que cada linha aparece, e o que vem depois de um <code>join</code>.</p>
 </div>
 
 <h3>Sem <code>join</code>, a <code>main</code> não espera</h3>
