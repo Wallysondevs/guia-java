@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Streams — filter, map, sorted, reduce e a linha de montagem | Guia Java</title>
+<meta name="description" content="Streams em Java do zero: o que é um stream (linha de montagem), como criar (list.stream, Stream.of, IntStream.range), filter, map, sorted, distinct, limit, forEach, count, sum e average com IntStream, reduce, anyMatch, a preguiça (nada roda sem operação terminal) e a IllegalStateException de reutilizar, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Streams</span></h1>
+
+<p class="intro">Um <strong>stream</strong> ("fluxo", "correnteza") é uma <strong>linha de montagem</strong> de dados: os elementos de uma coleção entram por uma ponta, passam por estações (filtrar, transformar, ordenar…) e, no fim, viram um resultado (uma lista, uma soma, uma contagem). Em vez de escrever o laço que faz tudo isso, você descreve as estações, cada uma com uma <a href="lambdas.html">lambda</a>. É a parte do Java moderno que mais muda a cara do código.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um stream e como ele se compara a um laço.</li>
+  <li>Criar streams: <code>lista.stream()</code>, <code>Stream.of</code>, <code>Arrays.stream</code>, <code>IntStream.range</code>.</li>
+  <li>As operações intermediárias: <code>filter</code>, <code>map</code>, <code>sorted</code>, <code>distinct</code>, <code>limit</code>, <code>skip</code>.</li>
+  <li>As operações terminais: <code>toList</code>, <code>forEach</code>, <code>count</code>, <code>anyMatch</code>, <code>findFirst</code>, <code>reduce</code>.</li>
+  <li>Somas e médias com <code>IntStream</code>: <code>sum</code>, <code>average</code>.</li>
+  <li>A <strong>preguiça</strong>: nada roda sem operação terminal (com demonstração real).</li>
+  <li>Por que um stream não pode ser usado duas vezes (<code>IllegalStateException</code>).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma linha de montagem</h2>
+<p>Pense numa fábrica de sucos. As laranjas entram na esteira; a primeira estação <strong>descarta</strong> as estragadas; a segunda <strong>transforma</strong> cada laranja em suco; a terceira <strong>engarrafa</strong>. Ninguém carrega a caixa inteira de uma estação para a outra: cada laranja vai passando, uma de cada vez.</p>
+
+<pre class="syntax">turma ──► filter(nota ≥ 7) ──► map(nome em maiúsculas) ──► sorted() ──► toList()
+ fonte    estação: descarta     estação: transforma         estação     resultado
+          quem não passou       cada aluno em um texto      ordena      (terminal)</pre>
+
+<p>Todo stream tem três partes:</p>
+<ol>
+  <li>uma <strong>fonte</strong>: de onde vêm os elementos (uma lista, um array, um intervalo de números);</li>
+  <li>zero ou mais <strong>operações intermediárias</strong>: as estações; cada uma devolve um novo stream;</li>
+  <li>uma <strong>operação terminal</strong>: a que produz o resultado e "liga a esteira".</li>
+</ol>
+
+<p>Um detalhe importante: o stream <strong>não guarda</strong> os dados e <strong>não altera</strong> a fonte. A lista original continua igual; o resultado é sempre uma coisa nova.</p>
+
+<hr>
+
+<h2>Laço × stream</h2>
+<p>A Ana quer os nomes dos aprovados (nota 7 ou mais), em maiúsculas e em ordem alfabética. Veja os dois jeitos:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = List.of(
+            new Aluno("Carla", 9.5), new Aluno("Edu", 4.0), new Aluno("Ana", 8.0),
+            new Aluno("Duda", 6.5), new Aluno("Bruno", 7.0));
+
+        // Com laço
+        List&lt;String&gt; aprovados1 = new ArrayList&lt;&gt;();
+        for (Aluno a : turma) {
+            if (a.nota() &gt;= 7) {
+                aprovados1.add(a.nome().toUpperCase());
+            }
+        }
+        aprovados1.sort(null);
+        System.out.println("laço:   " + aprovados1);
+
+        // Com stream
+        List&lt;String&gt; aprovados2 = turma.stream()
+                .filter(a -&gt; a.nota() &gt;= 7)
+                .map(a -&gt; a.nome().toUpperCase())
+                .sorted()
+                .toList();
+        System.out.println("stream: " + aprovados2);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+laço:   [ANA, BRUNO, CARLA]
+stream: [ANA, BRUNO, CARLA]</pre>
+
+<dl class="anatomy">
+  <dt>turma.stream()</dt><dd>A <strong>fonte</strong>: abre um stream com os alunos da lista.</dd>
+  <dt>.filter(a -&gt; a.nota() &gt;= 7)</dt><dd><strong>Filtrar</strong>: só passa quem satisfaz a condição (um <code>Predicate</code>).</dd>
+  <dt>.map(a -&gt; a.nome().toUpperCase())</dt><dd><strong>Mapear</strong>: transforma cada aluno num texto (uma <code>Function</code>). Depois dele, o stream é de <code>String</code>, não mais de <code>Aluno</code>.</dd>
+  <dt>.sorted()</dt><dd>Ordena (ordem natural).</dd>
+  <dt>.toList()</dt><dd>A operação <strong>terminal</strong>: junta tudo numa lista <span class="versao">Java 16+</span>. Em versões antigas: <code>.collect(Collectors.toList())</code> (veja <a href="collectors.html">Collectors</a>).</dd>
+</dl>
+
+<p>O resultado é o mesmo. A diferença é o <strong>estilo</strong>: o laço diz <em>como</em> fazer (crie uma lista, percorra, teste, acrescente, ordene); o stream diz <em>o que</em> você quer (filtre os aprovados, pegue os nomes, ordene). Por convenção, cada operação fica numa linha, começando com o ponto, para ler de cima para baixo como uma receita.</p>
+
+<div class="tip">
+<strong>Stream não substitui todo laço</strong>
+<p>Streams brilham em "filtrar, transformar, juntar". Para lógicas com muitos <code>if</code>, <code>break</code>, ou que mexem em várias variáveis ao mesmo tempo, um laço comum costuma ser mais claro. Os dois são Java moderno.</p>
+</div>
+
+<hr>
+
+<h2>Criar um stream</h2>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = List.of("uva", "kiwi", "pera");
+        System.out.println(frutas.stream().toList());
+
+        System.out.println(Stream.of("a", "b", "c").toList());
+
+        int[] notas = {7, 10, 3};
+        System.out.println(Arrays.stream(notas).sum());
+
+        System.out.println(IntStream.range(1, 5).boxed().toList());
+        System.out.println(IntStream.rangeClosed(1, 5).boxed().toList());
+
+        System.out.println(Stream.iterate(1, x -&gt; x * 2).limit(6).toList());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[uva, kiwi, pera]
+[a, b, c]
+20
+[1, 2, 3, 4]               « range: o 5 fica de fora
+[1, 2, 3, 4, 5]            « rangeClosed: inclui o 5
+[1, 2, 4, 8, 16, 32]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Fonte</th><th>Cria</th></tr>
+<tr><td><code>colecao.stream()</code></td><td>Stream com os elementos de qualquer <code>List</code>, <code>Set</code>… (para um <code>Map</code>: <code>mapa.entrySet().stream()</code>)</td></tr>
+<tr><td><code>Stream.of(a, b, c)</code></td><td>Stream com esses valores</td></tr>
+<tr><td><code>Arrays.stream(array)</code></td><td>Stream com os elementos de um array (com <code>int[]</code>, um <code>IntStream</code>)</td></tr>
+<tr><td><code>IntStream.range(a, b)</code></td><td>Os inteiros de <code>a</code> até <code>b - 1</code></td></tr>
+<tr><td><code>IntStream.rangeClosed(a, b)</code></td><td>Os inteiros de <code>a</code> até <code>b</code></td></tr>
+<tr><td><code>Stream.iterate(inicio, regra)</code></td><td>Sequência infinita (1, 2, 4, 8…): <strong>sempre</strong> com <code>limit</code></td></tr>
+</table>
+</div>
+
+<p>O <code>.boxed()</code> converte um <code>IntStream</code> (de <code>int</code>) num <code>Stream&lt;Integer&gt;</code>, para poder virar uma <code>List&lt;Integer&gt;</code> (lembre: coleções não guardam primitivos).</p>
+
+<hr>
+
+<h2>Operações intermediárias: as estações</h2>
+
+<pre class="file" data-file="Main.java">import java.util.Comparator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = List.of(7, 10, 3, 8, 5, 10, 7, 9);
+        System.out.println("original:         " + notas);
+        System.out.println("filter(n &gt;= 7):   " + notas.stream().filter(n -&gt; n &gt;= 7).toList());
+        System.out.println("map(n * 10):      " + notas.stream().map(n -&gt; n * 10).toList());
+        System.out.println("map(\"nota \" + n): " + notas.stream().map(n -&gt; "nota " + n).limit(2).toList());
+        System.out.println("sorted():         " + notas.stream().sorted().toList());
+        System.out.println("distinct():       " + notas.stream().distinct().toList());
+        System.out.println("limit(3):         " + notas.stream().limit(3).toList());
+        System.out.println("skip(5):          " + notas.stream().skip(5).toList());
+        System.out.println("tudo junto:       " + notas.stream()
+                .distinct()
+                .filter(n -&gt; n &gt;= 7)
+                .sorted(Comparator.reverseOrder())
+                .limit(2)
+                .toList());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+original:         [7, 10, 3, 8, 5, 10, 7, 9]
+filter(n &gt;= 7):   [7, 10, 8, 10, 7, 9]
+map(n * 10):      [70, 100, 30, 80, 50, 100, 70, 90]
+map("nota " + n): [nota 7, nota 10]          « map pode mudar o tipo: Integer → String
+sorted():         [3, 5, 7, 7, 8, 9, 10, 10]
+distinct():       [7, 10, 3, 8, 5, 9]        « tira repetidos, mantém a 1ª ocorrência
+limit(3):         [7, 10, 3]
+skip(5):          [10, 7, 9]                 « pula os 5 primeiros
+tudo junto:       [10, 9]                    « as duas maiores notas diferentes</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operação</th><th>Tradução</th><th>Recebe</th><th>O que faz</th></tr>
+<tr><td><code>filter(p)</code></td><td>filtrar</td><td><code>Predicate</code></td><td>Deixa passar só quem dá <code>true</code></td></tr>
+<tr><td><code>map(f)</code></td><td>mapear</td><td><code>Function</code></td><td>Troca cada elemento pelo resultado de <code>f</code> (pode mudar o tipo)</td></tr>
+<tr><td><code>sorted()</code> / <code>sorted(comp)</code></td><td>ordenado</td><td>— / <code>Comparator</code></td><td>Ordena (natural ou pelo comparador)</td></tr>
+<tr><td><code>distinct()</code></td><td>distintos</td><td>—</td><td>Tira repetidos (usa <code>equals</code>)</td></tr>
+<tr><td><code>limit(n)</code></td><td>limite</td><td><code>long</code></td><td>Só os <code>n</code> primeiros</td></tr>
+<tr><td><code>skip(n)</code></td><td>pular</td><td><code>long</code></td><td>Descarta os <code>n</code> primeiros</td></tr>
+<tr><td><code>peek(c)</code></td><td>espiar</td><td><code>Consumer</code></td><td>Executa algo com cada um sem mudar nada (para depurar)</td></tr>
+<tr><td><code>mapToInt(f)</code>, <code>mapToDouble(f)</code></td><td></td><td><code>ToIntFunction</code>…</td><td>Como <code>map</code>, mas gera um <code>IntStream</code>/<code>DoubleStream</code> (para somar, fazer média)</td></tr>
+<tr><td><code>flatMap(f)</code></td><td>"achatar"</td><td><code>Function</code> que devolve stream</td><td>Cada elemento vira vários (uma lista de listas vira uma lista só)</td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:[BRUNO\, CARLA\, DUDA],src:\.filter\(,src:\.map\(">
+<p class="try-task"><strong>Missão:</strong> monte um stream que pegue só os nomes com <strong>mais de 3 letras</strong>, transforme em maiúsculas e ordene. A saída deve ser <code>[BRUNO, CARLA, DUDA]</code>.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("ana", "bruno", "carla", "edu", "duda");
+        List&lt;String&gt; resultado = nomes.stream()
+                .toList();
+        System.out.println(resultado);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("ana", "bruno", "carla", "edu", "duda");
+        List&lt;String&gt; resultado = nomes.stream()
+                .filter(n -&gt; n.length() &gt; 3)
+                .map(n -&gt; n.toUpperCase())
+                .sorted()
+                .toList();
+        System.out.println(resultado);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Operações terminais: o resultado</h2>
+
+<pre class="file" data-file="Main.java">import java.util.Comparator;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("Ana", "Bruno", "Carla", "Beatriz", "Edu");
+
+        nomes.stream().filter(n -&gt; n.startsWith("B")).forEach(n -&gt; System.out.println("forEach: " + n));
+        System.out.println("count(): " + nomes.stream().filter(n -&gt; n.length() &gt; 3).count());
+        System.out.println("anyMatch(começa com E): " + nomes.stream().anyMatch(n -&gt; n.startsWith("E")));
+        System.out.println("allMatch(tem 3+ letras): " + nomes.stream().allMatch(n -&gt; n.length() &gt;= 3));
+        System.out.println("noneMatch(vazio): " + nomes.stream().noneMatch(String::isEmpty));
+        System.out.println("findFirst(): " + nomes.stream().filter(n -&gt; n.length() &gt; 4).findFirst());
+        System.out.println("max(por tamanho): " + nomes.stream().max(Comparator.comparing(String::length)).get());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+forEach: Bruno
+forEach: Beatriz
+count(): 3
+anyMatch(começa com E): true
+allMatch(tem 3+ letras): true
+noneMatch(vazio): true
+findFirst(): Optional[Bruno]          « vem dentro de um Optional
+max(por tamanho): Beatriz</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operação</th><th>Devolve</th><th>Pergunta</th></tr>
+<tr><td><code>toList()</code></td><td><code>List</code> (imutável)</td><td>"Junte tudo numa lista."</td></tr>
+<tr><td><code>forEach(c)</code></td><td>nada</td><td>"Faça isto com cada um."</td></tr>
+<tr><td><code>count()</code></td><td><code>long</code></td><td>"Quantos chegaram ao fim?"</td></tr>
+<tr><td><code>anyMatch(p)</code></td><td><code>boolean</code></td><td>"Algum satisfaz?"</td></tr>
+<tr><td><code>allMatch(p)</code></td><td><code>boolean</code></td><td>"Todos satisfazem?"</td></tr>
+<tr><td><code>noneMatch(p)</code></td><td><code>boolean</code></td><td>"Nenhum satisfaz?"</td></tr>
+<tr><td><code>findFirst()</code></td><td><code>Optional</code></td><td>"Qual é o primeiro?"</td></tr>
+<tr><td><code>min(comp)</code> / <code>max(comp)</code></td><td><code>Optional</code></td><td>"Qual é o menor / maior?"</td></tr>
+<tr><td><code>reduce(…)</code></td><td>um valor</td><td>"Junte todos em um só."</td></tr>
+<tr><td><code>collect(…)</code></td><td>depende</td><td>"Junte do jeito que eu disser" (veja <a href="collectors.html">Collectors</a>)</td></tr>
+</table>
+</div>
+
+<p><code>findFirst</code>, <code>min</code> e <code>max</code> devolvem um <strong><code>Optional</code></strong> ("opcional"): uma caixinha que pode estar vazia, porque o stream pode não ter elemento nenhum. Por isso aparece <code>Optional[Bruno]</code>, e por isso o <code>max</code> precisou de <code>.get()</code> para tirar o valor da caixa. O jeito certo de lidar com essa caixa é o assunto da aula <a href="optional.html">Optional</a>.</p>
+
+<hr>
+
+<h2>Números: <code>IntStream</code>, <code>sum</code> e <code>average</code></h2>
+<p>Um <code>Stream&lt;Integer&gt;</code> não tem <code>sum()</code>: ele não sabe que os elementos são números. Para fazer contas, converta para um stream de primitivos com <code>mapToInt</code> (ou <code>mapToDouble</code>):</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.stream.IntStream;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = List.of(7, 10, 3, 8);
+
+        int soma = notas.stream().mapToInt(n -&gt; n).sum();
+        System.out.println("sum(): " + soma);
+        System.out.println("average(): " + notas.stream().mapToInt(n -&gt; n).average());
+        System.out.println("average().getAsDouble(): " + notas.stream().mapToInt(n -&gt; n).average().getAsDouble());
+        System.out.println("max(): " + notas.stream().mapToInt(n -&gt; n).max().getAsInt());
+        System.out.println("vazio average(): " + IntStream.empty().average());
+        System.out.println("summaryStatistics(): " + notas.stream().mapToInt(n -&gt; n).summaryStatistics());
+        System.out.println("1 a 100: " + IntStream.rangeClosed(1, 100).sum());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+sum(): 28
+average(): OptionalDouble[7.0]                 « média vem numa caixinha
+average().getAsDouble(): 7.0
+max(): 10
+vazio average(): OptionalDouble.empty          « sem elementos, não há média
+summaryStatistics(): IntSummaryStatistics{count=4, sum=28, min=3, average=7,000000, max=10}
+1 a 100: 5050</pre>
+
+<dl class="anatomy">
+  <dt>mapToInt(n -&gt; n)</dt><dd>Transforma cada <code>Integer</code> em <code>int</code>, gerando um <code>IntStream</code>. Com objetos, você extrai o número: <code>turma.stream().mapToDouble(Aluno::nota)</code>.</dd>
+  <dt>sum()</dt><dd>Soma. Com nenhum elemento, dá 0.</dd>
+  <dt>average()</dt><dd>Média, num <code>OptionalDouble</code>: vazio se não há elementos (média de nada não existe). <code>getAsDouble()</code> tira o número da caixa.</dd>
+  <dt>summaryStatistics()</dt><dd>Conta, soma, mínimo, média e máximo de uma vez. Repare na média escrita <code>7,000000</code>, com <strong>vírgula</strong>: esse texto é formatado com o idioma do computador (<code>pt_BR</code>), como o <a href="formatacao.html">printf</a>.</dd>
+</dl>
+
+<hr>
+
+<h2><code>reduce</code>: juntar tudo em um valor</h2>
+<p><code>reduce</code> ("reduzir") pega os elementos dois a dois e os combina, até sobrar um só. É o que <code>sum</code>, <code>max</code> e <code>count</code> fazem por dentro:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = List.of(7, 10, 3, 8);
+
+        int soma = notas.stream().reduce(0, (a, b) -&gt; a + b);
+        System.out.println("reduce(0, +): " + soma);
+        System.out.println("reduce(0, Integer::sum): " + notas.stream().reduce(0, Integer::sum));
+        System.out.println("reduce(1, *): " + notas.stream().reduce(1, (a, b) -&gt; a * b));
+        System.out.println("reduce(Integer::max): " + notas.stream().reduce(Integer::max));
+
+        String frase = List.of("o", "rato", "roeu").stream().reduce("", (a, b) -&gt; a + b + " ");
+        System.out.println("[" + frase + "]");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+reduce(0, +): 28
+reduce(0, Integer::sum): 28
+reduce(1, *): 1680                   « 7 × 10 × 3 × 8
+reduce(Integer::max): Optional[10]   « sem valor inicial: devolve Optional
+[o rato roeu ]</pre>
+
+<p>Como <code>reduce(0, (a, b) -&gt; a + b)</code> funciona com <code>[7, 10, 3, 8]</code>: começa com o <strong>valor inicial</strong> 0; depois 0 + 7 = 7; 7 + 10 = 17; 17 + 3 = 20; 20 + 8 = 28. O <code>a</code> é o "acumulado até agora" e o <code>b</code>, o próximo elemento. A função é um <code>BinaryOperator</code> (veja <a href="interfaces-funcionais.html">Interfaces Funcionais</a>). Sem valor inicial, um stream vazio não teria resultado, por isso volta um <code>Optional</code>.</p>
+
+<p>Na prática, prefira os prontos (<code>sum</code>, <code>max</code>, <code>count</code>) e, para juntar textos, <code>Collectors.joining</code> (veja <a href="collectors.html">Collectors</a>), que não deixa o espaço sobrando no fim.</p>
+
+<hr>
+
+<h2>A preguiça: nada roda sem operação terminal</h2>
+<p>As operações intermediárias são <strong>preguiçosas</strong> (<em>lazy</em>): elas só <em>montam</em> a linha de montagem. Nenhum elemento passa por ela até que uma operação terminal "ligue a esteira". Veja na prática, com estações que avisam quando trabalham:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.stream.Stream;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("Ana", "Bruno", "Carla", "Duda");
+
+        System.out.println("1) sem operação terminal:");
+        Stream&lt;String&gt; s = nomes.stream()
+                .filter(n -&gt; {
+                    System.out.println("   filter " + n);
+                    return n.length() &gt; 3;
+                })
+                .map(n -&gt; {
+                    System.out.println("   map " + n);
+                    return n.toUpperCase();
+                });
+        System.out.println("   (nada aconteceu ainda)");
+
+        System.out.println("2) com toList():");
+        List&lt;String&gt; r = s.toList();
+        System.out.println("   resultado: " + r);
+
+        System.out.println("3) com findFirst():");
+        String primeiro = nomes.stream()
+                .filter(n -&gt; {
+                    System.out.println("   filter " + n);
+                    return n.length() &gt; 3;
+                })
+                .findFirst()
+                .get();
+        System.out.println("   primeiro: " + primeiro);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+1) sem operação terminal:
+   (nada aconteceu ainda)            « filter e map não rodaram!
+2) com toList():
+   filter Ana                        « Ana não passou no filtro: nem chega ao map
+   filter Bruno
+   map Bruno                         « Bruno passou: vai direto para o map
+   filter Carla
+   map Carla
+   filter Duda
+   map Duda
+   resultado: [BRUNO, CARLA, DUDA]
+3) com findFirst():
+   filter Ana
+   filter Bruno                      « achou o primeiro: Carla e Duda nem foram olhadas
+   primeiro: Bruno</pre>
+
+<p>Três lições dessa saída real:</p>
+<ol>
+  <li><strong>Sem terminal, nada acontece.</strong> No passo 1, o programa montou o stream e seguiu em frente: nenhuma lambda foi executada. Um erro comum é escrever <code>lista.stream().map(…)</code> esperando que algo aconteça, e esquecer a operação terminal.</li>
+  <li><strong>Um elemento por vez, de cima a baixo.</strong> No passo 2, o Bruno passou pelo <code>filter</code> e logo pelo <code>map</code>, antes de a Carla entrar. Não é "filtra todos, depois mapeia todos": é a esteira.</li>
+  <li><strong>Operações que param cedo.</strong> No passo 3, <code>findFirst</code> parou no primeiro que serviu. É por isso que dá para usar um stream infinito como <code>Stream.iterate</code> com <code>limit</code>: só são gerados os elementos necessários.</li>
+</ol>
+
+<div class="warning">
+<strong>Não use lambdas de stream para mudar coisas de fora</strong>
+<p>Os <code>println</code> dentro do <code>filter</code> acima servem só para enxergar a preguiça. Num programa de verdade, as lambdas de <code>filter</code> e <code>map</code> devem só calcular e devolver, sem efeitos colaterais (sem acrescentar em listas de fora, sem mudar variáveis). Para depurar, existe <code>peek(x -&gt; System.out.println(x))</code>.</p>
+</div>
+
+<hr>
+
+<h2>Um stream só pode ser usado uma vez</h2>
+<p>Depois que a esteira roda, ela é desmontada. Guardar um stream numa variável e usá-lo de novo dá erro:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.stream.Stream;
+
+public class Main {
+    public static void main(String[] args) {
+        Stream&lt;String&gt; nomes = List.of("Ana", "Bruno").stream();
+        System.out.println(nomes.count());
+        System.out.println(nomes.count());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+2
+Exception in thread "main" java.lang.IllegalStateException: stream has already been operated upon or closed
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:260)
+	at java.base/java.util.stream.ReferencePipeline.count(ReferencePipeline.java:750)
+	at Main.main(Main.java:8)</pre>
+
+<p>"Estado ilegal: o stream já foi usado ou fechado." O primeiro <code>count()</code> funcionou; o segundo, na linha 8, não. A solução é pedir um stream novo à <strong>fonte</strong> a cada uso: <code>lista.stream()</code> de novo. Por isso o costume é não guardar streams em variáveis: guarde a coleção e crie o stream na hora.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>IllegalStateException: stream has already been operated upon or closed</code></strong>
+<p><strong>O que aconteceu:</strong> o mesmo objeto <code>Stream</code> recebeu duas operações terminais (ou uma intermediária depois da terminal).</p>
+<p><strong>Como consertar:</strong> chame <code>colecao.stream()</code> de novo para cada cálculo.</p>
+</div>
+
+<div class="cenario">
+<strong>"Não aconteceu nada" (nenhuma saída, nenhum erro)</strong>
+<p><strong>O que aconteceu:</strong> faltou a operação terminal: <code>nomes.stream().map(n -&gt; { System.out.println(n); return n; });</code> não imprime nada.</p>
+<p><strong>Como consertar:</strong> termine com <code>toList()</code>, <code>forEach</code>, <code>count</code>… Se a intenção era só fazer algo com cada um, use <code>forEach</code> direto na lista.</p>
+</div>
+
+<div class="cenario">
+<strong><code>UnsupportedOperationException</code> ao mexer no resultado do <code>toList()</code></strong>
+<p><strong>O que aconteceu:</strong> <code>toList()</code> devolve uma lista <strong>imutável</strong> (como <code>List.of</code>; veja <a href="arraylist.html">ArrayList</a>).</p>
+<p><strong>Como consertar:</strong> se precisa alterar depois, use <code>new ArrayList&lt;&gt;(stream.toList())</code> ou <code>collect(Collectors.toList())</code> (veja <a href="collectors.html">Collectors</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … method sum()" num <code>Stream&lt;Integer&gt;</code></strong>
+<p><strong>O que aconteceu:</strong> só os streams de primitivos (<code>IntStream</code>, <code>DoubleStream</code>, <code>LongStream</code>) têm <code>sum</code> e <code>average</code>.</p>
+<p><strong>Como consertar:</strong> converta antes: <code>.mapToInt(n -&gt; n).sum()</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Operação</th><th>O que faz</th></tr>
+<tr><td>Fonte</td><td><code>c.stream()</code>, <code>Stream.of(…)</code>, <code>Arrays.stream(a)</code></td><td>Cria o stream</td></tr>
+<tr><td>Fonte</td><td><code>IntStream.range(a, b)</code> / <code>rangeClosed(a, b)</code></td><td>Inteiros de a até b−1 / b</td></tr>
+<tr><td>Intermediária</td><td><code>filter</code>, <code>map</code>, <code>sorted</code>, <code>distinct</code>, <code>limit</code>, <code>skip</code>, <code>peek</code></td><td>Montam a esteira (preguiçosas)</td></tr>
+<tr><td>Intermediária</td><td><code>mapToInt</code>, <code>mapToDouble</code>, <code>boxed</code></td><td>Para / de streams de primitivos</td></tr>
+<tr><td>Terminal</td><td><code>toList()</code>, <code>collect(…)</code></td><td>Junta numa coleção</td></tr>
+<tr><td>Terminal</td><td><code>forEach</code></td><td>Ação para cada um</td></tr>
+<tr><td>Terminal</td><td><code>count</code>, <code>sum</code>, <code>average</code>, <code>min</code>, <code>max</code></td><td>Números e estatísticas</td></tr>
+<tr><td>Terminal</td><td><code>anyMatch</code>, <code>allMatch</code>, <code>noneMatch</code></td><td>Perguntas de sim/não</td></tr>
+<tr><td>Terminal</td><td><code>findFirst</code>, <code>findAny</code></td><td>Um elemento (em <code>Optional</code>)</td></tr>
+<tr><td>Terminal</td><td><code>reduce(inicial, op)</code></td><td>Combina todos em um</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Só os pares</h3>
+<p>Complete para manter só os números pares:</p>
+<div class="ex-code">numeros.stream().<input data-answer="filter(n -&gt; n % 2 == 0)|filter(x -&gt; x % 2 == 0)" aria-label="operação">.toList();</div>
+</div>
+
+<div class="exercise">
+<h3>2. Dobrar</h3>
+<p>Complete para transformar cada número no seu dobro:</p>
+<div class="ex-code">numeros.stream().<input data-answer="map(n -&gt; n * 2)|map(x -&gt; x * 2)|map(n -&gt; 2 * n)" aria-label="operação">.toList();</div>
+</div>
+
+<div class="exercise">
+<h3>3. Somar</h3>
+<p>Complete para somar uma <code>List&lt;Integer&gt; notas</code>:</p>
+<div class="ex-code">int soma = notas.stream().<input data-answer="mapToInt(n -&gt; n)|mapToInt(Integer::intValue)|mapToInt(x -&gt; x)" aria-label="conversão">.sum();</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>lista.stream().filter(x -&gt; { System.out.println(x); return true; });</code> mostra?</p>
+<label><input type="radio" name="q4"> Todos os elementos.</label>
+<label><input type="radio" name="q4"> Nada: não há operação terminal.</label>
+<label><input type="radio" name="q4"> Só o primeiro.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destas é uma operação <strong>terminal</strong>?</p>
+<label><input type="radio" name="q5"> <code>map</code></label>
+<label><input type="radio" name="q5"> <code>sorted</code></label>
+<label><input type="radio" name="q5"> <code>count</code></label>
+<label><input type="radio" name="q5"> <code>filter</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Depois de <code>lista.stream().map(…).toList()</code>, a <code>lista</code> original…</p>
+<label><input type="radio" name="q6"> continua igual.</label>
+<label><input type="radio" name="q6"> foi transformada.</label>
+<label><input type="radio" name="q6"> ficou vazia.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Média: 7.0,out:Abaixo de 7: 2,out:Acima da média: [Ana\, Carla],src:stream\(\)">
+<p class="try-task"><strong>Missão final:</strong> calcule, com streams, as estatísticas da turma: a média das notas (<code>mapToDouble</code> + <code>average</code>), quantos ficaram abaixo de 7 (<code>filter</code> + <code>count</code>) e os nomes de quem ficou acima da média, em ordem. A saída deve ser <code>Média: 7.0</code>, <code>Abaixo de 7: 2</code> e <code>Acima da média: [Ana, Carla]</code>.</p>
+<pre class="script">import java.util.List;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = List.of(
+            new Aluno("Carla", 9.5), new Aluno("Edu", 4.0), new Aluno("Ana", 8.0),
+            new Aluno("Duda", 6.5), new Aluno("Bruno", 7.0));
+
+        double media = 0;
+        long reprovados = 0;
+        List&lt;String&gt; destaque = List.of();
+
+        System.out.println("Média: " + media);
+        System.out.println("Abaixo de 7: " + reprovados);
+        System.out.println("Acima da média: " + destaque);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = List.of(
+            new Aluno("Carla", 9.5), new Aluno("Edu", 4.0), new Aluno("Ana", 8.0),
+            new Aluno("Duda", 6.5), new Aluno("Bruno", 7.0));
+
+        double media = turma.stream().mapToDouble(Aluno::nota).average().getAsDouble();
+        long reprovados = turma.stream().filter(a -&gt; a.nota() &lt; 7).count();
+        List&lt;String&gt; destaque = turma.stream()
+                .filter(a -&gt; a.nota() &gt; media)
+                .map(Aluno::nome)
+                .sorted()
+                .toList();
+
+        System.out.println("Média: " + media);
+        System.out.println("Abaixo de 7: " + reprovados);
+        System.out.println("Acima da média: " + destaque);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um stream é uma linha de montagem: <strong>fonte</strong> → operações <strong>intermediárias</strong> → operação <strong>terminal</strong>.</li>
+  <li>Ele não guarda dados nem altera a fonte; o resultado é sempre novo.</li>
+  <li>Estações: <code>filter</code> (descarta), <code>map</code> (transforma), <code>sorted</code>, <code>distinct</code>, <code>limit</code>, <code>skip</code>.</li>
+  <li>Terminais: <code>toList</code>, <code>forEach</code>, <code>count</code>, <code>anyMatch</code>/<code>allMatch</code>/<code>noneMatch</code>, <code>findFirst</code>, <code>min</code>/<code>max</code>, <code>reduce</code>.</li>
+  <li>Contas: <code>mapToInt</code>/<code>mapToDouble</code> + <code>sum</code>, <code>average</code> (num <code>OptionalDouble</code>).</li>
+  <li>Preguiça: sem terminal nada roda; os elementos passam um a um; <code>findFirst</code> e <code>limit</code> param cedo.</li>
+  <li>Um stream só pode ser usado uma vez: <code>IllegalStateException</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="collectors.html">Collectors</a>, para agrupar, contar e juntar os resultados de um stream.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
