@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java switch com Setas — switch como expressão, yield e exaustividade | Guia Java</title>
+<meta name="description" content="O switch moderno do Java (14+): case com seta -&gt;, sem fall-through, vários rótulos case 1, 2 -&gt;, switch como expressão que devolve um valor, yield, exaustividade (erro real the switch expression does not cover all possible input values) e comparação com o switch clássico.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">switch com Setas</span> <span class="versao">Java 14+</span></h1>
+
+<p class="intro">Na aula <a href="switch.html">switch</a> você viu o <code>switch</code> clássico, com <code>case</code>, <code>:</code> e <code>break</code>, e o perigo do fall-through. Desde o Java 14, existe uma forma nova: <code>case valor -&gt; …</code>, com uma <strong>seta</strong>. Ela não tem fall-through, não precisa de <code>break</code> e, o mais importante, pode ser usada como uma <strong>expressão</strong>, que devolve um valor.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A sintaxe com seta <code>case 1 -&gt;</code> e por que ela dispensa o <code>break</code>.</li>
+  <li>Vários rótulos num caso: <code>case 1, 7 -&gt;</code>.</li>
+  <li>O <code>switch</code> como <strong>expressão</strong>: <code>String nome = switch (dia) { … };</code>.</li>
+  <li>Blocos com várias linhas e o <code>yield</code>, que devolve o valor do bloco.</li>
+  <li><strong>Exaustividade</strong>: por que o <code>javac</code> exige que todos os valores sejam tratados (e o erro real quando não são).</li>
+  <li>A comparação entre o clássico e o moderno, e uma prévia dos padrões no <code>switch</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: cada caso é uma regra completa</h2>
+<p>No <code>switch</code> clássico, os <code>case</code> eram <strong>pontos de entrada</strong> numa escada: você entra num degrau e desce até um <code>break</code>. No <code>switch</code> com setas, cada <code>case</code> é uma <strong>regra</strong> independente: "se for 1, faça isto" e acabou. Pense na diferença entre um corredor com portas (você entra por uma e pode atravessar as outras) e um painel de interruptores, em que cada um liga <strong>só a sua</strong> lâmpada.</p>
+
+<hr>
+
+<h2>A seta <code>-&gt;</code>: sem <code>break</code>, sem fall-through</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dia = 3;
+        switch (dia) {
+            case 1 -&gt; System.out.println("Domingo");
+            case 2 -&gt; System.out.println("Segunda");
+            case 3 -&gt; System.out.println("Terça");
+            case 4 -&gt; System.out.println("Quarta");
+            case 5 -&gt; System.out.println("Quinta");
+            case 6 -&gt; System.out.println("Sexta");
+            case 7 -&gt; System.out.println("Sábado");
+            default -&gt; System.out.println("Dia inválido");
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Terça     « só o caso 3: nenhum break e nenhum fall-through
+Fim</pre>
+
+<dl class="anatomy">
+  <dt>case 3</dt><dd>O valor do caso, como antes.</dd>
+  <dt>-&gt;</dt><dd>A seta: um hífen seguido de "maior que", sem espaço entre eles. Lê-se "então faça".</dd>
+  <dt>System.out.println("Terça");</dt><dd>O que fazer nesse caso: <strong>uma</strong> instrução, um <strong>bloco</strong> <code>{ … }</code> ou (como você vai ver) um valor. Depois dela, o <code>switch</code> termina. Não há como "cair" no caso de baixo.</dd>
+  <dt>default -&gt;</dt><dd>O "senão", também com seta.</dd>
+</dl>
+
+<p>Compare com o programa da aula anterior: 8 linhas de <code>break</code> a menos e nenhuma chance de esquecer uma delas.</p>
+
+<h3>Vários rótulos e blocos</h3>
+<p>Para vários valores com a mesma regra, separe-os por vírgula: <code>case 1, 7 -&gt;</code>. Para várias linhas, use chaves; cada bloco tem as suas próprias variáveis (no clássico, todos os casos dividiam o mesmo bloco):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dia = 2;
+        switch (dia) {
+            case 1 -&gt; {
+                System.out.println("Domingo");
+                System.out.println("Dia de descanso");
+            }
+            case 2 -&gt; {
+                String msg = "Segunda";
+                System.out.println(msg);
+            }
+            case 3 -&gt; {
+                String msg = "Terça";
+                System.out.println(msg);
+            }
+            default -&gt; {}
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Segunda</pre>
+
+<p>As duas variáveis <code>msg</code> convivem sem erro, porque cada uma mora no seu bloco (no <code>switch</code> clássico isso dava <code>variable msg is already defined</code>). <code>default -&gt; {}</code> é um bloco vazio: "nos outros casos, não faça nada".</p>
+
+<hr>
+
+<h2>O <code>switch</code> como expressão</h2>
+<p>Aqui está a grande novidade. Muitas vezes o <code>switch</code> existe só para <strong>escolher um valor</strong>: o nome do dia, o preço do produto, a quantidade de dias do mês. Em vez de atribuir a variável dentro de cada caso, o <code>switch</code> inteiro pode <strong>ser</strong> o valor, como um <a href="ternario.html">ternário</a> com muitas opções:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dia = 7;
+        String nome = switch (dia) {
+            case 1 -&gt; "Domingo";
+            case 2 -&gt; "Segunda";
+            case 3 -&gt; "Terça";
+            case 4 -&gt; "Quarta";
+            case 5 -&gt; "Quinta";
+            case 6 -&gt; "Sexta";
+            case 7 -&gt; "Sábado";
+            default -&gt; "Dia inválido";
+        };
+        System.out.println("Hoje é " + nome);
+
+        String tipo = switch (dia) {
+            case 1, 7 -&gt; "fim de semana";
+            case 2, 3, 4, 5, 6 -&gt; "dia útil";
+            default -&gt; "?";
+        };
+        System.out.println("É " + tipo);
+        System.out.println(switch (dia) { case 1, 7 -&gt; "descanso"; default -&gt; "trabalho"; });
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Hoje é Sábado
+É fim de semana
+descanso</pre>
+
+<dl class="anatomy">
+  <dt>String nome = switch (dia) {</dt><dd>O <code>switch</code> aparece do lado direito do <code>=</code>: o valor que ele produzir vai para <code>nome</code>.</dd>
+  <dt>case 1 -&gt; "Domingo";</dt><dd>Depois da seta vem o <strong>valor</strong> daquele caso, seguido de <code>;</code>.</dd>
+  <dt>default -&gt; "Dia inválido";</dt><dd>O valor para todos os outros casos. Num <code>switch</code> de expressão, alguma regra <strong>tem</strong> de servir para cada valor possível (veja "Exaustividade").</dd>
+  <dt>};</dt><dd>O <code>;</code> depois da chave é obrigatório: a linha inteira <code>String nome = switch … ;</code> é <strong>uma</strong> instrução de atribuição.</dd>
+  <dt>System.out.println(switch …)</dt><dd>Como é um valor, cabe em qualquer lugar que aceite um valor, até dentro do <code>println</code> (mas não exagere na legibilidade).</dd>
+</dl>
+
+<p>Compare com o equivalente clássico, que precisava declarar <code>String nome;</code> antes, atribuir em cada <code>case</code> e não esquecer nenhum <code>break</code>. Aqui, a variável nasce pronta, e o <code>javac</code> garante que ela sempre recebe um valor.</p>
+
+<div class="tryjava" data-goal="out:Bebida: Chá,src:=\s*switch,src:-&gt;">
+<p class="try-task"><strong>Missão:</strong> transforme o <code>switch</code> clássico num <code>switch</code> <strong>de expressão</strong>, com setas: <code>String bebida = switch (opcao) { … };</code>. As opções: 1 = <code>Café</code>, 2 = <code>Chá</code>, 3 = <code>Suco</code>, outras = <code>Água</code>. A saída deve continuar <code>Bebida: Chá</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int opcao = 2;
+        String bebida;
+        switch (opcao) {
+            case 1:
+                bebida = "Café";
+                break;
+            case 2:
+                bebida = "Chá";
+                break;
+            case 3:
+                bebida = "Suco";
+                break;
+            default:
+                bebida = "Água";
+        }
+        System.out.println("Bebida: " + bebida);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int opcao = 2;
+        String bebida = switch (opcao) {
+            case 1 -&gt; "Café";
+            case 2 -&gt; "Chá";
+            case 3 -&gt; "Suco";
+            default -&gt; "Água";
+        };
+        System.out.println("Bebida: " + bebida);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Blocos que devolvem valor: <code>yield</code></h2>
+<p>E se, para calcular o valor de um caso, você precisar de várias linhas? Use um bloco <code>{ … }</code> e, no fim, <code>yield</code> ("render", "produzir") com o valor que o bloco devolve:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int mes = 2;
+        int ano = 2028;
+        int dias = switch (mes) {
+            case 4, 6, 9, 11 -&gt; 30;
+            case 2 -&gt; {
+                boolean bissexto = (ano % 4 == 0 &amp;&amp; ano % 100 != 0) || ano % 400 == 0;
+                System.out.println("Fevereiro de " + ano + (bissexto ? " é bissexto" : " não é bissexto"));
+                yield bissexto ? 29 : 28;
+            }
+            default -&gt; 31;
+        };
+        System.out.println("Dias: " + dias);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Fevereiro de 2028 é bissexto
+Dias: 29</pre>
+
+<dl class="anatomy">
+  <dt>case 2 -&gt; { … }</dt><dd>Um bloco com várias instruções: calcula se o ano é bissexto (a regra do calendário: divisível por 4, exceto os séculos que não são divisíveis por 400) e mostra uma mensagem.</dd>
+  <dt>yield bissexto ? 29 : 28;</dt><dd>"Este bloco produz o valor 29 ou 28". O <code>yield</code> encerra o bloco e entrega o valor ao <code>switch</code>, que o entrega a <code>dias</code>.</dd>
+</dl>
+
+<div class="tip">
+<strong><code>yield</code> × <code>return</code></strong>
+<p>O <code>yield</code> devolve um valor <strong>do switch</strong>. O <code>return</code> (que você vai ver em <a href="retorno.html">Valores de Retorno</a>) sai <strong>do método inteiro</strong>, e é proibido dentro de um <code>switch</code> de expressão (veja "Quando dá errado"). Nos casos de uma linha (<code>case 4 -&gt; 30;</code>) o <code>yield</code> fica implícito; ele só aparece dentro de blocos.</p>
+</div>
+
+<h3><code>yield</code> com a sintaxe antiga</h3>
+<p>O <code>switch</code> de expressão também aceita os dois-pontos do estilo clássico; nesse caso, todo caso usa <code>yield</code>, e o fall-through volta a existir (um caso sem <code>yield</code> cai no de baixo). É raro ver isso; prefira as setas.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        char conceito = 'B';
+        String texto = switch (conceito) {
+            case 'A':
+                yield "Excelente";
+            case 'B':
+                yield "Bom";
+            case 'C':
+                yield "Regular";
+            default:
+                yield "Insuficiente";
+        };
+        System.out.println(texto);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Bom</pre>
+
+<hr>
+
+<h2>Exaustividade: todos os casos cobertos</h2>
+<p>Um <code>switch</code> de <strong>expressão</strong> precisa produzir um valor <strong>sempre</strong>, para qualquer valor do seletor. Se existir algum valor sem regra, o que a variável receberia? Por isso o <code>javac</code> exige que o <code>switch</code> seja <strong>exaustivo</strong> (cubra todas as possibilidades). <em>Este código tem um erro de propósito.</em></p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dia = 3;
+        String nome = switch (dia) {
+            case 1 -&gt; "Domingo";
+            case 2 -&gt; "Segunda";
+            case 3 -&gt; "Terça";
+        };
+        System.out.println(nome);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: the switch expression does not cover all possible input values
+        String nome = switch (dia) {
+                      ^
+1 error</pre>
+
+<p>"A expressão switch não cobre todos os valores de entrada possíveis." Não adianta que <code>dia</code> seja 3 agora: o <code>javac</code> olha o <strong>tipo</strong>, e um <code>int</code> pode valer qualquer coisa entre -2 bilhões e +2 bilhões. Com um <code>default</code>, todos ficam cobertos.</p>
+
+<h3>Com <code>enum</code>, o <code>default</code> é dispensável</h3>
+<p>Um <a href="enums.html">enum</a> tem uma lista <strong>fechada</strong> de valores. Se você trata todos, o <code>switch</code> já é exaustivo, sem <code>default</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    enum Semaforo { VERDE, AMARELO, VERMELHO }
+
+    public static void main(String[] args) {
+        Semaforo sinal = Semaforo.VERMELHO;
+        String acao = switch (sinal) {
+            case VERDE -&gt; "Pode seguir";
+            case AMARELO -&gt; "Atenção";
+            case VERMELHO -&gt; "Pare!";
+        };
+        System.out.println(acao);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Pare!</pre>
+
+<p>E aqui está a grande vantagem: se você esquecer um valor (ou se alguém, um dia, acrescentar <code>PISCANDO</code> ao enum), o <code>javac</code> avisa na hora. Com <code>case VERMELHO</code> removido:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:6: error: the switch expression does not cover all possible input values
+        String acao = switch (sinal) {
+                      ^
+1 error</pre>
+
+<p>Por isso, com enums, é melhor <strong>não</strong> colocar <code>default</code>: ele "cobriria" o valor novo em silêncio, e o <code>javac</code> não teria como avisar.</p>
+
+<div class="note">
+<strong>E o <code>switch</code> com setas que não devolve valor?</strong>
+<p>Usado como <strong>instrução</strong> (como no primeiro exemplo, só com <code>println</code>), o <code>switch</code> com setas sobre <code>int</code>, <code>String</code> ou <code>enum</code> não precisa ser exaustivo: se nenhum caso bater, nada acontece, como no clássico. A exigência vale para o <code>switch</code> de <strong>expressão</strong> (e para o <code>switch</code> com padrões).</p>
+</div>
+
+<hr>
+
+<h2>Clássico × com setas</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Clássico (<code>case x:</code>)</th><th>Com setas (<code>case x -&gt;</code>)</th></tr>
+<tr><td>Desde</td><td>Java 1.0</td><td>Java 14</td></tr>
+<tr><td><code>break</code></td><td>Necessário em cada caso</td><td>Não existe</td></tr>
+<tr><td>Fall-through</td><td>Sim (sem <code>break</code>, cai no próximo)</td><td>Não</td></tr>
+<tr><td>Vários valores</td><td><code>case 1: case 7:</code> ou <code>case 1, 7:</code></td><td><code>case 1, 7 -&gt;</code></td></tr>
+<tr><td>Variáveis nos casos</td><td>Todos dividem um bloco</td><td>Cada bloco tem as suas</td></tr>
+<tr><td>Como expressão (devolve valor)</td><td>Só com <code>yield</code> em cada caso</td><td>Sim: <code>case 1 -&gt; "valor";</code></td></tr>
+<tr><td>Exaustividade verificada</td><td>Não (como instrução)</td><td>Sim, quando é expressão</td></tr>
+<tr><td>Misturar os dois estilos</td><td colspan="2">Proibido no mesmo <code>switch</code> (erro <code>different case kinds used in the switch</code>)</td></tr>
+</table>
+</div>
+
+<p>Em código novo, prefira as setas: são mais curtas, mais seguras e deixam claro, caso a caso, o que acontece. O clássico continua importante para ler código antigo e para os raros casos em que o fall-through é desejado.</p>
+
+<hr>
+
+<h2>Prévia: padrões no <code>switch</code> <span class="versao">Java 21+</span></h2>
+<p>O <code>switch</code> moderno faz ainda mais: ele pode testar o <strong>tipo</strong> de um valor, dar nome a ele e acrescentar condições com <code>when</code>. Só para você reconhecer quando encontrar:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Object[] coisas = {42, "Ana", 3.5, null};
+        for (Object o : coisas) {
+            String descricao = switch (o) {
+                case null -&gt; "nada";
+                case Integer i when i &gt; 40 -&gt; "inteiro grande: " + i;
+                case Integer i -&gt; "inteiro: " + i;
+                case String s -&gt; "texto com " + s.length() + " letras";
+                default -&gt; "outra coisa: " + o;
+            };
+            System.out.println(descricao);
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+inteiro grande: 42
+texto com 3 letras
+outra coisa: 3.5
+nada</pre>
+
+<p><code>case Integer i</code> quer dizer "se for um inteiro, chame-o de <code>i</code>"; <code>when i &gt; 40</code> acrescenta uma condição; <code>case null</code> trata o <code>null</code> sem <code>NullPointerException</code>. Isso depende de conceitos do Nível 2 e 3 (objetos, <code>Object</code>, <a href="for-each.html">for-each</a>), e é explicado em detalhe em <a href="pattern-matching.html">Pattern Matching</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: the switch expression does not cover all possible input values</code></strong>
+<p><strong>O que aconteceu:</strong> o <code>switch</code> de expressão não tem regra para algum valor possível do seletor (veja "Exaustividade").</p>
+<p><strong>Como resolver:</strong> com <code>int</code> ou <code>String</code>, acrescente <code>default -&gt; …;</code>. Com <code>enum</code>, acrescente o caso que falta.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: different case kinds used in the switch</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dia = 1;
+        switch (dia) {
+            case 1 -&gt; System.out.println("Domingo");
+            case 2:
+                System.out.println("Segunda");
+                break;
+        }
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:6: error: different case kinds used in the switch
+            case 2:
+            ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "tipos de case diferentes usados no switch": um caso com seta e outro com dois-pontos. Cada <code>switch</code> tem de usar um estilo só.</p>
+<p><strong>Como resolver:</strong> passe todos para setas (e tire os <code>break</code>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: ';' expected</code> depois do <code>}</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int dia = 1;
+        String nome = switch (dia) {
+            case 1 -&gt; "Domingo";
+            default -&gt; "Outro";
+        }
+        System.out.println(nome);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:7: error: ';' expected
+        }
+         ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> um <code>switch</code> de expressão é parte de uma atribuição, e toda atribuição termina com <code>;</code>.</p>
+<p><strong>Como resolver:</strong> <code>};</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: switch rule completes without providing a value</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int mes = 2;
+        int dias = switch (mes) {
+            case 2 -&gt; {
+                System.out.println("Fevereiro");
+            }
+            default -&gt; 31;
+        };
+        System.out.println(dias);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:7: error: switch rule completes without providing a value
+            }
+            ^
+  (switch rules in switch expressions must either provide a value or throw)
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "a regra do switch termina sem fornecer um valor". O bloco do <code>case 2</code> chegou ao <code>}</code> sem <code>yield</code>. A linha entre parênteses explica: num <code>switch</code> de expressão, cada regra tem de fornecer um valor ou lançar uma exceção (<code>throw</code>, veja <a href="throw-throws.html">throw e throws</a>).</p>
+<p><strong>Como resolver:</strong> termine o bloco com <code>yield 28;</code> (ou o valor certo).</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: attempt to return out of a switch expression</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String cmd = "sair";
+        int codigo = switch (cmd) {
+            case "novo" -&gt; 1;
+            case "sair" -&gt; {
+                return;
+            }
+            default -&gt; 0;
+        };
+        System.out.println(codigo);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:7: error: attempt to return out of a switch expression
+                return;
+                ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "tentativa de retornar de dentro de uma expressão switch". O <code>return</code> sairia do método no meio de uma atribuição, e <code>codigo</code> ficaria sem valor.</p>
+<p><strong>Como resolver:</strong> use <code>yield</code> para devolver um valor do <code>switch</code>; se precisa sair do método, decida isso depois, com um <code>if</code> sobre o valor.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Significado</th></tr>
+<tr><td><code>case 1 -&gt; instrução;</code></td><td>Regra com uma instrução (sem <code>break</code>)</td></tr>
+<tr><td><code>case 1 -&gt; { … }</code></td><td>Regra com um bloco</td></tr>
+<tr><td><code>case 1, 7 -&gt;</code></td><td>Vários valores na mesma regra</td></tr>
+<tr><td><code>default -&gt;</code></td><td>Todos os outros valores</td></tr>
+<tr><td><code>tipo x = switch (s) { case a -&gt; v1; default -&gt; v2; };</code></td><td><code>switch</code> de expressão (note o <code>;</code> final)</td></tr>
+<tr><td><code>case a -&gt; { …; yield v; }</code></td><td>Bloco que devolve <code>v</code></td></tr>
+<tr><td><code>case a: yield v;</code></td><td><code>yield</code> no estilo de dois-pontos</td></tr>
+<tr><td><code>case Integer i when i &gt; 0 -&gt;</code></td><td>Padrão com condição (Java 21+, veja <a href="pattern-matching.html">Pattern Matching</a>)</td></tr>
+<tr><td><code>case null -&gt;</code></td><td>Trata <code>null</code> (Java 21+)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Tamanho grande ganha brinde!,out:Preço: 22.5,src:yield">
+<p class="try-task"><strong>Missão final:</strong> numa pizzaria, o tamanho <code>"P"</code> custa <code>12.0</code>, o <code>"M"</code> custa <code>17.5</code> e o <code>"G"</code> custa <code>22.5</code>; outros tamanhos, <code>0.0</code>. Use um <code>switch</code> de expressão com setas. No caso <code>"G"</code>, use um <strong>bloco</strong> que mostre <code>Tamanho grande ganha brinde!</code> e devolva o preço com <code>yield</code>. Com <code>tamanho = "G"</code>, a saída deve ser:<br><code>Tamanho grande ganha brinde!</code><br><code>Preço: 22.5</code></p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String tamanho = "G";
+        // double preco = switch (tamanho) { … };
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String tamanho = "G";
+        double preco = switch (tamanho) {
+            case "P" -&gt; 12.0;
+            case "M" -&gt; 17.5;
+            case "G" -&gt; {
+                System.out.println("Tamanho grande ganha brinde!");
+                yield 22.5;
+            }
+            default -&gt; 0.0;
+        };
+        System.out.println("Preço: " + preco);
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. A seta</h3>
+<p>Complete o caso para devolver <code>"um"</code> quando o valor for 1:</p>
+<div class="ex-code">case 1 <input data-answer="-&gt;" aria-label="seta"> "um";</div>
+</div>
+
+<div class="exercise">
+<h3>2. Devolver de um bloco</h3>
+<p>Qual palavra devolve o valor de um bloco dentro de um <code>switch</code> de expressão?</p>
+<div class="ex-code"><input data-answer="yield" aria-label="palavra"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Vários valores</h3>
+<p>Complete para que 6 e 7 tenham a mesma regra:</p>
+<div class="ex-code">case 6<input data-answer=", 7|,7" aria-label="rótulos"> -&gt; "fim de semana";</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com <code>int x = 2;</code>, o que este código mostra?</p>
+<pre class="file">switch (x) {
+    case 1 -&gt; System.out.println("um");
+    case 2 -&gt; System.out.println("dois");
+    case 3 -&gt; System.out.println("três");
+}</pre>
+<label><input type="radio" name="q4"> <code>dois</code> e <code>três</code></label>
+<label><input type="radio" name="q4"> Nada, porque falta o <code>break</code></label>
+<label><input type="radio" name="q4"> <code>dois</code></label>
+<label><input type="radio" name="q4"> Erro: falta o <code>default</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que <code>String s = switch (n) { case 1 -&gt; "a"; case 2 -&gt; "b"; };</code> não compila (com <code>int n</code>)?</p>
+<label><input type="radio" name="q5"> Porque não cobre todos os valores possíveis de <code>n</code>: falta o <code>default</code>.</label>
+<label><input type="radio" name="q5"> Porque falta o <code>break</code>.</label>
+<label><input type="radio" name="q5"> Porque <code>switch</code> não pode devolver String.</label>
+<label><input type="radio" name="q5"> Porque falta o <code>yield</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Num <code>switch</code> de expressão sobre um <code>enum</code> que trata todos os valores, é melhor…</p>
+<label><input type="radio" name="q6"> Sempre acrescentar <code>default</code>, por segurança.</label>
+<label><input type="radio" name="q6"> Não colocar <code>default</code>, para o <code>javac</code> avisar se um valor novo for criado no enum.</label>
+<label><input type="radio" name="q6"> Usar <code>break</code> em cada caso.</label>
+<label><input type="radio" name="q6"> Trocar por <code>if/else</code>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>case x -&gt;</code> (Java 14+): cada caso é uma regra completa. Sem <code>break</code> e sem fall-through.</li>
+  <li>Vários valores: <code>case 1, 7 -&gt;</code>. Várias linhas: <code>case 1 -&gt; { … }</code>, cada bloco com as suas variáveis.</li>
+  <li>Como <strong>expressão</strong>: <code>tipo x = switch (s) { case a -&gt; valor; … };</code> (com <code>;</code> no fim).</li>
+  <li>Em blocos de um <code>switch</code> de expressão, <code>yield valor;</code> devolve o valor; <code>return</code> é proibido.</li>
+  <li>O <code>switch</code> de expressão tem de ser <strong>exaustivo</strong>: <code>default</code> para <code>int</code>/<code>String</code>; todos os valores para <code>enum</code> (e aí, melhor sem <code>default</code>).</li>
+  <li>Não misture <code>:</code> e <code>-&gt;</code> no mesmo <code>switch</code>. Padrões (<code>case Integer i when …</code>, <code>case null</code>) são do Java 21+: veja <a href="pattern-matching.html">Pattern Matching</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
