@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Interfaces — interface, implements, default e static | Guia Java</title>
+<meta name="description" content="Interfaces em Java: interface e implements, uma classe com várias interfaces, métodos default e static, constantes, o conflito entre defaults, interface × classe abstrata (tabela) e as interfaces da biblioteca, como Comparable. Erros e saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Interfaces</span></h1>
+
+<p class="intro">Um pássaro voa. Um avião voa. Um drone voa. Os três não têm nada mais em comum: um é animal, outro é veículo, outro é eletrônico. Não faz sentido criar uma superclasse para os três. Mas seria ótimo poder dizer "me dê qualquer coisa que voe". Para isso existem as <strong>interfaces</strong>: um contrato que diz o que uma classe <strong>sabe fazer</strong>, sem dizer o que ela <strong>é</strong>. E, diferente da herança, uma classe pode assinar quantos contratos quiser.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar uma <code>interface</code> e implementá-la com <code>implements</code>.</li>
+  <li>Os erros de quem esquece um método ou o <code>public</code>.</li>
+  <li>Como uma classe implementa várias interfaces (e herda de uma classe ao mesmo tempo).</li>
+  <li>Métodos <code>default</code> e <code>static</code> em interfaces, e as constantes.</li>
+  <li>A diferença entre interface e classe abstrata, numa tabela.</li>
+  <li>Como as interfaces da biblioteca, como <code>Comparable</code>, funcionam do mesmo jeito.</li>
+</ul>
+</div>
+
+<p>Esta aula continua <a href="abstratas.html">Classes Abstratas</a> e usa <a href="polimorfismo.html">Polimorfismo</a>.</p>
+
+<hr>
+
+<h2>A ideia: uma tomada</h2>
+<p>A tomada da parede da Ana não sabe o que vai ser ligado nela: um abajur, um carregador, uma geladeira. Ela só exige um <strong>padrão</strong>: dois ou três pinos, naquele formato. Qualquer aparelho que siga o padrão funciona. O padrão da tomada é uma <strong>interface</strong>: um acordo entre quem <strong>usa</strong> (a parede) e quem <strong>fornece</strong> (o aparelho).</p>
+
+<p>Em Java, uma interface é uma lista de métodos que uma classe promete ter. A palavra vem do inglês <em>interface</em>, "superfície de contato": o ponto onde duas partes se encontram. Quem implementa a interface diz "eu cumpro esse contrato"; quem usa só precisa conhecer o contrato.</p>
+
+<hr>
+
+<h2><code>interface</code> e <code>implements</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Voador&gt; ceu = List.of(new Passaro(), new Aviao(), new Passaro());
+        for (Voador v : ceu) {
+            v.voar();
+        }
+    }
+}
+
+interface Voador {
+    void voar();
+}
+
+class Passaro implements Voador {
+    @Override
+    public void voar() {
+        System.out.println("O pássaro bate as asas.");
+    }
+}
+
+class Aviao implements Voador {
+    @Override
+    public void voar() {
+        System.out.println("O avião liga as turbinas.");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>interface Voador</dt><dd>Declara uma interface. O nome costuma ser um adjetivo ou uma habilidade: <code>Voador</code>, <code>Comparable</code> ("comparável"), <code>Runnable</code> ("executável").</dd>
+  <dt>void voar();</dt><dd>Um método do contrato: só a assinatura, com <code>;</code>. Numa interface, ele é automaticamente <code>public</code> e <code>abstract</code>, sem você escrever.</dd>
+  <dt>class Passaro implements Voador</dt><dd><code>implements</code> = "implementa": a classe assina o contrato e é obrigada a escrever todos os métodos dele.</dd>
+  <dt>public void voar()</dt><dd>A implementação. O <code>public</code> é obrigatório (já já você vê por quê). O <code>@Override</code> também vale aqui (veja <a href="sobrescrita.html">Sobrescrita</a>).</dd>
+  <dt>List&lt;Voador&gt;</dt><dd>A interface também é um <strong>tipo</strong>: variáveis, listas e parâmetros podem ser do tipo <code>Voador</code> e guardar qualquer objeto que a implemente.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+O pássaro bate as asas.
+O avião liga as turbinas.
+O pássaro bate as asas.</pre>
+
+<p>O laço não sabe se cada item é um pássaro ou um avião; só sabe que todos voam. É o mesmo <a href="polimorfismo.html">despacho dinâmico</a> da herança, mas agora entre classes que não são parentes.</p>
+
+<div class="tryjava" data-goal="out:O drone gira as hélices.,src:implements\s+Voador">
+<p class="try-task"><strong>Missão:</strong> crie a classe <code>Drone</code>, que implementa <code>Voador</code> e mostra <code>O drone gira as hélices.</code> no <code>voar()</code>. Acrescente um <code>new Drone()</code> à lista. O laço não muda. Teste também: apague o <code>public</code> do <code>voar()</code> do <code>Drone</code> e leia o erro.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Voador&gt; ceu = List.of(new Passaro(), new Aviao());
+        for (Voador v : ceu) {
+            v.voar();
+        }
+    }
+}
+
+interface Voador {
+    void voar();
+}
+
+class Passaro implements Voador {
+    @Override
+    public void voar() {
+        System.out.println("O pássaro bate as asas.");
+    }
+}
+
+class Aviao implements Voador {
+    @Override
+    public void voar() {
+        System.out.println("O avião liga as turbinas.");
+    }
+}
+
+// crie aqui a classe Drone
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Voador&gt; ceu = List.of(new Passaro(), new Aviao(), new Drone());
+        for (Voador v : ceu) {
+            v.voar();
+        }
+    }
+}
+
+interface Voador {
+    void voar();
+}
+
+class Passaro implements Voador {
+    @Override
+    public void voar() {
+        System.out.println("O pássaro bate as asas.");
+    }
+}
+
+class Aviao implements Voador {
+    @Override
+    public void voar() {
+        System.out.println("O avião liga as turbinas.");
+    }
+}
+
+class Drone implements Voador {
+    @Override
+    public void voar() {
+        System.out.println("O drone gira as hélices.");
+    }
+}
+</pre>
+</div>
+
+<h3>As três regras que o compilador cobra</h3>
+
+<p><strong>1. Implementar tudo.</strong> Assinou o contrato, cumpra. Um <code>Aviao</code> sem <code>voar()</code>:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:23: error: Aviao is not abstract and does not override abstract method voar() in Voador
+class Aviao implements Voador {
+^
+1 error</pre>
+
+<p>É a mesma mensagem das <a href="abstratas.html">classes abstratas</a>: os métodos da interface são abstratos. (Uma classe <code>abstract</code> pode implementar a interface só em parte, deixando o resto para as filhas.)</p>
+
+<p><strong>2. Implementar como <code>public</code>.</strong> Os métodos da interface são <code>public</code>; a implementação não pode ser menos visível:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:25: error: voar() in Aviao cannot implement voar() in Voador
+    void voar() {
+         ^
+  attempting to assign weaker access privileges; was public
+1 error</pre>
+
+<p>"Não pode implementar: tentativa de atribuir privilégios de acesso mais fracos; era <code>public</code>." Esse é o erro mais comum com interfaces, porque na interface você não escreveu <code>public</code> e é natural esquecer na classe.</p>
+
+<p><strong>3. Não instanciar a interface.</strong> Um contrato não é um aparelho:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: Voador is abstract; cannot be instantiated
+        List&lt;Voador&gt; ceu = List.of(new Voador());
+                                   ^
+1 error</pre>
+
+<hr>
+
+<h2>Várias interfaces ao mesmo tempo</h2>
+<p>Aqui está a grande diferença em relação à herança. Uma classe tem uma superclasse só (veja <a href="heranca.html">Herança</a>), mas pode implementar <strong>quantas interfaces quiser</strong>, separadas por vírgula. Um pato é um animal, voa e nada:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Pato donald = new Pato("Donald");
+        donald.comer();
+        donald.voar();
+        donald.nadar();
+        donald.pousar();
+        System.out.println("Altitude máxima: " + Voador.ALTITUDE_MAXIMA + " m");
+        System.out.println(Voador.emKm(2500));
+
+        Voador v = donald;
+        Nadador n = donald;
+        v.voar();
+        n.nadar();
+    }
+}
+
+interface Voador {
+    int ALTITUDE_MAXIMA = 10000;
+
+    void voar();
+
+    default void pousar() {
+        System.out.println("Pousando com cuidado...");
+    }
+
+    static double emKm(double metros) {
+        return metros / 1000;
+    }
+}
+
+interface Nadador {
+    void nadar();
+}
+
+class Animal {
+    String nome;
+
+    Animal(String nome) {
+        this.nome = nome;
+    }
+
+    void comer() {
+        System.out.println(nome + " está comendo.");
+    }
+}
+
+class Pato extends Animal implements Voador, Nadador {
+    Pato(String nome) {
+        super(nome);
+    }
+
+    @Override
+    public void voar() {
+        System.out.println(nome + " voa baixinho.");
+    }
+
+    @Override
+    public void nadar() {
+        System.out.println(nome + " nada na lagoa.");
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>extends Animal</dt><dd>A superclasse (uma só). O <code>extends</code> vem sempre antes.</dd>
+  <dt>implements Voador, Nadador</dt><dd>As interfaces, separadas por vírgula. O pato precisa implementar <code>voar()</code> e <code>nadar()</code>.</dd>
+  <dt>Voador v = donald;</dt><dd>O mesmo objeto pode ser visto como <code>Pato</code>, <code>Animal</code>, <code>Voador</code>, <code>Nadador</code> ou <code>Object</code>. Cada tipo de variável libera os métodos daquele "papel".</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Donald está comendo.               « herdado de Animal
+Donald voa baixinho.               « contrato Voador
+Donald nada na lagoa.              « contrato Nadador
+Pousando com cuidado...            « método default, veio pronto da interface
+Altitude máxima: 10000 m           « constante da interface
+2.5                                « método static da interface
+Donald voa baixinho.               « pela variável Voador
+Donald nada na lagoa.              « pela variável Nadador</pre>
+
+<p>As linhas 4 a 6 da saída usam três recursos novos do <code>Voador</code>: <code>default</code>, constante e <code>static</code>. Um de cada vez.</p>
+
+<hr>
+
+<h2>Métodos <code>default</code>: código pronto na interface</h2>
+<p><span class="versao">Java 8+</span> Um método <code>default</code> ("padrão") tem corpo, dentro da interface. Toda classe que implementa a interface ganha esse método pronto, e pode sobrescrevê-lo se quiser. No exemplo, o <code>Pato</code> não escreveu <code>pousar()</code> e mesmo assim tem.</p>
+
+<pre class="file" data-file="Voador.java">interface Voador {
+    void voar();
+
+    default void pousar() {
+        System.out.println("Pousando com cuidado...");
+    }
+}
+</pre>
+
+<p>Por que isso foi criado? Imagine uma interface usada por milhares de classes no mundo inteiro, como a <code>List</code> da biblioteca. Se os criadores do Java acrescentassem um método abstrato novo, todas essas classes parariam de compilar. Com <code>default</code>, o método novo vem com uma versão pronta, e nada quebra. Foi assim que <code>List</code> ganhou <code>sort()</code> e <code>forEach()</code> no Java 8.</p>
+
+<h3>Quando dois <code>default</code> se chocam</h3>
+<p>E se duas interfaces trouxerem um <code>default</code> com o mesmo nome? O "problema do diamante", que a herança simples evitava (veja <a href="heranca.html">Herança</a>), volta. O Java não escolhe sozinho:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        new Pato().descrever();
+    }
+}
+
+interface Voador {
+    default void descrever() {
+        System.out.println("Eu voo.");
+    }
+}
+
+interface Nadador {
+    default void descrever() {
+        System.out.println("Eu nado.");
+    }
+}
+
+class Pato implements Voador, Nadador {
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:19: error: types Voador and Nadador are incompatible;
+class Pato implements Voador, Nadador {
+^
+  class Pato inherits unrelated defaults for descrever() from types Voador and Nadador
+1 error</pre>
+
+<p>"Os tipos <code>Voador</code> e <code>Nadador</code> são incompatíveis: a classe <code>Pato</code> herda <code>default</code>s sem relação para <code>descrever()</code>." A solução é o <code>Pato</code> sobrescrever o método e decidir. Para chamar a versão de uma interface específica, a sintaxe é <code>NomeDaInterface.super.metodo()</code>:</p>
+
+<pre class="file" data-file="Main.java">class Pato implements Voador, Nadador {
+    @Override
+    public void descrever() {
+        Voador.super.descrever();
+        Nadador.super.descrever();
+        System.out.println("Sou um pato!");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Eu voo.
+Eu nado.
+Sou um pato!</pre>
+
+<hr>
+
+<h2>Métodos <code>static</code> e constantes</h2>
+
+<h3>Métodos <code>static</code></h3>
+<p><span class="versao">Java 8+</span> Uma interface pode ter métodos <code>static</code>, chamados pelo nome dela: <code>Voador.emKm(2500)</code> devolveu <code>2.5</code>. Eles servem para funções úteis ligadas ao assunto da interface. Exemplos da biblioteca: <code>List.of(…)</code>, <code>Comparator.comparing(…)</code>, <code>Path.of(…)</code>.</p>
+<p>Diferente dos métodos <code>static</code> de classe, eles <strong>não</strong> são herdados: só funcionam pelo nome da interface. <code>donald.emKm(10)</code> não compila (<code>cannot find symbol … method emKm(int) … location: variable donald of type Pato</code>).</p>
+
+<h3>Constantes</h3>
+<p>Todo atributo declarado numa interface é, automaticamente, <code>public static final</code>: uma <a href="constantes.html">constante</a>. O <code>int ALTITUDE_MAXIMA = 10000;</code> não pode ser mudado:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:10: error: cannot assign a value to static final variable ALTITUDE_MAXIMA
+        Voador.ALTITUDE_MAXIMA = 20000;
+              ^
+Main.java:11: error: cannot find symbol
+        donald.emKm(10);
+              ^
+  symbol:   method emKm(int)
+  location: variable donald of type Pato
+2 errors</pre>
+
+<p>Interfaces <strong>não têm</strong> atributos de objeto: não existe "o nome de um Voador". Estado (dados que mudam) fica nas classes. Essa é uma das diferenças centrais em relação às classes abstratas.</p>
+
+<div class="tip">
+<strong>O que mais pode haver numa interface</strong>
+<p>Métodos <code>private</code> (Java 9+), para dividir o código dos <code>default</code> em partes; e uma interface pode herdar de outras com <code>extends</code>: <code>interface Anfibio extends Voador, Nadador { }</code> (entre interfaces, o <code>extends</code> aceita várias).</p>
+</div>
+
+<hr>
+
+<h2>Interface × classe abstrata</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Interface</th><th>Classe abstrata</th></tr>
+<tr><td>Palavra para usar</td><td><code>implements</code></td><td><code>extends</code></td></tr>
+<tr><td>Quantas uma classe pode ter</td><td><strong>Várias</strong></td><td><strong>Uma</strong></td></tr>
+<tr><td>Atributos de objeto (estado)</td><td>Não (só constantes <code>public static final</code>)</td><td>Sim</td></tr>
+<tr><td>Construtor</td><td>Não</td><td>Sim</td></tr>
+<tr><td>Métodos sem corpo</td><td>Sim (automaticamente <code>public abstract</code>)</td><td>Sim (com <code>abstract</code>)</td></tr>
+<tr><td>Métodos com corpo</td><td><code>default</code>, <code>static</code> e <code>private</code></td><td>Qualquer um</td></tr>
+<tr><td>Visibilidade dos métodos</td><td><code>public</code> (ou <code>private</code>, para ajudantes)</td><td>Qualquer uma</td></tr>
+<tr><td>Pode ser instanciada?</td><td>Não</td><td>Não</td></tr>
+<tr><td>Expressa</td><td>Uma <strong>habilidade</strong>, um papel ("sabe voar")</td><td>Uma <strong>família</strong> ("é uma forma")</td></tr>
+<tr><td>Exemplos da biblioteca</td><td><code>List</code>, <code>Comparable</code>, <code>Runnable</code></td><td><code>AbstractList</code>, <code>Number</code>, <code>InputStream</code></td></tr>
+</table>
+</div>
+
+<p>A recomendação geral é: <strong>comece por interfaces</strong>. Elas deixam as classes livres para herdar de quem quiserem e combinar papéis. Use uma classe abstrata quando houver de fato estado e código para compartilhar numa família.</p>
+
+<hr>
+
+<h2>As interfaces da biblioteca</h2>
+<p>A biblioteca do Java (veja <a href="api-java.html">A Biblioteca Padrão</a>) é cheia de interfaces, e você já usa várias: <code>List</code> é uma interface, e <code>ArrayList</code> é uma classe que a implementa. Por isso se escreve <code>List&lt;String&gt; nomes = new ArrayList&lt;&gt;();</code>: a variável usa o contrato, o objeto é uma implementação.</p>
+
+<p>Um exemplo clássico é a <code>Comparable</code>, a habilidade de "se comparar com outro". Quem a implementa ganha, de graça, a ordenação da biblioteca. A Ana quer ordenar os alunos pela nota:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = new ArrayList&lt;&gt;();
+        turma.add(new Aluno("Carla", 7.5));
+        turma.add(new Aluno("Ana", 9.5));
+        turma.add(new Aluno("Bruno", 6.0));
+        Collections.sort(turma);
+        System.out.println(turma);
+    }
+}
+
+class Aluno implements Comparable&lt;Aluno&gt; {
+    String nome;
+    double nota;
+
+    Aluno(String nome, double nota) {
+        this.nome = nome;
+        this.nota = nota;
+    }
+
+    @Override
+    public int compareTo(Aluno outro) {
+        return Double.compare(this.nota, outro.nota);
+    }
+
+    @Override
+    public String toString() {
+        return nome + " " + nota;
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+[Bruno 6.0, Carla 7.5, Ana 9.5]        « da menor para a maior nota</pre>
+
+<p>O <code>Collections.sort</code> não conhece a classe <code>Aluno</code>; ele só sabe que ela cumpre o contrato <code>Comparable</code> e chama <code>compareTo</code> para comparar dois alunos. O <code>&lt;Aluno&gt;</code> diz com quem ele se compara (são os <a href="generics.html">generics</a>). Os detalhes do <code>compareTo</code> e do seu primo <code>Comparator</code> estão em <a href="comparable-comparator.html">Comparable e Comparator</a>.</p>
+
+<p>Outras interfaces que você vai encontrar: <code>Runnable</code> (uma tarefa para rodar, em <a href="threads.html">Threads</a>), <code>Iterable</code> (o que pode ir num for-each), <code>AutoCloseable</code> (o que pode ir num <a href="finally.html">try-with-resources</a>) e as interfaces funcionais, base das <a href="lambdas.html">lambdas</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"… cannot implement … attempting to assign weaker access privileges; was public"</strong>
+<p><strong>O que aconteceu:</strong> o método que implementa a interface ficou sem <code>public</code>.</p>
+<p><strong>Como resolver:</strong> acrescente <code>public</code>. Todo método que implementa uma interface é <code>public</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"… is not abstract and does not override abstract method … in …"</strong>
+<p><strong>O que aconteceu:</strong> faltou implementar um método do contrato (ou o nome/parâmetros estão diferentes).</p>
+<p><strong>Como resolver:</strong> escreva o método com a mesma assinatura da interface, com <code>@Override</code> e <code>public</code>. Os editores têm a opção "implementar métodos", que cria todos de uma vez.</p>
+</div>
+
+<div class="cenario">
+<strong>"… inherits unrelated defaults for … from types … and …"</strong>
+<p><strong>O que aconteceu:</strong> duas interfaces trouxeram um <code>default</code> com a mesma assinatura.</p>
+<p><strong>Como resolver:</strong> sobrescreva o método na classe; dentro dele, escolha com <code>Interface.super.metodo()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot assign a value to static final variable …"</strong>
+<p><strong>O que aconteceu:</strong> tentativa de mudar um atributo de interface. Todo atributo de interface é constante.</p>
+<p><strong>Como resolver:</strong> dados que mudam vão numa classe. Se você precisa de estado compartilhado por uma família, talvez a peça certa seja uma <a href="abstratas.html">classe abstrata</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>interface Voador { void voar(); }</code></td><td>Declara o contrato; o método é <code>public abstract</code> automaticamente</td></tr>
+<tr><td><code>class Passaro implements Voador</code></td><td>A classe cumpre o contrato</td></tr>
+<tr><td><code>class Pato extends Animal implements Voador, Nadador</code></td><td>Uma superclasse e várias interfaces</td></tr>
+<tr><td><code>default void pousar() { … }</code> <span class="versao">Java 8+</span></td><td>Método com corpo, herdado por quem implementa</td></tr>
+<tr><td><code>static double emKm(double m) { … }</code> <span class="versao">Java 8+</span></td><td>Chamado só como <code>Voador.emKm(…)</code></td></tr>
+<tr><td><code>int MAX = 10;</code> (na interface)</td><td>Constante: <code>public static final</code></td></tr>
+<tr><td><code>Voador.super.descrever()</code></td><td>Chama o <code>default</code> de uma interface específica</td></tr>
+<tr><td><code>interface A extends B, C</code></td><td>Interface que herda de outras</td></tr>
+<tr><td><code>Voador v = new Passaro();</code></td><td>Variável do tipo da interface</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Assinar o contrato</h3>
+<p>Complete para a classe <code>Gerente</code> cumprir o contrato <code>Pagavel</code>:</p>
+<div class="ex-code">class Gerente <input data-answer="implements Pagavel" aria-label="contrato"> { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. O modificador obrigatório</h3>
+<p>A interface tem <code>double valor();</code>. Complete a implementação na classe:</p>
+<div class="ex-code"><input data-answer="public double valor()" aria-label="assinatura"> { return 100; }</div>
+</div>
+
+<div class="exercise">
+<h3>3. Código pronto na interface</h3>
+<p>Complete para a interface ter um método com corpo, herdado por todas as classes que a implementam:</p>
+<div class="ex-code"><input data-answer="default" aria-label="palavra-chave"> void mostrar() { System.out.println(valor()); }</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Quantas interfaces uma classe pode implementar?</p>
+<label><input type="radio" name="q4"> Nenhuma, se já tiver <code>extends</code></label>
+<label><input type="radio" name="q4"> Uma</label>
+<label><input type="radio" name="q4"> Quantas quiser</label>
+<label><input type="radio" name="q4"> Duas</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Uma interface tem <code>int LIMITE = 5;</code>. O que esse atributo é?</p>
+<label><input type="radio" name="q5"> Um atributo de cada objeto</label>
+<label><input type="radio" name="q5"> Uma constante <code>public static final</code></label>
+<label><input type="radio" name="q5"> Um erro: interfaces não têm atributos</label>
+<label><input type="radio" name="q5"> Uma variável que cada classe pode mudar</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. <code>Impressora</code>, <code>Celular</code> e <code>Fax</code> não têm parentesco, mas todos sabem "imprimir". O que usar?</p>
+<label><input type="radio" name="q6"> Uma superclasse <code>Imprimivel</code> com <code>extends</code></label>
+<label><input type="radio" name="q6"> Copiar o método nas três</label>
+<label><input type="radio" name="q6"> Um <code>enum</code></label>
+<label><input type="radio" name="q6"> Uma interface <code>Imprimivel</code> com <code>implements</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Total: R$ 400.0,src:ContaDeLuz\s+implements\s+Pagavel">
+<p class="try-task"><strong>Missão final:</strong> a Ana quer somar todas as contas do mês, de tipos diferentes. O boleto já cumpre o contrato <code>Pagavel</code>; a conta de luz ainda não, e o código não compila. Faça <code>ContaDeLuz</code> implementar <code>Pagavel</code>, com <code>valor()</code> igual a <code>kwh * 0.75</code>. A saída deve terminar com <code>Total: R$ 400.0</code> (e cada conta aparece com o <code>resumo()</code>, um método <code>default</code>).</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Pagavel&gt; contas = List.of(new Boleto(250), new ContaDeLuz(200));
+        double total = 0;
+        for (Pagavel p : contas) {
+            System.out.println(p.resumo());
+            total = total + p.valor();
+        }
+        System.out.println("Total: R$ " + total);
+    }
+}
+
+interface Pagavel {
+    double valor();
+
+    default String resumo() {
+        return "Conta de R$ " + valor();
+    }
+}
+
+class Boleto implements Pagavel {
+    double total;
+
+    Boleto(double total) {
+        this.total = total;
+    }
+
+    @Override
+    public double valor() {
+        return total;
+    }
+}
+
+class ContaDeLuz {
+    double kwh;
+
+    ContaDeLuz(double kwh) {
+        this.kwh = kwh;
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Pagavel&gt; contas = List.of(new Boleto(250), new ContaDeLuz(200));
+        double total = 0;
+        for (Pagavel p : contas) {
+            System.out.println(p.resumo());
+            total = total + p.valor();
+        }
+        System.out.println("Total: R$ " + total);
+    }
+}
+
+interface Pagavel {
+    double valor();
+
+    default String resumo() {
+        return "Conta de R$ " + valor();
+    }
+}
+
+class Boleto implements Pagavel {
+    double total;
+
+    Boleto(double total) {
+        this.total = total;
+    }
+
+    @Override
+    public double valor() {
+        return total;
+    }
+}
+
+class ContaDeLuz implements Pagavel {
+    double kwh;
+
+    ContaDeLuz(double kwh) {
+        this.kwh = kwh;
+    }
+
+    @Override
+    public double valor() {
+        return kwh * 0.75;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <code>interface</code> é um contrato: uma lista de métodos que uma classe promete ter. A classe assina com <code>implements</code>.</li>
+  <li>Os métodos da interface são <code>public abstract</code>; a classe precisa implementá-los todos, como <code>public</code>.</li>
+  <li>Uma classe tem uma superclasse, mas pode implementar várias interfaces: <code>class Pato extends Animal implements Voador, Nadador</code>.</li>
+  <li><code>default</code> = método com corpo na interface; <code>static</code> = chamado pelo nome da interface; atributos = constantes.</li>
+  <li>A interface também é um tipo: <code>List&lt;Voador&gt;</code> aceita qualquer coisa que voe.</li>
+  <li>Interface = habilidade (várias por classe, sem estado). Classe abstrata = família (uma por classe, com estado).</li>
+  <li>A biblioteca usa interfaces o tempo todo: <code>List</code>, <code>Comparable</code>, <code>Runnable</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
