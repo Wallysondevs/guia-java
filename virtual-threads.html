@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Threads Virtuais — Thread.ofVirtual e newVirtualThreadPerTaskExecutor | Guia Java</title>
+<meta name="description" content="Threads virtuais do Java 21: Thread.ofVirtual().start, Executors.newVirtualThreadPerTaskExecutor, por que servem para milhares de tarefas que esperam (10 000 tarefas medidas no JDK 25) e por que não ajudam em contas pesadas.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Threads Virtuais</span></h1>
+
+<p class="intro">As threads que você viu até aqui são <strong>threads de plataforma</strong>: cada uma é uma thread de verdade do sistema operacional, e elas são caras. Um programa aguenta algumas centenas, talvez uns poucos milhares. As <strong>threads virtuais</strong> <span class="versao">Java 21+</span> são threads leves, administradas pela própria JVM: dá para ter <strong>milhares ou milhões</strong> delas. Elas brilham num caso muito comum: muitas tarefas que passam a maior parte do tempo <strong>esperando</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre thread de plataforma e thread virtual.</li>
+  <li>Criar threads virtuais com <code>Thread.ofVirtual().start(…)</code> e <code>Thread.startVirtualThread(…)</code>.</li>
+  <li>Usar <code>Executors.newVirtualThreadPerTaskExecutor()</code>: uma thread virtual por tarefa.</li>
+  <li>Uma medição real: 10 000 tarefas que esperam, com 200 threads de plataforma e com threads virtuais.</li>
+  <li>Quando elas <strong>não</strong> ajudam (contas pesadas) e os cuidados (são <em>daemon</em>, não se faz pool delas).</li>
+</ul>
+</div>
+
+<p>Leia antes <a href="threads.html">Threads</a> e <a href="executors.html">ExecutorService</a>: esta aula usa <code>start</code>, <code>join</code>, <code>submit</code> e o executor em <code>try</code>-with-resources. Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense num restaurante. Cada <strong>garçom</strong> é uma thread de plataforma: custa caro (salário, uniforme) e o restaurante só pode ter alguns. Agora repare no que um garçom faz a maior parte do tempo: <strong>espera</strong>. Espera o cliente escolher, espera a cozinha, espera a conta. Se cada garçom ficasse grudado numa mesa só, esperando junto, o restaurante precisaria de um garçom por mesa.</p>
+<p>A thread virtual é a <strong>comanda</strong> da mesa. Há uma comanda para cada mesa (são baratas, é só papel). Poucos garçons atendem todas: quando a mesa 7 está esperando a cozinha, o garçom larga a comanda 7 no balcão e vai atender a mesa 12. Quando o prato da 7 fica pronto, qualquer garçom livre pega a comanda e continua de onde parou.</p>
+<ul>
+  <li>Os garçons são as poucas threads de plataforma que a JVM usa por baixo (chamadas <strong>carregadoras</strong>, <em>carrier threads</em>).</li>
+  <li>As comandas são as threads virtuais: uma por tarefa, quantas forem precisas.</li>
+  <li>"Largar a comanda no balcão" acontece automaticamente quando a tarefa <strong>espera</strong>: <code>Thread.sleep</code>, ler da rede, consultar um banco de dados, ler um arquivo.</li>
+</ul>
+<p>Mas repare: se a mesa pede para o garçom <strong>fazer contas</strong> sem parar, comanda nenhuma ajuda. O garçom continua ocupado. Guarde isso para a seção 4.</p>
+
+<hr>
+
+<h2>1. Criando uma thread virtual</h2>
+<p>Desde o Java 21, a classe <code>Thread</code> tem construtores "fluentes": <code>Thread.ofVirtual()</code> para threads virtuais e <code>Thread.ofPlatform()</code> para as de plataforma.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread v = Thread.ofVirtual().name("entrega-1").start(() -&gt; {
+            Thread eu = Thread.currentThread();
+            System.out.println("Sou " + eu.getName() + "; virtual? " + eu.isVirtual());
+            System.out.println(eu);
+        });
+        v.join();
+
+        Thread p = Thread.ofPlatform().name("caixa").start(() -&gt; {
+            Thread eu = Thread.currentThread();
+            System.out.println("Sou " + eu.getName() + "; virtual? " + eu.isVirtual());
+        });
+        p.join();
+
+        Thread outra = Thread.startVirtualThread(() -&gt; System.out.println("Atalho também funciona"));
+        outra.join();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Sou entrega-1; virtual? true
+VirtualThread[#35,entrega-1]/runnable@ForkJoinPool-1-worker-1
+Sou caixa; virtual? false
+Atalho também funciona</pre>
+
+<dl class="anatomy">
+  <dt>Thread.ofVirtual()</dt><dd>"Uma thread, do tipo virtual." Devolve um construtor de threads.</dd>
+  <dt>.name("entrega-1")</dt><dd>Dá um nome (opcional; sem ele, a thread virtual fica sem nome).</dd>
+  <dt>.start(() -&gt; { … })</dt><dd>Cria a thread com a tarefa e já inicia. Devolve o objeto <code>Thread</code>, que você usa como sempre: <code>join()</code>, <code>getName()</code>…</dd>
+</dl>
+
+<p>A segunda linha da saída mostra a thread por dentro: <code>VirtualThread[#35,entrega-1]</code> é a comanda (número 35, nome entrega-1), e <code>@ForkJoinPool-1-worker-1</code> é o garçom que a estava carregando naquele instante. <code>isVirtual()</code> ("é virtual?") confirma o tipo. <code>Thread.startVirtualThread(tarefa)</code> é um atalho para criar e iniciar sem nome.</p>
+
+<div class="tryjava" data-goal="out:Pedido 1 entregue,out:Fim do main,src:ofVirtual\(\)|startVirtualThread">
+<p class="try-task"><strong>Missão:</strong> troque a thread de plataforma por uma <strong>virtual</strong>, usando <code>Thread.ofVirtual().start(…)</code>. Mantenha o <code>join()</code> e confira que aparecem <code>Pedido 1 entregue</code> e <code>Fim do main</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread entrega = new Thread(() -&gt; System.out.println("Pedido 1 entregue"));
+        entrega.start();
+        entrega.join();
+        System.out.println("Fim do main");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Thread entrega = Thread.ofVirtual().start(() -&gt; System.out.println("Pedido 1 entregue"));
+        entrega.join();
+        System.out.println("Fim do main");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Uma thread virtual por tarefa: o executor</h2>
+<p>No dia a dia, você não cria threads virtuais uma a uma: usa o executor <code>Executors.newVirtualThreadPerTaskExecutor()</code> ("uma thread virtual por tarefa"). Ele funciona como qualquer <a href="executors.html"><code>ExecutorService</code></a> (<code>submit</code>, <code>invokeAll</code>, <code>Future</code>), mas, em vez de um time fixo, cria uma thread virtual nova para cada tarefa enviada.</p>
+
+<pre class="file" data-file="Main.java">try (ExecutorService ex = Executors.newVirtualThreadPerTaskExecutor()) {
+    for (int i = 0; i &lt; 10_000; i++) {
+        ex.submit(() -&gt; consultar());
+    }
+}   // aqui o close() espera todas as 10 000 tarefas terminarem
+</pre>
+
+<p>O <code>10_000</code> é só o número 10000 escrito com um separador para facilitar a leitura (veja <a href="inteiros.html">inteiros</a>).</p>
+
+<h2>3. Por que: 10 000 tarefas esperando</h2>
+<p>Este é o caso para o qual as threads virtuais foram criadas. Um servidor recebe 10 000 pedidos; cada um precisa consultar um sistema lento e espera 100 milissegundos pela resposta (aqui, a espera é simulada com <code>Thread.sleep(100)</code>). A Ana mediu o tempo total com um time de 200 threads de plataforma e com threads virtuais:</p>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Main {
+    static void consultar() {
+        try {
+            Thread.sleep(100); // espera uma resposta lenta (rede, banco de dados)
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    static long medir(ExecutorService executor) {
+        long inicio = System.currentTimeMillis();
+        try (executor) {
+            for (int i = 0; i &lt; 10_000; i++) {
+                executor.submit(Main::consultar);
+            }
+        }
+        return System.currentTimeMillis() - inicio;
+    }
+
+    public static void main(String[] args) {
+        long plataforma = medir(Executors.newFixedThreadPool(200));
+        System.out.println("200 threads de plataforma: " + plataforma + " ms");
+
+        long virtuais = medir(Executors.newVirtualThreadPerTaskExecutor());
+        System.out.println("Threads virtuais:          " + virtuais + " ms");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+$ java Main
+200 threads de plataforma: 5052 ms
+Threads virtuais:          165 ms
+$ java Main
+200 threads de plataforma: 5047 ms
+Threads virtuais:          181 ms</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>try (executor) { … }</code></td><td>Usa um executor que já existe num <code>try</code>-with-resources (Java 9+ permite pôr uma variável ali). Ao sair, o <code>close()</code> espera todas as tarefas.</td></tr>
+<tr><td><code>executor.submit(Main::consultar)</code></td><td>Envia a tarefa, escrita como <a href="method-references.html">referência de método</a>.</td></tr>
+<tr><td><code>catch (InterruptedException e) { Thread.currentThread().interrupt(); }</code></td><td>O jeito educado de tratar a interrupção numa tarefa: "anota" de novo o pedido de interrupção para quem vier depois.</td></tr>
+</table>
+</div>
+
+<p>As contas batem com a comparação do restaurante:</p>
+<ul>
+  <li><strong>200 threads de plataforma:</strong> 10 000 tarefas ÷ 200 threads = 50 rodadas de 100 ms = <strong>5 segundos</strong>. As threads passaram quase todo esse tempo paradas, esperando.</li>
+  <li><strong>Threads virtuais:</strong> 10 000 comandas, todas esperando <strong>ao mesmo tempo</strong>. Quase tudo acaba depois dos mesmos 100 ms, mais o trabalho de criar e organizar as threads: menos de <strong>0,2 segundo</strong>. Cerca de 30 vezes mais rápido.</li>
+</ul>
+<p>Por que não criar 10 000 threads de plataforma, então? Porque cada uma reserva memória para a pilha (da ordem de 1 MB) e é administrada pelo sistema operacional. Com dezenas de milhares, a máquina sofre. Uma thread virtual ocupa bem pouca memória: a pilha dela fica guardada no heap e cresce só o necessário.</p>
+
+<div class="warning">
+<strong>No editor do guia</strong>
+<p>O simulador roda as tarefas uma depois da outra, numa thread só, e o <code>Thread.sleep</code> não espera de verdade. Os tempos desta página só aparecem no JDK real. Se quiser medir na sua máquina, mantenha números pequenos como estes.</p>
+</div>
+
+<hr>
+
+<h2>4. Quando <strong>não</strong> ajudam: contas pesadas</h2>
+<p>Agora as tarefas não esperam nada: cada uma conta os números primos abaixo de 200 000, ocupando o processador o tempo todo. São 100 tarefas, com um time de threads de plataforma do tamanho do número de núcleos do processador, e depois com threads virtuais:</p>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Main {
+    static void contarPrimos() {
+        int total = 0;
+        for (int n = 2; n &lt; 200_000; n++) {
+            boolean primo = true;
+            for (int d = 2; d * d &lt;= n; d++) {
+                if (n % d == 0) { primo = false; break; }
+            }
+            if (primo) total++;
+        }
+        if (total != 17984) System.out.println("conta errada!");
+    }
+
+    static long medir(ExecutorService executor) {
+        long inicio = System.currentTimeMillis();
+        try (executor) {
+            for (int i = 0; i &lt; 100; i++) {
+                executor.submit(Main::contarPrimos);
+            }
+        }
+        return System.currentTimeMillis() - inicio;
+    }
+
+    public static void main(String[] args) {
+        int nucleos = Runtime.getRuntime().availableProcessors();
+        medir(Executors.newFixedThreadPool(nucleos)); // aquecimento: a JVM otimiza o código na primeira rodada
+
+        long plataforma = medir(Executors.newFixedThreadPool(nucleos));
+        System.out.println("Uma thread de plataforma por núcleo: " + plataforma + " ms");
+
+        long virtuais = medir(Executors.newVirtualThreadPerTaskExecutor());
+        System.out.println("Uma thread virtual por tarefa:       " + virtuais + " ms");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+$ java Main
+Uma thread de plataforma por núcleo: 327 ms
+Uma thread virtual por tarefa:       335 ms
+$ java Main
+Uma thread de plataforma por núcleo: 337 ms
+Uma thread virtual por tarefa:       341 ms</pre>
+
+<p>Empate. O trabalho de verdade é feito pelos núcleos do processador, e eles são os mesmos nos dois casos: as 100 threads virtuais acabam carregadas pelos mesmos poucos "garçons". Threads virtuais não tornam o processador mais rápido; elas só evitam que threads caras fiquem paradas esperando. (A rodada de "aquecimento" existe porque a JVM compila e otimiza o código enquanto ele roda; sem ela, a primeira medição sairia injustamente mais lenta.)</p>
+
+<hr>
+
+<h2>Qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Suas tarefas…</th><th>Use</th><th>Por quê</th></tr>
+<tr><td>Esperam muito (rede, banco, arquivos, <code>sleep</code>) e são muitas</td><td><code>newVirtualThreadPerTaskExecutor()</code></td><td>Milhares esperando ao mesmo tempo, quase de graça.</td></tr>
+<tr><td>Fazem contas pesadas</td><td><code>newFixedThreadPool(núcleos)</code></td><td>Mais threads que núcleos não acelera; virtuais não ajudam.</td></tr>
+<tr><td>São poucas e longas, e precisam de controle fino (prioridade, nome fixo)</td><td>Threads de plataforma (<code>Thread.ofPlatform()</code>)</td><td>Comportamento clássico.</td></tr>
+<tr><td>Precisam de um limite, como "no máximo 10 consultas ao banco ao mesmo tempo"</td><td>Threads virtuais + um <code>Semaphore</code> (semáforo)</td><td>Limite o recurso, não o número de threads.</td></tr>
+</table>
+</div>
+
+<h3>Cuidados</h3>
+<ul>
+  <li><strong>Não faça pool de threads virtuais.</strong> Elas são baratas: crie uma por tarefa e deixe-a terminar. Um "time fixo de 200 virtuais" joga fora a vantagem.</li>
+  <li><strong>São <em>daemon</em></strong> ("de fundo"): a JVM <strong>não espera</strong> por elas ao terminar. Sem <code>join</code> (ou sem o executor em <code>try</code>), o trabalho pode simplesmente não acontecer (veja "Quando dá errado").</li>
+  <li><strong>Até o Java 23</strong>, uma thread virtual que esperava dentro de um bloco <code>synchronized</code> ficava "presa" ao garçom (<em>pinning</em>). Desde o Java 24 isso foi resolvido; em versões 21 a 23, prefira <code>ReentrantLock</code> nesses casos (veja <a href="sincronizacao.html">synchronized e Locks</a>).</li>
+  <li><strong>Cuidado com <code>ThreadLocal</code></strong> guardando objetos grandes: com um milhão de threads, são um milhão de cópias. O substituto moderno é o <code>ScopedValue</code> (veja <a href="novidades.html">Novidades</a>).</li>
+</ul>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3>O trabalho às vezes some: threads virtuais são <em>daemon</em></h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Thread.ofVirtual().start(() -&gt; System.out.println("Pedido entregue"));
+        System.out.println("Fim do main");
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+$ java Main
+Fim do main
+Pedido entregue
+$ java Main
+Fim do main
+$ java Main
+Fim do main</pre>
+<p><strong>O que aconteceu:</strong> três execuções, e só na primeira o pedido foi entregue. Na aula de <a href="threads.html">Threads</a>, uma thread de plataforma sem <code>join</code> ainda terminava o trabalho, porque a JVM esperava por ela. Uma thread virtual é <em>daemon</em>: quando a <code>main</code> acaba, a JVM encerra o programa sem esperar. Se a thread não tiver terminado até ali, o trabalho se perde, sem erro nenhum. <strong>Conserto:</strong> <code>join()</code> em cada thread, ou o executor num <code>try</code>-with-resources, que espera todas.</p>
+</div>
+
+<div class="cenario">
+<h3>"Troquei por virtuais e não ficou mais rápido"</h3>
+<p>Se as tarefas fazem contas (seção 4), é o esperado. Threads virtuais aceleram <strong>esperas</strong>, não cálculos. Meça antes de trocar.</p>
+</div>
+
+<div class="cenario">
+<h3><code>cannot find symbol</code> em <code>ofVirtual</code></h3>
+<p>Num JDK anterior ao 21, <code>Thread.ofVirtual()</code> e <code>newVirtualThreadPerTaskExecutor()</code> não existem. Confira com <code>java -version</code> (veja <a href="novidades.html">Novidades do Java 17 ao 25</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>Thread.ofVirtual().start(tarefa)</code></td><td>Cria e inicia uma thread virtual</td></tr>
+<tr><td><code>Thread.ofVirtual().name("nome").start(tarefa)</code></td><td>…com nome</td></tr>
+<tr><td><code>Thread.ofVirtual().unstarted(tarefa)</code></td><td>Cria sem iniciar (chame <code>start()</code> depois)</td></tr>
+<tr><td><code>Thread.startVirtualThread(tarefa)</code></td><td>Atalho: cria e inicia</td></tr>
+<tr><td><code>Executors.newVirtualThreadPerTaskExecutor()</code></td><td>Executor com uma thread virtual por tarefa</td></tr>
+<tr><td><code>t.isVirtual()</code></td><td>É virtual?</td></tr>
+<tr><td><code>Thread.ofPlatform()…</code></td><td>O mesmo construtor, para threads de plataforma</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete para criar e iniciar uma thread virtual:</p>
+<div class="ex-code">Thread t = Thread.<input data-answer="ofVirtual()">.start(() -&gt; System.out.println("oi"));</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete o executor que cria uma thread virtual por tarefa:</p>
+<div class="ex-code">ExecutorService ex = Executors.<input data-answer="newVirtualThreadPerTaskExecutor()">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Para qual destes programas as threads virtuais mais ajudam?</p>
+<label><input type="radio" name="q3"> Um programa que calcula bilhões de casas decimais de pi.</label>
+<label><input type="radio" name="q3"> Um servidor que atende milhares de pedidos, cada um esperando uma resposta do banco de dados.</label>
+<label><input type="radio" name="q3"> Um programa com uma tarefa só.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Por que <code>Thread.ofVirtual().start(…)</code> sem <code>join</code> às vezes não mostra nada?</p>
+<label><input type="radio" name="q4"> Porque threads virtuais são <em>daemon</em>: a JVM termina sem esperar por elas.</label>
+<label><input type="radio" name="q4"> Porque threads virtuais não podem usar <code>println</code>.</label>
+<label><input type="radio" name="q4"> Porque precisam de <code>--enable-preview</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. 10 000 tarefas de 100 ms de espera, num time de 200 threads de plataforma, levaram cerca de…</p>
+<label><input type="radio" name="q5"> 100 ms</label>
+<label><input type="radio" name="q5"> 1 000 segundos</label>
+<label><input type="radio" name="q5"> 5 segundos (50 rodadas de 100 ms)</label>
+</div>
+
+<div class="tryjava" data-goal="out:Total de itens: 15,src:newVirtualThreadPerTaskExecutor">
+<p class="try-task"><strong>Missão final:</strong> cinco lojas respondem, cada uma depois de uma espera, quantos itens têm (a loja 1 tem 1 item, a loja 2 tem 2…). Troque o executor pelo de threads virtuais e some as respostas para mostrar <code>Total de itens: 15</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        List&lt;Future&lt;Integer&gt;&gt; respostas = new ArrayList&lt;&gt;();
+        try (ExecutorService ex = Executors.newFixedThreadPool(2)) {
+            for (int loja = 1; loja &lt;= 5; loja++) {
+                int numero = loja;
+                respostas.add(ex.submit(() -&gt; {
+                    Thread.sleep(200);
+                    return numero;
+                }));
+            }
+        }
+        int total = 0;
+        // some as respostas com get()
+
+        System.out.println("Total de itens: " + total);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Main {
+    public static void main(String[] args) throws Exception {
+        List&lt;Future&lt;Integer&gt;&gt; respostas = new ArrayList&lt;&gt;();
+        try (ExecutorService ex = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int loja = 1; loja &lt;= 5; loja++) {
+                int numero = loja;
+                respostas.add(ex.submit(() -&gt; {
+                    Thread.sleep(200);
+                    return numero;
+                }));
+            }
+        }
+        int total = 0;
+        for (Future&lt;Integer&gt; r : respostas) {
+            total = total + r.get();
+        }
+        System.out.println("Total de itens: " + total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Threads virtuais <span class="versao">Java 21+</span> são leves e administradas pela JVM; poucas threads de plataforma (as carregadoras) as executam, trocando de uma para outra quando uma espera.</li>
+  <li>Crie com <code>Thread.ofVirtual().start(…)</code> ou, melhor, com <code>Executors.newVirtualThreadPerTaskExecutor()</code> num <code>try</code>-with-resources.</li>
+  <li>Ganham quando há muitas tarefas <strong>esperando</strong>: 10 000 esperas de 100 ms levaram ~5 000 ms com 200 threads de plataforma e menos de 200 ms com virtuais.</li>
+  <li>Não ajudam em contas pesadas: o limite é o número de núcleos.</li>
+  <li>São <em>daemon</em> (use <code>join</code> ou o executor) e não devem ficar num pool.</li>
+</ul>
+
+<p>Próxima aula: <a href="sincronizacao.html">synchronized e Locks</a>, para quando threads mexem nos mesmos dados.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
