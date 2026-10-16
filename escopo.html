@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Escopo de Variáveis — bloco, método e classe | Guia Java</title>
+<meta name="description" content="Escopo em Java: onde cada variável existe. Variáveis de bloco, de método e de classe, tempo de vida, sombreamento (shadowing) e os erros reais cannot find symbol, already defined e might not have been initialized.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Escopo</span></h1>
+
+<p class="intro">Toda variável tem um "território": a parte do código em que ela existe e pode ser usada. Esse território se chama <strong>escopo</strong>. Fora dele, para o Java, a variável simplesmente não existe, e o resultado é o erro mais comum de todos: <code>cannot find symbol</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A regra das chaves: uma variável vale do ponto em que é declarada até o <code>}</code> que fecha o seu bloco.</li>
+  <li>Os três níveis: variável de <strong>bloco</strong>, de <strong>método</strong> e de <strong>classe</strong>.</li>
+  <li>Quanto tempo cada uma "vive" (por que um contador local volta a zero a cada chamada).</li>
+  <li>O que é <strong>sombreamento</strong>: uma variável local com o mesmo nome de uma da classe.</li>
+  <li>Os erros reais <code>cannot find symbol</code>, <code>already defined</code> e <code>might not have been initialized</code>, e como resolvê-los.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código: os cômodos da escola</h2>
+<p>Pense na escola da Ana. No mural do <strong>corredor</strong> há avisos que todo mundo vê, de qualquer sala. Dentro de cada <strong>sala</strong>, o quadro tem o que o professor escreveu ali; quem está em outra sala não vê. E, dentro da sala, um aluno pode ter um <strong>bilhete</strong> na carteira, que só existe enquanto ele está sentado ali.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na escola</th><th>No Java</th><th>Quem enxerga</th></tr>
+<tr><td>Mural do corredor</td><td>Variável <strong>de classe</strong> (um campo)</td><td>Todos os métodos da classe</td></tr>
+<tr><td>Quadro de uma sala</td><td>Variável <strong>de método</strong> (local, ou um parâmetro)</td><td>Só o método onde foi declarada</td></tr>
+<tr><td>Bilhete numa carteira</td><td>Variável <strong>de bloco</strong> (dentro de um <code>if</code>, <code>for</code>, <code>{ }</code>)</td><td>Só aquele bloco</td></tr>
+</table>
+</div>
+<p>A regra é sempre a mesma: <strong>de dentro você enxerga para fora; de fora você não enxerga para dentro</strong>. Quem está numa carteira vê o quadro da sala e o mural do corredor. Quem está no corredor não vê o bilhete de ninguém.</p>
+
+<hr>
+
+<h2>A regra das chaves</h2>
+<p>Em Java, os "cômodos" são marcados por chaves <code>{ }</code>. Uma variável existe <strong>do ponto em que é declarada até a chave <code>}</code> que fecha o bloco onde ela foi declarada</strong>. Depois disso, ela some.</p>
+
+<h3>Variável de bloco</h3>
+<p>A Ana declarou a mensagem dentro do <code>if</code> e tentou usá-la depois:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.5;
+        if (nota &gt;= 7) {
+            String mensagem = "Aprovado!";
+            System.out.println(mensagem);
+        }
+        System.out.println(mensagem);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:8: error: cannot find symbol
+        System.out.println(mensagem);
+                           ^
+  symbol:   variable mensagem
+  location: class Main
+1 error</pre>
+
+<dl class="anatomy">
+  <dt>double nota</dt><dd>Declarada direto no <code>main</code>: vale até o <code>}</code> do <code>main</code> (linha 9). Pode ser usada dentro do <code>if</code>, porque o <code>if</code> está "dentro" do <code>main</code>.</dd>
+  <dt>String mensagem</dt><dd>Declarada dentro das chaves do <code>if</code>: vale só até o <code>}</code> da linha 7.</dd>
+  <dt>linha 6</dt><dd>Ainda dentro do <code>if</code>: <code>mensagem</code> existe. Funciona.</dd>
+  <dt>linha 8</dt><dd>Fora do <code>if</code>: <code>mensagem</code> já sumiu. O compilador procura e não encontra: <code>cannot find symbol … variable mensagem</code>.</dd>
+</dl>
+
+<p>A correção é declarar a variável <strong>fora</strong> (antes) do bloco, no escopo em que ela será usada, e só dar o valor lá dentro:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.5;
+        String mensagem;
+        if (nota &gt;= 7) {
+            mensagem = "Aprovado!";
+        } else {
+            mensagem = "Reprovado.";
+        }
+        System.out.println(mensagem);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Aprovado!</pre>
+
+<p>Repare no <code>else</code>. Sem ele, o compilador reclama de outra coisa: se a nota for menor que 7, <code>mensagem</code> chegaria ao <code>println</code> sem valor nenhum.</p>
+
+<pre class="term">$ javac Main.java
+Main.java:8: error: variable mensagem might not have been initialized
+        System.out.println(mensagem);
+                           ^
+1 error</pre>
+
+<p>"A variável <code>mensagem</code> pode não ter sido inicializada". Variáveis locais em Java <strong>não</strong> têm valor automático: alguém precisa dar um valor antes do primeiro uso, em todos os caminhos. Soluções: o <code>else</code>, ou um valor inicial na declaração (<code>String mensagem = "Reprovado.";</code>).</p>
+
+<div class="tryjava" data-goal="out:Aprovado!,out:Resultado: Aprovado!">
+<p class="try-task"><strong>Missão:</strong> o código não compila por causa do escopo. Mova a declaração de <code>mensagem</code> para antes do <code>if</code> (com um valor inicial ou com um <code>else</code>) para o programa imprimir <code>Aprovado!</code> e depois <code>Resultado: Aprovado!</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.5;
+        if (nota &gt;= 7) {
+            String mensagem = "Aprovado!";
+            System.out.println(mensagem);
+        }
+        System.out.println("Resultado: " + mensagem);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.5;
+        String mensagem = "Reprovado.";
+        if (nota &gt;= 7) {
+            mensagem = "Aprovado!";
+            System.out.println(mensagem);
+        }
+        System.out.println("Resultado: " + mensagem);
+    }
+}
+</pre>
+</div>
+
+<h3>A variável do <code>for</code></h3>
+<p>A variável declarada nos parênteses do <code>for</code> pertence ao laço. Quando o laço acaba, ela some:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 3; i++) {
+            System.out.println("Volta " + i);
+        }
+        System.out.println("Terminei na volta " + i);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:6: error: cannot find symbol
+        System.out.println("Terminei na volta " + i);
+                                                  ^
+  symbol:   variable i
+  location: class Main
+1 error</pre>
+
+<p>Se você precisa do valor depois do laço, declare a variável antes: <code>int i;</code> e <code>for (i = 1; i &lt;= 3; i++)</code>. Mais sobre isso em <a href="for.html">for</a>.</p>
+
+<p>A vantagem dessa regra é que você pode reaproveitar nomes em blocos <strong>separados</strong> (vizinhos), sem conflito:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 2; i++) {
+            System.out.println("Primeiro laço: " + i);
+        }
+        for (int i = 10; i &lt;= 11; i++) {
+            System.out.println("Segundo laço: " + i);
+        }
+        {
+            int x = 1;
+            System.out.println("Bloco solto: x = " + x);
+        }
+        int x = 2;
+        System.out.println("Depois do bloco: x = " + x);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Primeiro laço: 1
+Primeiro laço: 2
+Segundo laço: 10
+Segundo laço: 11
+Bloco solto: x = 1
+Depois do bloco: x = 2</pre>
+
+<p>Cada <code>i</code> vive no seu <code>for</code>. O <code>{ … }</code> "solto" no meio do <code>main</code> é um bloco válido (raro na prática, mas mostra a regra): o primeiro <code>x</code> some no <code>}</code>, e o nome fica livre para o segundo.</p>
+
+<hr>
+
+<h2>Variável de método</h2>
+<p>Cada método é uma sala fechada. Uma variável declarada no <code>main</code> não existe dentro de outro método, mesmo que esse método seja chamado pelo <code>main</code>:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    static void mostrarAluno() {
+        System.out.println("Aluno: " + nome);
+    }
+
+    public static void main(String[] args) {
+        String nome = "Bruno";
+        mostrarAluno();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        System.out.println("Aluno: " + nome);
+                                       ^
+  symbol:   variable nome
+  location: class Main
+1 error</pre>
+
+<p>O <code>nome</code> é do <code>main</code>. O <code>mostrarAluno</code> não enxerga o "quadro" de outra sala. A forma certa de levar o valor até lá é um <strong>parâmetro</strong>: <code>static void mostrarAluno(String nome)</code> e a chamada <code>mostrarAluno(nome)</code> (veja <a href="parametros.html">Parâmetros</a>). Os parâmetros também são variáveis de método: valem no corpo inteiro do método e somem quando ele termina.</p>
+
+<hr>
+
+<h2>Variável de classe</h2>
+<p>Uma variável declarada <strong>dentro da classe e fora de qualquer método</strong> é um <strong>campo</strong> (ou atributo) da classe. Ela fica no "corredor": todos os métodos da classe a enxergam.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static String escola = "Escola da Ana";
+
+    static void mostrarCabecalho() {
+        System.out.println("== " + escola + " ==");
+    }
+
+    static void mostrarRodape() {
+        System.out.println("Fim do boletim - " + escola);
+    }
+
+    public static void main(String[] args) {
+        mostrarCabecalho();
+        System.out.println("Bruno: 8.5");
+        mostrarRodape();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+== Escola da Ana ==
+Bruno: 8.5
+Fim do boletim - Escola da Ana</pre>
+
+<dl class="anatomy">
+  <dt>static</dt><dd>Pelo mesmo motivo dos métodos: o campo pertence à classe e pode ser usado pelos métodos <code>static</code>. Detalhes em <a href="static.html">static</a>.</dd>
+  <dt>String escola = "Escola da Ana";</dt><dd>Declaração comum, só que no nível da classe. Vale na classe inteira, em qualquer método, antes ou depois da declaração.</dd>
+</dl>
+
+<p>Campos são o assunto central da orientação a objetos, que começa em <a href="poo.html">O que é POO</a> e continua em <a href="atributos.html">Atributos</a>. Aqui, o que importa é o escopo: <strong>a classe toda</strong>.</p>
+
+<div class="warning">
+<strong>Não transforme tudo em variável de classe</strong>
+<p>É tentador "resolver" o <code>cannot find symbol</code> subindo a variável para a classe. Funciona, mas qualquer método passa a poder mudá-la, e fica difícil descobrir quem mudou o quê. Prefira passar valores por parâmetro e devolvê-los com <code>return</code>. Use campos para o que realmente pertence à classe inteira.</p>
+</div>
+
+<hr>
+
+<h2>Tempo de vida: quem lembra e quem esquece</h2>
+<p>O escopo diz <strong>onde</strong> a variável pode ser usada. Há também o <strong>quando</strong>: por quanto tempo o valor existe. Uma variável local é criada <strong>a cada chamada</strong> do método e destruída no fim dela. Um campo da classe vive enquanto o programa roda.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static int visitasDoSite = 0;
+
+    static void registrarVisita() {
+        int visitasLocal = 0;
+        visitasLocal++;
+        visitasDoSite++;
+        System.out.println("local = " + visitasLocal + ", da classe = " + visitasDoSite);
+    }
+
+    public static void main(String[] args) {
+        registrarVisita();
+        registrarVisita();
+        registrarVisita();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+local = 1, da classe = 1
+local = 1, da classe = 2      « a local nasceu de novo valendo 0; a da classe lembrou
+local = 1, da classe = 3</pre>
+
+<p>A cada chamada, <code>visitasLocal</code> nasce com 0, vira 1 e morre no fim do método. Já <code>visitasDoSite</code> continua existindo entre as chamadas e acumula. Se você precisa que um método "lembre" algo de uma chamada para a outra, uma variável local não serve.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> chame <code>registrarVisita()</code> mais vezes. Depois mova a linha <code>int visitasLocal = 0;</code> para fora do método (na classe, como <code>static int visitasLocal = 0;</code>) e veja a coluna "local" começar a contar.</p>
+<pre class="script">public class Main {
+    static int visitasDoSite = 0;
+
+    static void registrarVisita() {
+        int visitasLocal = 0;
+        visitasLocal++;
+        visitasDoSite++;
+        System.out.println("local = " + visitasLocal + ", da classe = " + visitasDoSite);
+    }
+
+    public static void main(String[] args) {
+        registrarVisita();
+        registrarVisita();
+        registrarVisita();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="sombra">Sombreamento: o mesmo nome em dois níveis</h2>
+<p>Se um método declara uma variável local com o <strong>mesmo nome</strong> de um campo da classe, a local "faz sombra" no campo: dentro do método, o nome passa a significar a local. Isso se chama <strong>sombreamento</strong> (em inglês, <em>shadowing</em>). O campo continua lá, intacto, e pode ser alcançado pelo nome completo, <code>NomeDaClasse.campo</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static String escola = "Escola da Ana";
+
+    static void mostrarCabecalho() {
+        String escola = "Escola do Bairro";
+        System.out.println("Variável local: " + escola);
+        System.out.println("Campo da classe: " + Main.escola);
+    }
+
+    public static void main(String[] args) {
+        mostrarCabecalho();
+        System.out.println("No main: " + escola);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Variável local: Escola do Bairro
+Campo da classe: Escola da Ana
+No main: Escola da Ana</pre>
+
+<p>O Java permite isso, mas é uma fonte clássica de bugs. Veja este: a Ana quer um método que <strong>mude</strong> o nome da escola.</p>
+
+<pre class="file" data-file="Main.java — com um bug de propósito">public class Main {
+    static String escola = "Escola da Ana";
+
+    static void mudarNome(String novoNome) {
+        String escola = novoNome;
+        System.out.println("Mudei para: " + escola);
+    }
+
+    public static void main(String[] args) {
+        mudarNome("Colégio Ana Souza");
+        System.out.println("Nome atual: " + escola);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Mudei para: Colégio Ana Souza
+Nome atual: Escola da Ana        « o campo não mudou!</pre>
+
+<p>Compila, roda, e está errado. O <code>String</code> na frente de <code>escola = novoNome</code> criou uma variável <strong>local nova</strong>, que fez sombra no campo e morreu no fim do método. O campo nunca foi tocado. A correção é tirar o tipo, para que a linha seja uma <strong>atribuição</strong> ao campo: <code>escola = novoNome;</code>.</p>
+
+<div class="tip">
+<strong>Você vai reencontrar a sombra</strong>
+<p>Com objetos, o caso mais comum é um parâmetro com o mesmo nome de um atributo (<code>nome</code> e <code>nome</code>). Para diferenciar os dois, o Java tem a palavra <code>this</code>, assunto de uma aula só para ela: <a href="this.html">this</a>.</p>
+</div>
+
+<h3>Onde a sombra não é permitida</h3>
+<p>Dentro de um <strong>mesmo método</strong>, o Java proíbe reaproveitar um nome que ainda está "vivo", mesmo num bloco interno:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int total = 10;
+        if (total &gt; 5) {
+            int total = 20;
+            System.out.println(total);
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: variable total is already defined in method main(String[])
+            int total = 20;
+                ^
+1 error</pre>
+
+<p>"A variável <code>total</code> já está definida no método <code>main(String[])</code>". Entre local e local, nada de sombra: só entre local e campo da classe. O mesmo vale para um parâmetro e uma local com o mesmo nome:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: variable numero is already defined in method dobrar(int)
+        int numero = 5;
+            ^
+1 error</pre>
+
+<hr>
+
+<h2>Formas diferentes de levar um valor de um lugar a outro</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Problema</th><th>Solução</th><th>Exemplo</th></tr>
+<tr><td>Usar depois de um <code>if</code>/<code>for</code> um valor calculado lá dentro</td><td>Declarar a variável antes do bloco</td><td><code>String msg; if (…) { msg = …; } else { msg = …; }</code></td></tr>
+<tr><td>Usar num método um valor do <code>main</code></td><td>Passar por <a href="parametros.html">parâmetro</a></td><td><code>mostrarAluno(nome)</code></td></tr>
+<tr><td>Trazer de volta ao <code>main</code> um valor calculado num método</td><td>Devolver com <a href="retorno.html">return</a></td><td><code>double m = media(7, 8);</code></td></tr>
+<tr><td>Algo que vários métodos usam e que deve durar o programa todo</td><td>Campo da classe</td><td><code>static String escola = "…";</code></td></tr>
+<tr><td>Um valor fixo, que nunca muda, usado em toda a classe</td><td>Constante</td><td><code>static final double NOTA_MINIMA = 7.0;</code> (veja <a href="constantes.html">Constantes</a>)</td></tr>
+</table>
+</div>
+
+<p>A boa prática é <strong>o menor escopo possível</strong>: declare cada variável o mais perto possível de onde ela é usada, no bloco mais interno que der conta. Menos código enxerga a variável, menos código pode estragá-la.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … symbol: variable"</strong>
+<pre class="term">$ javac Main.java
+Main.java:8: error: cannot find symbol
+        System.out.println(mensagem);
+                           ^
+  symbol:   variable mensagem
+  location: class Main
+1 error</pre>
+<p><strong>O que aconteceu:</strong> no ponto indicado, não existe variável com esse nome. As causas mais comuns, em ordem: (1) a variável foi declarada dentro de um bloco (<code>if</code>, <code>for</code>, <code>while</code>) e usada fora; (2) ela pertence a outro método; (3) erro de digitação (<code>Mensagem</code>, <code>mensagen</code>); (4) ela é usada antes da linha em que é declarada.</p>
+<p><strong>Como resolver:</strong> encontre a declaração e siga as chaves até o <code>}</code> que a fecha. Se o uso está fora, mova a declaração para fora do bloco ou passe o valor por parâmetro. Veja também <a href="erros-compilacao.html">Lendo Erros do javac</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>"variable … is already defined in method …"</strong>
+<p><strong>O que aconteceu:</strong> você declarou de novo (com o tipo na frente) uma variável que ainda está viva no mesmo método, num bloco interno, ou com o mesmo nome de um parâmetro.</p>
+<p><strong>Como resolver:</strong> se a intenção era mudar o valor, tire o tipo (<code>total = 20;</code>). Se era outra variável, use outro nome (<code>totalComBonus</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>"variable … might not have been initialized"</strong>
+<pre class="term">$ javac Main.java
+Main.java:8: error: variable mensagem might not have been initialized
+        System.out.println(mensagem);
+                           ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> a declaração está no escopo certo, mas existe um caminho (um <code>if</code> sem <code>else</code>, por exemplo) em que nenhum valor foi dado antes do uso.</p>
+<p><strong>Como resolver:</strong> dê um valor inicial na declaração ou garanta uma atribuição em todos os caminhos.</p>
+</div>
+
+<div class="cenario">
+<strong>O método "mudou" o valor, mas nada mudou</strong>
+<pre class="term">$ java Main.java
+Mudei para: Colégio Ana Souza
+Nome atual: Escola da Ana</pre>
+<p><strong>O que aconteceu:</strong> sombreamento sem querer. Uma linha como <code>String escola = novoNome;</code> dentro do método cria uma variável local nova, em vez de mudar o campo.</p>
+<p><strong>Como resolver:</strong> tire o tipo do começo da linha: <code>escola = novoNome;</code>. Desconfie sempre de uma declaração com o mesmo nome de um campo.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo de variável</th><th>Onde é declarada</th><th>Onde pode ser usada</th><th>Quanto tempo vive</th><th>Valor inicial automático?</th></tr>
+<tr><td>De bloco</td><td>Dentro de <code>{ }</code> de <code>if</code>, <code>for</code>, <code>while</code>…, ou nos parênteses do <code>for</code></td><td>Da declaração até o <code>}</code> do bloco</td><td>Enquanto o bloco roda</td><td>Não</td></tr>
+<tr><td>De método (local)</td><td>Direto no corpo do método</td><td>Da declaração até o <code>}</code> do método</td><td>Uma chamada</td><td>Não</td></tr>
+<tr><td>Parâmetro</td><td>Nos parênteses do método</td><td>O corpo inteiro do método</td><td>Uma chamada</td><td>Recebe o argumento</td></tr>
+<tr><td>De classe (campo)</td><td>Na classe, fora dos métodos</td><td>Todos os métodos da classe</td><td>O programa inteiro (<code>static</code>)</td><td>Sim (<code>0</code>, <code>false</code>, <code>null</code>; veja <a href="atributos.html">Atributos</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: conserte a sombra</h2>
+<div class="tryjava" data-goal="out:Nome atual: Colégio Ana Souza">
+<p class="try-task"><strong>Missão:</strong> o método <code>mudarNome</code> deveria trocar o nome da escola, mas o <code>main</code> continua mostrando o nome antigo. Corrija uma única linha para o programa terminar com <code>Nome atual: Colégio Ana Souza</code>.</p>
+<pre class="script">public class Main {
+    static String escola = "Escola da Ana";
+
+    static void mudarNome(String novoNome) {
+        String escola = novoNome;
+        System.out.println("Mudei para: " + escola);
+    }
+
+    public static void main(String[] args) {
+        mudarNome("Colégio Ana Souza");
+        System.out.println("Nome atual: " + escola);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static String escola = "Escola da Ana";
+
+    static void mudarNome(String novoNome) {
+        escola = novoNome;
+        System.out.println("Mudei para: " + escola);
+    }
+
+    public static void main(String[] args) {
+        mudarNome("Colégio Ana Souza");
+        System.out.println("Nome atual: " + escola);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Até onde vai?</h3>
+<p>Uma variável declarada dentro de um <code>for</code> existe até qual caractere?</p>
+<div class="ex-code"><input data-answer="}" aria-label="caractere"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Acessar o campo na sombra</h3>
+<p>Dentro de um método da classe <code>Loja</code>, uma variável local <code>nome</code> faz sombra no campo <code>static String nome</code>. Complete para imprimir o <strong>campo</strong>:</p>
+<div class="ex-code">System.out.println(<input data-answer="Loja.nome" aria-label="campo">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Atribuir, não declarar</h3>
+<p>Complete a linha que muda o campo <code>static int pontos</code> para 100, dentro de um método da mesma classe, sem criar variável nova:</p>
+<div class="ex-code"><input data-answer="pontos = 100;|pontos=100;" aria-label="atribuição"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. No <code>main</code>: <code>if (true) { int x = 5; } System.out.println(x);</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Imprime <code>5</code>.</label>
+<label><input type="radio" name="q4"> Erro <code>cannot find symbol</code>: <code>x</code> só existe no bloco do <code>if</code>.</label>
+<label><input type="radio" name="q4"> Imprime <code>0</code>.</label>
+<label><input type="radio" name="q4"> Erro <code>might not have been initialized</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Um método tem <code>int contador = 0; contador++; System.out.println(contador);</code> e é chamado três vezes. O que aparece?</p>
+<label><input type="radio" name="q5"> 1, 2, 3</label>
+<label><input type="radio" name="q5"> 0, 0, 0</label>
+<label><input type="radio" name="q5"> 1, 1, 1</label>
+<label><input type="radio" name="q5"> 3, 3, 3</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Qual destas situações o Java <strong>permite</strong>?</p>
+<label><input type="radio" name="q6"> Um parâmetro <code>n</code> e uma variável local <code>int n</code> no mesmo método.</label>
+<label><input type="radio" name="q6"> <code>int x</code> no <code>main</code> e outro <code>int x</code> dentro de um <code>if</code> do mesmo <code>main</code>.</label>
+<label><input type="radio" name="q6"> Usar no método <code>b()</code> uma variável local declarada no método <code>a()</code>.</label>
+<label><input type="radio" name="q6"> Dois <code>for</code> seguidos, cada um com seu <code>int i</code>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Escopo</strong> é a parte do código em que uma variável existe: da declaração até o <code>}</code> que fecha o seu bloco.</li>
+  <li>Três níveis: <strong>bloco</strong> (<code>if</code>, <code>for</code>…), <strong>método</strong> (locais e parâmetros) e <strong>classe</strong> (campos). De dentro se enxerga para fora, nunca o contrário.</li>
+  <li>Locais nascem a cada chamada e morrem no fim dela; campos <code>static</code> vivem o programa todo.</li>
+  <li>Usou fora do escopo: <code>cannot find symbol</code>. Declarou de novo no mesmo método: <code>already defined</code>. Sem valor em algum caminho: <code>might not have been initialized</code>.</li>
+  <li>Uma local com o nome de um campo faz <strong>sombra</strong>; o campo continua acessível como <code>Classe.campo</code>. Cuidado com <code>Tipo campo = …</code> quando a intenção era mudar o campo.</li>
+  <li>Prefira o menor escopo possível; leve valores entre métodos por parâmetros e <code>return</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
