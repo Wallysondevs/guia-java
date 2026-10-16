@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java final — variáveis, parâmetros, atributos, métodos e classes | Guia Java</title>
+<meta name="description" content="A palavra final em Java nos cinco lugares onde ela aparece: variáveis, parâmetros, atributos (inicializados no construtor), métodos que não podem ser sobrescritos e classes que não podem ser herdadas, como String. E por que uma lista final ainda pode mudar. Com os erros reais do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">final</span></h1>
+
+<p class="intro">A palavra <code>final</code> quer dizer "definitivo, não muda mais". Ela pode aparecer em cinco lugares de um programa Java, e em cada um ela trava uma coisa diferente: o valor de uma variável, um parâmetro, um atributo, um método ou uma classe inteira. Nesta aula você vai ver os cinco, um de cada vez, sempre com o erro que o <code>javac</code> mostra quando alguém tenta mexer no que é <code>final</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como uma variável <code>final</code> recebe um valor uma única vez.</li>
+  <li>Para que serve um parâmetro <code>final</code>.</li>
+  <li>Como funciona um atributo <code>final</code> e por que ele deve receber valor no construtor.</li>
+  <li>O que é um método <code>final</code> (não pode ser sobrescrito) e uma classe <code>final</code> (não pode ser herdada, como <code>String</code>).</li>
+  <li>A diferença entre <strong><code>final</code></strong> e <strong>imutável</strong>: por que uma lista <code>final</code> ainda pode ganhar e perder itens.</li>
+</ul>
+</div>
+
+<p>Você já viu <code>final</code> em <a href="constantes.html">Constantes</a>, no Nível 1, e o <code>static final</code> no fim da aula anterior, <a href="static.html">static</a>. Aqui o assunto é o <code>final</code> completo.</p>
+
+<hr>
+
+<h2>A ideia: escrito à caneta</h2>
+<p>Imagine uma ficha de matrícula. Alguns campos a Ana preenche a lápis: o telefone, o endereço, o curso; se mudarem, ela apaga e escreve de novo. Outros ela preenche <strong>à caneta</strong>: a data de nascimento, o CPF. Uma vez escritos, ficam.</p>
+<p>Em Java, tudo é "a lápis" por padrão. A palavra <code>final</code> transforma em "caneta": dá para escrever <strong>uma vez</strong>, e qualquer tentativa de escrever de novo é recusada pelo compilador, antes de o programa rodar. O nome vem do inglês <em>final</em>, "último": aquele é o valor final.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Onde aparece</th><th>O que o <code>final</code> impede</th></tr>
+<tr><td>Variável local</td><td>Receber outro valor</td></tr>
+<tr><td>Parâmetro de método</td><td>Receber outro valor dentro do método</td></tr>
+<tr><td>Atributo</td><td>Mudar depois que o objeto foi criado</td></tr>
+<tr><td>Método</td><td>Ser <strong>sobrescrito</strong> numa subclasse</td></tr>
+<tr><td>Classe</td><td>Ser <strong>herdada</strong> (ter subclasses)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Variáveis <code>final</code></h2>
+<p>Uma variável comum pode mudar quantas vezes você quiser. Com <code>final</code> na frente, ela recebe um valor e fica com ele:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        final int diasNaSemana = 7;
+        System.out.println(diasNaSemana);
+        diasNaSemana = 8;
+    }
+}
+</pre>
+</div>
+
+<dl class="anatomy">
+  <dt>final</dt><dd>"Esta variável recebe valor uma vez só."</dd>
+  <dt>int diasNaSemana = 7;</dt><dd>Uma declaração normal, com o valor inicial.</dd>
+  <dt>diasNaSemana = 8;</dt><dd>A segunda atribuição: é aqui que o compilador reclama.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: cannot assign a value to final variable diasNaSemana
+        diasNaSemana = 8;
+        ^
+1 error</pre>
+
+<p><em>Cannot assign a value to final variable</em> = "não é possível atribuir um valor à variável final". O erro aparece na <strong>compilação</strong>: o programa nem chega a rodar. Essa é a grande vantagem do <code>final</code>. Se em algum lugar do código alguém (inclusive você, daqui a um mês) tentar mudar um valor que não deveria mudar, o <code>javac</code> avisa na hora.</p>
+
+<h3>Valor dado depois, mas uma vez só</h3>
+<p>Uma variável <code>final</code> não precisa receber o valor na mesma linha. Ela pode ser declarada vazia e receber o valor depois, desde que seja <strong>exatamente uma vez</strong> em cada caminho do programa. Isso é útil com <code>if</code>/<code>else</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int nota = 8;
+        final String situacao;
+        if (nota &gt;= 6) {
+            situacao = "aprovada";
+        } else {
+            situacao = "reprovada";
+        }
+        System.out.println("Ana está " + situacao);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Ana está aprovada</pre>
+
+<p>Em cada caminho (o do <code>if</code> e o do <code>else</code>), <code>situacao</code> recebe valor uma vez. O compilador confere isso. Se você errar para mais ou para menos, ele mostra:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: variable situacao might already have been assigned
+        situacao = "reprovada";
+        ^
+Main.java:7: error: variable media might not have been initialized
+        System.out.println(media);
+                           ^
+2 errors</pre>
+
+<ul>
+  <li><em>might already have been assigned</em> = "pode já ter recebido valor": a linha 5 é a segunda atribuição de <code>situacao</code>.</li>
+  <li><em>might not have been initialized</em> = "pode não ter sido inicializada": a variável <code>final double media;</code> foi usada sem nunca receber valor (esse erro existe para qualquer variável local; veja <a href="variaveis.html">Variáveis</a>).</li>
+</ul>
+
+<div class="tip">
+<strong>Por que usar <code>final</code> numa variável comum?</strong>
+<p>Para deixar uma intenção clara: "este valor, depois de calculado, não muda". Quem lê o código sabe que não precisa procurar outra atribuição mais abaixo. Muita gente marca como <code>final</code> toda variável que não muda. Não é obrigatório: é um hábito de clareza.</p>
+</div>
+
+<div class="tryjava" data-goal="erro-javac:cannot assign a value to final variable">
+<p class="try-task"><strong>Missão:</strong> provoque o erro! O programa abaixo funciona. Coloque <code>final</code> na declaração de <code>preco</code> e rode: o <code>javac</code> deve recusar a linha do aumento com <code>cannot assign a value to final variable preco</code>. Repare que o erro aponta a linha 5, e não a 3.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double preco = 4.50;
+        System.out.println("Pão: R$ " + preco);
+        preco = preco + 0.50;
+        System.out.println("Pão: R$ " + preco);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        final double preco = 4.50;
+        System.out.println("Pão: R$ " + preco);
+        preco = preco + 0.50;
+        System.out.println("Pão: R$ " + preco);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Parâmetros <code>final</code></h2>
+<p>Um <a href="parametros.html">parâmetro</a> é uma variável local que recebe o valor na chamada do método. Por isso, ele também pode ser <code>final</code>: dentro do método, ninguém pode trocar o valor que chegou.</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    static double comDesconto(final double preco, final double percentual) {
+        preco = preco - preco * percentual / 100;
+        return preco;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(comDesconto(50, 10));
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: final parameter preco may not be assigned
+        preco = preco - preco * percentual / 100;
+        ^
+1 error</pre>
+
+<p><em>Final parameter preco may not be assigned</em> = "o parâmetro final <code>preco</code> não pode receber valor". Reaproveitar o parâmetro para guardar outra coisa (aqui, o preço já com desconto) confunde quem lê: no meio do método, <code>preco</code> não é mais o preço original. O conserto é criar uma variável nova:</p>
+
+<pre class="file" data-file="Main.java">    static double comDesconto(final double preco, final double percentual) {
+        double resultado = preco - preco * percentual / 100;
+        return resultado;
+    }
+</pre>
+
+<p>Com isso, <code>comDesconto(50, 10)</code> devolve <code>45.0</code>. Parâmetros <code>final</code> são pouco comuns no dia a dia (muita gente acha que poluem a assinatura). Você vai encontrá-los em empresas que adotam a regra "nunca reatribua um parâmetro" e em código antigo que usava classes anônimas (veja <a href="classes-internas.html">Classes Internas e Anônimas</a>).</p>
+
+<hr>
+
+<h2>3. Atributos <code>final</code></h2>
+<p>Aqui o <code>final</code> fica mais interessante. Uma pessoa pode mudar de nome (casamento, por exemplo), mas não muda de CPF. A Ana modela isso assim:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Pessoa ana = new Pessoa("Ana", "123.456.789-00");
+        System.out.println(ana.nome + " - " + ana.cpf);
+        ana.nome = "Ana Souza";
+        System.out.println(ana.nome + " - " + ana.cpf);
+    }
+}
+
+class Pessoa {
+    String nome;
+    final String cpf;
+
+    Pessoa(String nome, String cpf) {
+        this.nome = nome;
+        this.cpf = cpf;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>String nome;</dt><dd>Atributo comum: pode mudar a qualquer momento.</dd>
+  <dt>final String cpf;</dt><dd>Atributo <code>final</code>, declarado <strong>sem valor</strong>. Cada pessoa terá o seu CPF, então o valor não pode estar aqui.</dd>
+  <dt>this.cpf = cpf;</dt><dd>No construtor, o atributo recebe o valor. Essa é a única atribuição permitida (veja <a href="this.html">this</a>).</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Ana - 123.456.789-00
+Ana Souza - 123.456.789-00         « o nome mudou; o CPF continua o mesmo</pre>
+
+<p>Repare: o atributo <code>final</code> não tem um valor igual para todos (isso seria uma constante, <code>static final</code>). Cada objeto tem o <strong>seu</strong> CPF, decidido no momento em que é criado e travado a partir daí.</p>
+
+<h3>A regra: todo construtor tem que dar o valor</h3>
+<p>Um atributo <code>final</code> sem valor na declaração <strong>precisa</strong> receber valor em todo construtor. Se algum construtor esquecer, o objeto nasceria com um CPF que nunca poderia ser preenchido. O compilador não deixa:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Pessoa ana = new Pessoa("Ana");
+    }
+}
+
+class Pessoa {
+    String nome;
+    final String cpf;
+
+    Pessoa(String nome) {
+        this.nome = nome;
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:13: error: variable cpf might not have been initialized
+    }
+    ^
+1 error</pre>
+
+<p>O erro aponta a linha 13: a <strong>chave que fecha o construtor</strong>. É ali que o construtor termina sem ter dado valor ao <code>cpf</code>. Se a classe não tiver construtor nenhum, a mensagem muda um pouco:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:8: error: variable cpf not initialized in the default constructor
+    final String cpf;
+                 ^
+1 error</pre>
+
+<p><em>Not initialized in the default constructor</em> = "não inicializada no construtor padrão", aquele construtor vazio que o Java cria quando você não escreve nenhum (veja <a href="construtores.html">Construtores</a>).</p>
+
+<p>E, claro, mudar o atributo depois de criado também é recusado, venha a tentativa de onde vier:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: cannot assign a value to final variable cpf
+        ana.cpf = "000.000.000-00";
+           ^
+1 error</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Onde o atributo <code>final</code> pode receber valor</th><th>Exemplo</th></tr>
+<tr><td>Na declaração (mesmo valor para todos os objetos)</td><td><code>final int maxLivros = 3;</code></td></tr>
+<tr><td>Em <strong>todo</strong> construtor (um valor por objeto)</td><td><code>this.cpf = cpf;</code></td></tr>
+<tr><td>Num bloco de inicialização <code>{ … }</code> (raro)</td><td><code>{ criadoEm = System.currentTimeMillis(); }</code></td></tr>
+<tr><td>Em qualquer outro lugar (métodos, <code>main</code>, setters)</td><td><strong>Erro de compilação</strong></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Atributo <code>final</code> não tem setter</strong>
+<p>Na aula de <a href="encapsulamento.html">Encapsulamento</a> você criou <code>getNome()</code> e <code>setNome()</code>. Para um atributo <code>final</code>, só existe o <em>get</em>: um <code>setCpf</code> não compilaria. Isso é bom: a própria classe documenta que o CPF não muda.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Dom Casmurro (ISBN 9788535910663),compila">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Livro</code> tem o atributo <code>final String isbn</code>, mas o construtor esqueceu dele, e o código não compila. Rode para ver o erro. Depois faça o construtor receber também o ISBN (<code>Livro(String titulo, String isbn)</code>) e crie o livro com <code>new Livro("Dom Casmurro", "9788535910663")</code>. A saída deve ser <code>Dom Casmurro (ISBN 9788535910663)</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Livro livro = new Livro("Dom Casmurro");
+        System.out.println(livro.titulo + " (ISBN " + livro.isbn + ")");
+    }
+}
+
+class Livro {
+    String titulo;
+    final String isbn;
+
+    Livro(String titulo) {
+        this.titulo = titulo;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Livro livro = new Livro("Dom Casmurro", "9788535910663");
+        System.out.println(livro.titulo + " (ISBN " + livro.isbn + ")");
+    }
+}
+
+class Livro {
+    String titulo;
+    final String isbn;
+
+    Livro(String titulo, String isbn) {
+        this.titulo = titulo;
+        this.isbn = isbn;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Métodos <code>final</code>: não podem ser sobrescritos</h2>
+<p>Os dois próximos usos dependem de <strong>herança</strong>, que é o assunto do grupo de aulas que começa em <a href="heranca.html">Herança</a>. Em poucas palavras: uma classe pode "herdar" de outra (<code>class ContaEspecial extends Conta</code>) e <strong>sobrescrever</strong> um método, isto é, escrever a sua própria versão dele (veja <a href="sobrescrita.html">Sobrescrita</a>).</p>
+<p>Às vezes isso é perigoso. O banco da Ana tem uma regra: nunca sacar mais do que o saldo. Se uma subclasse pudesse trocar o método <code>sacar</code>, poderia furar a regra. Com <code>final</code>, o método fica travado:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Conta c = new ContaEspecial();
+        c.sacar(50);
+    }
+}
+
+class Conta {
+    double saldo = 100;
+
+    final void sacar(double valor) {
+        if (valor &lt;= saldo) {
+            saldo = saldo - valor;
+        }
+        System.out.println("Saldo: " + saldo);
+    }
+}
+
+class ContaEspecial extends Conta {
+    void sacar(double valor) {
+        saldo = saldo - valor;
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:20: error: sacar(double) in ContaEspecial cannot override sacar(double) in Conta
+    void sacar(double valor) {
+         ^
+  overridden method is final
+1 error</pre>
+
+<p>Traduzindo: "<code>sacar(double)</code> em <code>ContaEspecial</code> não pode sobrescrever <code>sacar(double)</code> em <code>Conta</code>"; a linha de baixo dá o motivo: <em>overridden method is final</em>, "o método sobrescrito é final". A <code>ContaEspecial</code> continua <strong>herdando</strong> e podendo <strong>usar</strong> o <code>sacar</code>; ela só não pode trocá-lo. Se você apagar o método da <code>ContaEspecial</code>, o programa compila e mostra <code>Saldo: 50.0</code>.</p>
+
+<hr>
+
+<h2>5. Classes <code>final</code>: não podem ser herdadas</h2>
+<p>Um passo além: uma classe <code>final</code> não pode ter subclasses. Ninguém pode escrever <code>extends</code> com ela. O exemplo mais famoso é a própria <code>String</code>:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("teste");
+    }
+}
+
+class MinhaString extends String {
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:7: error: cannot inherit from final String
+class MinhaString extends String {
+                          ^
+1 error</pre>
+
+<p><em>Cannot inherit from final String</em> = "não é possível herdar da classe final <code>String</code>". Os criadores do Java declararam <code>public final class String</code> por segurança: o programa inteiro confia que um texto é um texto. Se fosse possível criar uma "String" falsa que muda sozinha, uma senha ou um caminho de arquivo poderiam ser trocados depois de conferidos. Outras classes <code>final</code> da biblioteca: <code>Integer</code>, <code>Double</code> e os outros <a href="wrappers.html">wrappers</a>, <code>Math</code>, <code>System</code>, <code>LocalDate</code>.</p>
+
+<p>Para as suas classes, a sintaxe é a mesma:</p>
+
+<pre class="file" data-file="Cpf.java">public final class Cpf {
+    // ninguém pode escrever "extends Cpf"
+}
+</pre>
+
+<p>Você também vai ver classes <code>final</code> nos <a href="records.html">records</a> (todo record é <code>final</code> automaticamente) e uma alternativa mais flexível, as <a href="sealed.html">classes seladas</a>, que dizem exatamente <em>quem</em> pode herdar.</p>
+
+<hr>
+
+<h2><code>final</code> não é o mesmo que imutável</h2>
+<p>Esta é a parte que mais confunde, até programadores experientes. O <code>final</code> trava a <strong>variável</strong>, não o <strong>objeto</strong> para onde ela aponta.</p>
+<p>Lembre-se: uma variável de um tipo objeto (como <code>List</code>, um array, um <code>Aluno</code>) guarda uma <strong>referência</strong>, um "endereço" do objeto. Com <code>final</code>, esse endereço não muda: a variável vai apontar sempre para o mesmo objeto. Mas o objeto em si pode mudar por dentro.</p>
+
+<p>Pense numa caixa de compras etiquetada com caneta: "caixa da Ana". A etiqueta não muda (é sempre a mesma caixa), mas você pode colocar e tirar coisas de dentro dela.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        final List&lt;String&gt; frutas = new ArrayList&lt;&gt;();
+        frutas.add("maçã");
+        frutas.add("banana");
+        System.out.println(frutas);
+        frutas.remove("maçã");
+        frutas.add("uva");
+        System.out.println(frutas);
+
+        final int[] notas = {7, 8, 9};
+        notas[0] = 10;
+        System.out.println(notas[0]);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+[maçã, banana]
+[banana, uva]          « a lista final mudou por dentro
+10                     « o array final também</pre>
+
+<p>Nenhum erro: <code>add</code>, <code>remove</code> e <code>notas[0] = 10</code> mexem no <strong>conteúdo</strong>, não na variável. (A <code>ArrayList</code> tem uma aula própria: <a href="arraylist.html">ArrayList</a>.) O que o <code>final</code> proíbe é trocar a caixa inteira:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:7: error: cannot assign a value to final variable frutas
+        frutas = new ArrayList&lt;&gt;();
+        ^
+1 error</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Com <code>final List&lt;String&gt; frutas = new ArrayList&lt;&gt;();</code></th><th>Pode?</th></tr>
+<tr><td><code>frutas.add("uva")</code></td><td>Sim: muda o conteúdo</td></tr>
+<tr><td><code>frutas.remove("uva")</code>, <code>frutas.clear()</code></td><td>Sim: muda o conteúdo</td></tr>
+<tr><td><code>frutas = new ArrayList&lt;&gt;()</code></td><td><strong>Não</strong>: troca a referência</td></tr>
+<tr><td><code>frutas = null</code></td><td><strong>Não</strong>: troca a referência</td></tr>
+</table>
+</div>
+
+<h3>E se eu quiser uma lista que não muda nunca?</h3>
+<p>Aí você precisa de um objeto <strong>imutável</strong>, um objeto que não tem nenhum método capaz de alterá-lo. A <code>String</code> é imutável (todo método dela devolve uma String nova). Para listas, existe <code>List.of(…)</code>, que cria uma lista que recusa mudanças. Mas repare: essa recusa só acontece <strong>quando o programa roda</strong>, como uma exceção:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = List.of("maçã", "banana");
+        System.out.println(frutas);
+        frutas.add("uva");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+[maçã, banana]
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableCollection.add(ImmutableCollections.java:164)
+	at Main.main(Main.java:7)</pre>
+
+<p><em>UnsupportedOperationException</em> = "exceção de operação não suportada": a lista não aceita <code>add</code>. A última linha do rastro (<code>Main.java:7</code>) mostra a linha do seu código que causou o problema (exceções são o assunto de <a href="excecoes.html">O que são Exceções</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>final</code></th><th>Imutável</th></tr>
+<tr><td>O que trava</td><td>A <strong>variável</strong> (para onde ela aponta)</td><td>O <strong>objeto</strong> (o conteúdo)</td></tr>
+<tr><td>Quem garante</td><td>O compilador, antes de rodar</td><td>A classe do objeto, ao rodar</td></tr>
+<tr><td>Exemplo</td><td><code>final List&lt;String&gt; l = new ArrayList&lt;&gt;();</code></td><td><code>List.of("a", "b")</code>, <code>String</code>, records</td></tr>
+<tr><td>Juntos</td><td colspan="2"><code>final List&lt;String&gt; l = List.of("a", "b");</code>: nem a variável nem a lista mudam</td></tr>
+</table>
+</div>
+
+<p>Para criar as suas próprias classes imutáveis, junte o que você viu: atributos <code>private final</code>, nenhum setter e, de preferência, a classe <code>final</code>. Ou use um <a href="records.html">record</a>, que faz tudo isso numa linha.</p>
+
+<hr>
+
+<h2>Um parente: "efetivamente final"</h2>
+<p>Você vai encontrar a expressão <em>effectively final</em> ("efetivamente final") em mensagens de erro. É uma variável que <strong>não</strong> tem a palavra <code>final</code>, mas nunca muda depois de receber o valor; para o compilador, ela se comporta como se tivesse. Isso importa em <a href="lambdas.html">lambdas</a> e <a href="classes-internas.html">classes anônimas</a>, que só podem usar variáveis locais finais ou efetivamente finais. Por enquanto, basta saber que o termo existe.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot assign a value to final variable …"</strong>
+<pre class="term">$ javac Main.java
+Main.java:5: error: cannot assign a value to final variable diasNaSemana
+        diasNaSemana = 8;
+        ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> uma variável ou atributo <code>final</code> recebeu um segundo valor.</p>
+<p><strong>Como resolver:</strong> pergunte-se se o valor deveria mesmo mudar. Se sim, tire o <code>final</code>. Se não, guarde o novo valor numa variável nova (<code>double precoComAumento = preco + 0.50;</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>"variable … might not have been initialized" na chave do construtor</strong>
+<pre class="term">$ javac Main.java
+Main.java:13: error: variable cpf might not have been initialized
+    }
+    ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> um construtor terminou sem dar valor a um atributo <code>final</code>. Se a classe tem vários construtores, o erro aparece no que esqueceu.</p>
+<p><strong>Como resolver:</strong> acrescente <code>this.cpf = …;</code> nesse construtor (ou faça-o chamar outro construtor com <code>this(…)</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>"overridden method is final"</strong>
+<pre class="term">$ javac Main.java
+Main.java:20: error: sacar(double) in ContaEspecial cannot override sacar(double) in Conta
+    void sacar(double valor) {
+         ^
+  overridden method is final
+1 error</pre>
+<p><strong>O que aconteceu:</strong> a subclasse tentou escrever a própria versão de um método <code>final</code> da superclasse.</p>
+<p><strong>Como resolver:</strong> dê outro nome ao método da subclasse, ou use o método herdado como está. Tirar o <code>final</code> da superclasse só se você for o dono dela e tiver certeza de que a troca é segura.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot inherit from final …"</strong>
+<pre class="term">$ javac Main.java
+Main.java:7: error: cannot inherit from final String
+class MinhaString extends String {
+                          ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o <code>extends</code> apontou para uma classe <code>final</code>.</p>
+<p><strong>Como resolver:</strong> em vez de herdar, <strong>guarde</strong> um objeto da classe como atributo (<code>class Cpf { private final String numero; … }</code>). Isso se chama composição, e é a saída padrão quando não dá para herdar.</p>
+</div>
+
+<div class="cenario">
+<strong>A lista "final" mudou</strong>
+<p><strong>O que aconteceu:</strong> nada de errado com o Java: <code>final</code> trava a variável, não o conteúdo.</p>
+<p><strong>Como resolver:</strong> se o conteúdo também não deve mudar, crie a lista com <code>List.of(…)</code> ou entregue uma cópia protegida com <code>List.copyOf(lista)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th><th>Erro se desrespeitar</th></tr>
+<tr><td><code>final int x = 5;</code></td><td>Variável com valor único</td><td><code>cannot assign a value to final variable x</code></td></tr>
+<tr><td><code>final String s;</code> + uma atribuição</td><td>Valor dado depois, uma vez</td><td><code>variable s might already have been assigned</code></td></tr>
+<tr><td><code>void f(final int p)</code></td><td>Parâmetro que não muda</td><td><code>final parameter p may not be assigned</code></td></tr>
+<tr><td><code>final String cpf;</code> (atributo)</td><td>Valor por objeto, dado no construtor</td><td><code>variable cpf might not have been initialized</code></td></tr>
+<tr><td><code>static final int MAX = 10;</code></td><td>Constante da classe</td><td><code>cannot assign a value to final variable MAX</code></td></tr>
+<tr><td><code>final void sacar(…)</code></td><td>Método que não pode ser sobrescrito</td><td><code>… cannot override …</code> / <code>overridden method is final</code></td></tr>
+<tr><td><code>final class Cpf</code></td><td>Classe que não pode ser herdada</td><td><code>cannot inherit from final Cpf</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Valor único</h3>
+<p>Complete para a variável <code>pi</code> nunca poder mudar:</p>
+<div class="ex-code"><input data-answer="final" aria-label="palavra-chave"> double pi = 3.14159;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O construtor completo</h3>
+<p>A classe <code>Aluno</code> tem <code>final int matricula;</code>. Complete a linha do construtor <code>Aluno(int matricula)</code> que dá o valor ao atributo:</p>
+<div class="ex-code"><input data-answer="this.matricula = matricula;|this.matricula=matricula;" aria-label="atribuição"></div>
+</div>
+
+<div class="exercise">
+<h3>3. A classe que não tem filhos</h3>
+<p>Complete para ninguém poder escrever <code>extends Moeda</code>:</p>
+<div class="ex-code">public <input data-answer="final class|final  class" aria-label="declaração"> Moeda { }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Com <code>final List&lt;String&gt; nomes = new ArrayList&lt;&gt;();</code>, qual linha <strong>não</strong> compila?</p>
+<label><input type="radio" name="q4"> <code>nomes.add("Ana");</code></label>
+<label><input type="radio" name="q4"> <code>nomes = new ArrayList&lt;&gt;();</code></label>
+<label><input type="radio" name="q4"> <code>nomes.clear();</code></label>
+<label><input type="radio" name="q4"> <code>nomes.remove("Ana");</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que <code>class Texto extends String { }</code> não compila?</p>
+<label><input type="radio" name="q5"> Porque <code>String</code> é <code>static</code></label>
+<label><input type="radio" name="q5"> Porque falta um construtor</label>
+<label><input type="radio" name="q5"> Porque <code>String</code> é uma classe <code>final</code></label>
+<label><input type="radio" name="q5"> Porque o nome <code>Texto</code> é reservado</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que um método <code>final</code> impede?</p>
+<label><input type="radio" name="q6"> Que uma subclasse o sobrescreva</label>
+<label><input type="radio" name="q6"> Que ele seja chamado mais de uma vez</label>
+<label><input type="radio" name="q6"> Que ele mude atributos</label>
+<label><input type="radio" name="q6"> Que ele seja herdado</label>
+</div>
+
+<div class="tryjava" data-goal="out:[café],src:\.clear\(\)">
+<p class="try-task"><strong>Missão final:</strong> a lista de compras da Ana é <code>final</code>. Depois de ir ao mercado, ela quis "esvaziar" a lista trocando-a por uma nova, e o código não compila. Rode para ver o erro. Conserte <strong>sem tirar o <code>final</code></strong>: use <code>compras.clear()</code> para esvaziar a lista e depois adicione <code>"café"</code>. A saída final deve ser <code>[café]</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        final List&lt;String&gt; compras = new ArrayList&lt;&gt;();
+        compras.add("arroz");
+        compras.add("feijão");
+        System.out.println(compras);
+        compras = new ArrayList&lt;&gt;();
+        System.out.println(compras);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        final List&lt;String&gt; compras = new ArrayList&lt;&gt;();
+        compras.add("arroz");
+        compras.add("feijão");
+        System.out.println(compras);
+        compras.clear();
+        compras.add("café");
+        System.out.println(compras);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>final</code> = "recebe valor uma vez". O compilador garante, antes de o programa rodar.</li>
+  <li>Variável local e parâmetro <code>final</code>: não podem receber outro valor (<code>cannot assign a value to final variable</code>, <code>final parameter … may not be assigned</code>).</li>
+  <li>Atributo <code>final</code>: recebe valor na declaração ou em <strong>todo</strong> construtor; depois, nunca mais. Não tem setter.</li>
+  <li>Método <code>final</code>: subclasses não podem sobrescrevê-lo (<code>overridden method is final</code>).</li>
+  <li>Classe <code>final</code>: não pode ser herdada (<code>cannot inherit from final String</code>).</li>
+  <li><code>final</code> trava a variável, não o objeto: uma lista <code>final</code> ainda aceita <code>add</code>. Para conteúdo que não muda, use objetos imutáveis (<code>List.of</code>, <code>String</code>, records).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
