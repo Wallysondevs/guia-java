@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Collectors — toList, toMap, joining, groupingBy, partitioningBy | Guia Java</title>
+<meta name="description" content="Collectors em Java: toList() do Java 16 × Collectors.toList(), toSet, toCollection, toMap (e a IllegalStateException Duplicate key real), joining, groupingBy (alunos por cidade), counting, averagingDouble, mapping e partitioningBy, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Collectors</span></h1>
+
+<p class="intro">No fim de um <a href="streams.html">stream</a>, os elementos precisam ir para algum lugar: uma lista, um conjunto, um mapa, um texto, um relatório agrupado. A operação terminal <code>collect</code> faz isso, e a classe <code>Collectors</code> ("coletores") traz as receitas prontas: <code>toList</code>, <code>toMap</code>, <code>joining</code>, <code>groupingBy</code>… Com elas, a Ana responde em poucas linhas perguntas como "quantos alunos há em cada cidade?" e "qual a média de cada cidade?".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <code>toList()</code> (Java 16) e <code>Collectors.toList()</code>.</li>
+  <li><code>toSet</code> e <code>toCollection</code> (para escolher a coleção).</li>
+  <li><code>toMap</code>, e o erro <code>IllegalStateException: Duplicate key</code>.</li>
+  <li><code>joining</code>: juntar textos com separador, prefixo e sufixo.</li>
+  <li><code>groupingBy</code>: agrupar (alunos por cidade), com <code>counting</code>, <code>averagingDouble</code> e <code>mapping</code>.</li>
+  <li><code>partitioningBy</code>: dividir em dois grupos (aprovados e reprovados).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: a última estação da esteira</h2>
+<p>Voltando à linha de montagem da aula de Streams: as estações filtram e transformam; no fim, alguém precisa <strong>embalar</strong> o que chegou. Pode ser numa caixa comum (uma lista), numa caixa sem repetidos (um conjunto), em caixas separadas por etiqueta (um mapa agrupado) ou num relatório de uma linha (um texto). Cada coletor é um jeito de embalar.</p>
+
+<pre class="syntax">stream ... .collect(Collectors.ALGUMA_RECEITA(...))</pre>
+
+<p>Todos os exemplos usam <code>import java.util.stream.Collectors;</code>. Os alunos da Ana agora têm cidade:</p>
+
+<pre class="file" data-file="Aluno.java">record Aluno(String nome, String cidade, double nota) {
+    public String toString() {
+        return nome;          // só o nome, para as saídas ficarem curtas
+    }
+}
+</pre>
+
+<hr>
+
+<h2>Para listas: <code>toList()</code> × <code>Collectors.toList()</code></h2>
+<p>Existem duas formas de terminar um stream numa lista, e elas não são iguais:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("Carla", "Ana", "Bruno");
+
+        List&lt;String&gt; a = nomes.stream().sorted().collect(Collectors.toList());
+        a.add("Duda");
+        System.out.println("Collectors.toList(): " + a + " " + a.getClass().getSimpleName());
+
+        List&lt;String&gt; b = nomes.stream().sorted().toList();
+        System.out.println("toList(): " + b);
+        b.add("Duda");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Collectors.toList(): [Ana, Bruno, Carla, Duda] ArrayList      « mutável: o add funcionou
+toList(): [Ana, Bruno, Carla]
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableCollection.add(ImmutableCollections.java:164)
+	at Main.main(Main.java:15)</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Desde</th><th>A lista pode mudar?</th><th>Quando usar</th></tr>
+<tr><td><code>.toList()</code></td><td><span class="versao">Java 16+</span></td><td>Não (imutável, como <code>List.of</code>)</td><td>O padrão hoje: mais curto, e ninguém altera o resultado por engano.</td></tr>
+<tr><td><code>.collect(Collectors.toList())</code></td><td>Java 8</td><td>Na prática sim (hoje é uma <code>ArrayList</code>, mas a documentação não garante)</td><td>Código para Java 8 a 15, ou quando você vai alterar a lista depois.</td></tr>
+<tr><td><code>.collect(Collectors.toCollection(ArrayList::new))</code></td><td>Java 8</td><td>Sim, garantido</td><td>Quando a lista <strong>precisa</strong> ser mutável.</td></tr>
+<tr><td><code>.collect(Collectors.toUnmodifiableList())</code></td><td>Java 10</td><td>Não</td><td>O equivalente ao <code>toList()</code> antes do Java 16.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Para conjuntos: <code>toSet</code> e <code>toCollection</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; cidades = List.of("Recife", "Natal", "Recife", "Olinda", "Natal", "Recife");
+
+        Set&lt;String&gt; conjunto = cidades.stream().collect(Collectors.toSet());
+        System.out.println("toSet(): " + conjunto);
+
+        TreeSet&lt;String&gt; ordenado = cidades.stream().collect(Collectors.toCollection(TreeSet::new));
+        System.out.println("toCollection(TreeSet::new): " + ordenado);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+toSet(): [Recife, Natal, Olinda]                  « sem repetidos, ordem de HashSet
+toCollection(TreeSet::new): [Natal, Olinda, Recife]   « sem repetidos e em ordem</pre>
+
+<p><code>toCollection</code> recebe um <a href="interfaces-funcionais.html">Supplier</a> que fabrica a coleção vazia; a <a href="method-references.html">referência ao construtor</a> <code>TreeSet::new</code> é o jeito mais curto de escrevê-lo. Serve para qualquer coleção: <code>LinkedHashSet::new</code>, <code>ArrayDeque::new</code>…</p>
+
+<hr>
+
+<h2>Para mapas: <code>toMap</code></h2>
+<p><code>toMap</code> monta um <a href="hashmap.html">mapa</a>. Você diz duas funções: uma que tira a <strong>chave</strong> de cada elemento e outra que tira o <strong>valor</strong>.</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+record Aluno(String nome, String cidade, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = List.of(
+            new Aluno("Ana", "Recife", 9.5), new Aluno("Bruno", "Natal", 7.0),
+            new Aluno("Carla", "Recife", 8.0), new Aluno("Duda", "Olinda", 6.0));
+
+        Map&lt;String, Double&gt; notas = turma.stream()
+                .collect(Collectors.toMap(Aluno::nome, Aluno::nota));
+        System.out.println("toMap(nome, nota): " + notas);
+        System.out.println("nota da Carla: " + notas.get("Carla"));
+
+        Map&lt;String, Double&gt; ordenado = turma.stream()
+                .collect(Collectors.toMap(Aluno::nome, Aluno::nota, (x, y) -&gt; x, TreeMap::new));
+        System.out.println("em TreeMap: " + ordenado);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+toMap(nome, nota): {Bruno=7.0, Carla=8.0, Ana=9.5, Duda=6.0}     « um HashMap: ordem não garantida
+nota da Carla: 8.0
+em TreeMap: {Ana=9.5, Bruno=7.0, Carla=8.0, Duda=6.0}</pre>
+
+<dl class="anatomy">
+  <dt>Collectors.toMap(Aluno::nome, Aluno::nota)</dt><dd>Chave = o nome de cada aluno; valor = a nota.</dd>
+  <dt>(x, y) -&gt; x</dt><dd>Terceiro argumento: o que fazer se <strong>duas</strong> chaves forem iguais (aqui, "fique com o primeiro"). Veja o erro logo abaixo.</dd>
+  <dt>TreeMap::new</dt><dd>Quarto argumento: qual mapa criar. Para ter esse, é obrigatório passar o terceiro também.</dd>
+</dl>
+
+<h3>A armadilha: chave repetida</h3>
+<p>A Ana tenta montar um mapa "cidade → aluno". Mas duas alunas moram em Recife:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        Map&lt;String, String&gt; porCidade = turma.stream()
+                .collect(Collectors.toMap(Aluno::cidade, Aluno::nome));
+        System.out.println(porCidade);
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Exception in thread "main" java.lang.IllegalStateException: Duplicate key Recife (attempted merging values Ana and Carla)
+	at java.base/java.util.stream.Collectors.duplicateKeyException(Collectors.java:135)
+	at java.base/java.util.stream.Collectors.lambda$uniqKeysMapAccumulator$0(Collectors.java:182)
+	at java.base/java.util.stream.ReduceOps$3ReducingSink.accept(ReduceOps.java:169)
+	at java.base/java.util.AbstractList$RandomAccessSpliterator.forEachRemaining(AbstractList.java:722)
+	at java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:570)
+	at java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:560)
+	at java.base/java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:921)
+	at java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:265)
+	at java.base/java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:723)
+	at Main.main(Main.java:14)</pre>
+
+<p>"Estado ilegal: chave duplicada Recife (tentou juntar os valores Ana e Carla)". Diferente do <code>put</code> de um mapa comum, que substituiria em silêncio, o <code>toMap</code> <strong>recusa</strong> chaves repetidas, a não ser que você diga como juntá-las. A pilha é longa porque o stream passa por várias peças internas; a linha que importa é a última, <code>Main.java:14</code>.</p>
+
+<p>A solução é o terceiro argumento, a <strong>função de junção</strong> (um <code>BinaryOperator</code> que recebe o valor antigo e o novo):</p>
+
+<pre class="file" data-file="Main.java">        Map&lt;String, String&gt; porCidade = turma.stream()
+                .collect(Collectors.toMap(Aluno::cidade, Aluno::nome, (a, b) -&gt; a + ", " + b, TreeMap::new));
+        System.out.println(porCidade);
+</pre>
+
+<pre class="term">$ java Main
+{Natal=Bruno, Olinda=Duda, Recife=Ana, Carla}</pre>
+
+<p>Funciona, mas juntar textos com vírgula é um remendo. Quando uma chave pode ter <strong>vários</strong> valores, o coletor certo é o <code>groupingBy</code>, logo abaixo.</p>
+
+<hr>
+
+<h2>Para textos: <code>joining</code></h2>
+<p><code>joining</code> ("juntando") concatena um stream de <code>String</code>s, com separador opcional e, se quiser, um prefixo e um sufixo:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.stream.Collectors;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("Ana", "Bruno", "Carla");
+        System.out.println(nomes.stream().collect(Collectors.joining()));
+        System.out.println(nomes.stream().collect(Collectors.joining(", ")));
+        System.out.println(nomes.stream().collect(Collectors.joining(", ", "Presentes: [", "]")));
+        System.out.println(nomes.stream().map(String::toUpperCase).collect(Collectors.joining(" | ")));
+        System.out.println(String.join(" e ", nomes));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+AnaBrunoCarla
+Ana, Bruno, Carla                 « separador só ENTRE os elementos
+Presentes: [Ana, Bruno, Carla]    « separador, prefixo, sufixo
+ANA | BRUNO | CARLA
+Ana e Bruno e Carla</pre>
+
+<p>Repare que o separador não sobra no fim (o <code>reduce</code> da aula de Streams deixava um espaço). A última linha mostra <code>String.join</code>, que faz o mesmo direto com uma lista, sem stream; use-o quando não houver <code>filter</code> nem <code>map</code> no caminho. O <code>joining</code> só aceita <code>String</code>s: para números, faça antes <code>.map(String::valueOf)</code>.</p>
+
+<div class="tryjava" data-goal="out:Lista: Ana; Bruno; Carla.,src:joining">
+<p class="try-task"><strong>Missão:</strong> use <code>Collectors.joining</code> com separador <code>"; "</code>, prefixo <code>"Lista: "</code> e sufixo <code>"."</code>. A saída deve ser <code>Lista: Ana; Bruno; Carla.</code></p>
+<pre class="script">import java.util.List;
+import java.util.stream.Collectors;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("Ana", "Bruno", "Carla");
+        String lista = nomes.stream().collect(Collectors.joining());
+        System.out.println(lista);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+import java.util.stream.Collectors;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("Ana", "Bruno", "Carla");
+        String lista = nomes.stream().collect(Collectors.joining("; ", "Lista: ", "."));
+        System.out.println(lista);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Agrupar: <code>groupingBy</code></h2>
+<p>A pergunta da Ana: "quem mora em cada cidade?". <code>groupingBy</code> ("agrupando por") recebe uma função que diz a <strong>etiqueta</strong> de cada elemento, e devolve um mapa: etiqueta → lista dos elementos com aquela etiqueta. Os trechos abaixo são partes de um mesmo programa, com seis alunos:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+record Aluno(String nome, String cidade, double nota) {
+    public String toString() {
+        return nome;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = List.of(
+            new Aluno("Ana", "Recife", 9.5), new Aluno("Bruno", "Natal", 7.0),
+            new Aluno("Carla", "Recife", 8.0), new Aluno("Duda", "Olinda", 6.0),
+            new Aluno("Edu", "Natal", 4.5), new Aluno("Fabi", "Recife", 7.5));
+
+        Map&lt;String, List&lt;Aluno&gt;&gt; grupos = turma.stream()
+                .collect(Collectors.groupingBy(Aluno::cidade));
+        System.out.println("groupingBy: " + grupos);
+</pre>
+
+<pre class="term">$ java Main
+groupingBy: {Recife=[Ana, Carla, Fabi], Natal=[Bruno, Edu], Olinda=[Duda]}</pre>
+
+<p>Uma linha de código fez o que exigiria um mapa, um laço, um <code>if (!mapa.containsKey(…))</code> e um <code>add</code>. O resultado é um <code>Map&lt;String, List&lt;Aluno&gt;&gt;</code>: cada cidade aponta para a lista dos seus alunos, na ordem original. O mapa é um <code>HashMap</code>, então a ordem das cidades não é garantida.</p>
+
+<h3>O segundo coletor: o que fazer com cada grupo</h3>
+<p>O <code>groupingBy</code> aceita mais dois argumentos: <strong>qual mapa</strong> criar (por exemplo, <code>TreeMap::new</code>, para as cidades saírem em ordem) e um <strong>coletor para cada grupo</strong> (em vez de uma lista de alunos, uma contagem, uma média, uma lista de nomes…):</p>
+
+<pre class="file" data-file="Main.java">        Map&lt;String, List&lt;String&gt;&gt; nomes = turma.stream()
+                .collect(Collectors.groupingBy(Aluno::cidade, TreeMap::new,
+                        Collectors.mapping(Aluno::nome, Collectors.toList())));
+        System.out.println("nomes por cidade: " + nomes);
+
+        Map&lt;String, Long&gt; quantos = turma.stream()
+                .collect(Collectors.groupingBy(Aluno::cidade, TreeMap::new, Collectors.counting()));
+        System.out.println("counting: " + quantos);
+
+        Map&lt;String, Double&gt; medias = turma.stream()
+                .collect(Collectors.groupingBy(Aluno::cidade, TreeMap::new, Collectors.averagingDouble(Aluno::nota)));
+        System.out.println("averagingDouble: " + medias);
+</pre>
+
+<pre class="term">$ java Main
+nomes por cidade: {Natal=[Bruno, Edu], Olinda=[Duda], Recife=[Ana, Carla, Fabi]}
+counting: {Natal=2, Olinda=1, Recife=3}
+averagingDouble: {Natal=5.75, Olinda=6.0, Recife=8.333333333333334}</pre>
+
+<dl class="anatomy">
+  <dt>groupingBy(Aluno::cidade, TreeMap::new, …)</dt><dd>Agrupa por cidade num <code>TreeMap</code>: cidades em ordem alfabética.</dd>
+  <dt>Collectors.mapping(Aluno::nome, Collectors.toList())</dt><dd>"Em cada grupo, transforme cada aluno no nome e junte numa lista." É um <code>map</code> dentro do grupo.</dd>
+  <dt>Collectors.counting()</dt><dd>"Em cada grupo, conte." O resultado é <code>Long</code>.</dd>
+  <dt>Collectors.averagingDouble(Aluno::nota)</dt><dd>"Em cada grupo, a média das notas." Recife: (9.5 + 8.0 + 7.5) / 3 = 8.333…, com as casas do <code>double</code>; para mostrar bonito, use <a href="formatacao.html">printf</a>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Coletor do grupo</th><th>Cada grupo vira</th></tr>
+<tr><td>(nenhum)</td><td>uma <code>List</code> dos elementos</td></tr>
+<tr><td><code>counting()</code></td><td>quantos são (<code>Long</code>)</td></tr>
+<tr><td><code>averagingDouble(f)</code> / <code>averagingInt(f)</code></td><td>a média de <code>f</code></td></tr>
+<tr><td><code>summingDouble(f)</code> / <code>summingInt(f)</code></td><td>a soma de <code>f</code></td></tr>
+<tr><td><code>mapping(f, toList())</code></td><td>a lista de <code>f</code> de cada um</td></tr>
+<tr><td><code>mapping(f, joining(", "))</code></td><td>um texto com <code>f</code> de cada um</td></tr>
+<tr><td><code>toSet()</code></td><td>um conjunto dos elementos</td></tr>
+<tr><td><code>maxBy(comp)</code> / <code>minBy(comp)</code></td><td>o maior / menor (num <code>Optional</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Dividir em dois: <code>partitioningBy</code></h2>
+<p>Quando a etiqueta é só "sim" ou "não", use <code>partitioningBy</code> ("particionando"). Ele recebe um <code>Predicate</code> e devolve um mapa com exatamente duas chaves: <code>false</code> e <code>true</code>.</p>
+
+<pre class="file" data-file="Main.java">        Map&lt;Boolean, List&lt;String&gt;&gt; aprovados = turma.stream()
+                .collect(Collectors.partitioningBy(a -&gt; a.nota() &gt;= 7,
+                        Collectors.mapping(Aluno::nome, Collectors.toList())));
+        System.out.println("partitioningBy: " + aprovados);
+        System.out.println("aprovados: " + aprovados.get(true));
+</pre>
+
+<pre class="term">$ java Main
+partitioningBy: {false=[Duda, Edu], true=[Ana, Bruno, Carla, Fabi]}
+aprovados: [Ana, Bruno, Carla, Fabi]</pre>
+
+<p>As duas chaves existem sempre, mesmo que um dos grupos fique vazio (com <code>groupingBy</code>, uma etiqueta sem ninguém nem aparece). O segundo argumento é opcional e funciona como no <code>groupingBy</code>.</p>
+
+<hr>
+
+<h2>Contas sem agrupar</h2>
+<p>Os mesmos coletores de conta funcionam sozinhos, sobre o stream inteiro:</p>
+
+<pre class="file" data-file="Main.java">        System.out.println(turma.stream().collect(Collectors.counting()));
+        System.out.println(turma.stream().collect(Collectors.averagingDouble(Aluno::nota)));
+        System.out.println(turma.stream().collect(Collectors.summingDouble(Aluno::nota)));
+        System.out.println(turma.stream().collect(Collectors.summarizingDouble(Aluno::nota)));
+</pre>
+
+<p>Com os quatro primeiros alunos (Ana, Bruno, Carla, Duda):</p>
+
+<pre class="term">$ java Main
+4
+7.625
+30.5
+DoubleSummaryStatistics{count=4, sum=30,500000, min=6,000000, average=7,625000, max=9,500000}</pre>
+
+<p>Sem agrupar, prefira os atalhos do stream: <code>count()</code>, <code>mapToDouble(Aluno::nota).average()</code>, <code>.sum()</code> (veja <a href="streams.html">Streams</a>). Repare de novo nas vírgulas do <code>summarizingDouble</code>: o texto segue o idioma do computador (<code>pt_BR</code>).</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>IllegalStateException: Duplicate key … (attempted merging values …)</code></strong>
+<p><strong>O que aconteceu:</strong> <code>toMap</code> encontrou duas vezes a mesma chave. A mensagem diz qual chave e quais valores colidiram.</p>
+<p><strong>Como consertar:</strong> se cada chave tem vários valores, use <code>groupingBy</code>. Se deve ficar só um, passe a função de junção: <code>toMap(k, v, (antigo, novo) -&gt; antigo)</code> (ou <code>novo</code>, ou <code>Math::max</code>…).</p>
+</div>
+
+<div class="cenario">
+<strong><code>UnsupportedOperationException</code> ao alterar o resultado</strong>
+<p><strong>O que aconteceu:</strong> <code>toList()</code>, <code>toUnmodifiableList()</code> e afins devolvem coleções imutáveis.</p>
+<p><strong>Como consertar:</strong> <code>Collectors.toCollection(ArrayList::new)</code>, ou copie: <code>new ArrayList&lt;&gt;(resultado)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>As chaves do mapa saíram fora de ordem</strong>
+<p><strong>O que aconteceu:</strong> <code>toMap</code> e <code>groupingBy</code> criam um <code>HashMap</code> por padrão.</p>
+<p><strong>Como consertar:</strong> passe a fábrica do mapa: <code>TreeMap::new</code> (ordem das chaves) ou <code>LinkedHashMap::new</code> (ordem de chegada).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Coletor</th><th>Resultado</th></tr>
+<tr><td><code>toList()</code> / <code>toUnmodifiableList()</code></td><td><code>List</code> (mutável na prática / imutável)</td></tr>
+<tr><td><code>toSet()</code></td><td><code>Set</code></td></tr>
+<tr><td><code>toCollection(TreeSet::new)</code></td><td>A coleção que você escolher</td></tr>
+<tr><td><code>toMap(chave, valor)</code></td><td><code>Map</code>; chave repetida: <code>IllegalStateException</code></td></tr>
+<tr><td><code>toMap(chave, valor, junção, Mapa::new)</code></td><td><code>Map</code> com regra de junção e tipo escolhido</td></tr>
+<tr><td><code>joining(sep, prefixo, sufixo)</code></td><td><code>String</code></td></tr>
+<tr><td><code>groupingBy(etiqueta)</code></td><td><code>Map&lt;etiqueta, List&gt;</code></td></tr>
+<tr><td><code>groupingBy(etiqueta, Mapa::new, coletor)</code></td><td><code>Map&lt;etiqueta, resultado do coletor&gt;</code></td></tr>
+<tr><td><code>partitioningBy(predicado)</code></td><td><code>Map&lt;Boolean, List&gt;</code> com <code>false</code> e <code>true</code></td></tr>
+<tr><td><code>counting()</code>, <code>averagingDouble(f)</code>, <code>summingInt(f)</code>, <code>summarizingDouble(f)</code></td><td>Contagem, média, soma, estatísticas</td></tr>
+<tr><td><code>mapping(f, coletor)</code></td><td>Transforma antes de coletar (dentro de grupos)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Juntar com vírgula</h3>
+<p>Complete para gerar <code>"Ana, Bruno, Carla"</code>:</p>
+<div class="ex-code">String s = nomes.stream().collect(Collectors.<input data-answer="joining(&quot;, &quot;)" aria-label="coletor">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Agrupar</h3>
+<p>Complete para agrupar os alunos por cidade:</p>
+<div class="ex-code">Map&lt;String, List&lt;Aluno&gt;&gt; g = turma.stream().collect(Collectors.<input data-answer="groupingBy(Aluno::cidade)|groupingBy(a -&gt; a.cidade())" aria-label="coletor">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Contar por grupo</h3>
+<p>Complete o coletor que conta os elementos de cada grupo:</p>
+<div class="ex-code">Collectors.groupingBy(Aluno::cidade, Collectors.<input data-answer="counting()" aria-label="coletor">)</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que acontece com <code>toMap(Aluno::cidade, Aluno::nome)</code> se dois alunos moram na mesma cidade?</p>
+<label><input type="radio" name="q4"> O segundo substitui o primeiro.</label>
+<label><input type="radio" name="q4"> <code>IllegalStateException: Duplicate key</code>.</label>
+<label><input type="radio" name="q4"> Os dois nomes viram uma lista.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Quais chaves tem o mapa devolvido por <code>partitioningBy</code>?</p>
+<label><input type="radio" name="q5"> Sempre <code>false</code> e <code>true</code>.</label>
+<label><input type="radio" name="q5"> Só as que tiverem elementos.</label>
+<label><input type="radio" name="q5"> Os valores do predicado, como texto.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. <code>stream.toList()</code> devolve uma lista…</p>
+<label><input type="radio" name="q6"> <code>ArrayList</code> mutável.</label>
+<label><input type="radio" name="q6"> <code>LinkedList</code>.</label>
+<label><input type="radio" name="q6"> imutável.</label>
+</div>
+
+<div class="tryjava" data-goal="out:{Natal=2\, Olinda=1\, Recife=3},src:groupingBy,src:counting">
+<p class="try-task"><strong>Missão final:</strong> conte quantos alunos há em cada cidade com <code>groupingBy</code> + <code>counting</code>, num <code>TreeMap</code> (para as cidades saírem em ordem). A saída deve ser <code>{Natal=2, Olinda=1, Recife=3}</code>.</p>
+<pre class="script">import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+record Aluno(String nome, String cidade, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = List.of(
+            new Aluno("Ana", "Recife", 9.5), new Aluno("Bruno", "Natal", 7.0),
+            new Aluno("Carla", "Recife", 8.0), new Aluno("Duda", "Olinda", 6.0),
+            new Aluno("Edu", "Natal", 4.5), new Aluno("Fabi", "Recife", 7.5));
+
+        Map&lt;String, Long&gt; porCidade = null;
+        System.out.println(porCidade);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
+
+record Aluno(String nome, String cidade, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = List.of(
+            new Aluno("Ana", "Recife", 9.5), new Aluno("Bruno", "Natal", 7.0),
+            new Aluno("Carla", "Recife", 8.0), new Aluno("Duda", "Olinda", 6.0),
+            new Aluno("Edu", "Natal", 4.5), new Aluno("Fabi", "Recife", 7.5));
+
+        Map&lt;String, Long&gt; porCidade = turma.stream()
+                .collect(Collectors.groupingBy(Aluno::cidade, TreeMap::new, Collectors.counting()));
+        System.out.println(porCidade);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>collect(Collectors.…)</code> é a operação terminal que "embala" o stream.</li>
+  <li><code>toList()</code> (Java 16+) é imutável; <code>Collectors.toList()</code> é a forma antiga; <code>toCollection(X::new)</code> escolhe a coleção.</li>
+  <li><code>toMap(chave, valor)</code> recusa chaves repetidas (<code>IllegalStateException: Duplicate key</code>) a menos que receba uma função de junção.</li>
+  <li><code>joining(sep, prefixo, sufixo)</code> junta textos sem sobrar separador.</li>
+  <li><code>groupingBy(etiqueta, Mapa::new, coletor)</code> agrupa; com <code>counting</code>, <code>averagingDouble</code>, <code>mapping</code>… resume cada grupo.</li>
+  <li><code>partitioningBy(predicado)</code> divide em <code>false</code>/<code>true</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="optional.html">Optional</a>, a caixinha que pode estar vazia e que você já viu no <code>findFirst</code> e no <code>max</code>.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
