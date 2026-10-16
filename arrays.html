@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Arrays — guardar vários valores numa variável | Guia Java</title>
+<meta name="description" content="Aula de arrays em Java para iniciantes: o que é um array, declarar e criar com new e com chaves, índices a partir de 0, length, valores padrão, mudar elementos, ArrayIndexOutOfBoundsException real, por que println mostra [I@ e como usar Arrays.toString, arrays de String.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Arrays</span></h1>
+
+<p class="intro">A professora Ana tem uma turma com 30 alunos. Para guardar as notas com o que você aprendeu até agora, ela precisaria de 30 variáveis: <code>nota1</code>, <code>nota2</code>, …, <code>nota30</code>. E para tirar a média, uma conta com 30 parcelas. O <strong>array</strong> resolve isso: <strong>uma</strong> variável que guarda <strong>vários</strong> valores do mesmo tipo, cada um numa posição numerada.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um array e quando usar.</li>
+  <li>As duas formas de criar: <code>new int[5]</code> (vazio, com tamanho) e <code>{7, 8, 6}</code> (já com os valores).</li>
+  <li>Por que as posições (os <strong>índices</strong>) começam no <strong>0</strong>, e como usar o <code>length</code>.</li>
+  <li>Os valores que um array novo já tem (os <strong>valores padrão</strong>).</li>
+  <li>Como ler e mudar um elemento.</li>
+  <li>O erro mais famoso dos arrays: <code>ArrayIndexOutOfBoundsException</code>.</li>
+  <li>Por que <code>System.out.println(notas)</code> mostra <code>[I@1e9e725a</code>, e como mostrar o array de verdade.</li>
+  <li>Arrays de <code>String</code>.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25) com <code>java Main.java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense num <strong>armário de escola</strong> com gavetas numeradas, todas do mesmo tamanho, uma ao lado da outra. O armário inteiro tem um nome ("o armário da turma B") e cada gaveta tem um número. Para pegar algo, você diz: "o armário da turma B, gaveta 3".</p>
+<p>Um array é esse armário:</p>
+<ul>
+  <li>O <strong>nome</strong> do array é o nome do armário: <code>notas</code>.</li>
+  <li>Cada gaveta é um <strong>elemento</strong> e guarda <strong>um</strong> valor.</li>
+  <li>O número da gaveta é o <strong>índice</strong>. E aqui vem a surpresa: a primeira gaveta é a de número <strong>0</strong>.</li>
+  <li>Todas as gavetas guardam o <strong>mesmo tipo</strong> de coisa: um array de <code>int</code> só guarda <code>int</code>.</li>
+  <li>O número de gavetas é decidido na <strong>construção</strong> e <strong>não muda</strong> depois.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Índice</th><td><code>0</code></td><td><code>1</code></td><td><code>2</code></td><td><code>3</code></td><td><code>4</code></td></tr>
+<tr><th>Valor</th><td>7</td><td>8</td><td>6</td><td>9</td><td>10</td></tr>
+<tr><th>Como acessar</th><td><code>notas[0]</code></td><td><code>notas[1]</code></td><td><code>notas[2]</code></td><td><code>notas[3]</code></td><td><code>notas[4]</code></td></tr>
+</table>
+</div>
+
+<p><em>Array</em>, em inglês, quer dizer "arranjo, fileira organizada". Em português também se fala <strong>vetor</strong> (comum na faculdade) ou <strong>arranjo</strong>. É tudo a mesma coisa.</p>
+
+<hr>
+
+<h2>Criar um array já com os valores</h2>
+<p>Quando você já sabe o que vai guardar, escreva os valores entre chaves:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6, 9, 10};
+        System.out.println("Primeira nota: " + notas[0]);
+        System.out.println("Terceira nota: " + notas[2]);
+        System.out.println("Última nota: " + notas[4]);
+        System.out.println("Quantidade de notas: " + notas.length);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Primeira nota: 7
+Terceira nota: 6
+Última nota: 10
+Quantidade de notas: 5</pre>
+
+<dl class="anatomy">
+  <dt>int[]</dt><dd>O tipo: "array de <code>int</code>". Os colchetes <code>[]</code> são o que transforma <code>int</code> (um número) em <code>int[]</code> (vários números).</dd>
+  <dt>notas</dt><dd>O nome da variável. Use plural: ela guarda várias notas.</dd>
+  <dt>=</dt><dd>Atribuição, como em qualquer variável.</dd>
+  <dt>{7, 8, 6, 9, 10};</dt><dd>Os valores, entre chaves e separados por vírgula. O Java conta quantos são (5) e cria o array desse tamanho.</dd>
+</dl>
+
+<p>E para usar:</p>
+<dl class="anatomy">
+  <dt>notas</dt><dd>O array.</dd>
+  <dt>[2]</dt><dd>O índice entre colchetes: "a gaveta 2". Como a contagem começa no 0, é o <strong>terceiro</strong> elemento.</dd>
+</dl>
+
+<h3>Por que começa no 0?</h3>
+<p>Pense no índice como "quantas gavetas eu ando a partir do começo". A primeira gaveta está a 0 passos do início; a segunda, a 1 passo; a terceira, a 2. Essa é a herança da linguagem C, e quase todas as linguagens populares (Java, C#, JavaScript, Python) seguem a mesma regra. A consequência prática:</p>
+<ul>
+  <li>O <strong>primeiro</strong> elemento é sempre <code>[0]</code>.</li>
+  <li>Num array de tamanho 5, o <strong>último</strong> é <code>[4]</code>. Em geral, o último é <code>[length - 1]</code>.</li>
+  <li>O elemento "número N" (contando como gente) está no índice <code>N - 1</code>.</li>
+</ul>
+
+<h3><code>length</code>: o tamanho</h3>
+<p><code>notas.length</code> ("comprimento") diz quantos elementos o array tem. Repare: é <strong>sem parênteses</strong>. Na <a href="strings.html">String</a> é <code>texto.length()</code>, com parênteses, porque lá é um método; no array, <code>length</code> é um campo fixo. Trocar um pelo outro é um erro muito comum (veja "Quando dá errado").</p>
+
+<p>Um exemplo com os dias da semana, usando o <code>length</code> para achar o último:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] semana = {"domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"};
+        System.out.println("Hoje é " + semana[5]);
+        System.out.println("A semana tem " + semana.length + " dias");
+        semana[0] = "DOMINGO";
+        System.out.println(Arrays.toString(semana));
+        System.out.println("Último dia: " + semana[semana.length - 1]);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Hoje é sexta                 « semana[5]: o sexto elemento
+A semana tem 7 dias
+[DOMINGO, segunda, terça, quarta, quinta, sexta, sábado]
+Último dia: sábado           « semana[7 - 1] = semana[6]</pre>
+
+<p>(O <code>Arrays.toString</code> mostra o array inteiro; ele é explicado mais abaixo, em <a href="#imprimir">Imprimir um array</a>.)</p>
+
+<hr>
+
+<h2>Criar um array vazio, com tamanho: <code>new</code></h2>
+<p>Às vezes você sabe <strong>quantos</strong> valores vai guardar, mas ainda não sabe <strong>quais</strong>: as notas de 5 alunos que ainda vão fazer a prova. Aí você cria o array com <code>new</code> e o tamanho:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = new int[5];
+        System.out.println("Antes: " + notas[0] + " " + notas[1] + " " + notas[2]);
+        notas[0] = 7;
+        notas[1] = 8;
+        notas[2] = 6;
+        System.out.println("Depois: " + notas[0] + " " + notas[1] + " " + notas[2]);
+        System.out.println("Tamanho: " + notas.length);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Antes: 0 0 0                 « um array novo de int já vem cheio de zeros
+Depois: 7 8 6
+Tamanho: 5                   « o tamanho é 5, mesmo com só 3 notas preenchidas</pre>
+
+<dl class="anatomy">
+  <dt>int[] notas</dt><dd>Declara a variável do tipo "array de <code>int</code>".</dd>
+  <dt>=</dt><dd>Atribuição.</dd>
+  <dt>new</dt><dd>"Novo": pede ao Java para <strong>construir</strong> um array novo na memória. A mesma palavra cria objetos, como você verá em <a href="classes-objetos.html">Classes e Objetos</a>.</dd>
+  <dt>int[5];</dt><dd>O tipo dos elementos e, entre colchetes, o <strong>tamanho</strong>: 5 gavetas, de <code>[0]</code> a <code>[4]</code>.</dd>
+</dl>
+
+<p>O tamanho pode vir de uma variável ou de uma conta (<code>new int[quantidadeDeAlunos]</code>), mas, uma vez criado, o array <strong>não cresce nem diminui</strong>. Para listas que mudam de tamanho, o Java tem o <a href="arraylist.html">ArrayList</a>.</p>
+
+<h3>Os valores padrão</h3>
+<p>Um array criado com <code>new</code> nunca vem com "lixo": cada tipo tem um valor inicial, chamado <strong>valor padrão</strong>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] inteiros = new int[2];
+        double[] decimais = new double[2];
+        boolean[] marcados = new boolean[2];
+        char[] letras = new char[2];
+        String[] nomes = new String[2];
+        System.out.println("int: " + inteiros[0]);
+        System.out.println("double: " + decimais[0]);
+        System.out.println("boolean: " + marcados[0]);
+        System.out.println("char: código " + (int) letras[0]);
+        System.out.println("String: " + nomes[0]);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+int: 0
+double: 0.0
+boolean: false
+char: código 0               « o caractere de código 0, que não aparece na tela
+String: null                 « null = "nenhum texto ainda"</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo do array</th><th>Valor padrão</th></tr>
+<tr><td><code>int[]</code>, <code>long[]</code>, <code>short[]</code>, <code>byte[]</code></td><td><code>0</code></td></tr>
+<tr><td><code>double[]</code>, <code>float[]</code></td><td><code>0.0</code></td></tr>
+<tr><td><code>boolean[]</code></td><td><code>false</code></td></tr>
+<tr><td><code>char[]</code></td><td>o caractere de código 0 (<code>'\u0000'</code>), invisível</td></tr>
+<tr><td><code>String[]</code> e qualquer outro objeto</td><td><code>null</code> ("nada")</td></tr>
+</table>
+</div>
+
+<p>Isso é diferente das variáveis comuns dentro do <code>main</code>, que <strong>não</strong> têm valor padrão: usar uma sem dar valor é erro de compilação (<code>variable … might not have been initialized</code>, veja <a href="variaveis.html">Variáveis</a>).</p>
+
+<h3>Chaves ou <code>new</code>?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Chaves (inicializador)</td><td><code>int[] notas = {7, 8, 6};</code></td><td>Você já sabe os valores. Só vale <strong>na mesma linha</strong> da declaração.</td></tr>
+<tr><td><code>new</code> com tamanho</td><td><code>int[] notas = new int[30];</code></td><td>Você sabe quantos, mas os valores virão depois (do teclado, de uma conta, de um arquivo).</td></tr>
+<tr><td><code>new</code> com chaves</td><td><code>notas = new int[] {7, 8, 6};</code></td><td>Você quer dar valores a uma variável <strong>já declarada</strong>, ou passar um array direto para um método.</td></tr>
+<tr><td>Colchetes no nome (estilo C)</td><td><code>int notas[] = {7, 8, 6};</code></td><td>Funciona, mas evite: o estilo Java é <code>int[] notas</code>, com o tipo inteiro junto.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Mudar um elemento</h2>
+<p>Cada elemento funciona como uma variável comum: dá para atribuir, somar, usar <code>++</code> e <code>--</code>. A professora revisou duas provas: a terceira nota sobe 2 pontos e a última perde 1:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6, 9, 10};
+        notas[2] = notas[2] + 2;
+        notas[4]--;
+        System.out.println(Arrays.toString(notas));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[7, 8, 8, 9, 9]</pre>
+
+<div class="tryjava" data-goal="out:[7\, 8\, 10\, 9\, 10]">
+<p class="try-task"><strong>Missão:</strong> a nota do <strong>terceiro</strong> aluno foi lançada errada: era 10. Acrescente uma linha que corrige esse elemento, para a saída ficar <code>[7, 8, 10, 9, 10]</code>. Lembre: terceiro aluno, índice…?</p>
+<pre class="script">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6, 9, 10};
+        // corrija a nota aqui
+
+        System.out.println(Arrays.toString(notas));
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6, 9, 10};
+        notas[2] = 10;
+        System.out.println(Arrays.toString(notas));
+    }
+}
+</pre>
+</div>
+
+<h3>Cuidado: <code>=</code> não copia o array</h3>
+<p>A variável do array guarda o <strong>endereço</strong> do armário, não as gavetas. Por isso, <code>int[] outro = original;</code> não cria um segundo armário: cria um segundo <strong>nome</strong> para o mesmo armário.</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] original = {7, 8, 6};
+        int[] outro = original;
+        outro[0] = 0;
+        System.out.println("original: " + Arrays.toString(original));
+        System.out.println("outro:    " + Arrays.toString(outro));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+original: [0, 8, 6]          « mudou também!
+outro:    [0, 8, 6]</pre>
+
+<p>Mexer em <code>outro[0]</code> mudou o <code>original</code>, porque os dois nomes apontam para o mesmo array. Para ter uma cópia de verdade, use <code>Arrays.copyOf</code>, ensinado em <a href="classe-arrays.html">A Classe Arrays</a>.</p>
+
+<hr>
+
+<h2>Fora dos limites: <code>ArrayIndexOutOfBoundsException</code></h2>
+<p>O que acontece se você pede uma gaveta que não existe? O array <code>notas</code> tem 5 elementos (índices 0 a 4). Vamos pedir o índice 5:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6, 9, 10};
+        System.out.println(notas[5]);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 5
+	at Main.main(Main.java:4)</pre>
+
+<p>Repare que o programa <strong>compila</strong>: o <code>javac</code> não verifica índices, porque normalmente eles vêm de contas e variáveis que só têm valor quando o programa roda. O erro aparece <strong>durante a execução</strong>, como uma <strong>exceção</strong> (o assunto de <a href="excecoes.html">O que são Exceções</a>). Vamos ler a mensagem por partes:</p>
+
+<dl class="anatomy">
+  <dt>Exception in thread "main"</dt><dd>"Exceção na linha de execução main": o programa parou por um erro.</dd>
+  <dt>java.lang.ArrayIndexOutOfBoundsException:</dt><dd>O tipo do erro: "índice de array fora dos limites" (<em>out of bounds</em> = "fora da área permitida").</dd>
+  <dt>Index 5 out of bounds for length 5</dt><dd>O detalhe: "o índice 5 está fora dos limites para o tamanho 5". Num array de tamanho 5, o maior índice válido é 4.</dd>
+  <dt>at Main.main(Main.java:4)</dt><dd>Onde: no método <code>main</code> da classe <code>Main</code>, arquivo <code>Main.java</code>, <strong>linha 4</strong>.</dd>
+</dl>
+
+<p>Índice negativo também não existe:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java              « o mesmo programa, agora com notas[-1]
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 5
+	at Main.main(Main.java:4)</pre>
+
+<p>Os casos mais comuns na vida real: usar <code>notas[notas.length]</code> para pegar o último (o certo é <code>length - 1</code>) e laços com <code>&lt;=</code> no lugar de <code>&lt;</code> (<code>for (int i = 0; i &lt;= notas.length; i++)</code> dá uma volta a mais). Os laços sobre arrays têm a sua aula: <a href="percorrer-arrays.html">Percorrer Arrays</a>.</p>
+
+<hr>
+
+<h2 id="imprimir">Imprimir um array: o mistério do <code>[I@</code></h2>
+<p>A primeira coisa que todo iniciante tenta é mandar o array inteiro para o <code>println</code>. Veja o que sai:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6, 9, 10};
+        double[] precos = {4.5, 12.0};
+        String[] frutas = {"maçã", "uva"};
+        System.out.println(notas);
+        System.out.println(precos);
+        System.out.println(frutas);
+        System.out.println(Arrays.toString(notas));
+        System.out.println(Arrays.toString(precos));
+        System.out.println(Arrays.toString(frutas));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[I@1e9e725a
+[D@15d9bc04
+[Ljava.lang.String;@473b46c3
+[7, 8, 6, 9, 10]
+[4.5, 12.0]
+[maçã, uva]</pre>
+
+<p>As três primeiras linhas não são um erro nem lixo: é o "crachá" do array, o jeito padrão que o Java tem de descrever um objeto que não sabe se mostrar. Ele tem três partes:</p>
+
+<dl class="anatomy">
+  <dt>[</dt><dd>"Isto é um array".</dd>
+  <dt>I</dt><dd>O tipo dos elementos, num código de uma letra: <code>I</code> = <code>int</code>, <code>D</code> = <code>double</code>, <code>Z</code> = <code>boolean</code>, <code>C</code> = <code>char</code>, <code>J</code> = <code>long</code>. Para objetos, <code>L</code> + o nome completo da classe + <code>;</code>, como <code>Ljava.lang.String;</code>.</dd>
+  <dt>@</dt><dd>Separador.</dd>
+  <dt>1e9e725a</dt><dd>Um número de identificação do objeto (o <em>hash code</em>), escrito em hexadecimal. Não tem nada a ver com os valores guardados e não serve para você.</dd>
+</dl>
+
+<p>Para ver o <strong>conteúdo</strong>, use <code>Arrays.toString(array)</code>, que monta o texto <code>[elemento, elemento, …]</code>. Ele mora na classe <code>java.util.Arrays</code>, por isso o <code>import java.util.Arrays;</code> no topo (sem ele, o <code>javac</code> diz <code>cannot find symbol</code>). Essa classe tem várias outras ferramentas, como ordenar e copiar: veja <a href="classe-arrays.html">A Classe Arrays</a>. Outra forma é percorrer o array com um laço e mostrar elemento por elemento, como em <a href="percorrer-arrays.html">Percorrer Arrays</a>.</p>
+
+<div class="note">
+<strong>E o array de <code>char</code>?</strong>
+<p>É a exceção: <code>System.out.println</code> tem uma versão especial para <code>char[]</code> e mostra as letras juntas, como um texto. <code>char[] l = {'o', 'i'}; System.out.println(l);</code> mostra <code>oi</code>. Mas basta juntar com texto (<code>"Letras: " + l</code>) para voltar o "crachá" <code>[C@…</code>.</p>
+</div>
+
+<hr>
+
+<h2>Arrays de <code>String</code></h2>
+<p>Tudo o que você viu vale para textos. Um array de nomes, de frutas, de dias da semana:</p>
+
+<pre class="file" data-file="trecho">String[] alunos = {"Ana", "Bruno", "Carla"};
+String[] chamada = new String[30];   // 30 posições, todas null</pre>
+
+<p>A diferença está no valor padrão: <code>null</code>. Ele significa "esta gaveta ainda não tem texto nenhum", e não é o mesmo que um texto vazio <code>""</code>. Mostrar um <code>null</code> funciona (aparece a palavra <code>null</code>), mas <strong>usar</strong> um método nele derruba o programa:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        String[] nomes = new String[3];
+        nomes[0] = "Ana";
+        System.out.println(nomes[0].length());
+        System.out.println(nomes[1].length());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+3                            « "Ana" tem 3 letras
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "&lt;local1&gt;[1]" is null
+	at Main.main(Main.java:6)</pre>
+
+<p><code>NullPointerException</code> ("exceção de ponteiro nulo") é a exceção mais comum do Java. A mensagem diz: "não dá para chamar <code>String.length()</code> porque <code>&lt;local1&gt;[1]</code> é null". O <code>&lt;local1&gt;</code> é como o Java chama a variável <code>nomes</code> quando o programa foi compilado sem os nomes das variáveis (o padrão do <code>java Main.java</code> e do <code>javac</code> comum). Compilando com <code>javac -g Main.java</code>, que guarda esses nomes, a mesma linha fica mais clara:</p>
+
+<pre class="term" data-cwd="~/java">$ javac -g Main.java
+$ java Main
+3
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "nomes[1]" is null
+	at Main.main(Main.java:6)</pre>
+
+<p>A gaveta <code>nomes[1]</code> nunca recebeu um nome. Preencha antes de usar, ou teste com <code>if (nomes[1] != null)</code>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"array dimension missing"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] notas = new int[];
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:3: error: array dimension missing
+        int[] notas = new int[];
+                               ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "falta a dimensão do array". Com <code>new</code>, o Java precisa saber o tamanho: <code>new int[5]</code>. Ou então os valores: <code>new int[] {7, 8, 6}</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"possible lossy conversion from double to int"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8.5, 6};
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from double to int
+        int[] notas = {7, 8.5, 6};
+                          ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "conversão com possível perda de double para int". Todos os elementos têm o mesmo tipo; um <code>int[]</code> não guarda o <code>8.5</code>. O <code>^</code> aponta o intruso.</p>
+<p><strong>Como consertar:</strong> se as notas podem ter vírgula, use <code>double[] notas = {7, 8.5, 6};</code> (o 7 e o 6 viram 7.0 e 6.0 sozinhos).</p>
+</div>
+
+<div class="cenario">
+<strong>"illegal start of expression" ao usar chaves depois</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] notas;
+        notas = {7, 8, 6};
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: illegal start of expression
+        notas = {7, 8, 6};
+                ^
+Main.java:4: error: not a statement
+        notas = {7, 8, 6};
+                 ^
+Main.java:4: error: ';' expected
+        notas = {7, 8, 6};
+                  ^
+3 errors
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> as chaves sozinhas só valem na <strong>mesma linha</strong> da declaração. Numa atribuição depois, o <code>javac</code> não entende o <code>{</code> e se perde (três erros, uma causa).</p>
+<p><strong>Como consertar:</strong> <code>notas = new int[] {7, 8, 6};</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … method length()"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6};
+        System.out.println(notas.length());
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(notas.length());
+                                ^
+  symbol:   method length()
+  location: variable notas of type int[]
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "não encontro o método <code>length()</code> na variável <code>notas</code>, do tipo <code>int[]</code>". Array não tem método <code>length()</code>; tem o campo <code>length</code>.</p>
+<p><strong>Como consertar:</strong> <code>notas.length</code>, sem parênteses. Para lembrar: array, sem parênteses; <code>String</code>, com: <code>nome.length()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … variable Arrays": faltou o <code>import</code></strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8};
+        System.out.println(Arrays.toString(notas));
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(Arrays.toString(notas));
+                           ^
+  symbol:   variable Arrays
+  location: class Main
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> o <code>javac</code> não conhece o nome <code>Arrays</code>. A classe existe, mas mora no pacote <code>java.util</code>, e é preciso avisar que você vai usá-la (veja <a href="pacotes.html">Pacotes e import</a>).</p>
+<p><strong>Como consertar:</strong> acrescente <code>import java.util.Arrays;</code> na primeira linha do arquivo, antes de <code>public class Main</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NegativeArraySizeException</code></strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int quantidade = -3;
+        int[] notas = new int[quantidade];
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.NegativeArraySizeException: -3
+	at Main.main(Main.java:4)</pre>
+<p><strong>O que quer dizer:</strong> "tamanho de array negativo: -3". Não existe armário com -3 gavetas. Acontece quando o tamanho vem de uma conta ou do usuário; valide o número antes (um tamanho <code>0</code> é permitido e cria um array vazio).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>int[] a = {1, 2, 3};</code></td><td>Cria um array com esses valores (tamanho 3)</td></tr>
+<tr><td><code>int[] a = new int[5];</code></td><td>Cria um array de 5 elementos, todos com o valor padrão (0)</td></tr>
+<tr><td><code>a = new int[] {1, 2, 3};</code></td><td>Cria e atribui a uma variável já declarada</td></tr>
+<tr><td><code>a[0]</code></td><td>O primeiro elemento</td></tr>
+<tr><td><code>a[a.length - 1]</code></td><td>O último elemento</td></tr>
+<tr><td><code>a[2] = 10;</code></td><td>Muda o terceiro elemento</td></tr>
+<tr><td><code>a.length</code></td><td>Quantidade de elementos (sem parênteses)</td></tr>
+<tr><td><code>Arrays.toString(a)</code></td><td>Texto <code>[1, 2, 3]</code> (precisa de <code>import java.util.Arrays;</code>)</td></tr>
+<tr><td><code>System.out.println(a)</code></td><td>Mostra o "crachá", como <code>[I@1e9e725a</code>, e não o conteúdo</td></tr>
+<tr><td><code>String[] s = new String[3];</code></td><td>Três posições com <code>null</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Criar com valores</h3>
+<p>Complete para criar um array com os preços 10, 20 e 30:</p>
+<div class="ex-code">int[] precos = <input data-answer="{10, 20, 30};|{10,20,30};|new int[] {10, 20, 30};|new int[]{10, 20, 30};" aria-label="valores">
+</div>
+</div>
+
+<div class="exercise">
+<h3>2. Criar vazio</h3>
+<p>Complete para criar um array de 12 <code>double</code> (um por mês):</p>
+<div class="ex-code">double[] gastos = <input data-answer="new double[12];" aria-label="criação"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O último</h3>
+<p>Complete o índice do último elemento, sem escrever o número:</p>
+<div class="ex-code">String ultimo = nomes[<input data-answer="nomes.length - 1|nomes.length-1" aria-label="índice">];</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Em <code>int[] v = {4, 8, 15, 16, 23};</code>, quanto vale <code>v[3]</code>?</p>
+<label><input type="radio" name="q4"> 15</label>
+<label><input type="radio" name="q4"> 3</label>
+<label><input type="radio" name="q4"> 16</label>
+<label><input type="radio" name="q4"> 23</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O que <code>new boolean[4]</code> contém logo depois de criado?</p>
+<label><input type="radio" name="q5"> Nada: dá erro se ler antes de preencher.</label>
+<label><input type="radio" name="q5"> Quatro <code>false</code>.</label>
+<label><input type="radio" name="q5"> Quatro <code>true</code>.</label>
+<label><input type="radio" name="q5"> Quatro <code>null</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. <code>System.out.println(notas)</code> mostrou <code>[I@1e9e725a</code>. O que isso significa?</p>
+<label><input type="radio" name="q6"> É a descrição padrão de um array de <code>int</code>; para ver os valores, use <code>Arrays.toString(notas)</code>.</label>
+<label><input type="radio" name="q6"> O array está corrompido.</label>
+<label><input type="radio" name="q6"> As notas foram apagadas.</label>
+<label><input type="radio" name="q6"> É o primeiro elemento, em hexadecimal.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Num array com <code>length</code> igual a 10, quais são os índices válidos?</p>
+<label><input type="radio" name="q7"> De 1 a 10</label>
+<label><input type="radio" name="q7"> De 0 a 10</label>
+<label><input type="radio" name="q7"> De 1 a 9</label>
+<label><input type="radio" name="q7"> De 0 a 9</label>
+</div>
+
+<div class="tryjava" data-goal="out:Última nota: 10,src:length\s*-\s*1">
+<p class="try-task"><strong>Missão final:</strong> este programa quer mostrar a última nota, mas termina com <code>ArrayIndexOutOfBoundsException</code>. Rode, leia a mensagem e conserte usando o <code>length</code> (sem escrever o número 4).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6, 9, 10};
+        System.out.println("Última nota: " + notas[notas.length]);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 8, 6, 9, 10};
+        System.out.println("Última nota: " + notas[notas.length - 1]);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um array guarda vários valores do <strong>mesmo tipo</strong> numa variável só. O tipo se escreve com colchetes: <code>int[]</code>, <code>String[]</code>.</li>
+  <li>Crie com os valores (<code>{7, 8, 6}</code>) ou com o tamanho (<code>new int[5]</code>). O tamanho não muda depois.</li>
+  <li>Os índices vão de <strong>0</strong> a <strong><code>length - 1</code></strong>. <code>length</code> não tem parênteses.</li>
+  <li>Arrays novos vêm com valores padrão: <code>0</code>, <code>0.0</code>, <code>false</code> ou <code>null</code>.</li>
+  <li>Um índice fora dos limites compila, mas derruba o programa com <code>ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 5</code>.</li>
+  <li><code>println(array)</code> mostra o "crachá" (<code>[I@…</code>); para ver o conteúdo, <code>Arrays.toString(array)</code>.</li>
+  <li><code>int[] b = a;</code> não copia: os dois nomes apontam para o mesmo array.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
