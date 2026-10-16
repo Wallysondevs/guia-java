@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Comentários — //, /* */ e /** */ | Guia Java</title>
+<meta name="description" content="Comentários em Java: // de linha, /* */ de várias linhas, /** */ de documentação (Javadoc), comentar código para desligá-lo, por que /* */ não pode ficar dentro de outro, o // dentro de aspas, e como escrever bons comentários.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Comentários</span></h1>
+
+<p class="intro">Um <strong>comentário</strong> é um texto dentro do código que o Java ignora completamente. Ele existe só para pessoas: para explicar uma decisão, deixar um lembrete ou "desligar" uma linha sem apagá-la. O Java tem três tipos de comentário, e cada um tem o seu uso.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O comentário de linha, <code>//</code>.</li>
+  <li>O comentário de bloco, <code>/* … */</code>, que pode ocupar várias linhas.</li>
+  <li>O comentário de documentação, <code>/** … */</code> (Javadoc), só a ideia.</li>
+  <li>Como "comentar" código para desligá-lo, e a armadilha de um <code>/* */</code> dentro de outro.</li>
+  <li>Por que <code>//</code> dentro de aspas não é comentário.</li>
+  <li>A diferença entre um bom e um mau comentário.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: anotações na margem</h2>
+<p>Quando você estuda num livro, escreve a lápis na margem: "cai na prova", "ver o exemplo da página 30". As anotações ajudam você, mas não mudam o que o livro diz. Os comentários são as anotações do código: o <code>javac</code> pula tudo o que está num comentário, como se não existisse, e o programa funciona exatamente igual com ou sem eles.</p>
+
+<p>Para quem são, então? Para a próxima pessoa que vai ler o código. E, muitas vezes, essa pessoa é você mesmo, daqui a seis meses, sem lembrar por que escreveu aquilo.</p>
+
+<hr>
+
+<h2>1. Comentário de linha: <code>//</code></h2>
+<p>Duas barras começam um comentário que vai até o <strong>fim da linha</strong>. Ele pode ocupar a linha inteira ou ficar depois do código:</p>
+
+<pre class="file" data-file="Main.java">// Programa da Loja da Ana: mostra a lista de preços do dia
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Loja da Ana");      // o título
+        System.out.println("Maçã: 3 reais");
+        // System.out.println("Promoção: tudo pela metade!");
+        System.out.println("Banana: 2 reais");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Loja da Ana
+Maçã: 3 reais
+Banana: 2 reais                       « a linha da promoção não aparece: está comentada</pre>
+
+<dl class="anatomy">
+  <dt>// Programa da Loja…</dt><dd>Um comentário na linha inteira, antes da classe. É comum começar o arquivo dizendo o que ele faz.</dd>
+  <dt>// o título</dt><dd>Um comentário no fim da linha: o <code>println</code> roda normalmente, e o Java ignora tudo a partir do <code>//</code>.</dd>
+  <dt>// System.out.println("Promoção…</dt><dd>Uma instrução inteira dentro de um comentário: para o Java, ela não existe. Dizemos que a linha foi <strong>comentada</strong>.</dd>
+</dl>
+
+<p>Repare que o programa compila igual e a saída tem só três linhas. O <code>//</code> é o comentário mais usado no dia a dia.</p>
+
+<div class="tryjava" data-goal="out:Loja da Ana,out:Banana: 2 reais,src://\s*System\.out\.println\(&quot;Maçã">
+<p class="try-task"><strong>Missão:</strong> a maçã acabou. Sem apagar nada, <strong>comente</strong> a linha da maçã para ela não aparecer na saída. Depois, descomente a linha da promoção (apague o <code>//</code> do começo dela) e rode de novo.</p>
+<pre class="script">// Programa da Loja da Ana: mostra a lista de preços do dia
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Loja da Ana");      // o título
+        System.out.println("Maçã: 3 reais");
+        // System.out.println("Promoção: tudo pela metade!");
+        System.out.println("Banana: 2 reais");
+    }
+}
+</pre>
+<pre class="solucao">// Programa da Loja da Ana: mostra a lista de preços do dia
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Loja da Ana");      // o título
+        // System.out.println("Maçã: 3 reais");
+        System.out.println("Promoção: tudo pela metade!");
+        System.out.println("Banana: 2 reais");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Comentário de bloco: <code>/* … */</code></h2>
+<p>Começa com <code>/*</code> e termina com <code>*/</code>. Tudo entre os dois é comentário, mesmo que ocupe muitas linhas. É bom para explicações mais longas:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        /*
+           Total do pedido da Ana.
+           Os itens custam 10 reais e a entrega, 5.
+           Quando a loja tiver frete grátis, tirar o + 5.
+        */
+        int total = 10 /* itens */ + 5;
+        System.out.println(total);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+15</pre>
+
+<dl class="anatomy">
+  <dt>/*</dt><dd>Abre o comentário.</dd>
+  <dt>Total do pedido…</dt><dd>Várias linhas de texto livre. O recuo é só para ficar bonito.</dd>
+  <dt>*/</dt><dd>Fecha o comentário. Tudo depois disso volta a ser código.</dd>
+  <dt>10 /* itens */ + 5</dt><dd>Um comentário de bloco pode até ficar no meio de uma linha de código. O Java lê <code>10 + 5</code>. Funciona, mas atrapalha a leitura; use pouco.</dd>
+</dl>
+
+<p>Muita gente escreve um <code>*</code> no começo de cada linha de dentro, por estética. O Java não exige:</p>
+
+<pre class="file" data-file="trecho">/*
+ * Total do pedido da Ana.
+ * Os itens custam 10 reais e a entrega, 5.
+ */</pre>
+
+<hr>
+
+<h2>3. Comentário de documentação: <code>/** … */</code></h2>
+<p>Um comentário que começa com <strong>dois</strong> asteriscos, <code>/**</code>, é especial: é um comentário de <strong>documentação</strong>, ou <strong>Javadoc</strong>. Ele fica logo antes de uma classe ou de um método e descreve o que ela faz, para quem vai <em>usar</em> o código:</p>
+
+<pre class="file" data-file="trecho">/**
+ * Calcula a média de duas notas.
+ *
+ * @param a a primeira nota
+ * @param b a segunda nota
+ * @return a média das duas notas
+ */
+static double media(double a, double b) {
+    return (a + b) / 2;
+}</pre>
+
+<p>Para o compilador, é um comentário comum: ignorado. Mas a ferramenta <code>javadoc</code>, que vem no JDK, lê esses comentários e gera páginas de documentação, como as da própria biblioteca do Java. As linhas com <code>@</code> (como <code>@param</code>, "parâmetro", e <code>@return</code>, "devolve") são etiquetas que a ferramenta entende. As IDEs também mostram esse texto quando você passa o mouse sobre o nome do método.</p>
+
+<p>Por enquanto, basta reconhecer o <code>/**</code> quando o vir. Como escrever e gerar a documentação é assunto da aula <a href="javadoc.html">Javadoc</a>; métodos como o <code>media</code> você vai criar em <a href="metodos.html">Métodos</a>.</p>
+
+<h3>Os três tipos lado a lado</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Como</th><th>Até onde vai</th><th>Para que</th></tr>
+<tr><td>De linha</td><td><code>// texto</code></td><td>Fim da linha</td><td>Notas curtas; desligar uma linha.</td></tr>
+<tr><td>De bloco</td><td><code>/* texto */</code></td><td>Até o <code>*/</code></td><td>Explicações longas; desligar um trecho.</td></tr>
+<tr><td>De documentação</td><td><code>/** texto */</code></td><td>Até o <code>*/</code></td><td>Documentar classes e métodos para quem vai usá-los (<code>javadoc</code>).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Comentar código para desligá-lo</h2>
+<p>Ao procurar um erro ou testar uma ideia, é comum "desligar" linhas sem apagá-las: coloca-se a linha num comentário. Isso se chama <strong>comentar</strong> o código; tirar o comentário é <strong>descomentar</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como</th><th>Quando usar</th></tr>
+<tr><td><code>//</code> em cada linha</td><td>Coloque <code>//</code> no começo de cada linha</td><td>Uma ou poucas linhas. É a forma mais segura.</td></tr>
+<tr><td>Atalho do editor</td><td>Selecione as linhas e tecle <kbd>Ctrl</kbd>+<kbd>/</kbd> (no Mac, <kbd>Cmd</kbd>+<kbd>/</kbd>) no VS Code, IntelliJ e Eclipse</td><td>Várias linhas de uma vez; o mesmo atalho descomenta.</td></tr>
+<tr><td><code>/* … */</code> em volta</td><td><code>/*</code> antes do trecho e <code>*/</code> depois</td><td>Um trecho grande, desde que ele <strong>não</strong> tenha outro <code>/* */</code> dentro (veja abaixo).</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Não deixe código comentado para sempre</strong>
+<p>Comentar é ótimo para testar. Depois, decida: se a linha não serve mais, apague-a. Código comentado acumulado confunde quem lê ("isso ainda vale?"). Para guardar versões antigas, os programadores usam o Git, não comentários.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Um <code>/* */</code> dentro de outro: <code>illegal start of expression</code></strong>
+<p>O código abaixo tem um erro de propósito. A Ana quis desligar um trecho que já tinha um comentário de bloco dentro:</p>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        /* comentário de fora
+           /* comentário de dentro */
+        */
+        System.out.println("Oi");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:5: error: illegal start of expression
+        */
+        ^
+Main.java:5: error: illegal start of expression
+        */
+         ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> comentários de bloco <strong>não se aninham</strong> (não ficam um dentro do outro). O primeiro <code>*/</code> que aparece, o da linha 4, fecha o comentário <em>inteiro</em>; o <code>/*</code> da linha 4 era só texto dentro do comentário. Na linha 5, o <code>*/</code> que sobrou virou código: um <code>*</code> e uma <code>/</code> soltos, que não fazem sentido ali ("início ilegal de expressão").</p>
+<p><strong>Como resolver:</strong> para desligar código que tem <code>/* */</code>, use <code>//</code> em cada linha (ou o atalho <kbd>Ctrl</kbd>+<kbd>/</kbd>).</p>
+</div>
+
+<div class="tryjava" data-goal="compila,out:Oi">
+<p class="try-task"><strong>Missão:</strong> conserte o programa acima para ele compilar e mostrar <code>Oi</code>, mantendo os dois textos como comentário. Dica: troque o comentário de fora por <code>//</code> no começo de cada linha.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        /* comentário de fora
+           /* comentário de dentro */
+        */
+        System.out.println("Oi");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        // comentário de fora
+        // /* comentário de dentro */
+        System.out.println("Oi");
+    }
+}
+</pre>
+</div>
+
+<div class="cenario">
+<strong><code>//</code> dentro de aspas não é comentário</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Site: http://exemplo.com"); // o // dentro das aspas é texto
+        System.out.println("Não é /* comentário */");
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Site: http://exemplo.com
+Não é /* comentário */</pre>
+<p><strong>O que aconteceu:</strong> nada de errado. Dentro de um texto entre aspas, <code>//</code> e <code>/* */</code> são caracteres comuns e aparecem na tela. O comentário de verdade é o <code>//</code> que vem <strong>depois</strong> do <code>;</code>, fora das aspas.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueci de fechar o <code>/*</code>: <code>unclosed comment</code></strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        /* desligado
+        System.out.println("Oi");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: unclosed comment
+        /* desligado
+        ^
+Main.java:7: error: reached end of file while parsing
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> sem o <code>*/</code>, o comentário vai até o fim do arquivo e "engole" o resto do programa, inclusive as chaves que fecham o método e a classe. Por isso vêm dois erros: "comentário não fechado" (na linha onde ele começou) e "o arquivo acabou" (as chaves sumiram dentro do comentário). Um editor de código pinta de cinza tudo o que é comentário: se metade do arquivo ficou cinza, falta um <code>*/</code>.</p>
+<p><strong>Como resolver:</strong> feche o comentário com <code>*/</code> onde ele deve terminar.</p>
+</div>
+
+<div class="note">
+<strong>Curiosidade: o comentário que não é comentário</strong>
+<p>Antes de procurar comentários, o Java traduz os códigos <code>\u</code> (que representam caracteres pelo número). <code>\u000a</code> é a quebra de linha. Por isso, nesta linha, o <code>println</code> <strong>roda</strong>, mesmo parecendo estar num comentário: <code>// Comentário com \u000a System.out.println("surpresa");</code>. O guia testou no JDK 25: aparece <code>surpresa</code> na tela. Você nunca vai precisar disso; é só para saber que a ordem das coisas no compilador importa.</p>
+</div>
+
+<hr>
+
+<h2>Bons e maus comentários</h2>
+<p>Comentar muito não é comentar bem. O código já diz <strong>o que</strong> está sendo feito; o bom comentário diz <strong>por que</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mau comentário</th><th>Por quê</th><th>Melhor</th></tr>
+<tr><td><code>total = total + 5; // soma 5 ao total</code></td><td>Repete o código. Quem lê Java já sabe que é uma soma.</td><td><code>total = total + 5; // taxa de entrega fixa</code></td></tr>
+<tr><td><code>int x = 3; // quantidade de maçãs</code></td><td>Explica um nome ruim em vez de trocá-lo.</td><td><code>int macas = 3;</code> (sem comentário)</td></tr>
+<tr><td><code>// desconto de 10%</code> sobre uma linha que dá 15%</td><td>Comentário desatualizado mente; é pior que nenhum.</td><td>Atualize o comentário junto com o código, ou apague.</td></tr>
+<tr><td>Vinte linhas de código antigo comentado</td><td>Ninguém sabe se ainda vale.</td><td>Apague; o Git guarda o histórico.</td></tr>
+</table>
+</div>
+
+<p>Bons comentários costumam:</p>
+<ul>
+  <li>explicar uma <strong>regra de negócio</strong>: <code>// lojas com mais de 3 anos não pagam a taxa</code>;</li>
+  <li>avisar sobre algo <strong>não óbvio</strong>: <code>// a divisão é inteira de propósito: queremos caixas completas</code>;</li>
+  <li>marcar o que <strong>falta fazer</strong>: <code>// TODO: aceitar pagamento em cartão</code> (muitos editores listam todos os <code>TODO</code>, "a fazer");</li>
+  <li>documentar classes e métodos com <code>/** */</code> para quem vai usá-los.</li>
+</ul>
+
+<p>Neste guia, os exemplos usam poucos comentários, porque cada linha já é explicada no texto da aula. Nos seus programas, comente o que você precisaria lembrar daqui a seis meses.</p>
+
+<div class="tryjava" data-goal="out:Total: 15,src:entrega = 5;[ \t]*//">
+<p class="try-task"><strong>Missão:</strong> acrescente um comentário de linha útil no fim da linha <code>int entrega = 5;</code>, explicando o porquê (por exemplo, <code>// taxa de entrega fixa</code>). A saída não deve mudar.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int itens = 10;
+        int entrega = 5;
+        System.out.println("Total: " + (itens + entrega));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int itens = 10;
+        int entrega = 5; // taxa de entrega fixa
+        System.out.println("Total: " + (itens + entrega));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Comentário de linha</h3>
+<p>Complete para transformar esta linha num comentário:</p>
+<div class="ex-code"><input data-answer="//" aria-label="símbolo"> System.out.println("Promoção!");</div>
+</div>
+
+<div class="exercise">
+<h3>2. Fechar o bloco</h3>
+<p>Complete com o que fecha um comentário de bloco:</p>
+<div class="ex-code">/* lista de preços de outubro <input data-answer="*/" aria-label="fechamento"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual comentário é lido pela ferramenta <code>javadoc</code> para gerar documentação?</p>
+<label><input type="radio" name="q3"> <code>// texto</code></label>
+<label><input type="radio" name="q3"> <code>/* texto */</code></label>
+<label><input type="radio" name="q3"> <code>/** texto */</code></label>
+<label><input type="radio" name="q3"> <code>&lt;!-- texto --&gt;</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>System.out.println("a // b");</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>a</code></label>
+<label><input type="radio" name="q4"> <code>a // b</code></label>
+<label><input type="radio" name="q4"> Nada: a linha virou comentário.</label>
+<label><input type="radio" name="q4"> Erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual é o melhor comentário para <code>preco = preco * 0.9;</code>?</p>
+<label><input type="radio" name="q5"> <code>// multiplica preco por 0.9</code></label>
+<label><input type="radio" name="q5"> <code>// muda o preço</code></label>
+<label><input type="radio" name="q5"> <code>// linha 12</code></label>
+<label><input type="radio" name="q5"> <code>// clientes cadastrados ganham 10% de desconto</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que <code>/* fora /* dentro */ */</code> dá erro?</p>
+<label><input type="radio" name="q6"> O primeiro <code>*/</code> fecha o comentário todo, e o último <code>*/</code> sobra como código.</label>
+<label><input type="radio" name="q6"> Comentários não podem ter a palavra "dentro".</label>
+<label><input type="radio" name="q6"> Falta um <code>;</code> depois do comentário.</label>
+<label><input type="radio" name="q6"> Comentários de bloco só funcionam fora do <code>main</code>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Comentários são ignorados pelo compilador; servem a quem lê o código.</li>
+  <li><code>//</code> comenta até o fim da linha; <code>/* … */</code> comenta um bloco, de qualquer tamanho.</li>
+  <li><code>/** … */</code> é o comentário de documentação, lido pelo <code>javadoc</code> (veja <a href="javadoc.html">Javadoc</a>).</li>
+  <li>Comentar uma linha "desliga" o código sem apagar; prefira <code>//</code> (ou <kbd>Ctrl</kbd>+<kbd>/</kbd>).</li>
+  <li><code>/* */</code> não se aninha: o primeiro <code>*/</code> fecha tudo.</li>
+  <li><code>//</code> e <code>/*</code> dentro de aspas são texto comum.</li>
+  <li>Bom comentário explica o <strong>porquê</strong>, não repete o código, e é atualizado junto com ele.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
