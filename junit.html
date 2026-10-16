@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java JUnit — testes automatizados com JUnit 5 | Guia Java</title>
+<meta name="description" content="Testes automatizados com JUnit 5 (Jupiter) e Maven: por que testar, @Test, assertEquals, mvn test com sucesso e com falha (saída real do Surefire), assertThrows, @BeforeEach, @DisplayName, testes parametrizados e a ideia do TDD, testando a classe Conta da Ana.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Testes com JUnit</span></h1>
+
+<p class="intro">Um <strong>teste automatizado</strong> é um pequeno programa que usa o seu programa e confere se o resultado está certo. Você escreve uma vez e roda quantas vezes quiser, em segundos. O <strong>JUnit</strong> é a biblioteca de testes mais usada em Java; nesta aula, a Ana vai testar a sua classe <code>Conta</code> com o JUnit 5 e o <a href="maven.html">Maven</a>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que testar, e por que "testar à mão" não basta.</li>
+  <li>Pôr o JUnit 5 (Jupiter) num projeto Maven.</li>
+  <li>Escrever um teste com <code>@Test</code> e <code>assertEquals</code>.</li>
+  <li>Ler a saída do <code>mvn test</code> quando tudo passa e quando algo falha.</li>
+  <li>Testar exceções com <code>assertThrows</code>.</li>
+  <li>Preparar os testes com <code>@BeforeEach</code> e dar nomes legíveis com <code>@DisplayName</code>.</li>
+  <li>Rodar o mesmo teste com vários valores (testes parametrizados).</li>
+  <li>A ideia do TDD.</li>
+</ul>
+</div>
+
+<p>Você vai precisar de: <a href="classes-objetos.html">classes e objetos</a>, <a href="excecoes.html">exceções</a> e <a href="maven.html">Maven</a>. As <a href="anotacoes.html">anotações</a> (as palavras com <code>@</code>) e as <a href="lambdas.html">lambdas</a> (<code>() -&gt; …</code>) aparecem aqui só no uso básico.</p>
+
+<hr>
+
+<h2>Por que testar?</h2>
+<p>Pense numa cozinheira que, a cada mudança na receita do bolo, prova o bolo inteiro de novo: a massa, a cobertura, o recheio. Com uma receita, tudo bem. Com cem receitas, ela passaria o dia provando. Os testes automatizados são um <strong>provador que nunca cansa</strong>: você diz uma vez "com estes ingredientes, o resultado deve ser este", e ele confere tudo sempre que você pedir.</p>
+
+<p>Até agora, para conferir um programa, você rodava o <code>main</code> e <strong>olhava</strong> a saída. Isso tem três problemas:</p>
+<ol>
+  <li><strong>Depende de você olhar com atenção.</strong> Um <code>150.0</code> que virou <code>50.0</code> passa despercebido no meio de 30 linhas.</li>
+  <li><strong>Não se repete sozinho.</strong> Você muda uma linha hoje e quebra algo que funcionava semana passada (isso tem nome: <strong>regressão</strong>). Ninguém reconfere tudo à mão a cada mudança.</li>
+  <li><strong>Não fica registrado.</strong> O que "deveria acontecer" está só na sua cabeça.</li>
+</ol>
+<p>Um teste automatizado resolve os três: ele mesmo compara, roda com um comando e documenta o comportamento esperado em código.</p>
+
+<hr>
+
+<h2>A classe que vamos testar: a <code>Conta</code> da Ana</h2>
+<p>Um projeto Maven (<code>~/banco</code>), com a classe no lugar de sempre, <code>src/main/java</code>:</p>
+
+<pre class="file" data-file="src/main/java/br/com/ana/banco/Conta.java">package br.com.ana.banco;
+
+public class Conta {
+    private final String titular;
+    private double saldo;
+
+    public Conta(String titular) {
+        this.titular = titular;
+    }
+
+    public String getTitular() {
+        return titular;
+    }
+
+    public double getSaldo() {
+        return saldo;
+    }
+
+    public void depositar(double valor) {
+        if (valor &lt;= 0) {
+            throw new IllegalArgumentException("Valor inválido: " + valor);
+        }
+        saldo += valor;
+    }
+
+    public void sacar(double valor) {
+        if (valor &lt;= 0) {
+            throw new IllegalArgumentException("Valor inválido: " + valor);
+        }
+        if (valor &gt; saldo) {
+            throw new IllegalStateException("Saldo insuficiente");
+        }
+        saldo -= valor;
+    }
+}
+</pre>
+<p>Regras da conta: começa com saldo zero; depósito e saque precisam ser positivos; não dá para sacar mais do que o saldo. (Num banco de verdade, dinheiro seria <a href="bigdecimal.html"><code>BigDecimal</code></a>; aqui usamos <code>double</code> com valores redondos para manter o foco nos testes.)</p>
+
+<hr>
+
+<h2>1. Pôr o JUnit no projeto</h2>
+<p>O JUnit é uma biblioteca como outra qualquer: entra no <code>pom.xml</code> como <a href="maven.html">dependência</a>. O <code>pom.xml</code> completo do projeto:</p>
+
+<pre class="file" data-file="pom.xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;groupId&gt;br.com.ana&lt;/groupId&gt;
+    &lt;artifactId&gt;banco&lt;/artifactId&gt;
+    &lt;version&gt;1.0&lt;/version&gt;
+
+    &lt;properties&gt;
+        &lt;maven.compiler.release&gt;25&lt;/maven.compiler.release&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+    &lt;/properties&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.junit.jupiter&lt;/groupId&gt;
+            &lt;artifactId&gt;junit-jupiter&lt;/artifactId&gt;
+            &lt;version&gt;5.13.4&lt;/version&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+&lt;/project&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>org.junit.jupiter : junit-jupiter</dt><dd>O JUnit 5. <strong>Jupiter</strong> (o planeta Júpiter, porque é o "quinto") é o nome da parte que você usa para escrever testes. Este artefato traz tudo junto: as anotações, as verificações e o "motor" que executa os testes.</dd>
+  <dt>5.13.4</dt><dd>A versão. Em 2025 saiu o JUnit 6, com o mesmo Jupiter: o código desta aula funciona igual nele.</dd>
+  <dt>&lt;scope&gt;test&lt;/scope&gt;</dt><dd>"Só para os testes": o JUnit é usado em <code>src/test/java</code> e <strong>não</strong> vai para o JAR do programa.</dd>
+</dl>
+
+<p>Quem executa os testes no Maven é o plugin <strong>Surefire</strong> ("à prova de falhas"), que já vem configurado: ele procura as classes de teste em <code>src/test/java</code> e roda todas na fase <code>test</code>.</p>
+
+<hr>
+
+<h2>2. O primeiro teste</h2>
+<p>Os testes ficam em <code>src/test/java</code>, <strong>no mesmo pacote</strong> da classe testada, numa classe com o mesmo nome mais <code>Test</code>:</p>
+
+<pre class="file" data-file="src/test/java/br/com/ana/banco/ContaTest.java">package br.com.ana.banco;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
+
+class ContaTest {
+
+    @Test
+    void depositoAumentaOSaldo() {
+        Conta conta = new Conta("Ana");
+        conta.depositar(100.0);
+        assertEquals(100.0, conta.getSaldo());
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import static …Assertions.assertEquals</dt><dd>Um <em>import static</em> traz um <strong>método</strong> estático de outra classe, para usar sem o nome dela: <code>assertEquals(…)</code> em vez de <code>Assertions.assertEquals(…)</code>. <em>Assertion</em> = "afirmação", "verificação".</dd>
+  <dt>import org.junit.jupiter.api.Test</dt><dd>A anotação <code>@Test</code>.</dd>
+  <dt>class ContaTest</dt><dd>A classe de testes. Não precisa ser <code>public</code>, e não tem <code>main</code>: quem a executa é o JUnit.</dd>
+  <dt>@Test</dt><dd>Uma <a href="anotacoes.html">anotação</a>: uma etiqueta que diz ao JUnit "este método é um teste, rode-o". Sem ela, o método é ignorado.</dd>
+  <dt>void depositoAumentaOSaldo()</dt><dd>Um método de teste: <code>void</code>, sem parâmetros. O nome descreve o que está sendo conferido; ele aparece nos relatórios quando o teste falha.</dd>
+  <dt>Conta conta = new Conta("Ana");</dt><dd><strong>Prepara</strong> o cenário.</dd>
+  <dt>conta.depositar(100.0);</dt><dd><strong>Executa</strong> a ação testada.</dd>
+  <dt>assertEquals(100.0, conta.getSaldo());</dt><dd><strong>Verifica</strong>: "o saldo deve ser 100.0". Primeiro o valor <strong>esperado</strong>, depois o <strong>obtido</strong>. Se forem diferentes, o teste falha.</dd>
+</dl>
+
+<p>Esse formato em três passos (preparar, executar, verificar) é o padrão de quase todo teste. Em inglês é chamado de <em>Arrange, Act, Assert</em>.</p>
+
+<h3>Rodar: <code>mvn test</code></h3>
+<pre class="term">$ mvn test
+[INFO] Scanning for projects...
+[INFO]
+[INFO] --------------------------&lt; br.com.ana:banco &gt;--------------------------
+[INFO] Building banco 1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+…                                                    « downloads do JUnit (25 arquivos, só na primeira vez)
+[INFO] --- compiler:3.16.0:compile (default-compile) @ banco ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 1 source file with javac [debug release 25] to target/classes
+[INFO]
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ banco ---
+[INFO] skip non existing resourceDirectory /home/ana/banco/src/test/resources
+[INFO]
+[INFO] --- compiler:3.16.0:testCompile (default-testCompile) @ banco ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug release 25] to target/test-classes
+[INFO]
+[INFO] --- surefire:3.6.0:test (default-test) @ banco ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO]
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running br.com.ana.banco.ContaTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.063 s -- in br.com.ana.banco.ContaTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.460 s
+[INFO] Finished at: 2026-10-16T18:43:55-03:00
+[INFO] ------------------------------------------------------------------------</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>Significado</th></tr>
+<tr><td><code>Running br.com.ana.banco.ContaTest</code></td><td>O Surefire achou e começou a rodar a classe de testes.</td></tr>
+<tr><td><code>Tests run: 1</code></td><td>Um método <code>@Test</code> foi executado.</td></tr>
+<tr><td><code>Failures: 0</code></td><td>Nenhuma verificação (<code>assert…</code>) deu errado.</td></tr>
+<tr><td><code>Errors: 0</code></td><td>Nenhum teste parou por uma exceção inesperada.</td></tr>
+<tr><td><code>Skipped: 0</code></td><td>Nenhum teste foi pulado (é possível desligar um teste com <code>@Disabled</code>).</td></tr>
+<tr><td><code>BUILD SUCCESS</code></td><td>Todos passaram.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. Quando um teste falha</h2>
+<p>A Ana acrescentou um segundo teste, com dois depósitos seguidos:</p>
+
+<pre class="file" data-file="ContaTest.java (método novo)">    @Test
+    void doisDepositosSomam() {
+        Conta conta = new Conta("Ana");
+        conta.depositar(100.0);
+        conta.depositar(50.0);
+        assertEquals(150.0, conta.getSaldo());
+    }
+</pre>
+
+<p>E, sem perceber, ao mexer na <code>Conta</code>, trocou <code>saldo += valor;</code> por <code>saldo = valor;</code> no <code>depositar</code>. Repare que o primeiro teste <strong>continua passando</strong> (um depósito de 100 numa conta zerada dá 100 dos dois jeitos). Só o segundo pega o erro:</p>
+
+<div class="warning"><strong>Esta saída mostra um teste falhando de propósito</strong></div>
+<pre class="term">$ mvn test
+…
+[INFO] --- surefire:3.6.0:test (default-test) @ banco ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO]
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running br.com.ana.banco.ContaTest
+[ERROR] Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.108 s &lt;&lt;&lt; FAILURE! -- in br.com.ana.banco.ContaTest
+[ERROR] br.com.ana.banco.ContaTest.doisDepositosSomam -- Time elapsed: 0.068 s &lt;&lt;&lt; FAILURE!
+org.opentest4j.AssertionFailedError: expected: &lt;150.0&gt; but was: &lt;50.0&gt;
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:70)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:65)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:889)
+	at br.com.ana.banco.ContaTest.doisDepositosSomam(ContaTest.java:21)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[INFO]
+[INFO] Results:
+[INFO]
+[ERROR] Failures:
+[ERROR]   ContaTest.doisDepositosSomam:21 expected: &lt;150.0&gt; but was: &lt;50.0&gt;
+[INFO]
+[ERROR] Tests run: 2, Failures: 1, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.260 s
+[INFO] Finished at: 2026-10-16T18:44:09-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.6.0:test (default-test) on project banco: There are test failures.
+[ERROR]
+[ERROR] See /home/ana/banco/target/surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -&gt; [Help 1]
+…</pre>
+
+<p>Como ler, por partes:</p>
+<dl class="anatomy">
+  <dt>Tests run: 2, Failures: 1</dt><dd>Dois testes rodaram; um falhou.</dd>
+  <dt>ContaTest.doisDepositosSomam … &lt;&lt;&lt; FAILURE!</dt><dd><strong>Qual</strong> teste falhou.</dd>
+  <dt>AssertionFailedError: expected: &lt;150.0&gt; but was: &lt;50.0&gt;</dt><dd><strong>Por quê</strong>: esperava 150.0, mas o saldo era 50.0. Esse é o coração da mensagem.</dd>
+  <dt>at br.com.ana.banco.ContaTest.doisDepositosSomam(ContaTest.java:21)</dt><dd><strong>Onde</strong>: a linha 21 do teste, o <code>assertEquals</code>. As linhas <code>at org.junit…</code> acima são o caminho dentro do próprio JUnit; pule-as (veja como ler um <em>stack trace</em> em <a href="depuracao.html">Depurar</a>).</dd>
+  <dt>Failures: ContaTest.doisDepositosSomam:21 expected: …</dt><dd>O resumo no fim: uma linha por falha. Quando há muitas, comece por aqui.</dd>
+  <dt>BUILD FAILURE</dt><dd>Teste falhando <strong>para o build</strong>: o <code>mvn package</code> não gera o JAR. É de propósito: código com teste vermelho não deve ser entregue.</dd>
+</dl>
+
+<p>O <code>50.0</code> é a pista: é o valor do último depósito, ou seja, o saldo foi <strong>substituído</strong> em vez de somado. A Ana voltou o <code>+=</code> e os dois testes passaram. Os mesmos detalhes ficam guardados em <code>target/surefire-reports/br.com.ana.banco.ContaTest.txt</code>.</p>
+
+<div class="tryjava" data-goal="out:2 de 2 testes passaram">
+<p class="try-task"><strong>Missão:</strong> o editor do guia não tem o JUnit, mas você pode ver a ideia funcionando "à mão". O método <code>verificar</code> faz o papel do <code>assertEquals</code>, e o <code>main</code> faz o papel do Surefire. Rode e veja a falha; depois conserte a <strong>classe <code>Conta</code></strong> (não o teste!) até aparecer <code>2 de 2 testes passaram</code>.</p>
+<pre class="script">public class Main {
+    static int passaram = 0;
+    static int total = 0;
+
+    static void verificar(String nome, double esperado, double obtido) {
+        total++;
+        if (esperado == obtido) {
+            passaram++;
+            System.out.println("OK      " + nome);
+        } else {
+            System.out.println("FALHOU  " + nome + " ==&gt; expected: &lt;" + esperado + "&gt; but was: &lt;" + obtido + "&gt;");
+        }
+    }
+
+    public static void main(String[] args) {
+        Conta c1 = new Conta("Ana");
+        c1.depositar(100.0);
+        verificar("depositoAumentaOSaldo", 100.0, c1.getSaldo());
+
+        Conta c2 = new Conta("Ana");
+        c2.depositar(100.0);
+        c2.depositar(50.0);
+        verificar("doisDepositosSomam", 150.0, c2.getSaldo());
+
+        System.out.println(passaram + " de " + total + " testes passaram");
+    }
+}
+
+class Conta {
+    private final String titular;
+    private double saldo;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    double getSaldo() {
+        return saldo;
+    }
+
+    void depositar(double valor) {
+        saldo = valor;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static int passaram = 0;
+    static int total = 0;
+
+    static void verificar(String nome, double esperado, double obtido) {
+        total++;
+        if (esperado == obtido) {
+            passaram++;
+            System.out.println("OK      " + nome);
+        } else {
+            System.out.println("FALHOU  " + nome + " ==&gt; expected: &lt;" + esperado + "&gt; but was: &lt;" + obtido + "&gt;");
+        }
+    }
+
+    public static void main(String[] args) {
+        Conta c1 = new Conta("Ana");
+        c1.depositar(100.0);
+        verificar("depositoAumentaOSaldo", 100.0, c1.getSaldo());
+
+        Conta c2 = new Conta("Ana");
+        c2.depositar(100.0);
+        c2.depositar(50.0);
+        verificar("doisDepositosSomam", 150.0, c2.getSaldo());
+
+        System.out.println(passaram + " de " + total + " testes passaram");
+    }
+}
+
+class Conta {
+    private final String titular;
+    private double saldo;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    double getSaldo() {
+        return saldo;
+    }
+
+    void depositar(double valor) {
+        saldo += valor;
+    }
+}
+</pre>
+</div>
+
+<h3><em>Failure</em> × <em>Error</em></h3>
+<p>O Surefire separa dois tipos de problema. Veja um teste que tenta sacar 500 de uma conta vazia, sem esperar exceção nenhuma:</p>
+<pre class="file" data-file="ContaTest.java (método)">    @Test
+    void saqueSemSaldo() {
+        Conta conta = new Conta("Ana");
+        conta.sacar(500.0);
+        assertEquals(0.0, conta.getSaldo());
+    }
+</pre>
+<pre class="term">$ mvn test
+…
+[INFO] Running br.com.ana.banco.ContaTest
+[ERROR] Tests run: 3, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.110 s &lt;&lt;&lt; FAILURE! -- in br.com.ana.banco.ContaTest
+[ERROR] br.com.ana.banco.ContaTest.saqueSemSaldo -- Time elapsed: 0.013 s &lt;&lt;&lt; ERROR!
+java.lang.IllegalStateException: Saldo insuficiente
+	at br.com.ana.banco.Conta.sacar(Conta.java:31)
+	at br.com.ana.banco.ContaTest.saqueSemSaldo(ContaTest.java:27)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+
+[INFO]
+[INFO] Results:
+[INFO]
+[ERROR] Errors:
+[ERROR]   ContaTest.saqueSemSaldo:27 » IllegalState Saldo insuficiente
+[INFO]
+[ERROR] Tests run: 3, Failures: 0, Errors: 1, Skipped: 0
+…</pre>
+<ul>
+  <li><strong>Failure</strong> (falha): uma verificação <code>assert…</code> deu errado. "O resultado não é o esperado."</li>
+  <li><strong>Error</strong> (erro): o teste parou no meio por uma exceção que ninguém esperava. Aqui, o <code>sacar</code> lançou <code>IllegalStateException</code> e o <code>assertEquals</code> nem chegou a rodar.</li>
+</ul>
+<p>Neste caso, quem está errado é o <strong>teste</strong>: a conta fez exatamente o que devia (recusar o saque). O certo é testar que a exceção acontece, com <code>assertThrows</code>.</p>
+
+<hr>
+
+<h2>4. Testar exceções: <code>assertThrows</code></h2>
+<pre class="file" data-file="ContaTest.java (método)">    @Test
+    void saqueSemSaldo() {
+        Conta conta = new Conta("Ana");
+        IllegalStateException erro = assertThrows(IllegalStateException.class,
+                () -&gt; conta.sacar(500.0));
+        assertEquals("Saldo insuficiente", erro.getMessage());
+    }
+</pre>
+<dl class="anatomy">
+  <dt>assertThrows(</dt><dd>"Verifique que isto lança uma exceção." Importado como o <code>assertEquals</code>: <code>import static org.junit.jupiter.api.Assertions.assertThrows;</code></dd>
+  <dt>IllegalStateException.class</dt><dd>Qual exceção é esperada. O <code>.class</code> se refere à classe da exceção em si (e não a um objeto dela).</dd>
+  <dt>() -&gt; conta.sacar(500.0)</dt><dd>Uma <a href="lambdas.html">lambda</a>: um "pedaço de código guardado" que o <code>assertThrows</code> executa quando quiser. Leia como "a ação de sacar 500". Se você escrevesse só <code>conta.sacar(500.0)</code>, a exceção estouraria <strong>antes</strong> de o <code>assertThrows</code> começar.</dd>
+  <dt>IllegalStateException erro = …</dt><dd>O <code>assertThrows</code> devolve a exceção capturada, para você conferir a mensagem.</dd>
+</dl>
+<p>Se o código <strong>não</strong> lançar a exceção, o teste falha com: <code>Expected java.lang.IllegalStateException to be thrown, but nothing was thrown.</code> (você vai ver essa mensagem real na seção de testes parametrizados).</p>
+
+<hr>
+
+<h2>5. Preparar cada teste: <code>@BeforeEach</code></h2>
+<p>Todo teste da <code>Conta</code> começa com <code>new Conta("Ana")</code> e, muitas vezes, um depósito inicial. Repetir isso em cada método é cansativo. Um método marcado com <code>@BeforeEach</code> ("antes de cada") roda <strong>antes de cada teste</strong>, preparando o cenário:</p>
+
+<pre class="file" data-file="ContaTest.java (trecho)">    private Conta conta;
+
+    @BeforeEach
+    void criarConta() {
+        conta = new Conta("Ana");
+        conta.depositar(100.0);
+    }
+
+    @Test
+    void saqueDiminuiOSaldo() {
+        conta.sacar(30.0);
+        assertEquals(70.0, conta.getSaldo());
+    }
+</pre>
+
+<p>Importante: o JUnit cria um <strong>objeto novo</strong> de <code>ContaTest</code> para cada teste, e roda o <code>@BeforeEach</code> de novo. Assim, cada teste começa com uma conta nova de saldo 100, sem sobras do teste anterior. Testes nunca devem depender da ordem em que rodam.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Anotação</th><th>Quando roda</th><th>Uso típico</th></tr>
+<tr><td><code>@BeforeEach</code></td><td>Antes de <strong>cada</strong> teste</td><td>Criar os objetos do cenário</td></tr>
+<tr><td><code>@AfterEach</code></td><td>Depois de cada teste</td><td>Apagar arquivos temporários</td></tr>
+<tr><td><code>@BeforeAll</code></td><td>Uma vez, antes de todos (método <code>static</code>)</td><td>Algo caro, feito uma vez só</td></tr>
+<tr><td><code>@AfterAll</code></td><td>Uma vez, depois de todos (<code>static</code>)</td><td>Liberar o que o <code>@BeforeAll</code> criou</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. Nomes legíveis: <code>@DisplayName</code></h2>
+<p>Nomes de método não têm espaço nem acento confortável. <code>@DisplayName</code> ("nome de exibição") dá ao teste ou à classe um nome em português, que aparece nos relatórios e nas IDEs:</p>
+<pre class="file" data-file="ContaTest.java (trecho)">@DisplayName("Conta da Ana")
+class ContaTest {
+
+    @Test
+    @DisplayName("saque maior que o saldo é recusado")
+    void saqueSemSaldo() {
+        …
+</pre>
+
+<hr>
+
+<h2>7. Testes parametrizados: um teste, vários valores</h2>
+<p>Para conferir que depósitos de <code>0</code>, <code>-1</code> e <code>-50</code> são todos recusados, você escreveria três testes quase iguais. Um <strong>teste parametrizado</strong> recebe os valores como parâmetro e roda uma vez para cada um:</p>
+
+<pre class="file" data-file="ContaTest.java (trecho)">    @ParameterizedTest
+    @ValueSource(doubles = {0.0, -1.0, -50.0})
+    @DisplayName("depósito zero ou negativo é recusado")
+    void depositoInvalido(double valor) {
+        assertThrows(IllegalArgumentException.class, () -&gt; conta.depositar(valor));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"10.0, 90.0", "100.0, 0.0", "0.5, 99.5"})
+    void saquesValidos(double saque, double saldoEsperado) {
+        conta.sacar(saque);
+        assertEquals(saldoEsperado, conta.getSaldo());
+    }
+</pre>
+<dl class="anatomy">
+  <dt>@ParameterizedTest</dt><dd>No lugar de <code>@Test</code>: "teste com parâmetros".</dd>
+  <dt>@ValueSource(doubles = {…})</dt><dd>A fonte dos valores: uma lista de <code>double</code> (há também <code>ints</code>, <code>strings</code>…). Cada valor vira uma execução, com o valor no parâmetro <code>valor</code>.</dd>
+  <dt>@CsvSource({"10.0, 90.0", …})</dt><dd>Para vários parâmetros por execução: cada texto é uma linha "separada por vírgulas" (CSV). <code>"10.0, 90.0"</code> = sacar 10, saldo esperado 90.</dd>
+</dl>
+
+<h3>A classe de testes completa</h3>
+<pre class="file" data-file="src/test/java/br/com/ana/banco/ContaTest.java">package br.com.ana.banco;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+@DisplayName("Conta da Ana")
+class ContaTest {
+
+    private Conta conta;
+
+    @BeforeEach
+    void criarConta() {
+        conta = new Conta("Ana");
+        conta.depositar(100.0);
+    }
+
+    @Test
+    @DisplayName("depósito aumenta o saldo")
+    void depositoAumentaOSaldo() {
+        conta.depositar(50.0);
+        assertEquals(150.0, conta.getSaldo());
+    }
+
+    @Test
+    @DisplayName("saque diminui o saldo")
+    void saqueDiminuiOSaldo() {
+        conta.sacar(30.0);
+        assertEquals(70.0, conta.getSaldo());
+    }
+
+    @Test
+    @DisplayName("saque maior que o saldo é recusado")
+    void saqueSemSaldo() {
+        IllegalStateException erro = assertThrows(IllegalStateException.class,
+                () -&gt; conta.sacar(500.0));
+        assertEquals("Saldo insuficiente", erro.getMessage());
+        assertEquals(100.0, conta.getSaldo());
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = {0.0, -1.0, -50.0})
+    @DisplayName("depósito zero ou negativo é recusado")
+    void depositoInvalido(double valor) {
+        assertThrows(IllegalArgumentException.class, () -&gt; conta.depositar(valor));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"10.0, 90.0", "100.0, 0.0", "0.5, 99.5"})
+    void saquesValidos(double saque, double saldoEsperado) {
+        conta.sacar(saque);
+        assertEquals(saldoEsperado, conta.getSaldo());
+    }
+}
+</pre>
+
+<pre class="term">$ mvn test
+…
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running Conta da Ana
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.212 s -- in Conta da Ana
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS</pre>
+<p><strong>9 testes</strong>: os 3 com <code>@Test</code>, mais 3 execuções de <code>depositoInvalido</code> e 3 de <code>saquesValidos</code>. E a classe aparece como <code>Conta da Ana</code>, o nome do <code>@DisplayName</code>.</p>
+
+<h3>Os testes protegendo a conta</h3>
+<p>Para ver a rede de segurança em ação, a Ana apagou de propósito a verificação <code>if (valor &lt;= 0)</code> do <code>depositar</code>. Os testes parametrizados denunciaram na hora (stack traces encurtados):</p>
+<pre class="term">$ mvn test
+…
+[INFO] Running Conta da Ana
+[ERROR] Tests run: 9, Failures: 3, Errors: 0, Skipped: 0, Time elapsed: 0.236 s &lt;&lt;&lt; FAILURE! -- in Conta da Ana
+[ERROR] br.com.ana.banco.ContaTest.depositoInvalido(double)[1] -- Time elapsed: 0.013 s &lt;&lt;&lt; FAILURE!
+org.opentest4j.AssertionFailedError: Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:152)
+	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:73)
+	at org.junit.jupiter.api.AssertThrows.assertThrows(AssertThrows.java:35)
+	at org.junit.jupiter.api.Assertions.assertThrows(Assertions.java:3128)
+	at br.com.ana.banco.ContaTest.depositoInvalido(ContaTest.java:51)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+…                                                    « mais 34 linhas "at java.base/…"
+[ERROR] br.com.ana.banco.ContaTest.depositoInvalido(double)[2] -- Time elapsed: 0.003 s &lt;&lt;&lt; FAILURE!
+…
+[ERROR] br.com.ana.banco.ContaTest.depositoInvalido(double)[3] -- Time elapsed: 0.005 s &lt;&lt;&lt; FAILURE!
+…
+[INFO] Results:
+[INFO]
+[ERROR] Failures:
+[ERROR]   ContaTest.depositoInvalido:51 Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.
+[ERROR]   ContaTest.depositoInvalido:51 Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.
+[ERROR]   ContaTest.depositoInvalido:51 Expected java.lang.IllegalArgumentException to be thrown, but nothing was thrown.
+[INFO]
+[ERROR] Tests run: 9, Failures: 3, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE</pre>
+<p><code>[1]</code>, <code>[2]</code> e <code>[3]</code> são as três execuções (com <code>0.0</code>, <code>-1.0</code> e <code>-50.0</code>). Nenhuma lançou a exceção esperada. Sem os testes, um depósito negativo passaria a "sacar" dinheiro da conta, e ninguém perceberia até um cliente reclamar.</p>
+
+<hr>
+
+<h2>8. As verificações mais usadas</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Passa quando…</th></tr>
+<tr><td><code>assertEquals(esperado, obtido)</code></td><td>os dois são iguais (com <code>equals</code> para objetos)</td></tr>
+<tr><td><code>assertEquals(0.3, x, 0.0001)</code></td><td>o <code>double</code> <code>x</code> está a no máximo 0.0001 de 0.3 (para contas com casas decimais, que raramente dão exato; veja <a href="decimais.html">double e float</a>)</td></tr>
+<tr><td><code>assertNotEquals(a, b)</code></td><td>são diferentes</td></tr>
+<tr><td><code>assertTrue(condição)</code> / <code>assertFalse(condição)</code></td><td>a condição é <code>true</code> / <code>false</code></td></tr>
+<tr><td><code>assertNull(x)</code> / <code>assertNotNull(x)</code></td><td><code>x</code> é / não é <code>null</code></td></tr>
+<tr><td><code>assertThrows(Tipo.class, () -&gt; …)</code></td><td>o código lança aquela exceção</td></tr>
+<tr><td><code>assertDoesNotThrow(() -&gt; …)</code></td><td>o código não lança nada</td></tr>
+<tr><td><code>assertAll(() -&gt; …, () -&gt; …)</code></td><td>todas as verificações passam (e mostra todas as que falharam, não só a primeira)</td></tr>
+<tr><td><code>fail("mensagem")</code></td><td>nunca: falha na hora</td></tr>
+</table>
+</div>
+<p>Todas aceitam uma mensagem extra no fim, mostrada quando falham: <code>assertEquals(150.0, saldo, "saldo depois de dois depósitos")</code>.</p>
+
+<hr>
+
+<h2>9. A ideia do TDD</h2>
+<p><strong>TDD</strong> (<em>Test-Driven Development</em>, "desenvolvimento guiado por testes") é um jeito de trabalhar em que o teste vem <strong>antes</strong> do código. É um ciclo curto, de três passos, com nomes de cores:</p>
+<ol class="passo">
+  <li><strong>Vermelho:</strong> escreva um teste para algo que ainda não existe (por exemplo, "transferir 30 da conta da Ana para a do Bruno"). Rode: ele falha (nem compila, ou dá <code>FAILURE</code>).</li>
+  <li><strong>Verde:</strong> escreva o <strong>mínimo</strong> de código para o teste passar.</li>
+  <li><strong>Refatorar:</strong> com o teste verde protegendo, melhore o código (nomes, repetições) sem mudar o comportamento. Rode de novo.</li>
+</ol>
+<p>A vantagem: você pensa primeiro em <strong>como</strong> a classe vai ser usada, e termina com todo o código coberto por testes. Não é obrigatório; muita gente escreve o teste logo depois do código. O importante é que o teste exista.</p>
+
+<div class="tryjava" data-goal="out:OK: Saldo insuficiente,out:Saldo: 100.0">
+<p class="try-task"><strong>Missão (no estilo TDD):</strong> o "teste" no <code>main</code> já está escrito e espera que sacar 500 de uma conta com 100 lance <code>IllegalStateException</code> com a mensagem <code>Saldo insuficiente</code>, sem mexer no saldo. Rode: ele falha (vermelho). Agora escreva o método <code>sacar</code> na <code>Conta</code> até aparecer <code>OK: Saldo insuficiente</code> e <code>Saldo: 100.0</code> (verde).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        Conta conta = new Conta("Ana");
+        conta.depositar(100.0);
+        try {
+            conta.sacar(500.0);
+            System.out.println("FALHOU: Expected IllegalStateException to be thrown, but nothing was thrown.");
+        } catch (IllegalStateException e) {
+            System.out.println("OK: " + e.getMessage());
+        }
+        System.out.println("Saldo: " + conta.getSaldo());
+    }
+}
+
+class Conta {
+    private final String titular;
+    private double saldo;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    double getSaldo() {
+        return saldo;
+    }
+
+    void depositar(double valor) {
+        saldo += valor;
+    }
+
+    void sacar(double valor) {
+        saldo -= valor;
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        Conta conta = new Conta("Ana");
+        conta.depositar(100.0);
+        try {
+            conta.sacar(500.0);
+            System.out.println("FALHOU: Expected IllegalStateException to be thrown, but nothing was thrown.");
+        } catch (IllegalStateException e) {
+            System.out.println("OK: " + e.getMessage());
+        }
+        System.out.println("Saldo: " + conta.getSaldo());
+    }
+}
+
+class Conta {
+    private final String titular;
+    private double saldo;
+
+    Conta(String titular) {
+        this.titular = titular;
+    }
+
+    double getSaldo() {
+        return saldo;
+    }
+
+    void depositar(double valor) {
+        saldo += valor;
+    }
+
+    void sacar(double valor) {
+        if (valor &gt; saldo) {
+            throw new IllegalStateException("Saldo insuficiente");
+        }
+        saldo -= valor;
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O teste não roda (e ninguém avisa)</strong>
+<p>A Ana criou uma classe <code>ContaTeste</code> (em português, com <strong>e</strong> no fim) com um teste que deveria <strong>falhar</strong>. O resultado:</p>
+<pre class="term">$ mvn test
+…
+[INFO] Compiling 2 source files with javac [debug release 25] to target/test-classes
+…
+[INFO] Running Conta da Ana
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.229 s -- in Conta da Ana
+…
+[INFO] BUILD SUCCESS</pre>
+<p><strong>O que aconteceu:</strong> a classe foi compilada (<code>2 source files</code>), mas o Surefire só roda classes cujo nome <strong>termina em <code>Test</code></strong>, <code>Tests</code> ou <code>TestCase</code>, ou <strong>começa com <code>Test</code></strong>. <code>ContaTeste</code> foi ignorada em silêncio. <strong>Como resolver:</strong> renomeie para <code>ContaTest</code> (ou <code>ContaTests</code>). Outra causa do mesmo sintoma: esquecer o <code>@Test</code> no método.</p>
+</div>
+
+<div class="cenario">
+<strong><code>package org.junit.jupiter.api does not exist</code></strong>
+<pre class="term">$ mvn clean test
+…
+[ERROR] COMPILATION ERROR :
+[INFO] -------------------------------------------------------------
+[ERROR] /home/ana/banco/src/test/java/br/com/ana/banco/ContaTest.java:[3,36] package org.junit.jupiter.api does not exist
+[ERROR] /home/ana/banco/src/test/java/br/com/ana/banco/ContaTest.java:[3,1] static import only from classes and interfaces
+[ERROR] /home/ana/banco/src/test/java/br/com/ana/banco/ContaTest.java:[4,36] package org.junit.jupiter.api does not exist
+…                                                    « mais 27 erros
+[INFO] 30 errors
+…
+[ERROR] BUILD FAILURE</pre>
+<p><strong>O que aconteceu:</strong> o JUnit não está no <code>pom.xml</code> (aqui, a Ana apagou o bloco <code>&lt;dependencies&gt;</code> para ver). Um esquecimento vira 30 erros, porque cada uso do JUnit falha. <strong>Como resolver:</strong> leia só o <strong>primeiro</strong>, e acrescente a dependência <code>junit-jupiter</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>expected: &lt;0.3&gt; but was: &lt;0.30000000000000004&gt;</code></strong>
+<p>Um teste com centavos (rodado sozinho com <code>-Dtest=</code>, que escolhe a classe de testes):</p>
+<pre class="file" data-file="CentavosTest.java (método)">    @Test
+    void depositosDeCentavos() {
+        Conta conta = new Conta("Ana");
+        conta.depositar(0.1);
+        conta.depositar(0.2);
+        assertEquals(0.3, conta.getSaldo());
+    }
+</pre>
+<pre class="term">$ mvn test -Dtest=CentavosTest
+…
+[INFO] Running br.com.ana.banco.CentavosTest
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.081 s &lt;&lt;&lt; FAILURE! -- in br.com.ana.banco.CentavosTest
+[ERROR] br.com.ana.banco.CentavosTest.depositosDeCentavos -- Time elapsed: 0.051 s &lt;&lt;&lt; FAILURE!
+org.opentest4j.AssertionFailedError: expected: &lt;0.3&gt; but was: &lt;0.30000000000000004&gt;
+…
+[ERROR] Failures: 
+[ERROR]   CentavosTest.depositosDeCentavos:14 expected: &lt;0.3&gt; but was: &lt;0.30000000000000004&gt;
+…</pre>
+<p><strong>O que aconteceu:</strong> a <code>Conta</code> não tem defeito: contas com <code>double</code> quase nunca dão o valor exato (<code>0.1 + 0.2</code> não é <code>0.3</code>; veja <a href="decimais.html">double e float</a>). <strong>Como resolver:</strong> use a versão com tolerância, <code>assertEquals(0.3, conta.getSaldo(), 0.0001)</code>, ou, para dinheiro de verdade, <a href="bigdecimal.html"><code>BigDecimal</code></a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Testes que passam sozinhos e falham juntos</strong>
+<p><strong>O que aconteceu:</strong> os testes estão dividindo algo (um atributo <code>static</code>, um arquivo) e um deixa sujeira para o outro. <strong>Como resolver:</strong> crie tudo de novo no <code>@BeforeEach</code>; não use <code>static</code> para guardar estado entre testes.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Item</th><th>Para que serve</th></tr>
+<tr><td><code>@Test</code></td><td>Marca um método de teste</td></tr>
+<tr><td><code>@BeforeEach</code> / <code>@AfterEach</code></td><td>Roda antes / depois de cada teste</td></tr>
+<tr><td><code>@BeforeAll</code> / <code>@AfterAll</code></td><td>Roda uma vez antes / depois de todos (<code>static</code>)</td></tr>
+<tr><td><code>@DisplayName("…")</code></td><td>Nome legível do teste ou da classe</td></tr>
+<tr><td><code>@Disabled("motivo")</code></td><td>Desliga um teste (conta como <code>Skipped</code>)</td></tr>
+<tr><td><code>@ParameterizedTest</code> + <code>@ValueSource</code> / <code>@CsvSource</code></td><td>Mesmo teste com vários valores</td></tr>
+<tr><td><code>assertEquals</code>, <code>assertTrue</code>, <code>assertThrows</code>…</td><td>Verificações (classe <code>Assertions</code>)</td></tr>
+<tr><td><code>mvn test</code></td><td>Compila e roda todos os testes</td></tr>
+<tr><td><code>mvn test -Dtest=ContaTest</code></td><td>Roda só uma classe de testes</td></tr>
+<tr><td><code>target/surefire-reports/</code></td><td>Relatórios de cada classe de teste</td></tr>
+<tr><td><code>./gradlew test</code></td><td>O mesmo no <a href="gradle.html">Gradle</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A anotação</h3>
+<p>Complete para o JUnit reconhecer o método como teste:</p>
+<div class="ex-code"><input data-answer="@Test" aria-label="anotação"><br>void saqueDiminuiOSaldo() { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. A ordem dos argumentos</h3>
+<p>O saldo esperado é <code>70.0</code>. Complete a verificação:</p>
+<div class="ex-code">assertEquals(<input data-answer="70.0, conta.getSaldo()|70, conta.getSaldo()" aria-label="argumentos">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Esperar uma exceção</h3>
+<p>Complete para verificar que <code>conta.depositar(-5.0)</code> lança <code>IllegalArgumentException</code>:</p>
+<div class="ex-code"><input data-answer="assertThrows" aria-label="método">(IllegalArgumentException.class, () -&gt; conta.depositar(-5.0));</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O resumo diz <code>Tests run: 5, Failures: 0, Errors: 1</code>. O que aconteceu?</p>
+<label><input type="radio" name="q4"> Um <code>assertEquals</code> encontrou um valor diferente do esperado.</label>
+<label><input type="radio" name="q4"> Um teste parou por uma exceção que não era esperada.</label>
+<label><input type="radio" name="q4"> Um teste foi desligado com <code>@Disabled</code>.</label>
+<label><input type="radio" name="q4"> O Maven não achou o JUnit.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que o primeiro teste (<code>depositoAumentaOSaldo</code>) não pegou o erro <code>saldo = valor</code>?</p>
+<label><input type="radio" name="q5"> Porque o JUnit tem um defeito com <code>double</code>.</label>
+<label><input type="radio" name="q5"> Porque faltava o <code>@BeforeEach</code>.</label>
+<label><input type="radio" name="q5"> Porque, com um depósito só numa conta zerada, <code>=</code> e <code>+=</code> dão o mesmo resultado.</label>
+<label><input type="radio" name="q5"> Porque o teste não tinha <code>@DisplayName</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Quantas vezes roda um <code>@ParameterizedTest</code> com <code>@CsvSource({"1, 2", "3, 4", "5, 6", "7, 8"})</code>?</p>
+<label><input type="radio" name="q6"> 4</label>
+<label><input type="radio" name="q6"> 8</label>
+<label><input type="radio" name="q6"> 1</label>
+<label><input type="radio" name="q6"> 2</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Testes automatizados conferem o programa sozinhos, em segundos, a cada mudança, e pegam regressões.</li>
+  <li>No Maven: dependência <code>org.junit.jupiter:junit-jupiter</code> com <code>&lt;scope&gt;test&lt;/scope&gt;</code>; testes em <code>src/test/java</code>, classes terminadas em <code>Test</code>.</li>
+  <li>Um teste: <code>@Test</code> + preparar, executar, verificar. <code>assertEquals(esperado, obtido)</code>.</li>
+  <li><code>mvn test</code>: <code>Tests run / Failures / Errors / Skipped</code>. <em>Failure</em> = verificação errada; <em>Error</em> = exceção inesperada. Teste falhando = <code>BUILD FAILURE</code>.</li>
+  <li><code>assertThrows(Tipo.class, () -&gt; …)</code> testa exceções; <code>@BeforeEach</code> prepara cada teste; <code>@DisplayName</code> dá nomes legíveis.</li>
+  <li><code>@ParameterizedTest</code> com <code>@ValueSource</code> ou <code>@CsvSource</code> roda o mesmo teste com vários valores.</li>
+  <li>TDD: vermelho (teste falha), verde (código mínimo), refatorar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
