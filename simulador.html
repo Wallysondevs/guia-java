@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java O Editor do Guia — Experimente, missões e JShell no navegador | Guia Java</title>
+<meta name="description" content="Como usar o editor Experimente e o JShell do Guia Java: Rodar, Restaurar, Ver solução, missões, entrada do Scanner, argumentos do main, vários arquivos, erros de compilação e exceções, e o que o simulador faz e não faz em comparação com o JDK real.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">O Editor do Guia</span></h1>
+
+<p class="intro">Toda aula tem caixas onde você muda o código e roda na hora, sem instalar nada: o editor <strong>Experimente</strong> e o <strong>JShell</strong> do guia. Os dois funcionam dentro da página, com um simulador de Java que imita o JDK 25, inclusive nas mensagens de erro. Esta aula ensina a usar cada botão, a cumprir as missões e mostra o que o simulador sabe e não sabe fazer.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As partes de uma caixa Experimente e os botões <strong>Rodar</strong>, <strong>Restaurar</strong> e <strong>Ver solução</strong>.</li>
+  <li>Como ler a saída, os erros de compilação, as exceções e o código de saída.</li>
+  <li>Como cumprir uma <strong>missão</strong> e como ela é conferida.</li>
+  <li>Como dar <strong>entrada</strong> para o <code>Scanner</code> e <strong>argumentos</strong> para o <code>main</code>.</li>
+  <li>Como usar o JShell do guia.</li>
+  <li>O que o simulador faz igual ao Java de verdade e o que ele não faz.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: um simulador de voo</h2>
+<p>Pilotos treinam em simuladores: a cabine é igual à do avião, os instrumentos respondem do mesmo jeito, mas um erro não derruba nada. O editor do guia é isso para o Java: você escreve um programa, clica em Rodar e vê exatamente o que o Java mostraria, inclusive as mensagens de erro em inglês do compilador. Nada sai da página, nada mexe no seu computador, e o botão Restaurar desfaz qualquer estrago.</p>
+
+<p>O simulador foi testado contra o <strong>JDK 25 real</strong>, com os mesmos programas, para que as saídas sejam iguais. Mesmo assim, ele é um treino: quando você instalar o JDK (<a href="instalar-linux.html">Linux</a>, <a href="instalar-windows-mac.html">Windows e macOS</a>), repita os exemplos no terminal.</p>
+
+<hr>
+
+<h2>As partes de uma caixa Experimente</h2>
+<p>Esta é uma caixa "livre", sem missão: só para brincar. Clique em <strong>Rodar</strong>.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> rode, mude o texto e rode de novo. Depois clique em <strong>Restaurar</strong> para voltar ao original.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Bom dia, Ana!");
+        System.out.println("Hoje tem aula de Java.");
+    }
+}
+</pre>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>Para que serve</th></tr>
+<tr><td>A tarefa (<strong>Missão</strong> ou <strong>Brinque com o código</strong>)</td><td>O que fazer nesta caixa. Leia antes de mexer.</td></tr>
+<tr><td>A aba com o nome do arquivo (<code>Main.java</code>)</td><td>O arquivo que você está editando. Como no Java real, o nome do arquivo e o nome da classe pública precisam combinar.</td></tr>
+<tr><td>O editor, com as linhas numeradas</td><td>Onde você escreve. Os números ajudam a achar a linha que o erro aponta. A tecla <kbd>Tab</kbd> recua o código.</td></tr>
+<tr><td><strong>Rodar</strong></td><td>"Compila" o código, como o <code>javac</code>, e, se não houver erro, executa, como o <code>java</code>.</td></tr>
+<tr><td><strong>Restaurar</strong></td><td>Volta o código ao que estava quando a página abriu. Use quando se perder.</td></tr>
+<tr><td><strong>Ver solução</strong></td><td>Só nas missões: mostra uma resposta possível. Tente antes de clicar!</td></tr>
+<tr><td>A área de saída</td><td>O que o programa escreveu na tela, os erros e, no fim, o código de saída.</td></tr>
+</table>
+</div>
+
+<h3>O que o Rodar faz</h3>
+<p>Clicar em Rodar equivale a dois comandos no terminal: compilar e executar. Na máquina da Ana, com o mesmo programa:</p>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main       « compila e, se der certo, roda
+Bom dia, Ana!
+Hoje tem aula de Java.
+$ echo $?
+0                                     « o código de saída: 0 = terminou bem</pre>
+
+<p>O <strong>código de saída</strong> é um número que todo programa devolve ao terminar. <code>0</code> quer dizer "terminou sem problema"; qualquer outro número indica um problema. O editor mostra esse número no fim da saída, como o <code>echo $?</code> do terminal. As aulas <a href="compilar-executar.html">javac e java</a> e <a href="saida.html">Saída: print e println</a> voltam a ele.</p>
+
+<hr>
+
+<h2>Quando o código tem erro</h2>
+<p>O editor mostra dois tipos de problema, os mesmos do Java real.</p>
+
+<h3>1. Erro de compilação: o programa nem roda</h3>
+<p>Se o código quebra uma regra da linguagem, o "compilador" do simulador recusa e mostra a mensagem no formato do <code>javac</code>: o arquivo e a linha, a descrição em inglês, a linha copiada e um <code>^</code> embaixo do ponto do problema. Nada do programa é executado. Compare com o <code>javac</code> real, para o código abaixo sem o <code>;</code>:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: ';' expected
+        System.out.println("Olá, Ana")
+                                      ^
+1 error</pre>
+
+<div class="tryjava" data-goal="compila,out:Olá, Ana">
+<p class="try-task"><strong>Missão:</strong> o código tem um erro de propósito. Rode, leia a mensagem (em que linha está o erro? o que está faltando?) e conserte.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana")
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana");
+    }
+}
+</pre>
+</div>
+
+<p>Cada mensagem do <code>javac</code> é explicada em <a href="erros-compilacao.html">Lendo Erros do javac</a>.</p>
+
+<h3>2. Exceção: o programa começa e quebra no meio</h3>
+<p>Outras vezes o código está escrito certo, mas pede uma coisa impossível enquanto roda, como dividir por zero. O Java para o programa e mostra uma <strong>exceção</strong>: o nome do problema e a linha onde ele aconteceu. O que já tinha sido escrito na tela continua lá. Real, no terminal:</p>
+
+<pre class="term">$ java Main.java
+Dividindo 10 maçãs entre 0 pessoas...                        « a linha 3 rodou
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.main(Main.java:4)                                « o problema foi na linha 4
+$ echo $?
+1                                                            « código de saída 1: terminou com erro</pre>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> rode e compare com o terminal acima: a primeira linha aparece, a exceção vem em seguida e a última linha nunca roda. Troque o <code>0</code> por <code>2</code> e rode de novo.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Dividindo 10 maçãs entre 0 pessoas...");
+        System.out.println(10 / 0);
+        System.out.println("Esta linha nunca aparece.");
+    }
+}
+</pre>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Erro de compilação</th><th>Exceção</th></tr>
+<tr><td>Quando</td><td>Antes de rodar</td><td>Durante a execução</td></tr>
+<tr><td>Quem avisa</td><td>O <code>javac</code></td><td>A JVM</td></tr>
+<tr><td>Começa com</td><td><code>Main.java:3: error:</code></td><td><code>Exception in thread "main"</code></td></tr>
+<tr><td>O programa rodou?</td><td>Nem um pouco</td><td>Até a linha do problema</td></tr>
+<tr><td>Aula</td><td><a href="erros-compilacao.html">Lendo Erros do javac</a></td><td><a href="excecoes.html">O que são Exceções</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missões</h2>
+<p>A maioria das caixas tem uma <strong>missão</strong>: um objetivo que o simulador confere quando você clica em Rodar. Quando o objetivo é cumprido, a caixa avisa que a missão foi concluída. O que pode ser conferido:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>A missão pede…</th><th>Exemplo</th></tr>
+<tr><td>Que a saída contenha um texto</td><td>"Faça o programa mostrar <code>Olá, Ana!</code>"</td></tr>
+<tr><td>Que o código compile</td><td>"Conserte o erro"</td></tr>
+<tr><td>Que o código <strong>não</strong> compile, com um erro específico</td><td>"Provoque o erro <code>';' expected</code>" (para você conhecer a mensagem)</td></tr>
+<tr><td>Que o programa termine com uma exceção ou um código de saída</td><td>"Faça o programa terminar com <code>ArithmeticException</code>"</td></tr>
+<tr><td>Que o código use um recurso</td><td>"Use um <code>for</code>", "use <code>*</code>"</td></tr>
+</table>
+</div>
+
+<p>Por isso, às vezes a saída está certa e a missão não conclui: talvez ela peça um jeito específico de fazer. Releia a tarefa. Se travar, <strong>Ver solução</strong> mostra uma resposta; quase sempre há outras respostas certas.</p>
+
+<div class="tryjava" data-goal="out:Maçã: 3 reais,out:Banana: 2 reais,out:Uva: 5 reais">
+<p class="try-task"><strong>Missão:</strong> a lista de preços da Ana está incompleta. Acrescente a linha <code>Uva: 5 reais</code> no fim. Antes de clicar em Ver solução, tente sozinho: copie uma linha inteira, cole embaixo e mude o texto.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Maçã: 3 reais");
+        System.out.println("Banana: 2 reais");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Maçã: 3 reais");
+        System.out.println("Banana: 2 reais");
+        System.out.println("Uva: 5 reais");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Entrada do teclado (<code>Scanner</code>)</h2>
+<p>Programas podem pedir que a pessoa digite algo. Em Java, isso se faz com o <code>Scanner</code> (a aula <a href="scanner.html">Ler do Teclado</a> explica cada linha). No terminal, o programa para e espera você digitar e apertar <kbd>Enter</kbd>:</p>
+
+<pre class="term">$ java Main.java
+Qual é o seu nome? Ana                « o programa perguntou; a Ana digitou "Ana" e Enter
+Olá, Ana!</pre>
+
+<p>No editor do guia, quando o programa usa o <code>Scanner</code>, aparece um <strong>campo de entrada</strong>: o que você escrever ali é entregue ao programa, linha por linha, como se tivesse sido digitado no teclado. Algumas caixas já vêm com a entrada preenchida. Experimente:</p>
+
+<div class="tryjava" data-stdin="Ana\n" data-goal="out:Olá, Ana!">
+<p class="try-task"><strong>Missão:</strong> rode com a entrada <code>Ana</code>. Depois escreva o seu nome no campo de entrada e rode de novo.</p>
+<pre class="script">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Qual é o seu nome? ");
+        String nome = teclado.nextLine();
+        System.out.println("Olá, " + nome + "!");
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Qual é o seu nome? ");
+        String nome = teclado.nextLine();
+        System.out.println("Olá, " + nome + "!");
+    }
+}
+</pre>
+</div>
+
+<p>Repare numa diferença: no terminal, o que você digita aparece na tela (é o terminal que mostra as teclas). Quando a entrada vem de um campo ou de um arquivo, ela não aparece no meio da saída, e a resposta fica na mesma linha da pergunta: <code>Qual é o seu nome? Olá, Ana!</code>. É assim também no Java real quando a entrada vem de um arquivo.</p>
+
+<hr>
+
+<h2>Argumentos do <code>main</code></h2>
+<p>Outra forma de passar informação a um programa é escrevê-la na própria linha de comando, depois do nome do programa. São os <strong>argumentos</strong>, que chegam no <code>String[] args</code> do <code>main</code> (a aula <a href="args.html">Argumentos da Linha de Comando</a> explica):</p>
+
+<pre class="term">$ java Main.java Ana 29                 « dois argumentos: "Ana" e "29"
+Você passou 2 argumentos.
+O primeiro é: Ana</pre>
+
+<p>Nas caixas que usam argumentos, há um campo <strong>Argumentos</strong> acima da saída, já preenchido. Mude o que está lá e rode:</p>
+
+<div class="tryjava" data-args="Ana 29">
+<p class="try-task"><strong>Brinque com o código:</strong> troque os argumentos por <code>Bruno 31 São Paulo</code> e rode. Quantos argumentos foram? (Espaço separa argumentos.) Depois apague todos e rode: o que acontece?</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Você passou " + args.length + " argumentos.");
+        System.out.println("O primeiro é: " + args[0]);
+    }
+}
+</pre>
+</div>
+
+<p>Sem argumentos, o programa quebra, igual ao Java real, porque não existe "primeiro argumento":</p>
+
+<pre class="term">$ java Main.java
+Você passou 0 argumentos.
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+	at Main.main(Main.java:4)</pre>
+
+<hr>
+
+<h2>Outros nomes de arquivo e vários arquivos</h2>
+<p>Quase todas as caixas usam o arquivo <code>Main.java</code>, com a classe <code>Main</code>. Quando a aula usa outro nome, a aba mostra esse nome, e a classe tem de combinar, como no Java real:</p>
+
+<div class="tryjava" data-file="Conta.java">
+<p class="try-task"><strong>Brinque com o código:</strong> este arquivo se chama <code>Conta.java</code>. Rode. Depois troque <code>public class Conta</code> por <code>public class Main</code> e rode de novo: o erro é o mesmo que o <code>javac</code> daria (veja <a href="primeiro-programa.html">Olá, Mundo</a>).</p>
+<pre class="script">public class Conta {
+    public static void main(String[] args) {
+        System.out.println("Saldo: 150 reais");
+    }
+}
+</pre>
+</div>
+
+<p>Programas maiores têm vários arquivos. Nesses casos, a caixa mostra uma <strong>aba para cada arquivo</strong>; clique na aba para ver e editar o outro. O Rodar compila todos juntos e executa a classe da primeira aba. No terminal, isso seria:</p>
+
+<pre class="term">$ javac *.java                         « compila todos os .java da pasta
+$ ls
+Main.class  Main.java  Mensagens.class  Mensagens.java
+$ java Main
+Bem-vinda à loja, Ana!
+Volte sempre!</pre>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> abra a aba <code>Mensagens.java</code> e mude o texto da despedida. Rode. (Como uma classe usa a outra é assunto do Nível 2, em <a href="metodos.html">Métodos</a>.)</p>
+<pre class="script" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Mensagens.boasVindas("Ana");
+        Mensagens.despedida();
+    }
+}
+</pre>
+<pre class="script" data-file="Mensagens.java">public class Mensagens {
+    static void boasVindas(String nome) {
+        System.out.println("Bem-vinda à loja, " + nome + "!");
+    }
+
+    static void despedida() {
+        System.out.println("Volte sempre!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>O JShell do guia</h2>
+<p>O JShell é um console do Java: você digita uma expressão ou uma linha de código, aperta <kbd>Enter</kbd> e vê o resultado na hora, sem escrever classe nem <code>main</code>. O guia tem uma versão dele no navegador, que responde no mesmo formato do JShell real (a aula <a href="jshell.html">JShell</a> ensina tudo):</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; 7 + 8
+$1 ==&gt; 15                          « o resultado ganhou um nome: $1
+
+jshell&gt; int idade = 29
+idade ==&gt; 29
+
+jshell&gt; idade + 1
+$3 ==&gt; 30</pre>
+
+<p>Clique na caixa abaixo, digite uma linha, aperte <kbd>Enter</kbd> e veja a resposta. Use as setas <kbd>↑</kbd> e <kbd>↓</kbd> para repetir linhas anteriores.</p>
+
+<div class="tryjshell" data-goal="out:30">
+<p class="try-task"><strong>Missão:</strong> crie a variável <code>int idade = 29</code> e depois calcule <code>idade + 1</code>.</p>
+<pre class="solucao">int idade = 29
+idade + 1</pre>
+</div>
+
+<hr>
+
+<h2>O que o simulador faz e o que não faz</h2>
+<p>O simulador implementa uma parte grande do Java 25: tudo o que os níveis 1 a 3 usam. Algumas coisas, porém, só existem no Java de verdade.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Faz igual ao JDK</th><th>Diferente ou ausente</th></tr>
+<tr><td>Tipos e contas com a aritmética exata do Java (divisão inteira, <code>double</code> impresso como o Java imprime, estouro de <code>int</code>)</td><td><strong>Threads</strong>: tudo roda numa linha só, em sequência; <code>Thread.sleep</code> não espera. As aulas de threads mostram as saídas do Java real.</td></tr>
+<tr><td><code>String</code>, <code>StringBuilder</code>, <code>Math</code>, <code>Random</code> (a mesma sequência do Java com a mesma semente), <code>Scanner</code></td><td><strong>Recursão muito profunda</strong>: o <code>StackOverflowError</code> chega antes que na JVM real.</td></tr>
+<tr><td>Classes, herança, interfaces, <code>enum</code>, <code>record</code>, exceções com o rastro no formato real</td><td><strong>Reflexão, banco de dados (JDBC), rede, interface gráfica</strong>: não existem.</td></tr>
+<tr><td>Coleções, lambdas, streams, <code>Optional</code>, <code>printf</code>, <code>java.time</code> e <code>BigDecimal</code> (o básico)</td><td><strong>Maven, Gradle, JAR</strong>: só no terminal.</td></tr>
+<tr><td>Os erros de compilação mais comuns, com a mensagem exata do <code>javac</code></td><td>Erros de sintaxe raros podem vir com outro texto.</td></tr>
+<tr><td>Arquivos (<code>Files</code>, <code>Path</code>) numa pasta fictícia da Ana</td><td>A pasta volta ao original a cada Rodar; nada é gravado no seu computador.</td></tr>
+<tr><td>Data e hora (<code>LocalDate.now()</code>…)</td><td>O relógio é fixo: 15/10/2026, 10h30, horário de Brasília. Assim a saída é sempre a mesma.</td></tr>
+<tr><td><code>toString()</code> de objetos comuns</td><td>O número depois do <code>@</code> (como <code>Main@1b6d3586</code>) é inventado; na JVM, muda a cada execução de qualquer jeito.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Se o simulador e o JDK discordarem, vale o JDK</strong>
+<p>O guia compara o simulador com o JDK 25 de verdade, mas nenhum simulador é perfeito. Se você rodar um exemplo no seu computador e a saída for diferente da do editor, confie no seu JDK (e confira a versão com <code>java -version</code>: outra versão do Java pode mesmo dar outra saída).</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. Você mexeu tanto no código que não sabe mais como era. Qual botão usar?</p>
+<label><input type="radio" name="q1"> Rodar</label>
+<label><input type="radio" name="q1"> Restaurar</label>
+<label><input type="radio" name="q1"> Ver solução</label>
+<label><input type="radio" name="q1"> Fechar a página</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">2. A saída mostrou <code>Main.java:4: error: cannot find symbol</code>. O que aconteceu?</p>
+<label><input type="radio" name="q2"> O programa rodou até a linha 4 e quebrou.</label>
+<label><input type="radio" name="q2"> O simulador está com defeito.</label>
+<label><input type="radio" name="q2"> Um erro de compilação na linha 4; o programa nem começou a rodar.</label>
+<label><input type="radio" name="q2"> A missão foi cumprida.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. O que quer dizer o código de saída <code>1</code> no fim da saída?</p>
+<label><input type="radio" name="q3"> O programa terminou com problema (por exemplo, uma exceção).</label>
+<label><input type="radio" name="q3"> O programa tem uma linha.</label>
+<label><input type="radio" name="q3"> Tudo certo.</label>
+<label><input type="radio" name="q3"> A primeira missão da aula.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Um programa usa <code>Thread.sleep(5000)</code> para esperar 5 segundos. O que acontece no editor do guia?</p>
+<label><input type="radio" name="q4"> Espera exatamente 5 segundos.</label>
+<label><input type="radio" name="q4"> Dá erro de compilação.</label>
+<label><input type="radio" name="q4"> O navegador trava.</label>
+<label><input type="radio" name="q4"> Não espera: no simulador, o <code>sleep</code> é instantâneo.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Rodar</strong> = compilar (<code>javac</code>) e executar (<code>java</code>); <strong>Restaurar</strong> volta ao original; <strong>Ver solução</strong> mostra uma resposta da missão.</li>
+  <li>Erro de compilação: <code>Main.java:N: error: …</code>, nada roda. Exceção: <code>Exception in thread "main" …</code>, o programa para no meio.</li>
+  <li>O código de saída aparece no fim: <code>0</code> = tudo bem.</li>
+  <li>Missões conferem a saída, a compilação, exceções ou o uso de um recurso.</li>
+  <li>Entrada do <code>Scanner</code> pelo campo de entrada; argumentos do <code>main</code> pelo campo Argumentos; vários arquivos em abas.</li>
+  <li>O JShell do guia responde como o real: <code>$1 ==&gt; 15</code>.</li>
+  <li>Threads, reflexão, rede e ferramentas de build só no JDK real; em caso de dúvida, vale o JDK.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
