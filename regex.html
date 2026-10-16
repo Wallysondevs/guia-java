@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Expressões Regulares — Pattern, Matcher, matches, replaceAll e split | Guia Java</title>
+<meta name="description" content="Expressões regulares (regex) no Java: String.matches, Pattern e Matcher, find e grupos, replaceAll e split com regex, as barras duplas \\d, validar CEP, CPF e e-mail, e a PatternSyntaxException real.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Expressões Regulares</span></h1>
+
+<p class="intro">Uma <strong>expressão regular</strong> (em inglês <em>regular expression</em>, apelidada de <strong>regex</strong>) é um texto que descreve um <strong>formato</strong>: "cinco dígitos, um hífen e mais três dígitos" é o formato de um CEP. Com ela, o Java responde perguntas como "este texto tem cara de CEP?", "onde estão os números nesta frase?" e "troque todos os espaços repetidos por um só".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os blocos de uma regex: <code>\d</code>, <code>[A-Z]</code>, <code>+</code>, <code>{5}</code>, <code>( )</code>…</li>
+  <li>Por que no Java se escreve <code>"\\d+"</code>, com duas barras.</li>
+  <li><code>String.matches</code>, <code>replaceAll</code>, <code>replaceFirst</code> e <code>split</code> com regex.</li>
+  <li><code>Pattern</code> e <code>Matcher</code>: <code>find</code> para achar vários pedaços, grupos para separar as partes.</li>
+  <li>Validar o <strong>formato</strong> de CEP, CPF e e-mail, e entender a <code>PatternSyntaxException</code>.</li>
+</ul>
+</div>
+
+<p>Você já conhece os <a href="metodos-string.html">métodos de String</a> e os <a href="escapes.html">caracteres especiais</a> como <code>\n</code>; esta aula usa os dois. Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Quando a Ana olha para <code>01310-100</code>, ela reconhece um CEP sem pensar: "são 5 números, um tracinho, 3 números". Se alguém escrever <code>1310-100</code>, ela estranha: falta um número. Ela não decorou todos os CEPs do Brasil; ela conhece o <strong>molde</strong>.</p>
+<p>Uma regex é esse molde escrito numa linguagem que o computador entende. O molde do CEP fica assim:</p>
+
+<dl class="anatomy">
+  <dt>\d</dt><dd>Um dígito (de <em>digit</em>): qualquer caractere de <code>0</code> a <code>9</code>.</dd>
+  <dt>{5}</dt><dd>O item anterior, <strong>exatamente 5 vezes</strong>.</dd>
+  <dt>-</dt><dd>Um hífen de verdade. Letras e símbolos comuns representam eles mesmos.</dd>
+  <dt>\d{3}</dt><dd>Mais três dígitos.</dd>
+</dl>
+
+<p>Juntando: <code>\d{5}-\d{3}</code>. A regex é uma linguagem pequena e própria, que existe também no <code>grep</code> do Linux, no JavaScript, no Python… O que você aprender aqui vale em quase todo lugar.</p>
+
+<hr>
+
+<h2>1. A primeira regex: <code>String.matches</code></h2>
+<p>O jeito mais rápido de usar uma regex é o método <code>matches</code> ("casa com") de qualquer <code>String</code>. Ele devolve <code>true</code> se o texto <strong>inteiro</strong> se encaixa no molde:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String cep = "01310-100";
+        System.out.println(cep.matches("\\d{5}-\\d{3}"));
+        System.out.println("1310-100".matches("\\d{5}-\\d{3}"));
+        System.out.println("01310100".matches("\\d{5}-\\d{3}"));
+        System.out.println("01310-100".matches("\\d{5}-?\\d{3}"));
+        System.out.println("01310100".matches("\\d{5}-?\\d{3}"));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+true
+false
+false
+true
+true</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>Resultado</th><th>Por quê</th></tr>
+<tr><td><code>"01310-100"</code> com <code>\d{5}-\d{3}</code></td><td><code>true</code></td><td>5 dígitos, hífen, 3 dígitos.</td></tr>
+<tr><td><code>"1310-100"</code></td><td><code>false</code></td><td>Só 4 dígitos antes do hífen.</td></tr>
+<tr><td><code>"01310100"</code></td><td><code>false</code></td><td>Falta o hífen.</td></tr>
+<tr><td><code>"01310-100"</code> com <code>\d{5}-?\d{3}</code></td><td><code>true</code></td><td>O <code>?</code> torna o hífen <strong>opcional</strong> (zero ou uma vez).</td></tr>
+<tr><td><code>"01310100"</code> com <code>\d{5}-?\d{3}</code></td><td><code>true</code></td><td>Sem hífen também vale agora.</td></tr>
+</table>
+</div>
+
+<h3>Por que <code>"\\d"</code> com duas barras?</h3>
+<p>Repare que no código está escrito <code>"\\d{5}-\\d{3}"</code>, e não <code>\d{5}-\d{3}</code>. Acontece que há <strong>duas linguagens</strong> aqui, uma dentro da outra:</p>
+<ol>
+  <li>O <strong>Java</strong> lê o texto entre aspas primeiro. Para o Java, a barra invertida começa um <a href="escapes.html">caractere especial</a> (<code>\n</code> é quebra de linha, <code>\"</code> é aspas). Para ter uma barra de verdade dentro de um <code>String</code>, escreve-se <code>\\</code>.</li>
+  <li>Depois a <strong>regex</strong> recebe o resultado: <code>\d{5}-\d{3}</code>, com uma barra só, que é o que ela queria.</li>
+</ol>
+<p>Regra prática: <strong>toda barra da regex vira duas barras no código Java</strong>. <code>\d</code> → <code>"\\d"</code>; <code>\s</code> → <code>"\\s"</code>; <code>\.</code> → <code>"\\."</code>. Se você esquecer, o <code>javac</code> reclama:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("12345".matches("\d+"));
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: illegal escape character
+        System.out.println("12345".matches("\d+"));
+                                             ^
+1 error</pre>
+<p>"Caractere de escape ilegal": o Java não conhece nenhum <code>\d</code> (ele conhece <code>\n</code>, <code>\t</code>, <code>\"</code>…). A setinha aponta para o <code>d</code>. Conserto: <code>"\\d+"</code>.</p>
+
+<div class="tryjshell" data-goal="out:true,src:matches">
+<p class="try-task"><strong>Missão:</strong> no JShell, teste se <code>"01310-100"</code> casa com o molde de CEP. Digite <code>"01310-100".matches("\\d{5}-\\d{3}")</code> e veja o <code>true</code>. Depois experimente tirar um dígito.</p>
+<pre class="solucao">"01310-100".matches("\\d{5}-\\d{3}")</pre>
+</div>
+
+<hr>
+
+<h2>2. Os blocos de uma regex</h2>
+<p>Toda regex é montada com poucas peças. Não precisa decorar: volte a esta tabela quando precisar. A coluna "no Java" mostra como escrever entre aspas.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Regex</th><th>No Java</th><th>Casa com</th><th>Exemplo que casa</th></tr>
+<tr><td><code>abc</code></td><td><code>"abc"</code></td><td>Exatamente esses caracteres</td><td><code>abc</code></td></tr>
+<tr><td><code>.</code></td><td><code>"."</code></td><td><strong>Qualquer</strong> caractere (um)</td><td><code>a</code>, <code>7</code>, <code>-</code></td></tr>
+<tr><td><code>\d</code></td><td><code>"\\d"</code></td><td>Um dígito <code>0</code>–<code>9</code></td><td><code>5</code></td></tr>
+<tr><td><code>\D</code></td><td><code>"\\D"</code></td><td>Um caractere que <strong>não</strong> é dígito</td><td><code>(</code>, <code>a</code></td></tr>
+<tr><td><code>\s</code></td><td><code>"\\s"</code></td><td>Um espaço, tab ou quebra de linha</td><td><code> </code></td></tr>
+<tr><td><code>\w</code></td><td><code>"\\w"</code></td><td>Letra sem acento, dígito ou <code>_</code></td><td><code>a</code>, <code>Z</code>, <code>3</code>, <code>_</code></td></tr>
+<tr><td><code>[aeiou]</code></td><td><code>"[aeiou]"</code></td><td>Um dos caracteres da lista</td><td><code>e</code></td></tr>
+<tr><td><code>[A-Z]</code></td><td><code>"[A-Z]"</code></td><td>Um caractere da faixa (maiúsculas)</td><td><code>Q</code></td></tr>
+<tr><td><code>[^0-9]</code></td><td><code>"[^0-9]"</code></td><td>Um caractere <strong>fora</strong> da lista</td><td><code>x</code></td></tr>
+<tr><td><code>\.</code></td><td><code>"\\."</code></td><td>Um ponto de verdade</td><td><code>.</code></td></tr>
+<tr><td><code>x?</code></td><td><code>"x?"</code></td><td><code>x</code> zero ou uma vez (opcional)</td><td>(nada), <code>x</code></td></tr>
+<tr><td><code>x*</code></td><td><code>"x*"</code></td><td><code>x</code> zero ou mais vezes</td><td>(nada), <code>xxx</code></td></tr>
+<tr><td><code>x+</code></td><td><code>"x+"</code></td><td><code>x</code> uma ou mais vezes</td><td><code>x</code>, <code>xxxx</code></td></tr>
+<tr><td><code>x{3}</code></td><td><code>"x{3}"</code></td><td>Exatamente 3 vezes</td><td><code>xxx</code></td></tr>
+<tr><td><code>x{2,4}</code></td><td><code>"x{2,4}"</code></td><td>De 2 a 4 vezes</td><td><code>xx</code>, <code>xxxx</code></td></tr>
+<tr><td><code>a|b</code></td><td><code>"a|b"</code></td><td><code>a</code> <strong>ou</strong> <code>b</code></td><td><code>b</code></td></tr>
+<tr><td><code>( )</code></td><td><code>"(…)"</code></td><td>Agrupa e "guarda" o pedaço (grupo)</td><td>veja a seção 5</td></tr>
+<tr><td><code>^</code> e <code>$</code></td><td><code>"^…$"</code></td><td>Começo e fim do texto</td><td>(úteis com <code>find</code>)</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong><code>\w</code> não aceita acentos</strong>
+<p>No Java, <code>\w</code> é só <code>[a-zA-Z_0-9]</code>. Por isso <code>"maçã".matches("\\w+")</code> dá <code>false</code> (o <code>ç</code> e o <code>ã</code> ficam de fora). Para "qualquer letra, de qualquer idioma", use <code>\p{L}</code>: <code>"maçã".matches("\\p{L}+")</code> dá <code>true</code>. Conferido no JShell do laboratório:</p>
+<pre class="term" data-cwd="~/java">$ jshell
+jshell&gt; "maçã".matches("\\w+")
+$1 ==&gt; false
+jshell&gt; "maçã".matches("\\p{L}+")
+$2 ==&gt; true</pre>
+</div>
+
+<h3>Maiúsculas e minúsculas</h3>
+<p>Uma regex diferencia maiúsculas de minúsculas: <code>"JAVA".matches("java")</code> é <code>false</code>. Para ignorar a diferença, comece a regex com <code>(?i)</code> (de <em>ignore case</em>): <code>"JAVA".matches("(?i)java")</code> é <code>true</code>.</p>
+
+<div class="tryjava" data-goal="out:ABC1D23 -> true,out:ABC1234 -> false,out:abc1d23 -> false,out:BRA2E19 -> true">
+<p class="try-task"><strong>Missão:</strong> a placa Mercosul tem 3 letras maiúsculas, 1 dígito, 1 letra maiúscula e 2 dígitos (<code>ABC1D23</code>). Escreva a regex em <code>padrao</code> para que só <code>ABC1D23</code> e <code>BRA2E19</code> deem <code>true</code>. Lembre-se das barras duplas.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String padrao = "";   // escreva a regex aqui
+        String[] placas = { "ABC1D23", "ABC1234", "abc1d23", "BRA2E19" };
+        for (String p : placas) {
+            System.out.println(p + " -&gt; " + p.matches(padrao));
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String padrao = "[A-Z]{3}\\d[A-Z]\\d{2}";
+        String[] placas = { "ABC1D23", "ABC1234", "abc1d23", "BRA2E19" };
+        for (String p : placas) {
+            System.out.println(p + " -&gt; " + p.matches(padrao));
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Trocar e cortar: <code>replaceAll</code> e <code>split</code></h2>
+<p>Alguns métodos de <code>String</code> recebem uma regex no lugar de um texto fixo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String bagunca = "Ana   gosta    de  Java";
+        System.out.println(bagunca.replaceAll("\\s+", " "));
+
+        String iso = "2026-10-16";
+        System.out.println(iso.replaceAll("(\\d{4})-(\\d{2})-(\\d{2})", "$3/$2/$1"));
+
+        String telefone = "(11) 98765-4321";
+        System.out.println(telefone.replaceAll("\\D", ""));
+
+        System.out.println("banana".replaceFirst("a", "A"));
+        System.out.println("banana".replace("a", "A"));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Ana gosta de Java
+16/10/2026
+11987654321
+bAnana
+bAnAnA</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Chamada</th><th>O que fez</th></tr>
+<tr><td><code>replaceAll("\\s+", " ")</code></td><td>Cada sequência de um ou mais espaços virou um espaço só.</td></tr>
+<tr><td><code>replaceAll("(\\d{4})-(\\d{2})-(\\d{2})", "$3/$2/$1")</code></td><td>Os parênteses guardam ano, mês e dia; na troca, <code>$1</code>, <code>$2</code> e <code>$3</code> são esses pedaços, em outra ordem.</td></tr>
+<tr><td><code>replaceAll("\\D", "")</code></td><td>Apagou tudo o que <strong>não</strong> é dígito: sobrou só o número.</td></tr>
+<tr><td><code>replaceFirst("a", "A")</code></td><td>Trocou só a <strong>primeira</strong> ocorrência.</td></tr>
+<tr><td><code>replace("a", "A")</code></td><td>Este <strong>não</strong> usa regex: troca o texto literal, todas as vezes.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong><code>replace</code> ou <code>replaceAll</code>?</strong>
+<p>Se você quer trocar um texto fixo, use <code>replace</code>: ele não interpreta nada. Com <code>replaceAll</code>, caracteres como <code>$</code>, <code>.</code> e <code>*</code> têm significado especial. Por exemplo, <code>"preço: R$ 10".replaceAll("R$", "BRL")</code> devolve o texto <strong>sem mudança</strong> (<code>"preço: R$ 10"</code>), porque na regex <code>$</code> quer dizer "fim do texto", e não há um <code>R</code> no fim.</p>
+</div>
+
+<h3><code>split</code>: cortar por um molde</h3>
+<p>O <code>split</code> ("dividir") corta o texto em pedaços onde a regex casar, e devolve um <a href="arrays.html">array</a>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        String feira = "maçã, banana;uva  kiwi";
+        String[] frutas = feira.split("[,;\\s]+");
+        System.out.println(Arrays.toString(frutas));
+        System.out.println(frutas.length);
+
+        String versao = "25.0.4";
+        System.out.println(Arrays.toString(versao.split(".")));
+        System.out.println(Arrays.toString(versao.split("\\.")));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+[maçã, banana, uva, kiwi]
+4
+[]
+[25, 0, 4]</pre>
+
+<p>A regex <code>[,;\s]+</code> quer dizer "um ou mais caracteres que sejam vírgula, ponto e vírgula ou espaço". Assim, a lista bagunçada virou quatro frutas limpas. Já a linha seguinte é uma armadilha famosa: <code>split(".")</code> devolveu um array <strong>vazio</strong>. Na regex, o ponto quer dizer "qualquer caractere": <strong>todos</strong> os caracteres viraram separadores, e o que sobrou foram pedaços vazios, que o <code>split</code> descarta. Para cortar no ponto de verdade, escape-o: <code>split("\\.")</code>.</p>
+
+<hr>
+
+<h2>4. <code>Pattern</code> e <code>Matcher</code>: achar pedaços no meio do texto</h2>
+<p>O <code>matches</code> responde só "sim ou não, para o texto todo". Para <strong>procurar</strong> pedaços dentro de um texto maior, o Java tem duas classes do pacote <code>java.util.regex</code>:</p>
+<ul>
+  <li><code>Pattern</code> ("padrão"): a regex já <strong>compilada</strong>, isto é, conferida e preparada para uso. Você cria com <code>Pattern.compile("…")</code>.</li>
+  <li><code>Matcher</code> ("casador"): um "leitor" que percorre um texto procurando o padrão. Você cria com <code>padrao.matcher(texto)</code>.</li>
+</ul>
+
+<pre class="file" data-file="Main.java">import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Main {
+    public static void main(String[] args) {
+        String frase = "Ana comprou 3 maçãs, 12 bananas e pagou 25 reais.";
+        Pattern padrao = Pattern.compile("\\d+");
+        Matcher m = padrao.matcher(frase);
+        while (m.find()) {
+            System.out.println("Achei " + m.group() + " nas posições " + m.start() + " a " + m.end());
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Achei 3 nas posições 12 a 13
+Achei 12 nas posições 21 a 23
+Achei 25 nas posições 40 a 42</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>import java.util.regex.…</code></td><td>Traz as duas classes (veja <a href="pacotes.html">pacotes e import</a>).</td></tr>
+<tr><td><code>Pattern.compile("\\d+")</code></td><td>Prepara a regex "um ou mais dígitos".</td></tr>
+<tr><td><code>padrao.matcher(frase)</code></td><td>Cria o leitor que vai percorrer a frase.</td></tr>
+<tr><td><code>while (m.find())</code></td><td><code>find</code> ("encontrar") procura o <strong>próximo</strong> pedaço que casa. Devolve <code>true</code> se achou e <code>false</code> quando acabou o texto; por isso cabe num <code>while</code>.</td></tr>
+<tr><td><code>m.group()</code></td><td>O pedaço que acabou de ser encontrado.</td></tr>
+<tr><td><code>m.start()</code>, <code>m.end()</code></td><td>Onde ele começa e onde termina (a posição logo depois do último caractere), contando do zero, como no <code>substring</code>.</td></tr>
+</table>
+</div>
+
+<h3><code>matches()</code> × <code>find()</code></h3>
+<pre class="file" data-file="Main.java">import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Main {
+    public static void main(String[] args) {
+        Pattern p = Pattern.compile("\\d+");
+        Matcher m1 = p.matcher("Pedido 42");
+        System.out.println("matches: " + m1.matches());
+        Matcher m2 = p.matcher("Pedido 42");
+        System.out.println("find: " + m2.find() + " -&gt; " + m2.group());
+        System.out.println("matches em \"42\": " + p.matcher("42").matches());
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+matches: false
+find: true -&gt; 42
+matches em "42": true</pre>
+<p><code>matches</code> exige que o texto <strong>inteiro</strong> seja só dígitos; <code>"Pedido 42"</code> tem letras, então é <code>false</code>. <code>find</code> aceita o pedaço <code>42</code> no meio. Use <code>matches</code> para <strong>validar</strong> e <code>find</code> para <strong>procurar</strong>.</p>
+
+<hr>
+
+<h2>5. Grupos: separar as partes</h2>
+<p>Os parênteses de uma regex criam <strong>grupos</strong>: além de casar, o Java guarda o pedaço que caiu em cada par de parênteses. Eles são numerados da esquerda para a direita, a partir de 1; o grupo 0 é o trecho inteiro. Você também pode dar <strong>nomes</strong> com <code>(?&lt;nome&gt;…)</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Main {
+    public static void main(String[] args) {
+        Pattern data = Pattern.compile("(\\d{2})/(\\d{2})/(\\d{4})");
+        Matcher m = data.matcher("16/10/2026");
+        if (m.matches()) {
+            System.out.println("Tudo: " + m.group(0));
+            System.out.println("Dia: " + m.group(1));
+            System.out.println("Mês: " + m.group(2));
+            System.out.println("Ano: " + m.group(3));
+        }
+
+        Pattern comNomes = Pattern.compile("(?&lt;dia&gt;\\d{2})/(?&lt;mes&gt;\\d{2})/(?&lt;ano&gt;\\d{4})");
+        Matcher m2 = comNomes.matcher("Entrega em 25/12/2026, sem falta.");
+        if (m2.find()) {
+            System.out.println(m2.group("ano") + "-" + m2.group("mes") + "-" + m2.group("dia"));
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Tudo: 16/10/2026
+Dia: 16
+Mês: 10
+Ano: 2026
+2026-12-25</pre>
+
+<p>Repare que <code>group(1)</code> devolve um <code>String</code>. Para fazer contas, converta com <code>Integer.parseInt</code> (veja <a href="wrappers.html">wrappers</a>). Para datas de verdade, o Java tem uma ferramenta melhor: <a href="datas.html">java.time</a>. A regex é útil para achar a data no meio de um texto.</p>
+
+<hr>
+
+<h2>6. Validar formatos: CEP, CPF e e-mail</h2>
+<p>Um uso clássico é conferir se o que o usuário digitou tem o formato certo antes de seguir adiante:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] cpfs = { "123.456.789-09", "12345678909", "123.456.789-0" };
+        for (String c : cpfs) {
+            System.out.println(c + " -&gt; " + c.matches("\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}"));
+        }
+        String[] ceps = { "01310-100", "0131-0100" };
+        for (String c : ceps) {
+            System.out.println(c + " -&gt; " + c.matches("\\d{5}-\\d{3}"));
+        }
+        String[] emails = { "ana@email.com", "ana.souza@loja.com.br", "ana@", "ana email.com" };
+        for (String e : emails) {
+            System.out.println(e + " -&gt; " + e.matches("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+"));
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+123.456.789-09 -&gt; true
+12345678909 -&gt; false
+123.456.789-0 -&gt; false
+01310-100 -&gt; true
+0131-0100 -&gt; false
+ana@email.com -&gt; true
+ana.souza@loja.com.br -&gt; true
+ana@ -&gt; false
+ana email.com -&gt; false</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Formato</th><th>Regex (como fica no Java)</th><th>Leitura</th></tr>
+<tr><td>CEP</td><td><code>"\\d{5}-\\d{3}"</code></td><td>5 dígitos, hífen, 3 dígitos</td></tr>
+<tr><td>CPF com pontuação</td><td><code>"\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}"</code></td><td>3 dígitos, ponto, 3, ponto, 3, hífen, 2 (o ponto escapado é um ponto de verdade)</td></tr>
+<tr><td>E-mail simples</td><td><code>"[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+"</code></td><td>Letras/dígitos/<code>. + -</code>, arroba, um nome, e um ou mais "<code>.algo</code>"</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Formato não é validade</strong>
+<p>A regex confere só o <strong>desenho</strong>. <code>123.456.789-09</code> tem formato de CPF, mas um CPF de verdade também precisa que os dois últimos dígitos (os verificadores) batam com uma conta feita sobre os nove primeiros; isso se faz com código comum, não com regex. Do mesmo jeito, um e-mail com formato certo pode não existir. E a regex de e-mail "perfeita" é enorme: no dia a dia, uma simples como esta basta, e a confirmação de verdade é mandar um e-mail.</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de usar regex</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>texto.matches(regex)</code></td><td>Validar uma vez, rapidinho.</td></tr>
+<tr><td><code>Pattern.matches(regex, texto)</code></td><td>O mesmo, escrito como método estático.</td></tr>
+<tr><td><code>Pattern p = Pattern.compile(regex)</code> guardado numa <a href="constantes.html">constante</a> e <code>p.matcher(t).matches()</code></td><td>Validar <strong>muitos</strong> textos: a regex é preparada uma vez só (o <code>String.matches</code> prepara de novo a cada chamada).</td></tr>
+<tr><td><code>Matcher</code> + <code>while (m.find())</code></td><td>Achar todos os pedaços que casam.</td></tr>
+<tr><td><code>m.group(n)</code> / <code>m.group("nome")</code></td><td>Separar as partes do que casou.</td></tr>
+<tr><td><code>replaceAll</code> / <code>replaceFirst</code></td><td>Trocar pelo molde (com <code>$1</code> para reaproveitar grupos).</td></tr>
+<tr><td><code>split(regex)</code></td><td>Cortar o texto.</td></tr>
+<tr><td><code>contains</code>, <code>startsWith</code>, <code>replace</code></td><td>Quando o texto é <strong>fixo</strong>: são mais simples e não têm surpresas.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3>Barra simples: <code>illegal escape character</code></h3>
+<p>Escrever <code>"\d+"</code> dá erro de compilação (seção 1). <strong>Conserto:</strong> dobre a barra: <code>"\\d+"</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>Regex mal escrita: <code>PatternSyntaxException</code></h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">import java.util.regex.Pattern;
+
+public class Main {
+    public static void main(String[] args) {
+        Pattern p = Pattern.compile("(\\d+");
+        System.out.println("não chega aqui");
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Exception in thread "main" java.util.regex.PatternSyntaxException: Unclosed group near index 4
+(\d+
+	at java.base/java.util.regex.Pattern.error(Pattern.java:2205)
+	at java.base/java.util.regex.Pattern.accept(Pattern.java:2055)
+	at java.base/java.util.regex.Pattern.group0(Pattern.java:3233)
+	at java.base/java.util.regex.Pattern.sequence(Pattern.java:2301)
+	at java.base/java.util.regex.Pattern.expr(Pattern.java:2246)
+	at java.base/java.util.regex.Pattern.compile(Pattern.java:1946)
+	at java.base/java.util.regex.Pattern.&lt;init&gt;(Pattern.java:1577)
+	at java.base/java.util.regex.Pattern.compile(Pattern.java:1102)
+	at Main.main(Main.java:5)</pre>
+<p><strong>O que quer dizer:</strong> o <code>javac</code> não confere a regex (para ele, é só um texto entre aspas). Quem confere é o <code>Pattern.compile</code>, com o programa já rodando. "Grupo não fechado perto da posição 4": abriu um parêntese e não fechou. A segunda linha mostra a regex, e a última linha do rastro (<code>Main.java:5</code>) mostra onde, no seu código. <strong>Como consertar:</strong> feche o grupo: <code>"(\\d+)"</code>.</p>
+<p>Outro clássico é usar um símbolo especial sozinho. <code>"*promo*".split("*")</code> dá <code>PatternSyntaxException: Dangling meta character '*' near index 0</code> ("metacaractere solto"): o <code>*</code> quer dizer "repetir o anterior", e não há anterior. Para um asterisco de verdade: <code>split("\\*")</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>O resultado não é o que você esperava</h3>
+<ul>
+  <li><code>split(".")</code> devolve <code>[]</code>: o ponto é "qualquer caractere". Use <code>"\\."</code>.</li>
+  <li><code>replaceAll("R$", …)</code> não troca nada: <code>$</code> é "fim do texto". Use <code>replace</code> (sem regex) ou <code>"R\\$"</code>.</li>
+  <li><code>matches</code> dá <code>false</code> para um texto que "contém" o molde: <code>matches</code> exige o texto todo. Use <code>find</code>.</li>
+  <li><code>\w</code> não casa com <code>ç</code>, <code>ã</code>, <code>é</code>: use <code>\p{L}</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Para quê</th></tr>
+<tr><td><code>s.matches(re)</code></td><td><code>boolean</code></td><td>O texto todo casa?</td></tr>
+<tr><td><code>s.replaceAll(re, troca)</code></td><td><code>String</code></td><td>Troca todas as ocorrências (<code>$1</code> = grupo 1)</td></tr>
+<tr><td><code>s.replaceFirst(re, troca)</code></td><td><code>String</code></td><td>Troca a primeira</td></tr>
+<tr><td><code>s.split(re)</code></td><td><code>String[]</code></td><td>Corta onde casar</td></tr>
+<tr><td><code>Pattern.compile(re)</code></td><td><code>Pattern</code></td><td>Prepara a regex (pode lançar <code>PatternSyntaxException</code>)</td></tr>
+<tr><td><code>Pattern.compile(re, Pattern.CASE_INSENSITIVE)</code></td><td><code>Pattern</code></td><td>Ignorando maiúsculas/minúsculas</td></tr>
+<tr><td><code>p.matcher(texto)</code></td><td><code>Matcher</code></td><td>Leitor para um texto</td></tr>
+<tr><td><code>m.matches()</code> / <code>m.find()</code></td><td><code>boolean</code></td><td>Tudo casa? / Próximo pedaço</td></tr>
+<tr><td><code>m.group()</code>, <code>m.group(n)</code>, <code>m.group("nome")</code></td><td><code>String</code></td><td>O pedaço / um grupo</td></tr>
+<tr><td><code>m.start()</code>, <code>m.end()</code></td><td><code>int</code></td><td>Posições do pedaço</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete a regex (como fica no Java) para "um ou mais dígitos":</p>
+<div class="ex-code">"123".matches("<input data-answer="\\d+">")</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete para cortar a frase em palavras, separando por um ou mais espaços:</p>
+<div class="ex-code">String[] palavras = frase.split("<input data-answer="\\s+| +">");</div>
+</div>
+
+<div class="exercise">
+<p>3. Complete o método que procura o <strong>próximo</strong> pedaço que casa:</p>
+<div class="ex-code">while (m.<input data-answer="find()">) { System.out.println(m.group()); }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>"a.b.c".split(".")</code> devolve?</p>
+<label><input type="radio" name="q4"> <code>[a, b, c]</code></label>
+<label><input type="radio" name="q4"> Um array vazio, porque <code>.</code> na regex casa com qualquer caractere.</label>
+<label><input type="radio" name="q4"> Um erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Uma regex com um parêntese sem fechar, como <code>"(\\d+"</code>, dá erro quando?</p>
+<label><input type="radio" name="q5"> Na compilação, com <code>javac</code>.</label>
+<label><input type="radio" name="q5"> Nunca: o Java fecha o parêntese sozinho.</label>
+<label><input type="radio" name="q5"> Ao rodar, no <code>Pattern.compile</code>, com <code>PatternSyntaxException</code>.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Preço: R$ 4\,50,out:Preço: R$ 12\,00,out:Total em centavos: 1775,src:\.find\(\)">
+<p class="try-task"><strong>Missão final:</strong> o cupom da padaria tem três preços. Use <code>Pattern</code>, <code>Matcher</code> e <code>find()</code> para achar cada preço no formato <code>R$ 4,50</code>, mostrar <code>Preço: R$ 4,50</code> e somar tudo em centavos (<code>Total em centavos: 1775</code>). Dica: com a regex <code>"R\\$ (\\d+),(\\d{2})"</code>, o grupo 1 são os reais e o grupo 2 os centavos.</p>
+<pre class="script">import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Main {
+    public static void main(String[] args) {
+        String cupom = "Café R$ 4,50; pão R$ 1,25; bolo R$ 12,00";
+        int centavos = 0;
+        // crie o Pattern, o Matcher e o laço com find()
+
+        System.out.println("Total em centavos: " + centavos);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Main {
+    public static void main(String[] args) {
+        String cupom = "Café R$ 4,50; pão R$ 1,25; bolo R$ 12,00";
+        Pattern preco = Pattern.compile("R\\$ (\\d+),(\\d{2})");
+        Matcher m = preco.matcher(cupom);
+        int centavos = 0;
+        while (m.find()) {
+            int reais = Integer.parseInt(m.group(1));
+            int cents = Integer.parseInt(m.group(2));
+            System.out.println("Preço: " + m.group());
+            centavos = centavos + reais * 100 + cents;
+        }
+        System.out.println("Total em centavos: " + centavos);
+    }
+}
+</pre>
+</div>
+
+<p>Saída real da solução:</p>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Preço: R$ 4,50
+Preço: R$ 1,25
+Preço: R$ 12,00
+Total em centavos: 1775</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma regex descreve um <strong>formato</strong>: <code>\d</code> dígito, <code>[A-Z]</code> faixa, <code>+</code> "um ou mais", <code>{5}</code> "cinco vezes", <code>( )</code> grupo.</li>
+  <li>No código Java, cada <code>\</code> da regex vira <code>\\</code>: <code>"\\d+"</code>. Esquecer dá <code>illegal escape character</code>.</li>
+  <li><code>matches</code> valida o texto inteiro; <code>Matcher.find</code> procura pedaços; <code>group</code> separa as partes.</li>
+  <li><code>replaceAll</code>, <code>replaceFirst</code> e <code>split</code> aceitam regex; <code>replace</code> não. Cuidado com <code>.</code> e <code>$</code>.</li>
+  <li>Regex confere formato (CEP, CPF, e-mail), não validade.</li>
+  <li>Regex inválida só é descoberta ao rodar: <code>PatternSyntaxException</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="anotacoes.html">Anotações</a>.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
