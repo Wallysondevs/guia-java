@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Formatar Texto — String.format, printf e formatted | Guia Java</title>
+<meta name="description" content="Como formatar texto e números em Java com String.format, printf e formatted: %s, %d, %f, %.2f, largura, alinhamento, zeros, separador de milhar, %x, %e, %n e %%. O locale pt_BR (vírgula decimal), como forçar Locale.US, tabelas alinhadas e NumberFormat para moeda (R$ 1.234,56). Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Formatar Texto</span></h1>
+
+<p class="intro">Mostrar <code>9.5</code> como <code>9,50</code>, alinhar uma tabela de alunos em colunas, escrever <code>R$ 1.234,56</code>: tudo isso é <strong>formatar</strong>. O Java tem um "molde" de texto, com lacunas como <code>%d</code> e <code>%.2f</code>, que é usado em três lugares: <code>String.format</code>, <code>printf</code> e <code>formatted</code>. E tem um detalhe que pega todo brasileiro: o idioma do computador muda a vírgula e o ponto.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Usar <code>String.format</code>, <code>System.out.printf</code> e <code>"…".formatted(…)</code>.</li>
+  <li>Os especificadores: <code>%s %d %f %.2f %5d %-10s %05d %,d %x %e %n %%</code>.</li>
+  <li>Por que, num computador em português, <code>%.2f</code> mostra <strong>vírgula</strong>, e como forçar o ponto com <code>Locale.US</code>.</li>
+  <li>Montar tabelas alinhadas.</li>
+  <li>Formatar dinheiro com <code>NumberFormat</code> e o espaço "invisível" de <code>R$ 1.234,56</code>.</li>
+  <li>As exceções de formato mais comuns.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense num formulário de papel: "Eu, ________, de ___ anos, declaro…". O texto fixo já está impresso; você só preenche as lacunas. Cada lacuna tem um formato esperado: o nome é texto, a idade é número.</p>
+<p>No Java, o formulário é uma <code>String</code> com <strong>especificadores de formato</strong> (as lacunas), que começam com <code>%</code>: <code>"%s tem %d anos"</code>. Depois do formulário, você passa os valores, na mesma ordem das lacunas.</p>
+
+<hr>
+
+<h2>Três formas de usar o mesmo molde</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>O que faz</th><th>Exemplo</th></tr>
+<tr><td><code>String.format(molde, valores…)</code></td><td><strong>Devolve</strong> uma <code>String</code> pronta</td><td><code>String s = String.format("%d anos", 29);</code></td></tr>
+<tr><td><code>System.out.printf(molde, valores…)</code></td><td><strong>Mostra</strong> na tela (não pula linha sozinho)</td><td><code>System.out.printf("%d anos%n", 29);</code></td></tr>
+<tr><td><code>molde.formatted(valores…)</code> <span class="versao">Java 15+</span></td><td>Igual ao <code>String.format</code>, escrito a partir do molde</td><td><code>String s = "%d anos".formatted(29);</code></td></tr>
+</table>
+</div>
+
+<p>O <code>printf</code> vem da linguagem C ("<em>print formatted</em>", imprimir formatado). <code>System.out.format</code> é um sinônimo dele. As três formas entendem exatamente os mesmos especificadores.</p>
+
+<pre class="file" data-file="Main.java (trecho)">String nome = "Ana";
+int idade = 29;
+System.out.printf("%s tem %d anos%n", nome, idade);
+</pre>
+
+<dl class="anatomy">
+  <dt>"%s tem %d anos%n"</dt><dd>O molde. Tem três especificadores.</dd>
+  <dt>%s</dt><dd>Lacuna para texto (<em>string</em>). Recebe o primeiro valor, <code>nome</code>.</dd>
+  <dt>%d</dt><dd>Lacuna para número inteiro (<em>decimal</em>, "na base 10"). Recebe o segundo valor, <code>idade</code>.</dd>
+  <dt>%n</dt><dd>Quebra de linha (<em>new line</em>). O <code>printf</code> não pula linha sozinho como o <code>println</code>. Não consome valor nenhum.</dd>
+  <dt>nome, idade</dt><dd>Os valores, na ordem das lacunas.</dd>
+</dl>
+
+<hr>
+
+<h2>Os especificadores</h2>
+<p>Um programa que mostra os mais usados, rodado na máquina da Ana (em português do Brasil):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        int idade = 29;
+        double nota = 9.5;
+        System.out.printf("%s tem %d anos%n", nome, idade);
+        System.out.printf("Nota: %f%n", nota);
+        System.out.printf("Nota: %.2f%n", nota);
+        System.out.printf("Nota: %.0f%n", nota);
+        System.out.printf("Pi: %.4f%n", Math.PI);
+        System.out.printf("[%5d]%n", 42);
+        System.out.printf("[%-5d]%n", 42);
+        System.out.printf("[%05d]%n", 42);
+        System.out.printf("[%10s]%n", nome);
+        System.out.printf("[%-10s]%n", nome);
+        System.out.printf("%,d%n", 1234567);
+        System.out.printf("%,.2f%n", 1234567.891);
+        System.out.printf("%x %X%n", 255, 255);
+        System.out.printf("%e%n", 1234567.891);
+        System.out.printf("Desconto de 10%%%n");
+        System.out.printf("%b %c%n", true, 'A');
+        System.out.println(nota);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Ana tem 29 anos
+Nota: 9,500000
+Nota: 9,50
+Nota: 10
+Pi: 3,1416
+[   42]
+[42   ]
+[00042]
+[       Ana]
+[Ana       ]
+1.234.567
+1.234.567,89
+ff FF
+1,234568e+06
+Desconto de 10%
+true A
+9.5</pre>
+
+<p>Os colchetes <code>[ ]</code> fazem parte do texto fixo: estão ali só para você ver os espaços. Linha a linha:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Especificador</th><th>Valor</th><th>Saída</th><th>O que fez</th></tr>
+<tr><td><code>%f</code></td><td><code>9.5</code></td><td><code>9,500000</code></td><td>Número com casas decimais (<em>float</em>). Sem precisão, mostra 6 casas</td></tr>
+<tr><td><code>%.2f</code></td><td><code>9.5</code></td><td><code>9,50</code></td><td><code>.2</code> = duas casas decimais. O mais usado de todos</td></tr>
+<tr><td><code>%.0f</code></td><td><code>9.5</code></td><td><code>10</code></td><td>Zero casas: <strong>arredonda</strong> (9,5 sobe para 10)</td></tr>
+<tr><td><code>%.4f</code></td><td><code>Math.PI</code></td><td><code>3,1416</code></td><td>Quatro casas, arredondando</td></tr>
+<tr><td><code>%5d</code></td><td><code>42</code></td><td><code>[   42]</code></td><td><strong>Largura</strong> 5: ocupa pelo menos 5 posições, alinhado à direita</td></tr>
+<tr><td><code>%-5d</code></td><td><code>42</code></td><td><code>[42   ]</code></td><td>O <code>-</code> alinha à esquerda</td></tr>
+<tr><td><code>%05d</code></td><td><code>42</code></td><td><code>[00042]</code></td><td>O <code>0</code> completa com zeros (códigos, matrículas)</td></tr>
+<tr><td><code>%10s</code> / <code>%-10s</code></td><td><code>"Ana"</code></td><td><code>[       Ana]</code> / <code>[Ana       ]</code></td><td>Largura também vale para texto</td></tr>
+<tr><td><code>%,d</code></td><td><code>1234567</code></td><td><code>1.234.567</code></td><td>A <code>,</code> liga o separador de milhar</td></tr>
+<tr><td><code>%,.2f</code></td><td><code>1234567.891</code></td><td><code>1.234.567,89</code></td><td>Milhar e duas casas juntos</td></tr>
+<tr><td><code>%x</code> / <code>%X</code></td><td><code>255</code></td><td><code>ff</code> / <code>FF</code></td><td>Hexadecimal (base 16), minúsculo ou maiúsculo</td></tr>
+<tr><td><code>%e</code></td><td><code>1234567.891</code></td><td><code>1,234568e+06</code></td><td>Notação científica: 1,234568 × 10<sup>6</sup></td></tr>
+<tr><td><code>%%</code></td><td>—</td><td><code>%</code></td><td>Um sinal de porcentagem de verdade</td></tr>
+<tr><td><code>%b</code> / <code>%c</code></td><td><code>true</code> / <code>'A'</code></td><td><code>true</code> / <code>A</code></td><td><em>boolean</em> e caractere (<em>char</em>)</td></tr>
+<tr><td><code>%n</code></td><td>—</td><td>quebra de linha</td><td>Funciona em qualquer sistema</td></tr>
+</table>
+</div>
+
+<h3>A anatomia de um especificador</h3>
+<p>Todos seguem a mesma ordem: <code>%</code>, depois (opcionais) as <strong>opções</strong>, a <strong>largura</strong> e a <strong>precisão</strong>, e por fim a <strong>conversão</strong> (a letra):</p>
+
+<dl class="anatomy">
+  <dt>%</dt><dd>Começo da lacuna.</dd>
+  <dt>-  0  ,  +</dt><dd>Opções (<em>flags</em>): <code>-</code> alinha à esquerda; <code>0</code> completa com zeros; <code>,</code> separa milhares; <code>+</code> mostra o sinal também nos positivos.</dd>
+  <dt>10</dt><dd>Largura mínima, em caracteres.</dd>
+  <dt>.2</dt><dd>Precisão: casas decimais (em <code>%f</code>) ou máximo de caracteres (em <code>%s</code>: <code>%.3s</code> mostra só 3 letras).</dd>
+  <dt>f</dt><dd>A conversão: <code>s</code>, <code>d</code>, <code>f</code>, <code>x</code>, <code>e</code>, <code>b</code>, <code>c</code>…</dd>
+</dl>
+<p>Exemplo completo: <code>%,10.2f</code> = separador de milhar, largura 10, duas casas, número decimal.</p>
+
+<div class="tryjava" data-goal="out:12 x Pão de queijo,out:Preço: R$ 7\,50,src:printf">
+<p class="try-task"><strong>Missão:</strong> complete os dois <code>printf</code>: o primeiro deve mostrar <code>12 x Pão de queijo</code> (use <code>%d</code> e <code>%s</code>) e o segundo, <code>Preço: R$ 7,50</code> (duas casas decimais). Não esqueça o <code>%n</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String produto = "Pão de queijo";
+        int quantidade = 12;
+        double preco = 7.5;
+        System.out.printf("", quantidade, produto);
+        System.out.printf("", preco);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String produto = "Pão de queijo";
+        int quantidade = 12;
+        double preco = 7.5;
+        System.out.printf("%d x %s%n", quantidade, produto);
+        System.out.printf("Preço: R$ %.2f%n", preco);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Vírgula ou ponto? O locale</h2>
+<p>Repare de novo na saída acima: <code>%.2f</code> mostrou <code>9,50</code>, com <strong>vírgula</strong>, mas o <code>println(nota)</code> da última linha mostrou <code>9.5</code>, com <strong>ponto</strong>. Por quê?</p>
+<p>O <code>String.format</code>, o <code>printf</code> e o <code>formatted</code> seguem o <strong>locale</strong> (pronuncia-se "lôu-quél"): a configuração de idioma e país do computador. A máquina da Ana está em <code>pt_BR</code> (português do Brasil), onde a vírgula separa os decimais e o ponto separa os milhares. Já o <code>println</code> e o <code>+</code> com texto <strong>ignoram</strong> o locale e usam sempre o ponto, o formato do próprio Java.</p>
+
+<pre class="file" data-file="Main.java">import java.util.Locale;
+
+public class Main {
+    public static void main(String[] args) {
+        double valor = 1234567.891;
+        System.out.println(Locale.getDefault());
+        System.out.println(String.format("%,.2f", valor));
+        System.out.println(String.format(Locale.US, "%,.2f", valor));
+        System.out.println(String.format(Locale.GERMANY, "%,.2f", valor));
+        System.out.println(String.format(Locale.FRANCE, "%,.2f", valor));
+        System.out.println("%.2f".formatted(valor));
+        System.out.println(valor);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+pt_BR
+1.234.567,89
+1,234,567.89
+1.234.567,89
+1 234 567,89
+1234567,89
+1234567.891</pre>
+
+<dl class="anatomy">
+  <dt>Locale.getDefault()</dt><dd>O locale padrão da JVM, que ela pega do sistema: <code>pt_BR</code> (idioma <code>pt</code>, país <code>BR</code>). A classe <code>Locale</code> fica em <code>java.util</code>, por isso o <code>import</code>.</dd>
+  <dt>String.format("%,.2f", valor)</dt><dd>Sem dizer o locale: usa o padrão. <code>1.234.567,89</code>.</dd>
+  <dt>String.format(Locale.US, …)</dt><dd>Passando um locale como <strong>primeiro</strong> argumento, ele vale só para esta chamada. Estados Unidos: <code>1,234,567.89</code>, o contrário do Brasil.</dd>
+  <dt>Locale.GERMANY, Locale.FRANCE</dt><dd>A Alemanha usa o mesmo formato do Brasil; a França separa milhares com um espaço (um espaço especial, que não quebra a linha).</dd>
+  <dt>"%.2f".formatted(valor)</dt><dd>O <code>formatted</code> usa sempre o locale padrão: não tem versão com <code>Locale</code>.</dd>
+  <dt>println(valor)</dt><dd>Sem formatação nenhuma: o formato do Java, com ponto e todas as casas.</dd>
+</dl>
+
+<div class="warning">
+<strong>O mesmo programa, saídas diferentes</strong>
+<p>Um programa com <code>printf("%.2f")</code> mostra <code>9,50</code> no computador da Ana e <code>9.50</code> num servidor configurado em inglês. Quando o texto vai ser lido por <strong>pessoas</strong>, isso é bom: cada uma vê no formato do seu país. Quando o texto vai ser lido por <strong>outro programa</strong> (um arquivo CSV, um JSON, um número que será convertido de volta com <code>Double.parseDouble</code>, que só aceita ponto), use um locale fixo: <code>String.format(Locale.US, …)</code> ou <code>Locale.ROOT</code> (o locale "neutro").</p>
+</div>
+
+<div class="tryjshell" data-goal="out:&quot;3.14&quot;">
+<p class="try-task"><strong>Missão:</strong> no JShell, formate <code>3.14159</code> com duas casas usando <strong>ponto</strong> decimal, passando <code>Locale.US</code> para o <code>String.format</code>. (O JShell já importa <code>java.util</code>, então <code>Locale</code> funciona direto.) Experimente também sem o locale e veja a vírgula.</p>
+<pre class="solucao">String.format(Locale.US, "%.2f", 3.14159)</pre>
+</div>
+
+<p>Na máquina da Ana, as duas versões ficam assim:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell> String.format("%.2f", 3.14159)
+$1 ==> "3,14"
+
+jshell> String.format(Locale.US, "%.2f", 3.14159)
+$2 ==> "3.14"
+
+jshell> /exit
+|  Goodbye</pre>
+
+<hr>
+
+<h2>Tabelas alinhadas</h2>
+<p>Com largura e alinhamento, a lista de alunos da Ana (a mesma do arquivo <code>Documentos/alunos.csv</code>) vira uma tabela. A regra prática: <strong>texto à esquerda</strong> (<code>%-8s</code>), <strong>números à direita</strong> (<code>%5d</code>, <code>%5.1f</code>), e a mesma largura no cabeçalho e nas linhas.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] nomes = {"Ana", "Bruno", "Carla", "Diego", "Elisa"};
+        int[] idades = {29, 34, 22, 41, 27};
+        String[] cidades = {"Recife", "Curitiba", "Salvador", "Manaus", "Porto Alegre"};
+        double[] notas = {9.5, 7.0, 8.5, 6.0, 10.0};
+
+        System.out.printf("%-8s %5s  %-14s %5s%n", "Nome", "Idade", "Cidade", "Nota");
+        System.out.println("-".repeat(36));
+        for (int i = 0; i &lt; nomes.length; i++) {
+            System.out.printf("%-8s %5d  %-14s %5.1f%n", nomes[i], idades[i], cidades[i], notas[i]);
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Nome     Idade  Cidade          Nota
+------------------------------------
+Ana         29  Recife           9,5
+Bruno       34  Curitiba         7,0
+Carla       22  Salvador         8,5
+Diego       41  Manaus           6,0
+Elisa       27  Porto Alegre    10,0</pre>
+
+<dl class="anatomy">
+  <dt>"%-8s %5s  %-14s %5s%n"</dt><dd>O cabeçalho usa <code>%s</code> em todas as colunas (são todos textos), mas com as <strong>mesmas larguras</strong> das linhas de dados, para as colunas baterem. "Idade" e "Nota" ficam à direita, em cima dos números.</dd>
+  <dt>"-".repeat(36)</dt><dd>Uma linha de 36 traços (a soma das larguras e dos espaços).</dd>
+  <dt>%5.1f</dt><dd>Nota com uma casa, ocupando 5 posições, alinhada à direita: <code>  9,5</code> e <code> 10,0</code> terminam na mesma coluna.</dd>
+</dl>
+
+<p>A largura é um <strong>mínimo</strong>: um nome com mais de 8 letras empurraria o resto da linha. Escolha larguras que caibam o maior valor. (Letras acentuadas contam como um caractere cada, então <code>Maçã</code> ocupa 4 posições, como esperado.)</p>
+
+<hr>
+
+<h2>Dinheiro: <code>NumberFormat</code></h2>
+<p>Para moeda, em vez de montar <code>"R$ " + String.format("%,.2f", …)</code>, use o <code>NumberFormat</code> (pacote <code>java.text</code>), que conhece o símbolo, a posição do sinal e as casas de cada moeda:</p>
+
+<pre class="file" data-file="Main.java">import java.text.NumberFormat;
+import java.util.Locale;
+
+public class Main {
+    public static void main(String[] args) {
+        double preco = 1234.56;
+        NumberFormat real = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
+        NumberFormat dolar = NumberFormat.getCurrencyInstance(Locale.US);
+        NumberFormat porcento = NumberFormat.getPercentInstance();
+        System.out.println(real.format(preco));
+        System.out.println(dolar.format(preco));
+        System.out.println(real.format(-5));
+        System.out.println(porcento.format(0.256));
+        String texto = real.format(preco);
+        System.out.println(texto.equals("R$ 1.234,56"));
+        System.out.println((int) texto.charAt(2));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+R$ 1.234,56
+$1,234.56
+-R$ 5,00
+26%
+false
+160</pre>
+
+<dl class="anatomy">
+  <dt>NumberFormat.getCurrencyInstance(locale)</dt><dd>"Formatador de moeda" do país indicado. <code>Locale.of("pt", "BR")</code> cria o locale do Brasil <span class="versao">Java 19+</span>.</dd>
+  <dt>real.format(preco)</dt><dd>Devolve a <code>String</code> formatada: <code>R$ 1.234,56</code>. Sempre duas casas: <code>-5</code> vira <code>-R$ 5,00</code>.</dd>
+  <dt>getPercentInstance()</dt><dd>Porcentagem no locale padrão: multiplica por 100 e arredonda: <code>0.256</code> vira <code>26%</code>.</dd>
+</dl>
+
+<h3>O espaço que não é espaço</h3>
+<p>As duas últimas linhas mostram uma surpresa: <code>texto.equals("R$ 1.234,56")</code> deu <code>false</code>, embora o texto pareça idêntico. O caractere na posição 2 (entre o <code>$</code> e o <code>1</code>) tem código <code>160</code>, e não <code>32</code>, o espaço comum. É o <strong>espaço não separável</strong> (<em>non-breaking space</em>, <code>\u00A0</code>), usado para o "R$" nunca ficar sozinho no fim de uma linha. Olhando os bytes com o <code>od</code>:</p>
+
+<pre class="term">$ java Main.java | head -1 | od -c | head -2
+0000000   R   $ 302 240   1   .   2   3   4   ,   5   6  \n
+0000015</pre>
+
+<p>Os bytes <code>302 240</code> são esse caractere em UTF-8. Na tela, ele é igual a um espaço. Em testes e comparações, lembre-se dele: compare com <code>"R$\u00A01.234,56"</code> ou troque antes com <code>texto.replace('\u00A0', ' ')</code>.</p>
+
+<div class="tip">
+<strong>Dinheiro de verdade</strong>
+<p>O <code>NumberFormat</code> resolve a <strong>exibição</strong>. Para <strong>calcular</strong> com dinheiro, não use <code>double</code>: <code>0.1 + 0.2</code> não dá exatamente <code>0.3</code>. Veja <a href="bigdecimal.html">BigDecimal e Dinheiro</a> (o <code>NumberFormat</code> formata <code>BigDecimal</code> também).</p>
+</div>
+
+<hr>
+
+<h2>Qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>Mostrar algo formatado na tela</td><td><code>System.out.printf(…%n)</code></td></tr>
+<tr><td>Guardar o texto formatado numa variável</td><td><code>String.format(…)</code> ou <code>"…".formatted(…)</code></td></tr>
+<tr><td>Número com ponto, para outro programa ler</td><td><code>String.format(Locale.US, …)</code> ou <code>Locale.ROOT</code></td></tr>
+<tr><td>Moeda</td><td><code>NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"))</code></td></tr>
+<tr><td>Porcentagem</td><td><code>NumberFormat.getPercentInstance()</code> ou <code>%.1f%%</code></td></tr>
+<tr><td>Juntar duas ou três coisas sem formato especial</td><td><code>+</code> (veja <a href="concatenacao.html">Concatenação</a>)</td></tr>
+<tr><td>Datas</td><td><code>DateTimeFormatter</code> (veja <a href="datas.html">Datas e Horas</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+<p>Os erros de formato não são pegos pelo <code>javac</code>: o molde é só uma <code>String</code> para ele. Eles aparecem na execução, como exceções. Repare que o texto <strong>antes</strong> da lacuna problemática chega a ser mostrado.</p>
+
+<div class="cenario">
+<strong><code>MissingFormatArgumentException</code>: faltou valor</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.printf("%s tem %d anos%n", "Ana");
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Ana tem Exception in thread "main" java.util.MissingFormatArgumentException: Format specifier '%d'
+	at java.base/java.util.Formatter.format(Formatter.java:2760)
+	at java.base/java.io.PrintStream.format(PrintStream.java:1183)
+	at java.base/java.io.PrintStream.printf(PrintStream.java:1081)
+	at Main.main(Main.java:3)</pre>
+<p><strong>O que aconteceu:</strong> "falta argumento para o especificador <code>%d</code>". Há duas lacunas e um valor só. O <code>Ana tem </code> foi escrito antes de o problema ser percebido.</p>
+<p><strong>Como resolver:</strong> conte as lacunas (sem contar <code>%n</code> e <code>%%</code>) e os valores: devem ser iguais.</p>
+</div>
+
+<div class="cenario">
+<strong><code>IllegalFormatConversionException: d != java.lang.String</code></strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.printf("Idade: %d%n", "29");
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Idade: Exception in thread "main" java.util.IllegalFormatConversionException: d != java.lang.String
+	at java.base/java.util.Formatter$FormatSpecifier.failConversion(Formatter.java:4662)
+	at java.base/java.util.Formatter$FormatSpecifier.printInteger(Formatter.java:3200)
+	at java.base/java.util.Formatter$FormatSpecifier.print(Formatter.java:3155)
+	at java.base/java.util.Formatter.format(Formatter.java:2761)
+	at java.base/java.io.PrintStream.format(PrintStream.java:1183)
+	at java.base/java.io.PrintStream.printf(PrintStream.java:1081)
+	at Main.main(Main.java:3)</pre>
+<p><strong>O que aconteceu:</strong> "<code>d</code> é diferente de <code>String</code>": a lacuna <code>%d</code> espera um inteiro e recebeu o texto <code>"29"</code> (entre aspas!).</p>
+<p><strong>Como resolver:</strong> passe um número (<code>29</code>), converta (<code>Integer.parseInt("29")</code>) ou use <code>%s</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>f != java.lang.Integer</code>: <code>%f</code> com número inteiro</strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int total = 30;
+        System.out.printf("Média: %.2f%n", total / 4);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Média: Exception in thread "main" java.util.IllegalFormatConversionException: f != java.lang.Integer
+	at java.base/java.util.Formatter$FormatSpecifier.failConversion(Formatter.java:4662)
+	at java.base/java.util.Formatter$FormatSpecifier.printFloat(Formatter.java:3213)
+	at java.base/java.util.Formatter$FormatSpecifier.print(Formatter.java:3161)
+	at java.base/java.util.Formatter.format(Formatter.java:2761)
+	at java.base/java.io.PrintStream.format(PrintStream.java:1183)
+	at java.base/java.io.PrintStream.printf(PrintStream.java:1081)
+	at Main.main(Main.java:4)</pre>
+<p><strong>O que aconteceu:</strong> <code>total / 4</code> é uma divisão de inteiros: dá <code>7</code>, um <code>int</code>. O <code>%f</code> não aceita inteiros (nem converte sozinho).</p>
+<p><strong>Como resolver:</strong> faça a conta com <code>double</code>: <code>total / 4.0</code> (que dá <code>7,50</code>). Veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tudo grudado numa linha e <code>UnknownFormatConversionException</code></strong>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.printf("Nota: %.2f", 9.5);
+        System.out.printf("Nota: %.2f", 7.0);
+        System.out.println();
+        System.out.printf("Desconto: 10%");
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Nota: 9,50Nota: 7,00
+Exception in thread "main" java.util.UnknownFormatConversionException: Conversion = '%'
+	at java.base/java.util.Formatter.parse(Formatter.java:2800)
+	at java.base/java.util.Formatter.format(Formatter.java:2744)
+	at java.base/java.io.PrintStream.format(PrintStream.java:1183)
+	at java.base/java.io.PrintStream.printf(PrintStream.java:1081)
+	at Main.main(Main.java:6)</pre>
+<p><strong>O que aconteceu:</strong> dois problemas. Sem <code>%n</code>, as notas saíram coladas. E um <code>%</code> sozinho no fim do molde foi lido como o começo de uma lacuna sem letra: "conversão desconhecida".</p>
+<p><strong>Como resolver:</strong> termine cada <code>printf</code> com <code>%n</code>, e escreva <code>%%</code> para um sinal de porcentagem.</p>
+</div>
+
+<div class="cenario">
+<strong>"Locale(String,String) in Locale has been deprecated"</strong>
+<pre class="term">$ java Main.java
+Main.java:6: warning: [deprecation] Locale(String,String) in Locale has been deprecated
+        NumberFormat real = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+                                                             ^
+1 warning
+R$ 10,00</pre>
+<p><strong>O que aconteceu:</strong> não é erro, é um aviso: o programa rodou (<code>R$ 10,00</code>). O construtor <code>new Locale("pt", "BR")</code>, que aparece em muitos tutoriais, foi marcado como obsoleto (<em>deprecated</em>) no Java 19.</p>
+<p><strong>Como resolver:</strong> use <code>Locale.of("pt", "BR")</code>. Em Java 17 ou anterior, <code>new Locale("pt", "BR")</code> continua sendo o jeito certo.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Especificador</th><th>Para</th><th>Exemplo (pt_BR)</th></tr>
+<tr><td><code>%s</code></td><td>Texto (qualquer objeto)</td><td><code>Ana</code></td></tr>
+<tr><td><code>%d</code></td><td>Inteiros (<code>int</code>, <code>long</code>…)</td><td><code>29</code></td></tr>
+<tr><td><code>%f</code>, <code>%.2f</code></td><td>Decimais (<code>double</code>, <code>float</code>)</td><td><code>9,500000</code>, <code>9,50</code></td></tr>
+<tr><td><code>%5d</code>, <code>%-10s</code></td><td>Largura, alinhamento à esquerda</td><td><code>[   42]</code>, <code>[Ana       ]</code></td></tr>
+<tr><td><code>%05d</code></td><td>Completar com zeros</td><td><code>00042</code></td></tr>
+<tr><td><code>%,d</code>, <code>%,.2f</code></td><td>Separador de milhar</td><td><code>1.234.567</code>, <code>1.234.567,89</code></td></tr>
+<tr><td><code>%x</code>, <code>%X</code></td><td>Hexadecimal</td><td><code>ff</code>, <code>FF</code></td></tr>
+<tr><td><code>%e</code></td><td>Notação científica</td><td><code>1,234568e+06</code></td></tr>
+<tr><td><code>%b</code>, <code>%c</code></td><td><code>boolean</code>, <code>char</code></td><td><code>true</code>, <code>A</code></td></tr>
+<tr><td><code>%n</code></td><td>Quebra de linha</td><td></td></tr>
+<tr><td><code>%%</code></td><td>O caractere <code>%</code></td><td><code>%</code></td></tr>
+<tr><td><code>String.format(Locale.US, …)</code></td><td>Forçar ponto decimal</td><td><code>3.14</code></td></tr>
+<tr><td><code>NumberFormat.getCurrencyInstance(Locale.of("pt","BR"))</code></td><td>Moeda</td><td><code>R$ 1.234,56</code> (com <code>\u00A0</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Duas casas</h3>
+<p>Complete o especificador para mostrar o <code>double</code> com duas casas decimais:</p>
+<div class="ex-code">System.out.printf("Total: <input data-answer="%.2f" aria-label="especificador">%n", total);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Matrícula com zeros</h3>
+<p>Complete para o número <code>37</code> aparecer como <code>000037</code> (6 dígitos):</p>
+<div class="ex-code">String.format("<input data-answer="%06d" aria-label="especificador">", 37)</div>
+</div>
+
+<div class="exercise">
+<h3>3. Porcentagem</h3>
+<p>Na máquina da Ana, o que <code>String.format("%.1f%%", 12.34)</code> devolve?</p>
+<div class="ex-code"><input data-answer="12,3%" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Num computador em <code>pt_BR</code>, o que <code>System.out.println(2.5)</code> e <code>System.out.printf("%.1f%n", 2.5)</code> mostram?</p>
+<label><input type="radio" name="q4"> <code>2,5</code> e <code>2,5</code></label>
+<label><input type="radio" name="q4"> <code>2.5</code> e <code>2,5</code></label>
+<label><input type="radio" name="q4"> <code>2.5</code> e <code>2.5</code></label>
+<label><input type="radio" name="q4"> <code>2,5</code> e <code>2.5</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Que exceção <code>String.format("%d", 9.5)</code> lança?</p>
+<label><input type="radio" name="q5"> Nenhuma: mostra <code>9</code>.</label>
+<label><input type="radio" name="q5"> <code>NumberFormatException</code></label>
+<label><input type="radio" name="q5"> <code>MissingFormatArgumentException</code></label>
+<label><input type="radio" name="q5"> <code>IllegalFormatConversionException</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Para gravar <code>9.5</code> num arquivo CSV que outro programa vai ler com <code>Double.parseDouble</code>, qual é o certo?</p>
+<label><input type="radio" name="q6"> <code>String.format(Locale.US, "%.2f", nota)</code></label>
+<label><input type="radio" name="q6"> <code>String.format("%.2f", nota)</code></label>
+<label><input type="radio" name="q6"> <code>NumberFormat.getCurrencyInstance().format(nota)</code></label>
+<label><input type="radio" name="q6"> <code>"%.2f".formatted(nota)</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Maçã       R$   3\,50,out:Banana     R$   4\,99,out:Melancia   R$  12\,00,src:printf">
+<p class="try-task"><strong>Missão final:</strong> monte a tabela de preços da feira com um único <code>printf</code> dentro do laço: nome alinhado à esquerda em 10 posições, um espaço, <code>R$ </code> e o preço com duas casas em 6 posições. A saída deve ser exatamente:</p>
+<pre>Maçã       R$   3,50
+Banana     R$   4,99
+Melancia   R$  12,00</pre>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] produtos = {"Maçã", "Banana", "Melancia"};
+        double[] precos = {3.5, 4.99, 12.0};
+        for (int i = 0; i &lt; produtos.length; i++) {
+            System.out.println(produtos[i] + " R$ " + precos[i]);
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] produtos = {"Maçã", "Banana", "Melancia"};
+        double[] precos = {3.5, 4.99, 12.0};
+        for (int i = 0; i &lt; produtos.length; i++) {
+            System.out.printf("%-10s R$ %6.2f%n", produtos[i], precos[i]);
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um molde com lacunas <code>%…</code> e os valores na ordem: <code>String.format</code> devolve, <code>printf</code> mostra, <code>formatted</code> (Java 15+) devolve.</li>
+  <li>Especificador = <code>%</code> + opções (<code>- 0 , +</code>) + largura + <code>.precisão</code> + letra (<code>s d f x e b c</code>). <code>%n</code> pula linha; <code>%%</code> é o próprio <code>%</code>.</li>
+  <li>A formatação segue o <strong>locale</strong>: em <code>pt_BR</code>, <code>%.2f</code> dá <code>9,50</code> e <code>%,d</code> dá <code>1.234.567</code>. O <code>println</code> ignora o locale e usa ponto.</li>
+  <li>Para ponto fixo (arquivos, outros programas), passe <code>Locale.US</code> ou <code>Locale.ROOT</code> como primeiro argumento.</li>
+  <li>Tabelas: texto com <code>%-Ns</code>, números com <code>%Nd</code>/<code>%N.2f</code>, mesmas larguras no cabeçalho.</li>
+  <li>Moeda: <code>NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"))</code> → <code>R$ 1.234,56</code>, com um espaço não separável (<code>\u00A0</code>) depois do <code>R$</code>.</li>
+  <li>Erros de formato são exceções em tempo de execução: <code>MissingFormatArgumentException</code>, <code>IllegalFormatConversionException</code>, <code>UnknownFormatConversionException</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
