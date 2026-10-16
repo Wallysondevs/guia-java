@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Optional — a caixa que pode estar vazia | Guia Java</title>
+<meta name="description" content="Optional em Java: o problema do null e da NullPointerException, Optional.of, ofNullable e empty, isPresent, ifPresent, orElse, orElseGet, orElseThrow (NoSuchElementException real), map e filter, de onde vêm (findFirst, max) e quando não usar, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Optional</span></h1>
+
+<p class="intro">Um método que procura algo pode não achar. Durante muito tempo, em Java, "não achei" era devolvido como <code>null</code>, e quem chamava o método esquecia de conferir: <code>NullPointerException</code>. O <strong><code>Optional</code></strong> (Java 8) é uma <strong>caixa que pode estar vazia</strong>: o método devolve a caixa, e o tipo <code>Optional&lt;Aluno&gt;</code> já avisa quem chama: "talvez não tenha nada aqui dentro; decida o que fazer".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O problema do <code>null</code>, com a <code>NullPointerException</code> real.</li>
+  <li>Criar: <code>Optional.of</code>, <code>Optional.ofNullable</code>, <code>Optional.empty</code>.</li>
+  <li>Perguntar e agir: <code>isPresent</code>, <code>isEmpty</code>, <code>ifPresent</code>, <code>ifPresentOrElse</code>.</li>
+  <li>Tirar o valor com segurança: <code>orElse</code>, <code>orElseGet</code>, <code>orElseThrow</code> (e a <code>NoSuchElementException</code>).</li>
+  <li>Transformar sem abrir a caixa: <code>map</code> e <code>filter</code>.</li>
+  <li>De onde vêm os Optionals (<code>findFirst</code>, <code>max</code>) e quando <strong>não</strong> usar.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O problema: o <code>null</code></h2>
+<p>A Ana escreve um método que procura um aluno pelo nome. Se não achar, devolve <code>null</code> ("nada"):</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.List;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    static List&lt;Aluno&gt; turma = List.of(new Aluno("Ana", 9.5), new Aluno("Bruno", 7.0));
+
+    static Aluno buscar(String nome) {
+        for (Aluno a : turma) {
+            if (a.nome().equals(nome)) {
+                return a;
+            }
+        }
+        return null;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Nota da Ana: " + buscar("Ana").nota());
+        System.out.println("Nota do Zeca: " + buscar("Zeca").nota());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Nota da Ana: 9.5
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Aluno.nota()" because the return value of "Main.buscar(String)" is null
+	at Main.main(Main.java:19)</pre>
+
+<p>"Não posso chamar <code>Aluno.nota()</code> porque o valor devolvido por <code>Main.buscar(String)</code> é null." A mensagem é clara (o Java ficou bom em explicar NPEs), mas o problema é outro: <strong>nada no código avisou</strong> que <code>buscar</code> podia devolver <code>null</code>. O tipo de retorno dizia <code>Aluno</code>, e quem chamou confiou. O inventor do <code>null</code>, Tony Hoare, chamou-o de "o erro de um bilhão de dólares".</p>
+
+<hr>
+
+<h2>A ideia: uma caixa com ou sem presente</h2>
+<p>Imagine que, em vez de entregar o presente na mão (ou entregar o ar, quando não há presente), a loja sempre entrega uma <strong>caixa</strong>. Às vezes tem algo dentro, às vezes está vazia. Quem recebe <strong>sabe</strong> que precisa olhar antes de usar, porque está segurando uma caixa, não um presente.</p>
+
+<pre class="syntax">Optional[Aluno Ana]     « caixa com algo dentro
+Optional.empty          « caixa vazia</pre>
+
+<p>O mesmo método, agora devolvendo <code>Optional&lt;Aluno&gt;</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.Optional;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    static List&lt;Aluno&gt; turma = List.of(new Aluno("Ana", 9.5), new Aluno("Bruno", 7.0));
+
+    static Optional&lt;Aluno&gt; buscar(String nome) {
+        for (Aluno a : turma) {
+            if (a.nome().equals(nome)) {
+                return Optional.of(a);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public static void main(String[] args) {
+        Optional&lt;Aluno&gt; ana = buscar("Ana");
+        Optional&lt;Aluno&gt; zeca = buscar("Zeca");
+        System.out.println(ana);
+        System.out.println(zeca);
+        System.out.println("Ana encontrada? " + ana.isPresent());
+        System.out.println("Zeca vazio? " + zeca.isEmpty());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Optional[Aluno[nome=Ana, nota=9.5]]
+Optional.empty
+Ana encontrada? true
+Zeca vazio? true</pre>
+
+<dl class="anatomy">
+  <dt>import java.util.Optional;</dt><dd><code>Optional</code> mora em <code>java.util</code>.</dd>
+  <dt>Optional&lt;Aluno&gt;</dt><dd>"Talvez um Aluno." É uma classe <a href="generics.html">genérica</a>: o tipo entre <code>&lt; &gt;</code> é o do conteúdo.</dd>
+  <dt>Optional.of(a)</dt><dd>Embrulha o aluno numa caixa cheia.</dd>
+  <dt>Optional.empty()</dt><dd>Uma caixa vazia.</dd>
+  <dt>isPresent() / isEmpty()</dt><dd>"Tem algo?" / "Está vazia?" (<code>isEmpty</code> é do Java 11+).</dd>
+</dl>
+
+<p>Agora não dá mais para escrever <code>buscar("Zeca").nota()</code>: <code>Optional</code> não tem método <code>nota()</code>, e o compilador recusa. Você é <strong>obrigado</strong> a decidir o que fazer com a caixa vazia. As próximas seções mostram como.</p>
+
+<hr>
+
+<h2>Criar um Optional</h2>
+
+<pre class="file" data-file="Main.java">import java.util.Optional;
+
+public class Main {
+    public static void main(String[] args) {
+        String apelido = null;
+        Optional&lt;String&gt; a = Optional.of("Aninha");
+        Optional&lt;String&gt; b = Optional.ofNullable(apelido);
+        Optional&lt;String&gt; c = Optional.empty();
+        System.out.println(a + " " + b + " " + c);
+        Optional&lt;String&gt; d = Optional.of(apelido);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Optional[Aninha] Optional.empty Optional.empty
+Exception in thread "main" java.lang.NullPointerException
+	at java.base/java.util.Objects.requireNonNull(Objects.java:220)
+	at java.base/java.util.Optional.of(Optional.java:113)
+	at Main.main(Main.java:10)</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th><th>Com <code>null</code></th></tr>
+<tr><td><code>Optional.of(x)</code></td><td>Você <strong>tem certeza</strong> de que <code>x</code> não é <code>null</code>.</td><td><code>NullPointerException</code> na hora (linha 10 acima)</td></tr>
+<tr><td><code>Optional.ofNullable(x)</code></td><td><code>x</code> <strong>pode</strong> ser <code>null</code> (por exemplo, veio de um <code>mapa.get(chave)</code>).</td><td>Vira <code>Optional.empty</code></td></tr>
+<tr><td><code>Optional.empty()</code></td><td>Você quer dizer explicitamente "não há nada".</td><td>—</td></tr>
+</table>
+</div>
+
+<p><code>ofNullable</code> é a ponte entre o código antigo, que devolve <code>null</code>, e o novo: <code>Optional.ofNullable(apelidos.get(nome))</code>.</p>
+
+<hr>
+
+<h2>Agir só se houver valor: <code>ifPresent</code></h2>
+
+<pre class="file" data-file="Main.java">import java.util.Optional;
+
+public class Main {
+    public static void main(String[] args) {
+        Optional&lt;String&gt; cheio = Optional.of("Ana");
+        Optional&lt;String&gt; vazio = Optional.empty();
+
+        cheio.ifPresent(n -&gt; System.out.println("Achei: " + n));
+        vazio.ifPresent(n -&gt; System.out.println("Achei: " + n));
+
+        cheio.ifPresentOrElse(
+            n -&gt; System.out.println("Bem-vinda, " + n),
+            () -&gt; System.out.println("Ninguém encontrado"));
+        vazio.ifPresentOrElse(
+            n -&gt; System.out.println("Bem-vinda, " + n),
+            () -&gt; System.out.println("Ninguém encontrado"));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Achei: Ana                   « o vazio.ifPresent não fez nada
+Bem-vinda, Ana
+Ninguém encontrado</pre>
+
+<p><code>ifPresent</code> recebe um <code>Consumer</code> (veja <a href="interfaces-funcionais.html">Interfaces Funcionais</a>) e só o executa se houver valor. <code>ifPresentOrElse</code> <span class="versao">Java 9+</span> recebe também um <code>Runnable</code> (uma ação sem parâmetros, <code>() -&gt; …</code>) para o caso vazio.</p>
+
+<hr>
+
+<h2>Tirar o valor da caixa: <code>orElse</code>, <code>orElseGet</code>, <code>orElseThrow</code></h2>
+<p>Na maioria das vezes você quer o valor, com um plano B para a caixa vazia:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Optional;
+
+public class Main {
+    public static void main(String[] args) {
+        Optional&lt;String&gt; cheio = Optional.of("Ana");
+        Optional&lt;String&gt; vazio = Optional.empty();
+
+        System.out.println("orElse: " + cheio.orElse("visitante") + ", " + vazio.orElse("visitante"));
+        System.out.println("orElseGet: " + vazio.orElseGet(() -&gt; "visitante nº " + (40 + 2)));
+        System.out.println("orElseThrow: " + cheio.orElseThrow());
+        System.out.println("orElseThrow: " + vazio.orElseThrow());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+orElse: Ana, visitante                 « vazio: usou o padrão
+orElseGet: visitante nº 42
+orElseThrow: Ana
+Exception in thread "main" java.util.NoSuchElementException: No value present
+	at java.base/java.util.Optional.orElseThrow(Optional.java:377)
+	at Main.main(Main.java:11)</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Caixa cheia</th><th>Caixa vazia</th></tr>
+<tr><td><code>orElse(padrao)</code></td><td>o valor</td><td><code>padrao</code></td></tr>
+<tr><td><code>orElseGet(() -&gt; …)</code></td><td>o valor</td><td>o resultado do <code>Supplier</code> (calculado só agora)</td></tr>
+<tr><td><code>orElseThrow()</code> <span class="versao">Java 10+</span></td><td>o valor</td><td><code>NoSuchElementException: No value present</code></td></tr>
+<tr><td><code>orElseThrow(() -&gt; new MinhaExcecao(…))</code></td><td>o valor</td><td>lança a exceção que você escolher</td></tr>
+<tr><td><code>get()</code></td><td>o valor</td><td><code>NoSuchElementException</code> (o mesmo que <code>orElseThrow()</code>; nome antigo e enganoso)</td></tr>
+</table>
+</div>
+
+<p><code>orElseThrow()</code> quer dizer "eu garanto que há valor; se não houver, é um erro do programa". Para uma mensagem melhor, crie a sua exceção:</p>
+
+<pre class="file" data-file="Main.java">        Optional&lt;String&gt; vazio = Optional.empty();
+        String nome = vazio.orElseThrow(() -&gt; new IllegalArgumentException("Aluno não encontrado"));
+</pre>
+
+<pre class="term">$ java Main
+Exception in thread "main" java.lang.IllegalArgumentException: Aluno não encontrado
+	at Main.lambda$main$0(Main.java:6)
+	at java.base/java.util.Optional.orElseThrow(Optional.java:403)
+	at Main.main(Main.java:6)</pre>
+
+<p>A primeira linha da pilha, <code>Main.lambda$main$0</code>, é o nome que o Java dá à sua lambda: "a primeira lambda dentro de <code>main</code>". Veja <a href="throw-throws.html">throw e throws</a> para mais sobre lançar exceções.</p>
+
+<h3><code>orElse</code> × <code>orElseGet</code>: quando o padrão é calculado</h3>
+<p>Parecem iguais, mas há uma diferença. Veja com um "padrão" que avisa quando é calculado:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Optional;
+
+public class Main {
+    static String padrao() {
+        System.out.println("   (calculando o padrão...)");
+        return "visitante";
+    }
+
+    public static void main(String[] args) {
+        Optional&lt;String&gt; cheio = Optional.of("Ana");
+        System.out.println("orElse:");
+        System.out.println("   " + cheio.orElse(padrao()));
+        System.out.println("orElseGet:");
+        System.out.println("   " + cheio.orElseGet(() -&gt; padrao()));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+orElse:
+   (calculando o padrão...)       « calculou à toa: a caixa estava cheia!
+   Ana
+orElseGet:
+   Ana                            « nem chamou padrao()</pre>
+
+<p>Com <code>orElse(padrao())</code>, o Java calcula o argumento <strong>antes</strong> de chamar o método, como sempre faz com argumentos, mesmo que ele não seja usado. Com <code>orElseGet(() -&gt; padrao())</code>, você passa uma lambda, que só é executada se a caixa estiver vazia. Regra: <strong>valor pronto</strong> (<code>"visitante"</code>, <code>0.0</code>) → <code>orElse</code>; <strong>cálculo caro</strong> (ler um arquivo, consultar um banco) → <code>orElseGet</code>.</p>
+
+<div class="tryjava" data-goal="out:Ana: Aninha,out:Bruno: sem apelido,src:orElse">
+<p class="try-task"><strong>Missão:</strong> o Bruno não tem apelido, e o <code>get()</code> quebra o programa com <code>NoSuchElementException</code>. Troque os dois <code>get()</code> por <code>orElse("sem apelido")</code>. A saída deve ser <code>Ana: Aninha</code> e <code>Bruno: sem apelido</code>.</p>
+<pre class="script">import java.util.Map;
+import java.util.Optional;
+
+public class Main {
+    static Map&lt;String, String&gt; apelidos = Map.of("Ana", "Aninha");
+
+    static Optional&lt;String&gt; buscarApelido(String nome) {
+        return Optional.ofNullable(apelidos.get(nome));
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Ana: " + buscarApelido("Ana").get());
+        System.out.println("Bruno: " + buscarApelido("Bruno").get());
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Map;
+import java.util.Optional;
+
+public class Main {
+    static Map&lt;String, String&gt; apelidos = Map.of("Ana", "Aninha");
+
+    static Optional&lt;String&gt; buscarApelido(String nome) {
+        return Optional.ofNullable(apelidos.get(nome));
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Ana: " + buscarApelido("Ana").orElse("sem apelido"));
+        System.out.println("Bruno: " + buscarApelido("Bruno").orElse("sem apelido"));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Transformar sem abrir: <code>map</code> e <code>filter</code></h2>
+<p>Muitas vezes você não quer o aluno, e sim a <strong>nota</strong> dele, se ele existir. Em vez de abrir a caixa, conferir e tirar a nota, use <code>map</code>: ele transforma o conteúdo <strong>se houver</strong>, e uma caixa vazia continua vazia. É o mesmo <code>map</code> dos <a href="streams.html">streams</a>, para uma caixa de no máximo um elemento.</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.Optional;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    static List&lt;Aluno&gt; turma = List.of(new Aluno("Ana", 9.5), new Aluno("Bruno", 6.0));
+
+    static Optional&lt;Aluno&gt; buscar(String nome) {
+        return turma.stream().filter(a -&gt; a.nome().equals(nome)).findFirst();
+    }
+
+    public static void main(String[] args) {
+        System.out.println(buscar("Ana").map(Aluno::nota));
+        System.out.println(buscar("Ana").map(Aluno::nota).orElse(0.0));
+        System.out.println(buscar("Zeca").map(Aluno::nota).orElse(0.0));
+        System.out.println(buscar("Bruno").map(a -&gt; a.nome().toUpperCase()).orElse("?"));
+        System.out.println(buscar("Bruno").filter(a -&gt; a.nota() &gt;= 7).map(Aluno::nome).orElse("ninguém aprovado"));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Optional[9.5]                 « caixa de aluno virou caixa de nota
+9.5
+0.0                           « Zeca não existe: map não fez nada, orElse deu 0.0
+BRUNO
+ninguém aprovado              « o filter esvaziou a caixa: nota 6.0 &lt; 7</pre>
+
+<dl class="anatomy">
+  <dt>buscar(…) com findFirst()</dt><dd>Repare que o <code>buscar</code> agora é um stream de uma linha: <code>findFirst</code> já devolve um <code>Optional</code>.</dd>
+  <dt>.map(Aluno::nota)</dt><dd>De <code>Optional&lt;Aluno&gt;</code> para <code>Optional&lt;Double&gt;</code>.</dd>
+  <dt>.filter(a -&gt; a.nota() &gt;= 7)</dt><dd>Se o conteúdo não passar no teste, a caixa fica vazia.</dd>
+  <dt>.orElse(…)</dt><dd>No fim da corrente, decide o que fazer se a caixa chegou vazia.</dd>
+</dl>
+
+<p>Esse estilo, uma corrente terminando em <code>orElse</code>, é o uso mais idiomático do Optional: nenhum <code>if</code>, nenhum <code>null</code>.</p>
+
+<hr>
+
+<h2>De onde vêm os Optionals</h2>
+<p>Você raramente cria Optionals: na maior parte do tempo, você os <strong>recebe</strong> da biblioteca, de operações que podem não ter resposta:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Aluno&gt; turma = List.of(new Aluno("Ana", 9.5), new Aluno("Bruno", 6.0), new Aluno("Carla", 8.0));
+        List&lt;Aluno&gt; vazia = List.of();
+
+        Optional&lt;Aluno&gt; melhor = turma.stream().max(Comparator.comparing(Aluno::nota));
+        System.out.println("max: " + melhor);
+        System.out.println("max da turma vazia: " + vazia.stream().max(Comparator.comparing(Aluno::nota)));
+        System.out.println("findFirst com C: " + turma.stream().filter(a -&gt; a.nome().startsWith("C")).findFirst());
+        System.out.println("min nota: " + turma.stream().map(Aluno::nota).min(Double::compare).orElseThrow());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+max: Optional[Aluno[nome=Ana, nota=9.5]]
+max da turma vazia: Optional.empty          « turma vazia não tem melhor aluno
+findFirst com C: Optional[Aluno[nome=Carla, nota=8.0]]
+min nota: 6.0</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Origem</th><th>Devolve</th></tr>
+<tr><td><code>stream.findFirst()</code>, <code>findAny()</code></td><td><code>Optional&lt;T&gt;</code></td></tr>
+<tr><td><code>stream.max(comp)</code>, <code>min(comp)</code></td><td><code>Optional&lt;T&gt;</code></td></tr>
+<tr><td><code>stream.reduce(op)</code> (sem valor inicial)</td><td><code>Optional&lt;T&gt;</code></td></tr>
+<tr><td><code>intStream.average()</code>, <code>max()</code></td><td><code>OptionalDouble</code>, <code>OptionalInt</code> (com <code>getAsDouble()</code>, <code>getAsInt()</code>, <code>orElse</code>)</td></tr>
+<tr><td>Seus métodos de busca</td><td><code>Optional&lt;T&gt;</code>, quando "não achei" é um resultado normal</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando <strong>não</strong> usar Optional</h2>
+<p>O <code>Optional</code> foi criado para um uso específico: <strong>o retorno de métodos</strong> que podem não ter resultado. Fora disso, ele mais atrapalha do que ajuda:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Não faça</th><th>Por quê</th><th>Faça</th></tr>
+<tr><td><code>Optional&lt;List&lt;Aluno&gt;&gt; buscarTodos()</code></td><td>Uma lista já sabe ser "vazia".</td><td>Devolva <code>List.of()</code> (lista vazia).</td></tr>
+<tr><td><code>void matricular(Optional&lt;String&gt; apelido)</code></td><td>Quem chama precisa embrulhar tudo; parâmetros opcionais ficam confusos.</td><td><a href="sobrecarga.html">Sobrecarga</a>: <code>matricular()</code> e <code>matricular(String apelido)</code>.</td></tr>
+<tr><td><code>private Optional&lt;String&gt; apelido;</code> (atributo)</td><td>Gasta memória e não foi feito para isso.</td><td>Um atributo comum (que pode ser <code>null</code>) e um getter que devolve <code>Optional.ofNullable(apelido)</code>.</td></tr>
+<tr><td><code>if (op.isPresent()) { x = op.get(); }</code></td><td>É só um <code>if (x != null)</code> mais comprido.</td><td><code>op.orElse(…)</code>, <code>op.ifPresent(…)</code>, <code>op.map(…)</code>.</td></tr>
+<tr><td><code>op.get()</code> sem conferir</td><td>Troca a <code>NullPointerException</code> por <code>NoSuchElementException</code>: o mesmo erro com outro nome.</td><td><code>orElse</code> ou <code>orElseThrow</code> com mensagem.</td></tr>
+<tr><td><code>Optional&lt;Integer&gt; op = null;</code></td><td>A caixa em si nunca deve ser <code>null</code>: era isso que se queria evitar.</td><td><code>Optional.empty()</code>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>NoSuchElementException: No value present</code></strong>
+<pre class="term">Exception in thread "main" java.util.NoSuchElementException: No value present
+	at java.base/java.util.Optional.get(Optional.java:143)
+	at Main.main(Main.java:13)</pre>
+<p><strong>O que aconteceu:</strong> <code>get()</code> ou <code>orElseThrow()</code> numa caixa vazia. A primeira linha da pilha diz qual dos dois: aqui, <code>Optional.get</code>.</p>
+<p><strong>Como consertar:</strong> decida o que fazer com o vazio: <code>orElse(padrão)</code>, <code>ifPresent(…)</code>, ou, se o vazio for mesmo um erro, <code>orElseThrow(() -&gt; new …("mensagem clara"))</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException</code> em <code>Optional.of</code></strong>
+<pre class="term">Exception in thread "main" java.lang.NullPointerException
+	at java.base/java.util.Objects.requireNonNull(Objects.java:220)
+	at java.base/java.util.Optional.of(Optional.java:113)
+	at Main.main(Main.java:10)</pre>
+<p><strong>O que aconteceu:</strong> <code>Optional.of(x)</code> com <code>x</code> valendo <code>null</code>.</p>
+<p><strong>Como consertar:</strong> se o valor pode ser <code>null</code>, use <code>Optional.ofNullable(x)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol" ao chamar um método do conteúdo</strong>
+<pre class="term">$ javac Main.java
+Main.java:12: error: cannot find symbol
+        System.out.println(buscar("Ana").nota());
+                                        ^
+  symbol:   method nota()
+  location: class Optional&lt;Aluno&gt;
+1 error</pre>
+<p><strong>O que aconteceu:</strong> <code>buscar</code> devolve <code>Optional&lt;Aluno&gt;</code>, e a classe <code>Optional</code> não tem <code>nota()</code>: ela é a caixa, não o aluno.</p>
+<p><strong>Como consertar:</strong> é o Optional fazendo o trabalho dele. Use <code>buscar("Ana").map(Aluno::nota).orElse(0.0)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th></tr>
+<tr><td><code>Optional.of(x)</code> / <code>ofNullable(x)</code> / <code>empty()</code></td><td>Criar (cheia / cheia ou vazia / vazia)</td></tr>
+<tr><td><code>isPresent()</code> / <code>isEmpty()</code></td><td>Tem valor? / Está vazia?</td></tr>
+<tr><td><code>ifPresent(c)</code> / <code>ifPresentOrElse(c, r)</code></td><td>Executa só se houver valor (/ senão, outra ação)</td></tr>
+<tr><td><code>orElse(padrao)</code></td><td>O valor, ou o padrão (sempre calculado)</td></tr>
+<tr><td><code>orElseGet(() -&gt; …)</code></td><td>O valor, ou o resultado da lambda (calculado só se vazia)</td></tr>
+<tr><td><code>orElseThrow()</code> / <code>orElseThrow(() -&gt; exc)</code></td><td>O valor, ou exceção</td></tr>
+<tr><td><code>get()</code></td><td>O valor, ou <code>NoSuchElementException</code> (prefira <code>orElseThrow</code>)</td></tr>
+<tr><td><code>map(f)</code></td><td>Transforma o conteúdo, se houver</td></tr>
+<tr><td><code>filter(p)</code></td><td>Esvazia se o conteúdo não passar no teste</td></tr>
+<tr><td><code>or(() -&gt; outroOptional)</code> <span class="versao">Java 9+</span></td><td>Se vazia, tenta outro Optional</td></tr>
+<tr><td><code>stream()</code> <span class="versao">Java 9+</span></td><td>Stream de 0 ou 1 elemento</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Pode ser null</h3>
+<p>Complete para criar um Optional a partir de <code>email</code>, que pode ser <code>null</code>:</p>
+<div class="ex-code">Optional&lt;String&gt; op = Optional.<input data-answer="ofNullable(email)" aria-label="criação">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Plano B</h3>
+<p>Complete para obter o texto, ou <code>"sem e-mail"</code> se estiver vazio:</p>
+<div class="ex-code">String s = op.<input data-answer="orElse(&quot;sem e-mail&quot;)" aria-label="método">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Transformar</h3>
+<p>Complete para transformar um <code>Optional&lt;Aluno&gt;</code> no <code>Optional</code> do nome dele:</p>
+<div class="ex-code">Optional&lt;String&gt; nome = aluno.<input data-answer="map(Aluno::nome)|map(a -&gt; a.nome())" aria-label="método">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>Optional.empty().orElseThrow()</code> faz?</p>
+<label><input type="radio" name="q4"> Devolve <code>null</code>.</label>
+<label><input type="radio" name="q4"> Lança <code>NoSuchElementException: No value present</code>.</label>
+<label><input type="radio" name="q4"> Lança <code>NullPointerException</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Num Optional <strong>cheio</strong>, qual destes executa <code>padrao()</code> mesmo sem precisar?</p>
+<label><input type="radio" name="q5"> <code>orElseGet(() -&gt; padrao())</code></label>
+<label><input type="radio" name="q5"> <code>or(() -&gt; Optional.of(padrao()))</code></label>
+<label><input type="radio" name="q5"> <code>orElse(padrao())</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Um método que devolve "todos os alunos de uma cidade" deve devolver…</p>
+<label><input type="radio" name="q6"> <code>List&lt;Aluno&gt;</code> (vazia se não houver nenhum).</label>
+<label><input type="radio" name="q6"> <code>Optional&lt;List&lt;Aluno&gt;&gt;</code>.</label>
+<label><input type="radio" name="q6"> <code>null</code> se não houver nenhum.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Carla: 8.0,out:Zeca: 0.0,src:\.map\(,src:orElse">
+<p class="try-task"><strong>Missão final:</strong> o programa quebra com <code>NoSuchElementException</code> ao procurar o Zeca. Troque <code>.get().nota()</code> por <code>.map(Aluno::nota).orElse(0.0)</code>. A saída deve ser <code>Carla: 8.0</code> e <code>Zeca: 0.0</code>.</p>
+<pre class="script">import java.util.List;
+import java.util.Optional;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    static List&lt;Aluno&gt; turma = List.of(new Aluno("Ana", 9.5), new Aluno("Carla", 8.0));
+
+    static Optional&lt;Aluno&gt; buscar(String nome) {
+        return turma.stream().filter(a -&gt; a.nome().equals(nome)).findFirst();
+    }
+
+    public static void main(String[] args) {
+        for (String nome : List.of("Carla", "Zeca")) {
+            double nota = buscar(nome).get().nota();
+            System.out.println(nome + ": " + nota);
+        }
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+import java.util.Optional;
+
+record Aluno(String nome, double nota) { }
+
+public class Main {
+    static List&lt;Aluno&gt; turma = List.of(new Aluno("Ana", 9.5), new Aluno("Carla", 8.0));
+
+    static Optional&lt;Aluno&gt; buscar(String nome) {
+        return turma.stream().filter(a -&gt; a.nome().equals(nome)).findFirst();
+    }
+
+    public static void main(String[] args) {
+        for (String nome : List.of("Carla", "Zeca")) {
+            double nota = buscar(nome).map(Aluno::nota).orElse(0.0);
+            System.out.println(nome + ": " + nota);
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>Optional&lt;T&gt;</code> é uma caixa que pode estar vazia; o tipo avisa quem chama que o resultado pode não existir.</li>
+  <li>Crie com <code>of</code> (nunca <code>null</code>), <code>ofNullable</code> (pode ser <code>null</code>) ou <code>empty</code>.</li>
+  <li>Aja com <code>ifPresent</code>/<code>ifPresentOrElse</code>; tire o valor com <code>orElse</code>, <code>orElseGet</code> ou <code>orElseThrow</code>.</li>
+  <li><code>orElse</code> sempre calcula o padrão; <code>orElseGet</code> só quando precisa.</li>
+  <li><code>map</code> e <code>filter</code> transformam sem abrir; termine a corrente com <code>orElse</code>.</li>
+  <li>Vêm de <code>findFirst</code>, <code>max</code>, <code>min</code>, <code>reduce</code>… Use em retornos, não em atributos, parâmetros ou no lugar de coleções vazias.</li>
+  <li><code>get()</code>/<code>orElseThrow()</code> numa caixa vazia: <code>NoSuchElementException: No value present</code>.</li>
+</ul>
+
+<p>Fim do grupo Programação Funcional. Próxima aula: <a href="pattern-matching.html">Pattern Matching</a>.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
