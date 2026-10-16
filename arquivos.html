@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Arquivos — ler e escrever com java.nio.file | Guia Java</title>
+<meta name="description" content="Como ler e escrever arquivos em Java com java.nio.file: Path.of, Files.readString, writeString, readAllLines, write, lines, exists, createDirectories, list, delete, NoSuchFileException, BufferedReader e BufferedWriter com try-with-resources, UTF-8 e caminhos relativos × absolutos. Lendo o alunos.csv da Ana, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Ler e Escrever Arquivos</span></h1>
+
+<p class="intro">Até aqui, tudo o que seus programas sabiam sumia quando eles terminavam. Com arquivos, o programa lê dados que já existem (uma planilha, um log) e grava resultados que continuam lá depois. Nesta aula você usa o pacote moderno <code>java.nio.file</code> para ler a planilha de alunos da Ana, gravar relatórios, criar pastas e lidar com os erros de arquivo mais comuns.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Representar caminhos com <code>Path.of</code>, e a diferença entre caminho <strong>relativo</strong> e <strong>absoluto</strong>.</li>
+  <li>Ler um arquivo inteiro (<code>Files.readString</code>) ou linha por linha (<code>readAllLines</code>, <code>lines</code>).</li>
+  <li>Gravar (<code>writeString</code>, <code>write</code>) e acrescentar no fim (<code>APPEND</code>).</li>
+  <li>Conferir, criar, listar e apagar: <code>exists</code>, <code>createDirectories</code>, <code>list</code>, <code>delete</code>.</li>
+  <li>Ler e gravar aos poucos com <code>BufferedReader</code> e <code>BufferedWriter</code>, dentro de try-with-resources.</li>
+  <li>O que é a codificação UTF-8 e o erro <code>MalformedInputException</code>.</li>
+  <li>As exceções de arquivo: <code>NoSuchFileException</code>, <code>FileAlreadyExistsException</code>, <code>DirectoryNotEmptyException</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula usa <a href="throw-throws.html">throws</a>, <a href="checked-unchecked.html">IOException</a> e <a href="finally.html">try-with-resources</a>. Os programas rodam na pasta pessoal da Ana, <code>/home/ana</code>, onde existem a pasta <code>Documentos</code> e, dentro dela, a planilha <code>alunos.csv</code> e a lista de lembretes <code>notas.txt</code>:</p>
+
+<pre class="term">$ cat Documentos/alunos.csv
+nome,idade,cidade,nota
+Ana,29,Recife,9.5
+Bruno,34,Curitiba,7.0
+Carla,22,Salvador,8.5
+Diego,41,Manaus,6.0
+Elisa,27,Porto Alegre,10.0</pre>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Um arquivo é como uma gaveta com etiqueta num armário. O <strong>caminho</strong> é o endereço da gaveta ("armário do escritório, segunda prateleira, gaveta <em>alunos.csv</em>"). Para usar a gaveta, você precisa de duas coisas: saber o endereço (<code>Path</code>) e alguém que abra, leia e guarde coisas nela (a classe <code>Files</code>, cheia de métodos <a href="static.html">estáticos</a> prontos).</p>
+<p>E, como a gaveta pode não estar lá, estar trancada ou o armário pode estar cheio, quase todos os métodos de <code>Files</code> lançam <code>IOException</code>, uma exceção <a href="checked-unchecked.html">checked</a>. Nos exemplos curtos, o <code>main</code> declara <code>throws IOException</code>; nos programas de verdade, trate com <code>try</code>/<code>catch</code>.</p>
+
+<hr>
+
+<h2>Caminhos: <code>Path</code></h2>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        Path arquivo = Path.of("Documentos", "alunos.csv");
+        System.out.println("Caminho: " + arquivo);
+        System.out.println("Nome: " + arquivo.getFileName());
+        System.out.println("Pasta: " + arquivo.getParent());
+        System.out.println("Absoluto: " + arquivo.toAbsolutePath());
+        System.out.println("É absoluto? " + arquivo.isAbsolute());
+        System.out.println("Existe? " + Files.exists(arquivo));
+        System.out.println("É pasta? " + Files.isDirectory(arquivo));
+        System.out.println("Tamanho: " + Files.size(arquivo) + " bytes");
+        System.out.println("Existe fotos.zip? " + Files.exists(Path.of("Documentos/fotos.zip")));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Caminho: Documentos/alunos.csv
+Nome: alunos.csv
+Pasta: Documentos
+Absoluto: /home/ana/Documentos/alunos.csv
+É absoluto? false
+Existe? true
+É pasta? false
+Tamanho: 132 bytes
+Existe fotos.zip? false</pre>
+
+<dl class="anatomy">
+  <dt>import java.nio.file.Path; e Files;</dt><dd>As duas classes da aula ficam em <code>java.nio.file</code> ("<em>new input/output</em>", a entrada e saída "nova", de 2011). A <code>IOException</code> fica em <code>java.io</code>.</dd>
+  <dt>Path.of("Documentos", "alunos.csv")</dt><dd>Monta o caminho juntando as partes com o separador do sistema (<code>/</code> no Linux e no macOS, <code>\</code> no Windows). <code>Path.of("Documentos/alunos.csv")</code> também funciona. <span class="versao">Java 11+</span>; antes, <code>Paths.get(…)</code>.</dd>
+  <dt>getFileName(), getParent()</dt><dd>O último pedaço (o nome) e o caminho da pasta que o contém.</dd>
+  <dt>toAbsolutePath()</dt><dd>O caminho completo, a partir da raiz <code>/</code>.</dd>
+  <dt>Files.exists, isDirectory, size</dt><dd>Perguntas ao sistema de arquivos: existe? é pasta? quantos bytes? Criar um <code>Path</code> não cria nem confere nada: é só um endereço.</dd>
+</dl>
+
+<h3>Relativo × absoluto</h3>
+<p><code>Documentos/alunos.csv</code> é um caminho <strong>relativo</strong>: ele parte da <strong>pasta atual</strong>, aquela em que o terminal estava quando o programa foi iniciado (a mesma ideia do <code>pwd</code> no terminal). Um caminho <strong>absoluto</strong> começa na raiz: <code>/home/ana/Documentos/alunos.csv</code>. Veja o mesmo programa rodado de dentro da pasta <code>java</code>:</p>
+
+<pre class="term">$ cd java
+$ java Main.java
+Caminho: Documentos/alunos.csv
+Nome: alunos.csv
+Pasta: Documentos
+Absoluto: /home/ana/java/Documentos/alunos.csv
+É absoluto? false
+Existe? false
+É pasta? false
+Exception in thread "main" java.nio.file.NoSuchFileException: Documentos/alunos.csv
+	at java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:106)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111)
+	at java.base/sun.nio.fs.UnixFileAttributeViews$Basic.readAttributes(UnixFileAttributeViews.java:57)
+	at java.base/sun.nio.fs.UnixFileSystemProvider.readAttributes(UnixFileSystemProvider.java:161)
+	at java.base/sun.nio.fs.LinuxFileSystemProvider.readAttributes(LinuxFileSystemProvider.java:99)
+	at java.base/java.nio.file.Files.readAttributes(Files.java:1702)
+	at java.base/java.nio.file.Files.size(Files.java:2242)
+	at Main.main(Main.java:15)</pre>
+
+<p>O <code>toAbsolutePath()</code> mostra o que aconteceu: o Java procurou em <code>/home/ana/java/Documentos/alunos.csv</code>, que não existe. O <code>exists</code> respondeu <code>false</code> sem reclamar, mas o <code>size</code> precisa do arquivo e lançou <code>NoSuchFileException</code> ("não existe tal arquivo"). Esse é o erro de arquivo mais comum de todos: o caminho está certo, mas o programa foi iniciado em outra pasta.</p>
+
+<div class="tip">
+<strong>Um caminho que funciona de qualquer pasta</strong>
+<p>Para arquivos da pasta pessoal, monte o caminho a partir dela: <code>Path.of(System.getProperty("user.home"), "Documentos", "alunos.csv")</code>. A propriedade <code>user.home</code> vale <code>/home/ana</code> na máquina da Ana (e <code>C:\Users\ana</code> no Windows). Para saber de onde o programa foi iniciado, <code>Path.of("").toAbsolutePath()</code>.</p>
+</div>
+
+<hr>
+
+<h2>Ler um arquivo</h2>
+<p>Duas formas, para os dois casos mais comuns: o arquivo inteiro num texto só, ou uma lista com uma linha em cada posição.</p>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        String lembretes = Files.readString(Path.of("Documentos/notas.txt"));
+        System.out.print(lembretes);
+        System.out.println("---");
+
+        List&lt;String&gt; linhas = Files.readAllLines(Path.of("Documentos/alunos.csv"));
+        System.out.println("Linhas: " + linhas.size());
+        System.out.println("Cabeçalho: " + linhas.get(0));
+
+        double soma = 0;
+        for (int i = 1; i &lt; linhas.size(); i++) {
+            String[] campos = linhas.get(i).split(",");
+            String nome = campos[0];
+            double nota = Double.parseDouble(campos[3]);
+            System.out.println(nome + " tirou " + nota);
+            soma += nota;
+        }
+        System.out.printf("Média da turma: %.2f%n", soma / (linhas.size() - 1));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Comprar café
+Ligar para o João
+Estudar Bash
+Fazer backup das fotos
+---
+Linhas: 6
+Cabeçalho: nome,idade,cidade,nota
+Ana tirou 9.5
+Bruno tirou 7.0
+Carla tirou 8.5
+Diego tirou 6.0
+Elisa tirou 10.0
+Média da turma: 8,20</pre>
+
+<dl class="anatomy">
+  <dt>Files.readString(path)</dt><dd>Lê o arquivo inteiro como uma <code>String</code>, com as quebras de linha dentro. Por isso o <code>print</code> (sem <em>ln</em>): o texto já termina com uma quebra. <span class="versao">Java 11+</span></dd>
+  <dt>Files.readAllLines(path)</dt><dd>Lê tudo e devolve uma <code>List&lt;String&gt;</code>, uma linha por posição, já sem as quebras. <code>size()</code> é o número de linhas e <code>get(0)</code> a primeira (veja <a href="arraylist.html">ArrayList</a>).</dd>
+  <dt>for (int i = 1; …)</dt><dd>Começa em 1 para pular o cabeçalho.</dd>
+  <dt>split(",")</dt><dd>Corta a linha nas vírgulas: <code>campos[0]</code> é o nome, <code>campos[3]</code> a nota (veja <a href="metodos-string.html">Métodos de String</a>).</dd>
+  <dt>Double.parseDouble(campos[3])</dt><dd>A nota está como texto no arquivo; vira número (veja <a href="wrappers.html">Wrappers</a>). O CSV usa ponto, que é o que o <code>parseDouble</code> entende.</dd>
+  <dt>printf("%.2f")</dt><dd>A média, em formato brasileiro: <code>8,20</code> (veja <a href="formatacao.html">Formatar Texto</a>).</dd>
+</dl>
+
+<p>Os dois métodos carregam o arquivo <strong>inteiro</strong> na memória. Para arquivos de alguns megabytes, sem problema. Para arquivos enormes (um log de vários gigabytes), leia aos poucos: com <code>Files.lines</code> ou <code>BufferedReader</code>, mais adiante.</p>
+
+<div class="tryjava" data-goal="out:3 itens: [pão\, leite\, café],src:readAllLines">
+<p class="try-task"><strong>Missão:</strong> o programa grava uma lista de compras em <code>lista.txt</code>. Complete-o: leia o arquivo de volta com <code>Files.readAllLines</code> e mostre <code>3 itens: [pão, leite, café]</code> (o tamanho da lista e a própria lista).</p>
+<pre class="script">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        Path lista = Path.of("lista.txt");
+        Files.writeString(lista, "pão\nleite\ncafé\n");
+        // leia o arquivo e mostre quantos itens ele tem
+    }
+}
+</pre>
+<pre class="solucao">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        Path lista = Path.of("lista.txt");
+        Files.writeString(lista, "pão\nleite\ncafé\n");
+        List&lt;String&gt; itens = Files.readAllLines(lista);
+        System.out.println(itens.size() + " itens: " + itens);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Escrever um arquivo</h2>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        Path compras = Path.of("Documentos/compras.txt");
+        Files.writeString(compras, "pão\nleite\n");
+        Files.writeString(compras, "café\n", StandardOpenOption.APPEND);
+
+        Path aprovados = Path.of("Documentos/aprovados.txt");
+        List&lt;String&gt; nomes = List.of("Ana", "Carla", "Elisa");
+        Files.write(aprovados, nomes);
+
+        System.out.println("Gravei " + Files.size(compras) + " bytes em " + compras);
+        System.out.println("Gravei " + nomes.size() + " linhas em " + aprovados);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Gravei 17 bytes em Documentos/compras.txt
+Gravei 3 linhas em Documentos/aprovados.txt
+$ cat Documentos/compras.txt
+pão
+leite
+café
+$ cat Documentos/aprovados.txt
+Ana
+Carla
+Elisa
+$ java Main.java
+Gravei 17 bytes em Documentos/compras.txt
+Gravei 3 linhas em Documentos/aprovados.txt
+$ cat Documentos/compras.txt
+pão
+leite
+café</pre>
+
+<dl class="anatomy">
+  <dt>Files.writeString(path, texto)</dt><dd>Grava o texto no arquivo. Se ele não existe, é <strong>criado</strong>; se existe, é <strong>substituído</strong> (o conteúdo antigo se perde). Não pula linha sozinho: os <code>\n</code> são seus.</dd>
+  <dt>StandardOpenOption.APPEND</dt><dd>"Acrescentar": grava no <strong>fim</strong>, mantendo o que já existia. Bom para logs e registros.</dd>
+  <dt>Files.write(path, lista)</dt><dd>Grava uma lista de textos, um por linha, com a quebra de linha no fim de cada um. <code>List.of(…)</code> cria uma lista pronta (veja <a href="colecoes.html">Coleções</a>).</dd>
+</dl>
+
+<p>Repare no segundo <code>java Main.java</code>: o arquivo de compras continuou com 3 itens, e não 6. O primeiro <code>writeString</code> <strong>substituiu</strong> tudo, e o <code>APPEND</code> acrescentou o café de novo. E por que 17 bytes, se são 15 letras e quebras? Porque <code>ã</code> e <code>é</code> ocupam <strong>2 bytes</strong> cada na codificação UTF-8 (assunto mais abaixo).</p>
+
+<div class="warning">
+<strong>Gravar apaga o que havia</strong>
+<p><code>writeString</code> e <code>write</code> sem opções começam o arquivo do zero. Se o arquivo for importante, confira antes com <code>Files.exists</code>, grave com outro nome ou use <code>StandardOpenOption.CREATE_NEW</code>, que lança <code>FileAlreadyExistsException</code> em vez de sobrescrever.</p>
+</div>
+
+<hr>
+
+<h2>Pastas: criar, listar, apagar</h2>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        Path pasta = Path.of("Documentos/relatorios/2026");
+        Files.createDirectories(pasta);
+        Files.writeString(pasta.resolve("outubro.txt"), "Vendas: 1520\n");
+        Files.writeString(pasta.resolve("novembro.txt"), "Vendas: 1710\n");
+
+        try (Stream&lt;Path&gt; itens = Files.list(pasta)) {
+            for (Path p : itens.sorted().toList()) {
+                System.out.println(p.getFileName() + " (" + Files.size(p) + " bytes)");
+            }
+        }
+
+        try (Stream&lt;String&gt; linhas = Files.lines(Path.of("Documentos/acesso.log"))) {
+            System.out.println("O log tem " + linhas.count() + " linhas");
+        }
+
+        Files.delete(pasta.resolve("novembro.txt"));
+        System.out.println("Ainda existe novembro.txt? " + Files.exists(pasta.resolve("novembro.txt")));
+        System.out.println("Apagou? " + Files.deleteIfExists(pasta.resolve("dezembro.txt")));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+novembro.txt (13 bytes)
+outubro.txt (13 bytes)
+O log tem 6 linhas
+Ainda existe novembro.txt? false
+Apagou? false
+$ ls -R Documentos/relatorios
+Documentos/relatorios:
+2026
+
+Documentos/relatorios/2026:
+outubro.txt</pre>
+
+<dl class="anatomy">
+  <dt>Files.createDirectories(pasta)</dt><dd>Cria a pasta e todas as que faltarem no caminho (<code>relatorios</code> e <code>2026</code>), como o <code>mkdir -p</code> do terminal. Se já existirem, não faz nada. (<code>createDirectory</code>, no singular, cria só uma e reclama se ela já existe.)</dd>
+  <dt>pasta.resolve("outubro.txt")</dt><dd>Um caminho "dentro" de outro: <code>Documentos/relatorios/2026/outubro.txt</code>.</dd>
+  <dt>Files.list(pasta)</dt><dd>O conteúdo da pasta, como um <code>Stream&lt;Path&gt;</code>, uma sequência de caminhos que você vai estudar em <a href="streams.html">Streams</a>. Aqui, <code>sorted()</code> ordena por nome e <code>toList()</code> transforma num <code>List</code> comum. O stream mantém a pasta aberta, por isso fica num try-with-resources.</dd>
+  <dt>Files.lines(path)</dt><dd>As linhas do arquivo como um <code>Stream&lt;String&gt;</code>, lidas aos poucos (bom para arquivos grandes). <code>count()</code> conta. Também precisa de try-with-resources.</dd>
+  <dt>Files.delete(path)</dt><dd>Apaga (arquivo ou pasta <strong>vazia</strong>). Se não existir, lança <code>NoSuchFileException</code>.</dd>
+  <dt>Files.deleteIfExists(path)</dt><dd>Apaga se existir e devolve <code>true</code>; se não existir, devolve <code>false</code> sem exceção.</dd>
+</dl>
+
+<p>Atenção: <code>Files.delete</code> apaga de verdade, sem passar pela lixeira.</p>
+
+<hr>
+
+<h2>Aos poucos: <code>BufferedReader</code> e <code>BufferedWriter</code></h2>
+<p>Para processar um arquivo linha por linha, sem carregar tudo na memória, e gravar o resultado aos poucos, use um leitor e um escritor "com buffer" (um <em>buffer</em> é uma área de memória intermediária: em vez de ir ao disco a cada letra, o Java lê e grava em blocos). Eles são <a href="finally.html">recursos</a>: precisam ser fechados, e o try-with-resources faz isso. A Ana quer um arquivo só com os aprovados (nota 7 ou mais):</p>
+
+<pre class="file" data-file="Main.java">import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) {
+        Path entrada = Path.of("Documentos/alunos.csv");
+        Path saida = Path.of("Documentos/aprovados.csv");
+        try (BufferedReader leitor = Files.newBufferedReader(entrada);
+             BufferedWriter escritor = Files.newBufferedWriter(saida)) {
+            String cabecalho = leitor.readLine();
+            escritor.write(cabecalho);
+            escritor.newLine();
+            String linha;
+            int aprovados = 0;
+            while ((linha = leitor.readLine()) != null) {
+                double nota = Double.parseDouble(linha.split(",")[3]);
+                if (nota &gt;= 7.0) {
+                    escritor.write(linha);
+                    escritor.newLine();
+                    aprovados++;
+                }
+            }
+            System.out.println(aprovados + " aprovados gravados em " + saida);
+        } catch (IOException e) {
+            System.out.println("Erro de arquivo: " + e);
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+4 aprovados gravados em Documentos/aprovados.csv
+$ cat Documentos/aprovados.csv
+nome,idade,cidade,nota
+Ana,29,Recife,9.5
+Bruno,34,Curitiba,7.0
+Carla,22,Salvador,8.5
+Elisa,27,Porto Alegre,10.0</pre>
+
+<dl class="anatomy">
+  <dt>Files.newBufferedReader(entrada)</dt><dd>Abre o arquivo para leitura. Fica em <code>java.io.BufferedReader</code>.</dd>
+  <dt>Files.newBufferedWriter(saida)</dt><dd>Abre (cria ou substitui) o arquivo para escrita.</dd>
+  <dt>leitor.readLine()</dt><dd>Lê a próxima linha, sem a quebra. No fim do arquivo, devolve <code>null</code>.</dd>
+  <dt>while ((linha = leitor.readLine()) != null)</dt><dd>A forma clássica: lê uma linha, guarda em <code>linha</code> e, se não for <code>null</code>, executa o corpo. Os parênteses em volta da atribuição são obrigatórios.</dd>
+  <dt>escritor.write(texto); escritor.newLine();</dt><dd>Grava o texto e uma quebra de linha.</dd>
+  <dt>try ( … ; … )</dt><dd>Os dois recursos são fechados no fim, na ordem inversa. Fechar o escritor é essencial: é no <code>close()</code> que o que sobrou no buffer vai para o disco. Sem ele, o fim do arquivo pode se perder.</dd>
+</dl>
+
+<hr>
+
+<h2>Codificação: UTF-8</h2>
+<p>Um arquivo de texto é uma sequência de <strong>bytes</strong>. A <strong>codificação</strong> (<em>charset</em>, <em>encoding</em>) é a tabela que diz qual byte vira qual letra. Para as letras sem acento, quase todas as tabelas concordam. Para <code>ã</code>, <code>é</code>, <code>ç</code>, não. Hoje o padrão do mundo é o <strong>UTF-8</strong>, em que cada letra acentuada ocupa 2 bytes (por isso o <code>compras.txt</code> tinha 17 bytes).</p>
+
+<p>Os métodos de <code>Files</code> usam UTF-8 quando você não diz nada. E desde o Java 18, UTF-8 é o padrão de todo o Java, em qualquer sistema <span class="versao">Java 18+</span>. Arquivos antigos, de programas do Windows, às vezes vêm em <strong>ISO-8859-1</strong> (também chamado Latin-1), onde <code>ã</code> é um byte só. A Ana recebeu um assim:</p>
+
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        System.out.println("Codificação padrão: " + Charset.defaultCharset());
+        Path antigo = Path.of("Documentos/clientes-antigo.txt");
+        System.out.println(Files.readString(antigo, StandardCharsets.ISO_8859_1));
+        System.out.println(Files.readString(antigo));
+    }
+}
+</pre>
+
+<pre class="term">$ printf 'Jo\343o;S\343o Paulo\n' &gt; Documentos/clientes-antigo.txt
+$ file Documentos/clientes-antigo.txt
+Documentos/clientes-antigo.txt: ISO-8859 text
+$ java Main.java
+Codificação padrão: UTF-8
+João;São Paulo
+
+Exception in thread "main" java.nio.charset.MalformedInputException: Input length = 3
+	at java.base/java.lang.String.throwMalformed(String.java:1281)
+	at java.base/java.lang.String.decodeUTF8_UTF16(String.java:1168)
+	at java.base/java.lang.String.newStringUTF8NoRepl(String.java:768)
+	at java.base/java.lang.String.newStringNoRepl1(String.java:798)
+	at java.base/java.lang.String.newStringNoRepl(String.java:781)
+	at java.base/java.lang.System$1.uncheckedNewStringNoRepl(System.java:2129)
+	at java.base/java.nio.file.Files.readString(Files.java:3046)
+	at java.base/java.nio.file.Files.readString(Files.java:3006)
+	at Main.main(Main.java:12)</pre>
+
+<p>O <code>printf</code> do terminal criou o arquivo com o byte <code>\343</code> (o <code>ã</code> do Latin-1), e o comando <code>file</code> confirma: <code>ISO-8859 text</code>. Lendo com <code>StandardCharsets.ISO_8859_1</code>, o texto saiu certo. Lendo com o padrão (UTF-8), aqueles bytes não formam nenhuma letra válida em UTF-8, e o <code>readString</code> lança <code>MalformedInputException</code> ("entrada malformada", uma filha de <code>IOException</code>). Todos os métodos de leitura e escrita de <code>Files</code> aceitam o charset como argumento extra.</p>
+
+<div class="tip">
+<strong>Sinais de codificação trocada</strong>
+<p>Se aparecer <code>MalformedInputException</code>, ou textos como <code>JoÃ£o</code> (UTF-8 lido como Latin-1) ou <code>Jo�o</code>, o arquivo e o programa estão usando tabelas diferentes. Descubra a codificação do arquivo (o comando <code>file</code> ajuda) e passe o <code>StandardCharsets</code> certo. Ao gravar, prefira sempre UTF-8.</p>
+</div>
+
+<hr>
+
+<h2>Qual método usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>Ler um arquivo pequeno inteiro</td><td><code>Files.readString(path)</code></td></tr>
+<tr><td>Ler as linhas de um arquivo pequeno</td><td><code>Files.readAllLines(path)</code></td></tr>
+<tr><td>Ler um arquivo grande, linha a linha</td><td><code>Files.newBufferedReader</code> ou <code>Files.lines</code> (com try-with-resources)</td></tr>
+<tr><td>Gravar um texto</td><td><code>Files.writeString(path, texto)</code></td></tr>
+<tr><td>Gravar uma lista, uma por linha</td><td><code>Files.write(path, lista)</code></td></tr>
+<tr><td>Acrescentar no fim</td><td><code>…, StandardOpenOption.APPEND</code></td></tr>
+<tr><td>Gravar muitas linhas aos poucos</td><td><code>Files.newBufferedWriter</code> (com try-with-resources)</td></tr>
+<tr><td>Ler com <code>Scanner</code></td><td><code>new Scanner(path)</code> (veja <a href="finally.html">finally e try-with-resources</a>)</td></tr>
+<tr><td>Código antigo com <code>File</code>, <code>FileReader</code>, <code>FileWriter</code></td><td>Funciona, mas prefira <code>Path</code> e <code>Files</code>: mensagens de erro melhores e UTF-8 por padrão</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+<p>Todas estas exceções são filhas de <code>IOException</code>, e todas aparecem com o caminho na mensagem.</p>
+
+<div class="cenario">
+<strong><code>NoSuchFileException</code>: o arquivo não existe (ali)</strong>
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        String texto = Files.readString(Path.of("Documentos/nota.txt"));
+        System.out.println(texto);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Exception in thread "main" java.nio.file.NoSuchFileException: Documentos/nota.txt
+	at java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:106)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111)
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newFileChannel(UnixFileSystemProvider.java:213)
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:244)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:357)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:399)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:2973)
+	at java.base/java.nio.file.Files.readString(Files.java:3043)
+	at java.base/java.nio.file.Files.readString(Files.java:3006)
+	at Main.main(Main.java:7)</pre>
+<p><strong>O que aconteceu:</strong> o arquivo se chama <code>notas.txt</code>; faltou o <code>s</code>. A mensagem mostra exatamente o caminho que o Java tentou.</p>
+<p><strong>Como resolver:</strong> confira o nome (maiúsculas e minúsculas contam no Linux), a extensão e a pasta atual (<code>Path.of("").toAbsolutePath()</code>). Num programa para usuários, trate com <code>catch (NoSuchFileException e)</code> e mostre uma mensagem amigável.</p>
+</div>
+
+<div class="cenario">
+<strong><code>DirectoryNotEmptyException</code> e <code>FileAlreadyExistsException</code></strong>
+<pre class="file" data-file="Main.java">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) {
+        Path[] pastas = {Path.of("Documentos/relatorios"), Path.of("Documentos/relatorios/2026")};
+        for (Path p : pastas) {
+            try {
+                Files.delete(p);
+                System.out.println("Apaguei " + p);
+            } catch (IOException e) {
+                System.out.println("Não apaguei: " + e);
+            }
+        }
+        try {
+            Files.createDirectory(Path.of("Documentos"));
+        } catch (IOException e) {
+            System.out.println("Não criei: " + e);
+        }
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Não apaguei: java.nio.file.DirectoryNotEmptyException: Documentos/relatorios
+Não apaguei: java.nio.file.DirectoryNotEmptyException: Documentos/relatorios/2026
+Não criei: java.nio.file.FileAlreadyExistsException: Documentos</pre>
+<p><strong>O que aconteceu:</strong> <code>Files.delete</code> só apaga pastas vazias (<code>relatorios</code> tem <code>2026</code>, que tem <code>outubro.txt</code>). E <code>createDirectory</code>, no singular, recusa uma pasta que já existe.</p>
+<p><strong>Como resolver:</strong> apague primeiro o conteúdo (dos arquivos para as pastas). Para criar sem se preocupar, use <code>createDirectories</code>, no plural.</p>
+</div>
+
+<div class="cenario">
+<strong>"unreported exception IOException"</strong>
+<p><strong>O que aconteceu:</strong> quase todo método de <code>Files</code> declara <code>throws IOException</code>, uma exceção checked.</p>
+<p><strong>Como resolver:</strong> acrescente <code>throws IOException</code> no seu método (e o <code>import java.io.IOException;</code>) ou use <code>try</code>/<code>catch</code>. Veja <a href="checked-unchecked.html">Checked × Unchecked</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>O arquivo gravado ficou vazio ou cortado</strong>
+<p><strong>O que aconteceu:</strong> um <code>BufferedWriter</code> que não foi fechado. O que estava no buffer nunca chegou ao disco.</p>
+<p><strong>Como resolver:</strong> abra o escritor num try-with-resources, para o <code>close()</code> acontecer sempre.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>Path.of("pasta", "arquivo.txt")</code></td><td>Monta um caminho</td></tr>
+<tr><td><code>p.getFileName()</code>, <code>getParent()</code>, <code>toAbsolutePath()</code>, <code>resolve("x")</code></td><td>Nome, pasta, caminho completo, caminho dentro</td></tr>
+<tr><td><code>Files.exists(p)</code>, <code>isDirectory(p)</code>, <code>size(p)</code></td><td>Existe? É pasta? Quantos bytes?</td></tr>
+<tr><td><code>Files.readString(p)</code></td><td>Arquivo inteiro → <code>String</code></td></tr>
+<tr><td><code>Files.readAllLines(p)</code></td><td>Arquivo → <code>List&lt;String&gt;</code></td></tr>
+<tr><td><code>Files.lines(p)</code></td><td>Linhas aos poucos (<code>Stream</code>; try-with-resources)</td></tr>
+<tr><td><code>Files.writeString(p, texto)</code></td><td>Grava (cria ou substitui)</td></tr>
+<tr><td><code>Files.write(p, lista)</code></td><td>Grava uma linha por item</td></tr>
+<tr><td><code>StandardOpenOption.APPEND</code> / <code>CREATE_NEW</code></td><td>Acrescentar / só criar se não existir</td></tr>
+<tr><td><code>Files.createDirectories(p)</code></td><td>Cria a pasta e as que faltarem</td></tr>
+<tr><td><code>Files.list(p)</code></td><td>Conteúdo de uma pasta (<code>Stream&lt;Path&gt;</code>)</td></tr>
+<tr><td><code>Files.delete(p)</code> / <code>deleteIfExists(p)</code></td><td>Apaga (sem lixeira)</td></tr>
+<tr><td><code>Files.copy(a, b)</code> / <code>Files.move(a, b)</code></td><td>Copia / move ou renomeia (<code>StandardCopyOption.REPLACE_EXISTING</code> para substituir)</td></tr>
+<tr><td><code>Files.newBufferedReader(p)</code> / <code>newBufferedWriter(p)</code></td><td>Leitor e escritor aos poucos (<code>readLine</code>, <code>write</code>, <code>newLine</code>)</td></tr>
+<tr><td><code>Files.readString(p, StandardCharsets.ISO_8859_1)</code></td><td>Ler com outra codificação</td></tr>
+<tr><td><code>System.getProperty("user.home")</code></td><td>A pasta pessoal</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O arquivo inteiro</h3>
+<p>Complete para ler o arquivo inteiro como texto:</p>
+<div class="ex-code">String texto = Files.<input data-answer="readString" aria-label="método">(Path.of("Documentos/notas.txt"));</div>
+</div>
+
+<div class="exercise">
+<h3>2. Acrescentar no fim</h3>
+<p>Complete para gravar no fim do arquivo, sem apagar o que existe:</p>
+<div class="ex-code">Files.writeString(log, "nova linha\n", StandardOpenOption.<input data-answer="APPEND" aria-label="opção">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Fim do arquivo</h3>
+<p>O que o <code>readLine()</code> de um <code>BufferedReader</code> devolve quando não há mais linhas?</p>
+<div class="ex-code"><input data-answer="null" aria-label="valor"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O programa usa <code>Path.of("Documentos/alunos.csv")</code> e funciona quando rodado em <code>/home/ana</code>. Rodado em <code>/home/ana/java</code>, lança <code>NoSuchFileException</code>. Por quê?</p>
+<label><input type="radio" name="q4"> O arquivo foi apagado.</label>
+<label><input type="radio" name="q4"> O caminho é relativo à pasta atual, e em <code>/home/ana/java</code> não existe <code>Documentos</code>.</label>
+<label><input type="radio" name="q4"> O Java só lê arquivos na pasta do programa.</label>
+<label><input type="radio" name="q4"> Faltou o <code>import</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O arquivo <code>log.txt</code> tem 10 linhas. O que acontece com <code>Files.writeString(Path.of("log.txt"), "oi\n")</code>?</p>
+<label><input type="radio" name="q5"> O arquivo fica com 11 linhas.</label>
+<label><input type="radio" name="q5"> Lança <code>FileAlreadyExistsException</code>.</label>
+<label><input type="radio" name="q5"> O arquivo passa a ter só a linha <code>oi</code>.</label>
+<label><input type="radio" name="q5"> Nada: o arquivo já existe.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que usar try-with-resources com <code>Files.newBufferedWriter</code>?</p>
+<label><input type="radio" name="q6"> Para garantir o <code>close()</code>, que grava o que ficou no buffer e libera o arquivo.</label>
+<label><input type="radio" name="q6"> Porque sem ele o arquivo é gravado em Latin-1.</label>
+<label><input type="radio" name="q6"> Porque ele deixa o programa mais rápido que o <code>writeString</code>.</label>
+<label><input type="radio" name="q6"> Não precisa.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Média: 8\,33,src:Files\.write\s*\(,src:readAllLines">
+<p class="try-task"><strong>Missão final:</strong> grave os registros no arquivo <code>notas.csv</code> com <code>Files.write</code>, leia o arquivo de volta com <code>Files.readAllLines</code>, separe cada linha na vírgula e calcule a média das notas. Mostre com <code>printf("Média: %.2f%n", …)</code>: no locale brasileiro, <code>Média: 8,33</code>.</p>
+<pre class="script">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        Path arquivo = Path.of("notas.csv");
+        List&lt;String&gt; registros = List.of("Ana,9.5", "Bruno,7.0", "Carla,8.5");
+        // 1. grave os registros no arquivo
+        // 2. leia as linhas de volta
+        // 3. some as notas e mostre a média
+    }
+}
+</pre>
+<pre class="solucao">import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        Path arquivo = Path.of("notas.csv");
+        List&lt;String&gt; registros = List.of("Ana,9.5", "Bruno,7.0", "Carla,8.5");
+        Files.write(arquivo, registros);
+
+        List&lt;String&gt; linhas = Files.readAllLines(arquivo);
+        double soma = 0;
+        for (String linha : linhas) {
+            soma += Double.parseDouble(linha.split(",")[1]);
+        }
+        System.out.printf("Média: %.2f%n", soma / linhas.size());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>Path.of(…)</code> é o endereço; <code>Files</code> faz o trabalho. Quase tudo lança <code>IOException</code> (checked).</li>
+  <li>Caminhos relativos partem da pasta onde o programa foi iniciado; <code>toAbsolutePath()</code> mostra onde o Java está procurando. Para a pasta pessoal, <code>System.getProperty("user.home")</code>.</li>
+  <li>Ler: <code>readString</code> (tudo), <code>readAllLines</code> (lista), <code>lines</code> ou <code>BufferedReader</code> (aos poucos).</li>
+  <li>Gravar: <code>writeString</code> e <code>write</code> substituem o arquivo; <code>APPEND</code> acrescenta; <code>BufferedWriter</code> grava aos poucos e precisa ser fechado.</li>
+  <li>Pastas: <code>createDirectories</code>, <code>list</code>, <code>delete</code> (só vazias), <code>deleteIfExists</code>.</li>
+  <li>O padrão é UTF-8; arquivos em outra codificação lançam <code>MalformedInputException</code>: passe o <code>StandardCharsets</code> certo.</li>
+  <li>Erros comuns: <code>NoSuchFileException</code> (nome ou pasta atual errados), <code>FileAlreadyExistsException</code>, <code>DirectoryNotEmptyException</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
