@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Erros do Compilador — as mensagens do javac e como corrigir | Guia Java</title>
+<meta name="description" content="Os 36 erros de compilação mais comuns do javac (JDK 25), com a mensagem real completa, o código que a causa, a tradução, a correção e a aula: ';' expected, cannot find symbol, incompatible types, missing return statement, might not have been initialized, non-static…">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Erros do Compilador</span></h1>
+
+<p class="intro">Antes de rodar, o <code>javac</code> lê o seu código inteiro e recusa o que não segue as regras do Java. As mensagens vêm sempre em inglês (o JDK não tem tradução para o compilador) e assustam no começo, mas são poucas e se repetem muito. Aqui estão as 36 mais comuns, cada uma com o código que a provoca, a <strong>saída real</strong> do <code>javac</code> do JDK 25, a tradução e a correção.</p>
+
+<div class="note">
+<strong>Nesta página</strong>
+<ul>
+  <li><a href="#ler">Como ler uma mensagem do javac</a>.</li>
+  <li><a href="#indice">Índice das 36 mensagens</a>, agrupadas em <a href="#sintaxe">sintaxe</a>, <a href="#nomes">nomes</a>, <a href="#tipos">tipos</a>, <a href="#metodos">métodos e variáveis</a> e <a href="#oo">exceções e orientação a objetos</a>.</li>
+  <li>Se o programa compila mas quebra ao rodar, o assunto é outro: veja <a href="ref-excecoes.html">Exceções Comuns</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="ler">Como ler uma mensagem do javac</h2>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(idadee);
+                           ^
+  symbol:   variable idadee
+  location: class Main
+1 error</pre>
+
+<dl class="anatomy">
+  <dt>Main.java:4</dt><dd>O arquivo e a <strong>linha</strong> do problema.</dd>
+  <dt>error: cannot find symbol</dt><dd>A mensagem: o tipo do erro. É ela que você procura no índice abaixo.</dd>
+  <dt>System.out.println(idadee);</dt><dd>A linha do código, copiada.</dd>
+  <dt>^</dt><dd>O "chapéu" aponta a coluna exata onde o javac percebeu o problema.</dd>
+  <dt>symbol / location</dt><dd>Detalhes extras de algumas mensagens: aqui, <strong>o que</strong> não foi encontrado e <strong>onde</strong> o javac procurou.</dd>
+  <dt>1 error</dt><dd>O total. Com erros, nenhum <code>.class</code> é gerado.</dd>
+</dl>
+
+<div class="tip">
+<strong>Três regras de ouro</strong>
+<ol>
+  <li><strong>Corrija o primeiro erro primeiro</strong> e compile de novo. Um erro de sintaxe costuma gerar outros "em cascata", que somem sozinhos.</li>
+  <li><strong>Olhe também a linha de cima.</strong> Num <code>';' expected</code>, o <code>;</code> que falta é no fim da linha indicada, mas às vezes o problema real (uma chave ou aspa aberta) está antes.</li>
+  <li>Com <code>java Main.java</code> (modo arquivo-fonte), as mensagens são as mesmas, com uma linha a mais no fim: <code>error: compilation failed</code>.</li>
+</ol>
+</div>
+
+<p>Para treinar a leitura com calma, veja a aula <a href="erros-compilacao.html">Lendo Erros do javac</a>.</p>
+
+<div class="tryjava" data-goal="erro-javac:cannot find symbol">
+<p class="try-task"><strong>Experimente provocar:</strong> este programa compila. Troque <code>idade</code> por <code>idadee</code> no <code>println</code>, rode e compare a mensagem com a do exemplo acima.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int idade = 29;
+        System.out.println(idade);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int idade = 29;
+        System.out.println(idadee);
+    }
+}
+</pre>
+</div>
+
+<h2 id="indice">Índice</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>#</th><th>Mensagem</th></tr>
+<tr><td>1</td><td><a href="#ponto-virgula"><code>';' expected</code></a></td></tr>
+<tr><td>2</td><td><a href="#fim-arquivo"><code>reached end of file while parsing</code></a></td></tr>
+<tr><td>3</td><td><a href="#else-sem-if"><code>'else' without 'if'</code></a></td></tr>
+<tr><td>4</td><td><a href="#aspas"><code>unclosed string literal</code></a></td></tr>
+<tr><td>5</td><td><a href="#char-vazio"><code>empty character literal / unclosed character literal</code></a></td></tr>
+<tr><td>6</td><td><a href="#metodo-dentro"><code>illegal start of expression</code></a></td></tr>
+<tr><td>7</td><td><a href="#return-type"><code>invalid method declaration; return type required</code></a></td></tr>
+<tr><td>8</td><td><a href="#simbolo-variavel"><code>cannot find symbol (variable)</code></a></td></tr>
+<tr><td>9</td><td><a href="#simbolo-metodo"><code>cannot find symbol (method)</code></a></td></tr>
+<tr><td>10</td><td><a href="#simbolo-classe"><code>cannot find symbol (class)</code></a></td></tr>
+<tr><td>11</td><td><a href="#maiuscula"><code>cannot find symbol (class string) / package system does not exist</code></a></td></tr>
+<tr><td>12</td><td><a href="#arquivo-classe"><code>class X is public, should be declared in a file named X.java</code></a></td></tr>
+<tr><td>13</td><td><a href="#ja-definida"><code>variable … is already defined in method …</code></a></td></tr>
+<tr><td>14</td><td><a href="#string-int"><code>incompatible types: String cannot be converted to int</code></a></td></tr>
+<tr><td>15</td><td><a href="#lossy"><code>incompatible types: possible lossy conversion from double to int</code></a></td></tr>
+<tr><td>16</td><td><a href="#int-grande"><code>integer number too large</code></a></td></tr>
+<tr><td>17</td><td><a href="#operador"><code>bad operand types for binary operator '&amp;&amp;'</code></a></td></tr>
+<tr><td>18</td><td><a href="#comparar-string-int"><code>bad operand types for binary operator '=='</code></a></td></tr>
+<tr><td>19</td><td><a href="#dereferenced"><code>int cannot be dereferenced</code></a></td></tr>
+<tr><td>20</td><td><a href="#void-aqui"><code>'void' type not allowed here</code></a></td></tr>
+<tr><td>21</td><td><a href="#array-required"><code>array required, but String found</code></a></td></tr>
+<tr><td>22</td><td><a href="#generic-primitivo"><code>unexpected type (required: reference, found: int)</code></a></td></tr>
+<tr><td>23</td><td><a href="#lista-tipo"><code>incompatible types: int cannot be converted to String</code></a></td></tr>
+<tr><td>24</td><td><a href="#missing-return"><code>missing return statement</code></a></td></tr>
+<tr><td>25</td><td><a href="#nao-inicializada"><code>variable … might not have been initialized</code></a></td></tr>
+<tr><td>26</td><td><a href="#unreachable"><code>unreachable statement</code></a></td></tr>
+<tr><td>27</td><td><a href="#static-var"><code>non-static variable … cannot be referenced from a static context</code></a></td></tr>
+<tr><td>28</td><td><a href="#static-metodo"><code>non-static method … cannot be referenced from a static context</code></a></td></tr>
+<tr><td>29</td><td><a href="#argumentos"><code>method … cannot be applied to given types</code></a></td></tr>
+<tr><td>30</td><td><a href="#construtor"><code>constructor … cannot be applied to given types</code></a></td></tr>
+<tr><td>31</td><td><a href="#switch-cobre"><code>the switch expression does not cover all possible input values</code></a></td></tr>
+<tr><td>32</td><td><a href="#unreported"><code>unreported exception …; must be caught or declared to be thrown</code></a></td></tr>
+<tr><td>33</td><td><a href="#never-thrown"><code>exception … is never thrown in body of corresponding try statement</code></a></td></tr>
+<tr><td>34</td><td><a href="#final"><code>cannot assign a value to final variable</code></a></td></tr>
+<tr><td>35</td><td><a href="#abstrato-override"><code>X is not abstract and does not override abstract method y() in Z</code></a></td></tr>
+<tr><td>36</td><td><a href="#private"><code>… has private access in …</code></a></td></tr>
+</table>
+</div>
+<hr>
+
+<h2 id="sintaxe">Sintaxe: pontuação, chaves e aspas</h2>
+
+<h3 id="ponto-virgula">1. <code>';' expected</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 29
+        System.out.println(idade);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: ';' expected
+        int idade = 29
+                      ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Esperava um <code>;</code>." Faltou o ponto e vírgula no fim da instrução. Repare que a seta aponta para <strong>depois</strong> do <code>29</code>, e a linha informada é a do erro, não a seguinte.</p>
+<p><strong>Correção:</strong> Acrescente o <code>;</code>: <code>int idade = 29;</code> Aula: <a href="sintaxe.html">Sintaxe e Estrutura</a>.</p>
+
+<h3 id="fim-arquivo">2. <code>reached end of file while parsing</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá");
+    }
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: reached end of file while parsing
+    }
+     ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Cheguei ao fim do arquivo enquanto lia." Alguma chave <code>{</code> não foi fechada: aqui, falta a <code>}</code> da classe.</p>
+<p><strong>Correção:</strong> Conte as chaves; um editor com recuo automático ajuda a ver onde falta. Acrescente a <code>}</code> final. Aula: <a href="sintaxe.html">Sintaxe e Estrutura</a>.</p>
+
+<h3 id="else-sem-if">3. <code>'else' without 'if'</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int nota = 8;
+        if (nota &gt;= 7);
+        {
+            System.out.println("aprovado");
+        } else {
+            System.out.println("reprovado");
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:7: error: 'else' without 'if'
+        } else {
+          ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "<code>else</code> sem <code>if</code>." O culpado é o <code>;</code> logo depois do <code>if (nota &gt;= 7)</code>: ele encerra o <code>if</code> (com uma instrução vazia), o bloco <code>{ }</code> vira um bloco solto e o <code>else</code> fica órfão.</p>
+<p><strong>Correção:</strong> Tire o <code>;</code> depois do <code>)</code> do <code>if</code>. Aula: <a href="if-else.html">if, else if, else</a>.</p>
+
+<h3 id="aspas">4. <code>unclosed string literal</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Ana);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: unclosed string literal
+        System.out.println("Olá, Ana);
+                           ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Texto (literal de String) não fechado." Faltou a aspa do fim.</p>
+<p><strong>Correção:</strong> <code>System.out.println("Olá, Ana");</code> Aula: <a href="strings.html">Strings</a>.</p>
+
+<h3 id="char-vazio">5. <code>empty character literal / unclosed character literal</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        char letra = '';
+        char inicial = 'Ana';
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: empty character literal
+        char letra = '';
+                     ^
+Main.java:4: error: unclosed character literal
+        char inicial = 'Ana';
+                       ^
+Main.java:4: error: unclosed character literal
+        char inicial = 'Ana';
+                           ^
+Main.java:4: error: not a statement
+        char inicial = 'Ana';
+                         ^
+4 errors</pre>
+<p><strong>O que quer dizer:</strong> Aspas simples são para <strong>um</strong> caractere: <code>''</code> está vazio e <code>'Ana'</code> tem três. O javac se perde e mostra erros em cascata.</p>
+<p><strong>Correção:</strong> Um caractere: <code>char letra = 'A';</code>. Texto: aspas duplas e <code>String</code>. Aula: <a href="char-boolean.html">char e boolean</a>.</p>
+
+<h3 id="metodo-dentro">6. <code>illegal start of expression</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá");
+
+        static void outro() {
+            System.out.println("outro");
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:5: error: illegal start of expression
+        static void outro() {
+        ^
+Main.java:9: error: class, interface, annotation type, enum, record, method or field expected
+}
+^
+2 errors</pre>
+<p><strong>O que quer dizer:</strong> "Início ilegal de expressão." Um método foi escrito <strong>dentro</strong> de outro (o <code>main</code> não foi fechado antes). O segundo erro é consequência do primeiro.</p>
+<p><strong>Correção:</strong> Feche o <code>main</code> com <code>}</code> antes de começar o outro método. Métodos ficam lado a lado, dentro da classe. Aula: <a href="metodos.html">Métodos</a>.</p>
+
+<h3 id="return-type">7. <code>invalid method declaration; return type required</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+    }
+}
+
+class Conta {
+    double saldo;
+
+    Contas(double saldo) {
+        this.saldo = saldo;
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:9: error: invalid method declaration; return type required
+    Contas(double saldo) {
+    ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Declaração de método inválida; tipo de retorno obrigatório." O construtor foi escrito <code>Contas</code>, e a classe se chama <code>Conta</code>: para o Java, virou um método sem tipo de retorno.</p>
+<p><strong>Correção:</strong> O construtor tem exatamente o nome da classe: <code>Conta(double saldo)</code>. Aula: <a href="construtores.html">Construtores</a>.</p>
+
+<h2 id="nomes">Nomes: símbolos, maiúsculas e arquivos</h2>
+
+<h3 id="simbolo-variavel">8. <code>cannot find symbol (variable)</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 29;
+        System.out.println(idadee);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(idadee);
+                           ^
+  symbol:   variable idadee
+  location: class Main
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Não encontrei o símbolo." As linhas <code>symbol</code> e <code>location</code> dizem o quê (a variável <code>idadee</code>) e onde procurou (na classe <code>Main</code>). Quase sempre é nome digitado errado ou variável declarada em outro bloco.</p>
+<p><strong>Correção:</strong> Corrija o nome: <code>idade</code>. Se o nome está certo, veja se a variável foi declarada num bloco <code>{ }</code> que já terminou (<a href="escopo.html">escopo</a>). Aula: <a href="erros-compilacao.html">Lendo Erros do javac</a>.</p>
+
+<h3 id="simbolo-metodo">9. <code>cannot find symbol (method)</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        System.out.println(nome.lenght());
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(nome.lenght());
+                               ^
+  symbol:   method lenght()
+  location: variable nome of type String
+1 error</pre>
+<p><strong>O que quer dizer:</strong> O método <code>lenght()</code> não existe em <code>String</code> ("variable nome of type String").</p>
+<p><strong>Correção:</strong> <code>nome.length()</code>. Confira o nome exato na <a href="ref-string.html">referência de String</a>. Aula: <a href="metodos-string.html">Métodos de String</a>.</p>
+
+<h3 id="simbolo-classe">10. <code>cannot find symbol (class)</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        Scanner entrada = new Scanner(System.in);
+        ^
+  symbol:   class Scanner
+  location: class Main
+Main.java:3: error: cannot find symbol
+        Scanner entrada = new Scanner(System.in);
+                              ^
+  symbol:   class Scanner
+  location: class Main
+2 errors</pre>
+<p><strong>O que quer dizer:</strong> A classe <code>Scanner</code> não foi encontrada (aparece duas vezes porque o nome está duas vezes na linha). Faltou o <code>import</code>.</p>
+<p><strong>Correção:</strong> Primeira linha do arquivo: <code>import java.util.Scanner;</code> Aula: <a href="pacotes.html">Pacotes e import</a>.</p>
+
+<h3 id="maiuscula">11. <code>cannot find symbol (class string) / package system does not exist</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        string nome = "Ana";
+        system.out.println(nome);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        string nome = "Ana";
+        ^
+  symbol:   class string
+  location: class Main
+Main.java:4: error: package system does not exist
+        system.out.println(nome);
+              ^
+2 errors</pre>
+<p><strong>O que quer dizer:</strong> O Java diferencia maiúsculas: <code>string</code> não é <code>String</code>, e <code>system</code> não é <code>System</code> (o javac achou que <code>system</code> fosse um pacote).</p>
+<p><strong>Correção:</strong> <code>String</code> e <code>System</code>, com maiúscula. Nomes de classe sempre começam com maiúscula. Aula: <a href="sintaxe.html">Sintaxe e Estrutura</a>.</p>
+
+<h3 id="arquivo-classe">12. <code>class X is public, should be declared in a file named X.java</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Ola {
+    public static void main(String[] args) {
+        System.out.println("Olá");
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:1: error: class Ola is public, should be declared in a file named Ola.java
+public class Ola {
+       ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "A classe <code>Ola</code> é pública e deveria estar num arquivo chamado <code>Ola.java</code>."</p>
+<p><strong>Correção:</strong> Renomeie o arquivo para <code>Ola.java</code> ou a classe para <code>Main</code>. Maiúsculas contam. Aula: <a href="primeiro-programa.html">Olá, Mundo</a>.</p>
+
+<h3 id="ja-definida">13. <code>variable … is already defined in method …</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int total = 10;
+        int total = 20;
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: variable total is already defined in method main(String[])
+        int total = 20;
+            ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "A variável <code>total</code> já foi definida no método <code>main</code>." Declarou duas vezes.</p>
+<p><strong>Correção:</strong> Para mudar o valor, só atribua: <code>total = 20;</code> (sem o <code>int</code>). Aula: <a href="variaveis.html">Variáveis</a>.</p>
+
+<h2 id="tipos">Tipos incompatíveis</h2>
+
+<h3 id="string-int">14. <code>incompatible types: String cannot be converted to int</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = "29";
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: incompatible types: String cannot be converted to int
+        int idade = "29";
+                    ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Tipos incompatíveis: String não pode ser convertida para int." <code>"29"</code> entre aspas é texto.</p>
+<p><strong>Correção:</strong> Sem aspas: <code>int idade = 29;</code>. Se o texto vem de fora, converta: <code>Integer.parseInt("29")</code>. Aula: <a href="conversao-tipos.html">Conversão de Tipos</a>.</p>
+
+<h3 id="lossy">15. <code>incompatible types: possible lossy conversion from double to int</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double media = 7.5;
+        int nota = media;
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: incompatible types: possible lossy conversion from double to int
+        int nota = media;
+                   ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Possível perda na conversão de double para int." O Java não joga fora as casas decimais sem você pedir.</p>
+<p><strong>Correção:</strong> Cast explícito, se a perda é aceitável: <code>int nota = (int) media;</code> (corta: 7). Ou <code>(int) Math.round(media)</code> (arredonda: 8). Aula: <a href="conversao-tipos.html">Conversão de Tipos</a>.</p>
+
+<h3 id="int-grande">16. <code>integer number too large</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        long populacao = 8000000000;
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: integer number too large
+        long populacao = 8000000000;
+                         ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Número inteiro grande demais." Um número escrito no código é <code>int</code> por padrão, e 8 bilhões não cabe num <code>int</code> (mesmo indo para um <code>long</code>).</p>
+<p><strong>Correção:</strong> Ponha <code>L</code> no fim: <code>8000000000L</code> (ou <code>8_000_000_000L</code>). Aula: <a href="inteiros.html">int, long, short, byte</a>.</p>
+
+<h3 id="operador">17. <code>bad operand types for binary operator '&amp;&amp;'</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        if (idade &gt;= 18 &amp;&amp; "sim") {
+            System.out.println("pode");
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: bad operand types for binary operator '&amp;&amp;'
+        if (idade &gt;= 18 &amp;&amp; "sim") {
+                        ^
+  first type:  boolean
+  second type: String
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Tipos de operando ruins para o operador <code>&amp;&amp;</code>." O <code>&amp;&amp;</code> só junta <code>boolean</code> com <code>boolean</code>, e <code>"sim"</code> é <code>String</code>.</p>
+<p><strong>Correção:</strong> Compare de verdade: <code>idade &gt;= 18 &amp;&amp; resposta.equals("sim")</code>. Aula: <a href="operadores-logicos.html">Operadores Lógicos</a>.</p>
+
+<h3 id="comparar-string-int">18. <code>bad operand types for binary operator '=='</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int quantidade = 5;
+        if (quantidade == "5") {
+            System.out.println("cinco");
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: bad operand types for binary operator '=='
+        if (quantidade == "5") {
+                       ^
+  first type:  int
+  second type: String
+1 error</pre>
+<p><strong>O que quer dizer:</strong> Comparar um <code>int</code> com uma <code>String</code> não faz sentido para o Java.</p>
+<p><strong>Correção:</strong> <code>quantidade == 5</code> (número com número). Para textos, <code>equals</code>. Aula: <a href="operadores-comparacao.html">Operadores de Comparação</a>.</p>
+
+<h3 id="dereferenced">19. <code>int cannot be dereferenced</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 29;
+        System.out.println(idade.length());
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: int cannot be dereferenced
+        System.out.println(idade.length());
+                                ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "int não pode ser desreferenciado": tipos primitivos (<code>int</code>, <code>double</code>, <code>char</code>…) não têm métodos, então não aceitam o ponto.</p>
+<p><strong>Correção:</strong> Converta para texto se precisar: <code>String.valueOf(idade).length()</code>. Aula: <a href="tipos-primitivos.html">Tipos Primitivos</a>.</p>
+
+<h3 id="void-aqui">20. <code>'void' type not allowed here</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    static void saudar() {
+        System.out.println("Olá");
+    }
+
+    public static void main(String[] args) {
+        System.out.println(saudar());
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:7: error: 'void' type not allowed here
+        System.out.println(saudar());
+                                 ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Tipo <code>void</code> não permitido aqui." <code>saudar()</code> não devolve nada, então não há o que imprimir.</p>
+<p><strong>Correção:</strong> Chame sozinho: <code>saudar();</code>. Ou faça o método devolver uma <code>String</code>. Aula: <a href="retorno.html">Valores de Retorno</a>.</p>
+
+<h3 id="array-required">21. <code>array required, but String found</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        System.out.println(nome[0]);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: array required, but String found
+        System.out.println(nome[0]);
+                               ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Era preciso um array, mas encontrei uma String." Colchetes só funcionam em arrays.</p>
+<p><strong>Correção:</strong> <code>nome.charAt(0)</code>. Aula: <a href="metodos-string.html">Métodos de String</a>.</p>
+
+<h3 id="generic-primitivo">22. <code>unexpected type (required: reference, found: int)</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;int&gt; numeros = new ArrayList&lt;&gt;();
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:6: error: unexpected type
+        List&lt;int&gt; numeros = new ArrayList&lt;&gt;();
+             ^
+  required: reference
+  found:    int
+1 error</pre>
+<p><strong>O que quer dizer:</strong> Generics só aceitam tipos de referência (classes), não primitivos.</p>
+<p><strong>Correção:</strong> Use o wrapper: <code>List&lt;Integer&gt;</code>. Aula: <a href="wrappers.html">Wrappers e Autoboxing</a>.</p>
+
+<h3 id="lista-tipo">23. <code>incompatible types: int cannot be converted to String</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;();
+        nomes.add(42);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:7: error: incompatible types: int cannot be converted to String
+        nomes.add(42);
+                  ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+1 error</pre>
+<p><strong>O que quer dizer:</strong> A lista é de <code>String</code> e recebeu um <code>int</code>. É o generics protegendo você.</p>
+<p><strong>Correção:</strong> <code>nomes.add("42")</code>, ou uma <code>List&lt;Integer&gt;</code> se forem números. Aula: <a href="generics.html">Generics</a>.</p>
+
+<h2 id="metodos">Métodos, variáveis e fluxo</h2>
+
+<h3 id="missing-return">24. <code>missing return statement</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    static String situacao(double nota) {
+        if (nota &gt;= 7) {
+            return "aprovado";
+        } else if (nota &lt; 7) {
+            return "reprovado";
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(situacao(8));
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:8: error: missing return statement
+    }
+    ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Falta a instrução return." O método promete devolver uma <code>String</code>, e o javac não tem certeza de que todo caminho termina num <code>return</code> (ele não deduz que <code>&gt;= 7</code> e <code>&lt; 7</code> cobrem tudo). A seta aponta para a <code>}</code> do método.</p>
+<p><strong>Correção:</strong> Troque o último <code>else if (…)</code> por <code>else</code>, ou acrescente um <code>return</code> no fim. Aula: <a href="retorno.html">Valores de Retorno</a>.</p>
+
+<h3 id="nao-inicializada">25. <code>variable … might not have been initialized</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int total;
+        total = total + 10;
+        System.out.println(total);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: variable total might not have been initialized
+        total = total + 10;
+                ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "A variável <code>total</code> pode não ter sido inicializada." Variáveis locais não começam com zero: precisam de um valor antes de serem lidas.</p>
+<p><strong>Correção:</strong> <code>int total = 0;</code> Aula: <a href="variaveis.html">Variáveis</a>.</p>
+
+<h3 id="unreachable">26. <code>unreachable statement</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    static int dobro(int x) {
+        return x * 2;
+        System.out.println("calculado");
+    }
+
+    public static void main(String[] args) {
+        System.out.println(dobro(4));
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: unreachable statement
+        System.out.println("calculado");
+        ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Instrução inalcançável." Nada depois de um <code>return</code> (ou <code>break</code>, <code>continue</code>, <code>throw</code>) no mesmo bloco pode rodar.</p>
+<p><strong>Correção:</strong> Mova a linha para antes do <code>return</code>, ou apague. Aula: <a href="retorno.html">Valores de Retorno</a>.</p>
+
+<h3 id="static-var">27. <code>non-static variable … cannot be referenced from a static context</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    int contador = 0;
+
+    public static void main(String[] args) {
+        contador++;
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:5: error: non-static variable contador cannot be referenced from a static context
+        contador++;
+        ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Variável não estática não pode ser usada num contexto estático." O <code>main</code> é <code>static</code> (da classe), e <code>contador</code> é de cada objeto: não há objeto nenhum ali.</p>
+<p><strong>Correção:</strong> Marque como <code>static int contador</code>, ou crie um objeto: <code>new Main().contador++</code>. Aula: <a href="static.html">static</a>.</p>
+
+<h3 id="static-metodo">28. <code>non-static method … cannot be referenced from a static context</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    void saudar() {
+        System.out.println("Olá");
+    }
+
+    public static void main(String[] args) {
+        saudar();
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:7: error: non-static method saudar() cannot be referenced from a static context
+        saudar();
+        ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> O mesmo, com um método.</p>
+<p><strong>Correção:</strong> <code>static void saudar()</code>, ou <code>new Main().saudar();</code> Aula: <a href="static.html">static</a>.</p>
+
+<h3 id="argumentos">29. <code>method … cannot be applied to given types</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    static int somar(int a, int b) {
+        return a + b;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(somar(2));
+        System.out.println(somar(2, "3"));
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:7: error: method somar in class Main cannot be applied to given types;
+        System.out.println(somar(2));
+                           ^
+  required: int,int
+  found:    int
+  reason: actual and formal argument lists differ in length
+Main.java:8: error: incompatible types: String cannot be converted to int
+        System.out.println(somar(2, "3"));
+                                    ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+2 errors</pre>
+<p><strong>O que quer dizer:</strong> "O método <code>somar</code> não pode ser aplicado aos tipos dados." <code>required: int,int</code> (o que o método pede) e <code>found: int</code> (o que você passou): faltou um argumento. Na segunda chamada, o <code>"3"</code> é texto.</p>
+<p><strong>Correção:</strong> Passe dois <code>int</code>: <code>somar(2, 3)</code>. A nota sobre <code>-Xdiags:verbose</code> só diz que existe uma versão mais longa da mensagem. Aula: <a href="parametros.html">Parâmetros e Argumentos</a>.</p>
+
+<h3 id="construtor">30. <code>constructor … cannot be applied to given types</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Pessoa p = new Pessoa();
+    }
+}
+
+class Pessoa {
+    String nome;
+
+    Pessoa(String nome) {
+        this.nome = nome;
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:3: error: constructor Pessoa in class Pessoa cannot be applied to given types;
+        Pessoa p = new Pessoa();
+                   ^
+  required: String
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+<p><strong>O que quer dizer:</strong> O único construtor de <code>Pessoa</code> pede uma <code>String</code> (<code>required: String</code>), e foi chamado sem nada (<code>found: no arguments</code>). Quando você escreve um construtor, o construtor vazio automático deixa de existir.</p>
+<p><strong>Correção:</strong> <code>new Pessoa("Ana")</code>, ou escreva também um construtor sem parâmetros. Aula: <a href="construtores.html">Construtores</a>.</p>
+
+<h3 id="switch-cobre">31. <code>the switch expression does not cover all possible input values</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String dia = "sab";
+        String tipo = switch (dia) {
+            case "sab", "dom" -&gt; "fim de semana";
+        };
+        System.out.println(tipo);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: the switch expression does not cover all possible input values
+        String tipo = switch (dia) {
+                      ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> Um <code>switch</code> que devolve valor precisa de uma resposta para <strong>qualquer</strong> entrada; uma <code>String</code> pode ser qualquer coisa.</p>
+<p><strong>Correção:</strong> Acrescente <code>default -&gt; "dia útil";</code> Aula: <a href="switch-expressoes.html">switch com Setas</a>.</p>
+
+<h2 id="oo">Exceções e orientação a objetos</h2>
+
+<h3 id="unreported">32. <code>unreported exception …; must be caught or declared to be thrown</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">import java.nio.file.Files;
+import java.nio.file.Path;
+
+public class Main {
+    public static void main(String[] args) {
+        String texto = Files.readString(Path.of("notas.txt"));
+        System.out.println(texto);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:6: error: unreported exception IOException; must be caught or declared to be thrown
+        String texto = Files.readString(Path.of("notas.txt"));
+                                       ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Exceção não informada; precisa ser capturada ou declarada." <code>IOException</code> é <em>checked</em>: o compilador obriga a decidir o que fazer.</p>
+<p><strong>Correção:</strong> <code>try { … } catch (IOException e) { … }</code>, ou <code>throws IOException</code> na assinatura do método (e o <code>import java.io.IOException;</code>). Aula: <a href="checked-unchecked.html">Checked × Unchecked</a>.</p>
+
+<h3 id="never-thrown">33. <code>exception … is never thrown in body of corresponding try statement</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">import java.io.IOException;
+
+public class Main {
+    public static void main(String[] args) {
+        try {
+            System.out.println("Olá");
+        } catch (IOException e) {
+            System.out.println("erro");
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:7: error: exception IOException is never thrown in body of corresponding try statement
+        } catch (IOException e) {
+          ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "A exceção nunca é lançada no corpo do try." Capturar uma exceção <em>checked</em> que o bloco não pode lançar é erro.</p>
+<p><strong>Correção:</strong> Tire o <code>catch</code>, ou capture uma exceção que faça sentido ali. Aula: <a href="try-catch.html">try e catch</a>.</p>
+
+<h3 id="final">34. <code>cannot assign a value to final variable</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        final double TAXA = 0.05;
+        TAXA = 0.06;
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: cannot assign a value to final variable TAXA
+        TAXA = 0.06;
+        ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "Não dá para atribuir valor à variável final <code>TAXA</code>." Constante é constante.</p>
+<p><strong>Correção:</strong> Tire o <code>final</code> se o valor precisa mudar, ou crie outra variável. Aula: <a href="constantes.html">Constantes (final)</a>.</p>
+
+<h3 id="abstrato-override">35. <code>X is not abstract and does not override abstract method y() in Z</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+    }
+}
+
+interface Forma {
+    double area();
+}
+
+class Quadrado implements Forma {
+    double lado;
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:10: error: Quadrado is not abstract and does not override abstract method area() in Forma
+class Quadrado implements Forma {
+^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "<code>Quadrado</code> não é abstrata e não implementa o método abstrato <code>area()</code> de <code>Forma</code>." Quem implementa uma interface precisa escrever todos os métodos dela.</p>
+<p><strong>Correção:</strong> Escreva o método: <code>public double area() { return lado * lado; }</code> Aula: <a href="interfaces.html">Interfaces</a>.</p>
+
+<h3 id="private">36. <code>… has private access in …</code></h3>
+<p class="warning" style="margin:6px 0">Este código tem um erro de propósito.</p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Conta c = new Conta();
+        c.saldo = 1000;
+    }
+}
+
+class Conta {
+    private double saldo;
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: saldo has private access in Conta
+        c.saldo = 1000;
+         ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "<code>saldo</code> tem acesso privado em <code>Conta</code>." É o encapsulamento funcionando.</p>
+<p><strong>Correção:</strong> Use os métodos públicos da classe (<code>depositar</code>, <code>getSaldo</code>). Aula: <a href="encapsulamento.html">Encapsulamento</a>.</p>
+<hr>
+
+<h2>Missão: três erros num programa só</h2>
+
+<div class="tryjava" data-goal="compila,out:Média: 8.0">
+<p class="try-task"><strong>Missão:</strong> este programa tem três erros desta página. Rode, corrija um de cada vez (sempre o primeiro da lista) e faça-o mostrar <code>Média: 8.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double nota1 = 7.5
+        double nota2 = 8.5;
+        String media = (nota1 + nota2) / 2;
+        system.out.println("Média: " + media);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double nota1 = 7.5;
+        double nota2 = 8.5;
+        double media = (nota1 + nota2) / 2;
+        System.out.println("Média: " + media);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. O javac mostrou 7 erros. O que fazer primeiro?</p>
+<label><input type="radio" name="q1"> Corrigir o último.</label>
+<label><input type="radio" name="q1"> Reescrever o programa.</label>
+<label><input type="radio" name="q1"> Corrigir o primeiro e compilar de novo: vários podem ser consequência dele.</label>
+<label><input type="radio" name="q1"> Rodar com <code>java</code> mesmo assim.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">2. <code>variable total might not have been initialized</code> quer dizer…</p>
+<label><input type="radio" name="q2"> A variável local foi lida antes de receber um valor.</label>
+<label><input type="radio" name="q2"> A variável não existe.</label>
+<label><input type="radio" name="q2"> A variável é <code>final</code>.</label>
+<label><input type="radio" name="q2"> O tipo está errado.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. <code>non-static method saudar() cannot be referenced from a static context</code> aparece porque…</p>
+<label><input type="radio" name="q3"> <code>saudar</code> não tem <code>return</code>.</label>
+<label><input type="radio" name="q3"> Faltou o <code>import</code>.</label>
+<label><input type="radio" name="q3"> <code>saudar</code> está escrito errado.</label>
+<label><input type="radio" name="q3"> O <code>main</code> é <code>static</code> e chamou um método de objeto sem ter objeto.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual a correção de <code>integer number too large</code> em <code>long p = 8000000000;</code>?</p>
+<label><input type="radio" name="q4"> Trocar <code>long</code> por <code>int</code>.</label>
+<label><input type="radio" name="q4"> Escrever <code>8000000000L</code>.</label>
+<label><input type="radio" name="q4"> Pôr o número entre aspas.</label>
+<label><input type="radio" name="q4"> Usar <code>double</code> sem mudar o número.</label>
+</div>
+
+<div class="exercise">
+<p>Complete a mensagem que aparece quando falta o ponto e vírgula:</p>
+<div class="ex-code">Main.java:3: error: <input data-answer="';' expected|; expected"></div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Formato: <code>Arquivo.java:linha: error: mensagem</code>, a linha copiada e o <code>^</code> na coluna.</li>
+  <li>Corrija sempre o primeiro erro e compile de novo.</li>
+  <li>Os campeões: <code>';' expected</code>, <code>cannot find symbol</code>, <code>incompatible types</code>, <code>missing return statement</code>, <code>might not have been initialized</code>, <code>non-static … static context</code>.</li>
+  <li>As mensagens são sempre em inglês; esta página e a aula <a href="erros-compilacao.html">Lendo Erros do javac</a> traduzem.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
