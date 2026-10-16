@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Percorrer Arrays — somar, média, maior, menor, buscar e inverter | Guia Java</title>
+<meta name="description" content="Aula de como percorrer arrays em Java: for com índice ou for-each, somar, tirar a média sem a divisão inteira, achar o maior e o menor, contar, buscar um valor, inverter, arrays paralelos com nomes e notas, e os erros reais, com saídas do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Percorrer Arrays</span></h1>
+
+<p class="intro">Um array só mostra o seu valor quando você passa por ele, elemento por elemento: para mostrar, somar, achar a maior nota, procurar um nome. Isso se chama <strong>percorrer</strong> (ou <strong>iterar sobre</strong>) o array. Nesta aula você aprende as receitas clássicas, todas com as notas da turma da professora Ana. São padrões que você vai usar a vida toda, em qualquer linguagem.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As duas formas de percorrer (<code>for</code> com índice e for-each) e quando usar cada uma.</li>
+  <li>Somar e tirar a <strong>média</strong>, sem cair na divisão inteira.</li>
+  <li>Achar o <strong>maior</strong> e o <strong>menor</strong> (e a posição deles).</li>
+  <li><strong>Contar</strong> quantos elementos passam num teste.</li>
+  <li><strong>Buscar</strong> um valor e saber se ele existe.</li>
+  <li>Percorrer de trás para frente e <strong>inverter</strong> o array.</li>
+  <li>Preencher um array com um laço e usar dois arrays "paralelos" (nomes e notas).</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25) com <code>java Main.java</code>. Esta aula junta duas anteriores: <a href="arrays.html">Arrays</a> e os laços <a href="for.html">for</a> e <a href="for-each.html">for-each</a>.</p>
+
+<hr>
+
+<h2>As duas formas de percorrer</h2>
+<p>Quase todos os exemplos usam o mesmo array, as notas de 5 alunos:</p>
+
+<pre class="file" data-file="trecho">int[] notas = {7, 9, 5, 10, 6};</pre>
+
+<h3>1. <code>for</code> com índice</h3>
+<p>O contador <code>i</code> anda pelos índices, de <code>0</code> até <code>length - 1</code>, e <code>notas[i]</code> é o elemento da vez:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        for (int i = 0; i &lt; notas.length; i++) {
+            System.out.println("Aluno " + (i + 1) + ": nota " + notas[i]);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Aluno 1: nota 7
+Aluno 2: nota 9
+Aluno 3: nota 5
+Aluno 4: nota 10
+Aluno 5: nota 6</pre>
+
+<dl class="anatomy">
+  <dt>int i = 0;</dt><dd>Começa no primeiro índice, que é 0.</dd>
+  <dt>i &lt; notas.length;</dt><dd>Continua enquanto <code>i</code> for um índice válido. Com 5 notas, para quando <code>i</code> chega a 5. É <code>&lt;</code>, e nunca <code>&lt;=</code>.</dd>
+  <dt>i++</dt><dd>Próximo índice.</dd>
+  <dt>notas[i]</dt><dd>O elemento na posição <code>i</code>.</dd>
+  <dt>(i + 1)</dt><dd>Para gente, o primeiro aluno é o "1", não o "0". Somamos 1 só na hora de mostrar.</dd>
+</dl>
+
+<h3>2. for-each</h3>
+<p>Quando a posição não importa, o for-each entrega cada valor direto, sem índice:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        for (int nota : notas) {
+            System.out.print(nota + " ");
+        }
+        System.out.println();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+7 9 5 10 6</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Preciso…</th><th>Use</th></tr>
+<tr><td>Só ler os valores (somar, contar, achar o maior)</td><td>for-each: mais curto, sem risco de errar o índice</td></tr>
+<tr><td>Saber a posição (mostrar "Aluno 3", achar <strong>onde</strong> está o maior)</td><td><code>for</code> com índice</td></tr>
+<tr><td>Mudar os valores do array</td><td><code>for</code> com índice (no for-each a variável é uma cópia; veja <a href="for-each.html">for-each</a>)</td></tr>
+<tr><td>Ir de trás para frente, pular, ou usar dois arrays juntos</td><td><code>for</code> com índice</td></tr>
+</table>
+</div>
+
+<h3>Mostrar com vírgulas, sem a última sobrando</h3>
+<p>Um detalhe que aparece em todo lugar: mostrar <code>7, 9, 5, 10, 6</code> sem uma vírgula no fim. A vírgula só vai <strong>se não for o último</strong>, e para saber isso precisamos do índice:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        for (int i = 0; i &lt; notas.length; i++) {
+            System.out.print(notas[i]);
+            if (i &lt; notas.length - 1) {
+                System.out.print(", ");
+            }
+        }
+        System.out.println();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+7, 9, 5, 10, 6</pre>
+
+<p>(Se for só para conferir o conteúdo, <code>Arrays.toString(notas)</code> já faz isso, com colchetes: veja <a href="classe-arrays.html">A Classe Arrays</a>.)</p>
+
+<hr>
+
+<h2>Somar e tirar a média</h2>
+<p>O acumulador que você viu em <a href="for.html">for</a>: começa em zero, antes do laço, e recebe cada elemento:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int soma = 0;
+        for (int nota : notas) {
+            soma += nota;
+        }
+        System.out.println("Soma: " + soma);
+        System.out.println("Média (errada): " + soma / notas.length);
+        System.out.println("Média: " + (double) soma / notas.length);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Soma: 37
+Média (errada): 7            « 37 / 5 entre inteiros: o ",4" foi jogado fora
+Média: 7.4</pre>
+
+<p>A soma deu 37, e 37 ÷ 5 = 7,4. Mas a linha "errada" mostrou <strong>7</strong>: <code>soma</code> e <code>notas.length</code> são <code>int</code>, e divisão de <code>int</code> por <code>int</code> no Java dá <code>int</code>, cortando as casas decimais (veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). O <code>(double)</code> na frente da <code>soma</code> a converte em <code>double</code> <strong>antes</strong> da divisão, e aí o resultado mantém os decimais (veja <a href="conversao-tipos.html">Conversão de Tipos</a>). Outra saída é já declarar <code>double soma = 0;</code>.</p>
+
+<div class="warning">
+<strong>Array vazio</strong>
+<p>Se o array tiver 0 elementos, a média vira uma divisão por zero: com <code>double</code>, o resultado é <code>NaN</code> ("não é um número"); com <code>int</code>, o programa para com <code>ArithmeticException: / by zero</code>. Num programa de verdade, teste <code>if (notas.length &gt; 0)</code> antes.</p>
+</div>
+
+<hr>
+
+<h2 id="maior">Achar o maior e o menor</h2>
+<p>A ideia: comece achando que o <strong>primeiro</strong> elemento é o maior (e o menor). Depois passe pelos outros: cada vez que aparecer um maior, ele passa a ser o "campeão".</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int maior = notas[0];
+        int menor = notas[0];
+        for (int nota : notas) {
+            if (nota &gt; maior) {
+                maior = nota;
+            }
+            if (nota &lt; menor) {
+                menor = nota;
+            }
+        }
+        System.out.println("Maior nota: " + maior);
+        System.out.println("Menor nota: " + menor);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Maior nota: 10
+Menor nota: 5</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nota da vez</th><th>É maior que <code>maior</code>?</th><th><code>maior</code> fica</th><th>É menor que <code>menor</code>?</th><th><code>menor</code> fica</th></tr>
+<tr><td>(início)</td><td></td><td>7</td><td></td><td>7</td></tr>
+<tr><td>7</td><td>não</td><td>7</td><td>não</td><td>7</td></tr>
+<tr><td>9</td><td><strong>sim</strong></td><td>9</td><td>não</td><td>7</td></tr>
+<tr><td>5</td><td>não</td><td>9</td><td><strong>sim</strong></td><td>5</td></tr>
+<tr><td>10</td><td><strong>sim</strong></td><td>10</td><td>não</td><td>5</td></tr>
+<tr><td>6</td><td>não</td><td>10</td><td>não</td><td>5</td></tr>
+</table>
+</div>
+
+<h3>Por que começar com <code>notas[0]</code> e não com 0?</h3>
+<p>Começar com <code>0</code> parece natural e funciona com notas… até o dia em que os números são negativos. As temperaturas de uma semana fria na serra:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] temperaturas = {-3, -8, -1, -5};
+        int maior = 0;
+        for (int t : temperaturas) {
+            if (t &gt; maior) {
+                maior = t;
+            }
+        }
+        System.out.println("Mais quente: " + maior);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Mais quente: 0               « 0 nem está no array!</pre>
+
+<p>Nenhuma temperatura é maior que 0, então o "campeão" inicial nunca foi trocado. Com <code>int maior = temperaturas[0];</code> a resposta fica certa:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Mais quente: -1</pre>
+
+<p>Regra: o valor inicial do maior (ou do menor) deve ser <strong>um elemento do próprio array</strong>.</p>
+
+<h3>A posição do maior</h3>
+<p>Às vezes você quer saber <strong>onde</strong> está o maior, e não só quanto ele vale. Guarde o índice do campeão em vez do valor; aí o <code>for</code> com índice é obrigatório:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int posicao = 0;
+        for (int i = 1; i &lt; notas.length; i++) {
+            if (notas[i] &gt; notas[posicao]) {
+                posicao = i;
+            }
+        }
+        System.out.println("Maior nota: " + notas[posicao] + ", no índice " + posicao);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Maior nota: 10, no índice 3</pre>
+
+<p>O laço começa em <code>i = 1</code> porque o índice 0 já é o campeão inicial; não precisa comparar ele com ele mesmo.</p>
+
+<hr>
+
+<h2>Contar</h2>
+<p>Quantos alunos foram aprovados (nota 7 ou mais)? Um contador que só sobe quando o teste passa:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int aprovados = 0;
+        for (int nota : notas) {
+            if (nota &gt;= 7) {
+                aprovados++;
+            }
+        }
+        System.out.println("Aprovados: " + aprovados + " de " + notas.length);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Aprovados: 3 de 5</pre>
+
+<div class="tryjava" data-goal="out:Em recuperação: 2,src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> mude o programa para contar quantos alunos ficaram em <strong>recuperação</strong> (nota <strong>menor que 7</strong>) e mostrar <code>Em recuperação: 2</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int aprovados = 0;
+        for (int nota : notas) {
+            if (nota &gt;= 7) {
+                aprovados++;
+            }
+        }
+        System.out.println("Aprovados: " + aprovados);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int recuperacao = 0;
+        for (int nota : notas) {
+            if (nota &lt; 7) {
+                recuperacao++;
+            }
+        }
+        System.out.println("Em recuperação: " + recuperacao);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Buscar um valor</h2>
+<p>A Carla está na turma? E em que posição? A busca percorre o array comparando cada elemento; quando acha, guarda a posição e para com <code>break</code> (veja <a href="break-continue.html">break e continue</a>). O valor <code>-1</code>, que nunca é um índice válido, significa "não achei":</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla", "Davi", "Eva"};
+        String procurado = "Carla";
+        int posicao = -1;
+        for (int i = 0; i &lt; alunos.length; i++) {
+            if (alunos[i].equals(procurado)) {
+                posicao = i;
+                break;
+            }
+        }
+        if (posicao == -1) {
+            System.out.println(procurado + " não está na turma");
+        } else {
+            System.out.println(procurado + " está no índice " + posicao);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Carla está no índice 2</pre>
+
+<p>Trocando <code>"Carla"</code> por <code>"Fábio"</code>, o laço vai até o fim sem achar, e <code>posicao</code> continua <code>-1</code>:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Fábio não está na turma</pre>
+
+<p>Para textos, compare com <code>equals</code>, nunca com <code>==</code> (veja <a href="strings.html">Strings</a>). Esse tipo de busca, que olha um por um, se chama <strong>busca linear</strong>. Num array ordenado existe uma busca bem mais rápida, a <code>Arrays.binarySearch</code>, em <a href="classe-arrays.html">A Classe Arrays</a>.</p>
+
+<hr>
+
+<h2>De trás para frente e inverter</h2>
+
+<h3>Só mostrar ao contrário</h3>
+<p>Comece no último índice (<code>length - 1</code>), vá até o 0 e diminua:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        for (int i = notas.length - 1; i &gt;= 0; i--) {
+            System.out.print(notas[i] + " ");
+        }
+        System.out.println();
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+6 10 5 9 7</pre>
+
+<h3>Inverter o array de verdade</h3>
+<p>Para que o próprio array fique invertido, troque o primeiro com o último, o segundo com o penúltimo, e assim por diante, até o meio. Para trocar dois valores, você precisa de uma variável auxiliar, como quem troca o conteúdo de dois copos usando um terceiro copo vazio:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        for (int i = 0; i &lt; notas.length / 2; i++) {
+            int j = notas.length - 1 - i;
+            int guarda = notas[i];
+            notas[i] = notas[j];
+            notas[j] = guarda;
+        }
+        System.out.println(Arrays.toString(notas));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[6, 10, 5, 9, 7]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>i &lt; notas.length / 2</code></td><td>Vai só até a metade (5 / 2 = 2: as voltas 0 e 1). Se fosse até o fim, cada par seria trocado duas vezes e o array voltaria ao normal. O do meio (índice 2) fica onde está.</td></tr>
+<tr><td><code>int j = notas.length - 1 - i;</code></td><td>O "par" do <code>i</code> do outro lado: com <code>i = 0</code>, <code>j = 4</code>; com <code>i = 1</code>, <code>j = 3</code>.</td></tr>
+<tr><td><code>int guarda = notas[i];</code></td><td>O copo vazio: guarda o valor da esquerda.</td></tr>
+<tr><td><code>notas[i] = notas[j];</code></td><td>A esquerda recebe o da direita.</td></tr>
+<tr><td><code>notas[j] = guarda;</code></td><td>A direita recebe o que estava guardado.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Preencher e mudar com um laço</h2>
+<p>O laço também serve para <strong>escrever</strong> no array. Aqui, cada posição recebe o quadrado do seu índice:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] quadrados = new int[6];
+        for (int i = 0; i &lt; quadrados.length; i++) {
+            quadrados[i] = i * i;
+        }
+        System.out.println(Arrays.toString(quadrados));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[0, 1, 4, 9, 16, 25]</pre>
+
+<p>E para mudar só alguns: a escola decidiu que nenhuma nota fica abaixo de 6. As menores viram 6:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        for (int i = 0; i &lt; notas.length; i++) {
+            if (notas[i] &lt; 6) {
+                notas[i] = 6;
+            }
+        }
+        System.out.println(Arrays.toString(notas));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[7, 9, 6, 10, 6]</pre>
+
+<p>Para preencher com o que o usuário digita, use o mesmo laço com um <code>Scanner</code> lendo cada valor (veja <a href="scanner.html">Ler do Teclado</a>).</p>
+
+<hr>
+
+<h2>Dois arrays juntos: nomes e notas</h2>
+<p>A professora quer o boletim com o nome de cada aluno. Uma forma simples é ter dois arrays <strong>paralelos</strong>: o aluno do índice 0 de <code>alunos</code> tem a nota do índice 0 de <code>notas</code>, e assim por diante. Como precisamos do mesmo índice nos dois, o for-each não serve:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla", "Davi", "Eva"};
+        double[] notas = {7.0, 9.5, 5.0, 10.0, 6.5};
+        for (int i = 0; i &lt; alunos.length; i++) {
+            String situacao = notas[i] &gt;= 7 ? "aprovado(a)" : "recuperação";
+            System.out.println(alunos[i] + ": " + notas[i] + " - " + situacao);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Ana: 7.0 - aprovado(a)
+Bruno: 9.5 - aprovado(a)
+Carla: 5.0 - recuperação
+Davi: 10.0 - aprovado(a)
+Eva: 6.5 - recuperação</pre>
+
+<p>O <code>? :</code> escolhe um dos dois textos conforme a condição (veja <a href="ternario.html">Operador Ternário</a>). Arrays paralelos funcionam, mas exigem cuidado: os dois precisam ter o mesmo tamanho e a mesma ordem. No Nível 2 você vai aprender a juntar nome e nota num objeto só, com <a href="records.html">records</a> ou <a href="classes-objetos.html">classes</a>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>ArrayIndexOutOfBoundsException</code> no fim do laço: o <code>&lt;=</code></strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        for (int i = 0; i &lt;= notas.length; i++) {
+            System.out.println(notas[i]);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+7
+9
+5
+10
+6
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 5
+	at Main.main(Main.java:5)</pre>
+<p><strong>O que aconteceu:</strong> as 5 notas apareceram, e na sexta volta (<code>i = 5</code>) o programa pediu <code>notas[5]</code>, que não existe. O <code>&lt;=</code> deixou passar uma volta a mais.</p>
+<p><strong>Como consertar:</strong> <code>i &lt; notas.length</code>. Ou use o for-each, que nunca erra o limite.</p>
+</div>
+
+<div class="cenario">
+<strong>A média deu um número "redondo" demais</strong>
+<p>Divisão de <code>int</code> por <code>int</code> corta os decimais: <code>37 / 5</code> dá <code>7</code>. Converta antes de dividir: <code>(double) soma / notas.length</code>. Cuidado com a posição dos parênteses: <code>(double) (soma / notas.length)</code> converte <strong>depois</strong> da divisão, e dá <code>7.0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O maior deu 0 (ou o menor deu 0), e o 0 nem está no array</strong>
+<p>O valor inicial do "campeão" não era um elemento do array. Comece com <code>int maior = notas[0];</code>, como explicado em <a href="#maior">Achar o maior e o menor</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Mudei a variável do for-each e o array não mudou</strong>
+<p>No for-each, a variável é uma cópia do elemento. Para mudar o array, use <code>for</code> com índice e escreva em <code>notas[i]</code>. Veja o exemplo real em <a href="for-each.html">for-each</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência: as receitas</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tarefa</th><th>Antes do laço</th><th>Dentro do laço</th></tr>
+<tr><td>Somar</td><td><code>int soma = 0;</code></td><td><code>soma += x;</code></td></tr>
+<tr><td>Média</td><td>(a soma)</td><td>depois: <code>(double) soma / a.length</code></td></tr>
+<tr><td>Maior</td><td><code>int maior = a[0];</code></td><td><code>if (x &gt; maior) maior = x;</code></td></tr>
+<tr><td>Menor</td><td><code>int menor = a[0];</code></td><td><code>if (x &lt; menor) menor = x;</code></td></tr>
+<tr><td>Posição do maior</td><td><code>int pos = 0;</code></td><td><code>if (a[i] &gt; a[pos]) pos = i;</code></td></tr>
+<tr><td>Contar</td><td><code>int qtd = 0;</code></td><td><code>if (teste) qtd++;</code></td></tr>
+<tr><td>Buscar</td><td><code>int pos = -1;</code></td><td><code>if (a[i] == alvo) { pos = i; break; }</code></td></tr>
+<tr><td>De trás para frente</td><td></td><td><code>for (int i = a.length - 1; i &gt;= 0; i--)</code></td></tr>
+<tr><td>Inverter</td><td></td><td>troca <code>a[i]</code> com <code>a[a.length - 1 - i]</code>, até a metade</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O limite certo</h3>
+<p>Complete a condição para percorrer todo o array <code>precos</code>:</p>
+<div class="ex-code">for (int i = 0; <input data-answer="i &lt; precos.length|i&lt;precos.length" aria-label="condição">; i++)</div>
+</div>
+
+<div class="exercise">
+<h3>2. Começo do maior</h3>
+<p>Complete o valor inicial correto para achar o maior elemento de <code>valores</code>:</p>
+<div class="ex-code">int maior = <input data-answer="valores[0];|valores[0]" aria-label="valor inicial"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Média com decimais</h3>
+<p>Complete para a média não perder as casas decimais (<code>soma</code> é <code>int</code>):</p>
+<div class="ex-code">double media = <input data-answer="(double) soma / notas.length;|(double)soma / notas.length;|(double) soma/notas.length;|(double)soma/notas.length;" aria-label="cálculo"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual laço percorre <code>a</code> de trás para frente?</p>
+<label><input type="radio" name="q4"> <code>for (int i = a.length; i &gt; 0; i--)</code></label>
+<label><input type="radio" name="q4"> <code>for (int i = a.length - 1; i &gt;= 0; i--)</code></label>
+<label><input type="radio" name="q4"> <code>for (int i = 0; i &lt; a.length; i--)</code></label>
+<label><input type="radio" name="q4"> <code>for (int x : a.reverse())</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Numa busca, por que começar com <code>posicao = -1</code>?</p>
+<label><input type="radio" name="q5"> Porque os índices começam em -1.</label>
+<label><input type="radio" name="q5"> Porque o Java exige.</label>
+<label><input type="radio" name="q5"> Porque -1 nunca é um índice válido, então significa "não achei".</label>
+<label><input type="radio" name="q5"> Para o laço andar de trás para frente.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. <code>int soma = 37;</code> e o array tem 5 elementos. Quanto vale <code>soma / 5</code>?</p>
+<label><input type="radio" name="q6"> <code>7</code></label>
+<label><input type="radio" name="q6"> <code>7.4</code></label>
+<label><input type="radio" name="q6"> <code>7.0</code></label>
+<label><input type="radio" name="q6"> <code>8</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Melhor aluno(a): Davi com 10.0,src:\bfor\s*\(\s*int\s+\w+\s*=">
+<p class="try-task"><strong>Missão final:</strong> descubra quem tirou a <strong>maior nota</strong> e mostre <code>Melhor aluno(a): Davi com 10.0</code>. Dica: ache a <strong>posição</strong> da maior nota em <code>notas</code> e use essa posição nos dois arrays.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla", "Davi", "Eva"};
+        double[] notas = {7.0, 9.5, 5.0, 10.0, 6.5};
+        int melhor = 0;
+        // percorra o array aqui
+
+        System.out.println("Melhor aluno(a): " + alunos[melhor] + " com " + notas[melhor]);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] alunos = {"Ana", "Bruno", "Carla", "Davi", "Eva"};
+        double[] notas = {7.0, 9.5, 5.0, 10.0, 6.5};
+        int melhor = 0;
+        for (int i = 1; i &lt; notas.length; i++) {
+            if (notas[i] &gt; notas[melhor]) {
+                melhor = i;
+            }
+        }
+        System.out.println("Melhor aluno(a): " + alunos[melhor] + " com " + notas[melhor]);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Percorra com <code>for (int i = 0; i &lt; a.length; i++)</code> quando precisar do índice, e com for-each quando só precisar dos valores.</li>
+  <li>Acumuladores e contadores nascem <strong>antes</strong> do laço; o resultado é usado <strong>depois</strong>.</li>
+  <li>Média: converta para <code>double</code> antes de dividir, senão os decimais somem.</li>
+  <li>Maior e menor: comece com <code>a[0]</code>, nunca com 0.</li>
+  <li>Busca: comece com <code>-1</code>, guarde o índice ao achar e pare com <code>break</code>.</li>
+  <li>Ao contrário: de <code>length - 1</code> até <code>0</code>. Inverter: troque os pares até a metade, com uma variável auxiliar.</li>
+  <li><code>&lt;=</code> no lugar de <code>&lt;</code> dá <code>ArrayIndexOutOfBoundsException</code> na última volta.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
