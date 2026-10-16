@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Criar Exceções — exceções personalizadas | Guia Java</title>
+<meta name="description" content="Como criar suas próprias exceções em Java: SaldoInsuficienteException extends Exception, a versão unchecked com RuntimeException, construtor com mensagem, atributos extras, a causa (Caused by) e quando vale a pena. Com saídas e erros reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Criar suas Exceções</span></h1>
+
+<p class="intro">A biblioteca do Java tem dezenas de exceções prontas, mas nenhuma se chama "saldo insuficiente" ou "aluno não encontrado". Quando um problema é do <strong>seu</strong> programa, você pode criar uma exceção com o nome dele. É só uma classe que herda de <code>Exception</code> (ou de <code>RuntimeException</code>), e você já sabe tudo o que precisa para escrevê-la.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Criar uma exceção checked: <code>SaldoInsuficienteException extends Exception</code>.</li>
+  <li>Escrever o construtor com mensagem usando <code>super(mensagem)</code>.</li>
+  <li>Guardar informações extras na exceção (quanto faltou).</li>
+  <li>Criar a versão unchecked, com <code>extends RuntimeException</code>, e comparar as duas.</li>
+  <li>Embrulhar uma exceção em outra, guardando a <strong>causa</strong>: <code>new X("…", e)</code> e o <code>Caused by:</code>.</li>
+  <li>Quando vale a pena criar uma exceção, e quando uma pronta resolve.</li>
+</ul>
+</div>
+
+<p>Esta aula usa <a href="heranca.html">herança</a>, <a href="super.html">super</a> e tudo das aulas anteriores de exceções, principalmente <a href="checked-unchecked.html">Checked × Unchecked</a>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Num hospital, ninguém grita "deu problema!". Gritam "parada cardíaca no quarto 12": o <strong>nome</strong> do problema já diz quem deve vir e o que fazer. Com exceções é igual. Compare as duas primeiras linhas de um stack trace:</p>
+
+<pre class="term">Exception in thread "main" java.lang.IllegalStateException: saldo de 70.0 não cobre o saque de 80.0</pre>
+<pre class="term">Exception in thread "main" SaldoInsuficienteException: saldo de 70.0 não cobre o saque de 80.0</pre>
+
+<p>A segunda fala a língua do negócio da Ana. E, mais importante: quem chama o método pode escrever <code>catch (SaldoInsuficienteException e)</code> e tratar <strong>exatamente</strong> esse caso, sem capturar por engano outros problemas de estado.</p>
+
+<hr>
+
+<h2>Criando a exceção</h2>
+<p>Uma exceção própria é uma classe comum, com duas particularidades: ela <strong>herda</strong> de uma classe da família <code>Throwable</code> e repassa a mensagem para a classe mãe. Por convenção, o nome termina em <code>Exception</code>. Como toda classe pública, ela fica no seu próprio arquivo:</p>
+
+<pre class="file" data-file="SaldoInsuficienteException.java">public class SaldoInsuficienteException extends Exception {
+    public SaldoInsuficienteException(String mensagem) {
+        super(mensagem);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>public class SaldoInsuficienteException</dt><dd>Uma classe pública, no arquivo <code>SaldoInsuficienteException.java</code>. O nome descreve o problema e termina em <code>Exception</code>.</dd>
+  <dt>extends Exception</dt><dd>"Herda de <code>Exception</code>". Isso a coloca na família das exceções (pode ser lançada e capturada) e a torna <strong>checked</strong>: quem chamar um método que a lança terá que tratar ou declarar.</dd>
+  <dt>public SaldoInsuficienteException(String mensagem)</dt><dd>O <a href="construtores.html">construtor</a>, que recebe o texto que explica o problema.</dd>
+  <dt>super(mensagem);</dt><dd>Chama o construtor da classe mãe (<code>Exception</code>) passando a mensagem. É a <code>Exception</code> quem guarda o texto e o devolve em <code>getMessage()</code> e no stack trace. Sem esta linha, a mensagem se perde.</dd>
+</dl>
+
+<p>Pronto: ela já tem <code>getMessage()</code>, <code>printStackTrace()</code>, stack trace, tudo, herdado de <code>Throwable</code>. Agora a classe <code>Conta</code> pode usá-la:</p>
+
+<pre class="file" data-file="Conta.java">public class Conta {
+    private String titular;
+    private double saldo;
+
+    public Conta(String titular, double saldo) {
+        this.titular = titular;
+        this.saldo = saldo;
+    }
+
+    public void sacar(double valor) throws SaldoInsuficienteException {
+        if (valor &gt; saldo) {
+            throw new SaldoInsuficienteException(
+                "saldo de " + saldo + " não cobre o saque de " + valor);
+        }
+        saldo -= valor;
+        System.out.println(titular + " sacou " + valor + ". Saldo: " + saldo);
+    }
+}
+</pre>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Conta conta = new Conta("Ana", 100.0);
+        try {
+            conta.sacar(30.0);
+            conta.sacar(80.0);
+            conta.sacar(10.0);
+        } catch (SaldoInsuficienteException e) {
+            System.out.println("Saque negado: " + e.getMessage());
+        }
+    }
+}
+</pre>
+
+<p>São três arquivos na mesma pasta. O <code>javac *.java</code> compila todos de uma vez (o <code>*</code> é o curinga do terminal: "todos os arquivos que terminam em <code>.java</code>"):</p>
+
+<pre class="term">$ javac *.java
+$ java Main
+Ana sacou 30.0. Saldo: 70.0
+Saque negado: saldo de 70.0 não cobre o saque de 80.0</pre>
+
+<p>O primeiro saque passou; o segundo (80, com saldo 70) lançou a exceção, o <code>catch</code> a capturou pelo nome e o terceiro saque nem foi tentado. No JDK 25, <code>java Main.java</code> também funciona com vários arquivos: ele encontra as outras classes na mesma pasta.</p>
+
+<h3>Ela é checked: o compilador cobra</h3>
+<p>Como herda de <code>Exception</code>, a sua exceção ganha as regras de <a href="checked-unchecked.html">checked</a>. O <code>sacar</code> precisou do <code>throws SaldoInsuficienteException</code>, e quem chama precisa tratar. Sem o <code>try</code> no <code>main</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Conta conta = new Conta("Ana", 100.0);
+        conta.sacar(30.0);
+        conta.sacar(80.0);
+    }
+}
+</pre>
+
+<pre class="term">$ javac *.java
+Main.java:4: error: unreported exception SaldoInsuficienteException; must be caught or declared to be thrown
+        conta.sacar(30.0);
+                   ^
+Main.java:5: error: unreported exception SaldoInsuficienteException; must be caught or declared to be thrown
+        conta.sacar(80.0);
+                   ^
+2 errors</pre>
+
+<p>O mesmo erro da <code>IOException</code>, agora com o nome da sua classe. Um erro por chamada: o <code>javac</code> não sabe qual saque vai falhar, então cobra um plano para todos.</p>
+
+<div class="tryjava" data-goal="compila,out:Saque negado: saldo de 70.0 não cobre o saque de 80.0,src:extends\s+Exception,src:super\s*\(">
+<p class="try-task"><strong>Missão:</strong> a classe <code>SaldoInsuficienteException</code> (na primeira aba) está vazia, e o programa não compila. Faça-a herdar de <code>Exception</code> e escreva o construtor que recebe a mensagem e a repassa com <code>super(mensagem)</code>. As outras abas já estão prontas.</p>
+<pre class="script" data-file="SaldoInsuficienteException.java">public class SaldoInsuficienteException {
+}
+</pre>
+<pre class="script" data-file="Conta.java">public class Conta {
+    private String titular;
+    private double saldo;
+
+    public Conta(String titular, double saldo) {
+        this.titular = titular;
+        this.saldo = saldo;
+    }
+
+    public void sacar(double valor) throws SaldoInsuficienteException {
+        if (valor &gt; saldo) {
+            throw new SaldoInsuficienteException(
+                "saldo de " + saldo + " não cobre o saque de " + valor);
+        }
+        saldo -= valor;
+        System.out.println(titular + " sacou " + valor + ". Saldo: " + saldo);
+    }
+}
+</pre>
+<pre class="script" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Conta conta = new Conta("Ana", 100.0);
+        try {
+            conta.sacar(30.0);
+            conta.sacar(80.0);
+            conta.sacar(10.0);
+        } catch (SaldoInsuficienteException e) {
+            System.out.println("Saque negado: " + e.getMessage());
+        }
+    }
+}
+</pre>
+<pre class="solucao" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Conta conta = new Conta("Ana", 100.0);
+        try {
+            conta.sacar(30.0);
+            conta.sacar(80.0);
+            conta.sacar(10.0);
+        } catch (SaldoInsuficienteException e) {
+            System.out.println("Saque negado: " + e.getMessage());
+        }
+    }
+}
+</pre>
+<pre class="solucao" data-file="SaldoInsuficienteException.java">public class SaldoInsuficienteException extends Exception {
+    public SaldoInsuficienteException(String mensagem) {
+        super(mensagem);
+    }
+}
+</pre>
+<pre class="solucao" data-file="Conta.java">public class Conta {
+    private String titular;
+    private double saldo;
+
+    public Conta(String titular, double saldo) {
+        this.titular = titular;
+        this.saldo = saldo;
+    }
+
+    public void sacar(double valor) throws SaldoInsuficienteException {
+        if (valor &gt; saldo) {
+            throw new SaldoInsuficienteException(
+                "saldo de " + saldo + " não cobre o saque de " + valor);
+        }
+        saldo -= valor;
+        System.out.println(titular + " sacou " + valor + ". Saldo: " + saldo);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Informações extras na exceção</h2>
+<p>Como é uma classe sua, a exceção pode ter <a href="atributos.html">atributos</a> e métodos. Em vez de quem captura ter que "ler" a mensagem para saber quanto faltou, a exceção entrega o número pronto:</p>
+
+<pre class="file" data-file="SaldoInsuficienteException.java">public class SaldoInsuficienteException extends Exception {
+    private final double faltando;
+
+    public SaldoInsuficienteException(double saldo, double valor) {
+        super("saldo de " + saldo + " não cobre o saque de " + valor);
+        this.faltando = valor - saldo;
+    }
+
+    public double getFaltando() {
+        return faltando;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>private final double faltando;</dt><dd>Um atributo com quanto falta. <code>final</code> porque uma exceção descreve algo que já aconteceu: não muda depois de criada.</dd>
+  <dt>(double saldo, double valor)</dt><dd>Agora o construtor recebe os números, não o texto pronto…</dd>
+  <dt>super("saldo de " + …)</dt><dd>…e monta a mensagem ele mesmo. O <code>super(…)</code> tem que ser a primeira coisa do construtor.</dd>
+  <dt>getFaltando()</dt><dd>Um <a href="encapsulamento.html">get</a> para quem capturar.</dd>
+</dl>
+
+<p>Na <code>Conta</code>, o <code>throw</code> fica mais curto: <code>throw new SaldoInsuficienteException(saldo, valor);</code>. E o <code>catch</code> do <code>main</code> ganha uma linha:</p>
+
+<pre class="file" data-file="Main.java (trecho)">        } catch (SaldoInsuficienteException e) {
+            System.out.println("Saque negado: " + e.getMessage());
+            System.out.println("Faltam R$ " + e.getFaltando());
+        }
+</pre>
+
+<pre class="term">$ javac *.java
+$ java Main
+Ana sacou 30.0. Saldo: 70.0
+Saque negado: saldo de 70.0 não cobre o saque de 80.0
+Faltam R$ 10.0</pre>
+
+<p>Com o valor em mãos, o programa poderia oferecer um saque de R$ 70 ou sugerir um depósito de R$ 10. Para dinheiro de verdade, a Ana deveria usar <code>BigDecimal</code> em vez de <code>double</code>; veja <a href="bigdecimal.html">BigDecimal e Dinheiro</a>.</p>
+
+<hr>
+
+<h2>A versão unchecked</h2>
+<p>Trocando a mãe de <code>Exception</code> para <code>RuntimeException</code>, a exceção vira <strong>unchecked</strong>. Nada mais muda na classe:</p>
+
+<pre class="file" data-file="SaldoInsuficienteException.java">public class SaldoInsuficienteException extends RuntimeException {
+    public SaldoInsuficienteException(String mensagem) {
+        super(mensagem);
+    }
+}
+</pre>
+
+<p>Agora o <code>sacar</code> não precisa de <code>throws</code> e o <code>main</code> compila sem <code>try</code>. O mesmo <code>main</code> que deu dois erros de compilação há pouco:</p>
+
+<pre class="term">$ javac *.java
+$ java Main
+Ana sacou 30.0. Saldo: 70.0
+Exception in thread "main" SaldoInsuficienteException: saldo de 70.0 não cobre o saque de 80.0
+	at Conta.sacar(Conta.java:12)
+	at Main.main(Main.java:5)</pre>
+
+<p>Compilou, rodou, e a exceção apareceu na execução, sem tratamento. Repare no nome sem pacote (<code>SaldoInsuficienteException</code>, e não <code>java.lang.…</code>): a classe está no pacote padrão, sem <code>package</code> (veja <a href="pacotes.html">Pacotes e import</a>). E o stack trace agora passa por dois arquivos: <code>Conta.java</code> linha 12 e <code>Main.java</code> linha 5.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>extends Exception</code> (checked)</th><th><code>extends RuntimeException</code> (unchecked)</th></tr>
+<tr><td><code>throws</code> no método</td><td>Obrigatório</td><td>Opcional (vale como documentação)</td></tr>
+<tr><td>Quem chama</td><td>Precisa tratar ou declarar, senão não compila</td><td>Trata se quiser</td></tr>
+<tr><td>Vantagem</td><td>Ninguém esquece de pensar no caso</td><td>Código mais limpo; os métodos do meio não mudam</td></tr>
+<tr><td>Combina com</td><td>Situações esperadas que quem chama deve resolver</td><td>Regras violadas por erro de quem chama; projetos que preferem unchecked</td></tr>
+</table>
+</div>
+
+<p>Para o saldo, as duas escolhas são defensáveis. Se o programa deve <strong>sempre</strong> dizer algo ao cliente quando falta saldo, checked garante isso. Se o código que chama <code>sacar</code> sempre confere o saldo antes (e a exceção só aconteceria por um defeito), unchecked é mais simples.</p>
+
+<hr>
+
+<h2>A causa: uma exceção dentro da outra</h2>
+<p>A Ana importa alunos de uma lista de linhas no formato <code>nome,idade</code>. Quando a idade não é número, o <code>parseInt</code> lança <code>NumberFormatException</code>. Mas, para quem chamou a importação, "<em>For input string: "trinta"</em>" não diz <strong>qual</strong> linha estava errada. O certo é lançar uma exceção da importação, com uma mensagem útil, sem perder a original. A original vira a <strong>causa</strong> (<em>cause</em>):</p>
+
+<pre class="file" data-file="ImportacaoException.java">public class ImportacaoException extends Exception {
+    public ImportacaoException(String mensagem, Throwable causa) {
+        super(mensagem, causa);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Throwable causa</dt><dd>Um segundo parâmetro: a exceção original. O tipo é <code>Throwable</code> para aceitar qualquer uma.</dd>
+  <dt>super(mensagem, causa);</dt><dd>A <code>Exception</code> tem um construtor que recebe as duas coisas e guarda a causa. Depois, ela aparece em <code>getCause()</code> e no stack trace.</dd>
+</dl>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static int lerIdade(String linha, int numero) throws ImportacaoException {
+        String[] partes = linha.split(",");
+        try {
+            return Integer.parseInt(partes[1]);
+        } catch (NumberFormatException e) {
+            throw new ImportacaoException("linha " + numero + ": idade inválida", e);
+        }
+    }
+
+    public static void main(String[] args) throws ImportacaoException {
+        String[] linhas = {"Ana,29", "Bruno,trinta", "Carla,22"};
+        for (int i = 0; i &lt; linhas.length; i++) {
+            int idade = lerIdade(linhas[i], i + 1);
+            System.out.println("Idade lida: " + idade);
+        }
+    }
+}
+</pre>
+
+<p>O <code>split(",")</code> corta a linha na vírgula (veja <a href="metodos-string.html">Métodos de String</a>), e <code>partes[1]</code> é a idade. O <code>catch</code> não "engole" a <code>NumberFormatException</code>: ele lança outra exceção, mais significativa, levando a original junto (o <code>e</code> no fim). Isso se chama <strong>encadear</strong> exceções. Sem ninguém tratando, o stack trace mostra a corrente inteira:</p>
+
+<pre class="term">$ javac *.java
+$ java Main
+Idade lida: 29
+Exception in thread "main" ImportacaoException: linha 2: idade inválida
+	at Main.lerIdade(Main.java:7)
+	at Main.main(Main.java:14)
+Caused by: java.lang.NumberFormatException: For input string: "trinta"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.lerIdade(Main.java:5)
+	... 1 more</pre>
+
+<dl class="anatomy">
+  <dt>ImportacaoException: linha 2: idade inválida</dt><dd>A exceção de cima, com a mensagem que diz <strong>onde</strong> no arquivo está o problema. Ela foi lançada na linha 7.</dd>
+  <dt>Caused by: java.lang.NumberFormatException: For input string: "trinta"</dt><dd>"Causada por": a original, com o motivo técnico. Ela nasceu dentro do <code>parseInt</code>, chamado na linha 5.</dd>
+  <dt>... 1 more</dt><dd>"Mais 1": a causa tem mais uma moldura que é igual à última da exceção de cima (<code>Main.main(Main.java:14)</code>); o Java a omite para não repetir.</dd>
+</dl>
+
+<p>Tratando no <code>main</code>, <code>getCause()</code> devolve a original:</p>
+
+<pre class="file" data-file="Main.java (trecho)">    public static void main(String[] args) {
+        String[] linhas = {"Ana,29", "Bruno,trinta", "Carla,22"};
+        for (int i = 0; i &lt; linhas.length; i++) {
+            try {
+                int idade = lerIdade(linhas[i], i + 1);
+                System.out.println("Idade lida: " + idade);
+            } catch (ImportacaoException e) {
+                System.out.println("Problema: " + e.getMessage());
+                System.out.println("Causa: " + e.getCause());
+            }
+        }
+    }
+</pre>
+
+<pre class="term">$ javac *.java
+$ java Main
+Idade lida: 29
+Problema: linha 2: idade inválida
+Causa: java.lang.NumberFormatException: For input string: "trinta"
+Idade lida: 22</pre>
+
+<div class="warning">
+<strong>Sempre passe a causa</strong>
+<p><code>throw new ImportacaoException("linha 2: idade inválida");</code>, sem o <code>e</code>, também compila. Mas o <code>Caused by:</code> desaparece, e com ele a informação de que o problema foi o texto <code>"trinta"</code>. Quem for investigar vai ter só metade da história. Ao transformar uma exceção em outra, <strong>passe a original</strong> como causa. As exceções da biblioteca também aceitam: <code>new RuntimeException("mensagem", e)</code>, <code>new IllegalStateException("mensagem", e)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Quando vale a pena criar uma exceção</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Crie uma?</th></tr>
+<tr><td>Valor de parâmetro inválido (idade negativa, nota 11)</td><td>Não: <code>IllegalArgumentException</code> já diz isso</td></tr>
+<tr><td>Método chamado na hora errada</td><td>Não: <code>IllegalStateException</code></td></tr>
+<tr><td>Uma regra do negócio que quem chama vai querer tratar <strong>separadamente</strong> (saldo insuficiente, estoque esgotado, aluno não matriculado)</td><td><strong>Sim</strong></td></tr>
+<tr><td>Você precisa levar dados junto (quanto faltou, qual linha)</td><td><strong>Sim</strong></td></tr>
+<tr><td>Você quer esconder detalhes técnicos atrás de um nome do seu domínio (a importação falhou, seja por arquivo ou por número inválido)</td><td><strong>Sim</strong>, com a causa</td></tr>
+<tr><td>Só para ter um nome bonito, sem ninguém capturar por ele</td><td>Provavelmente não</td></tr>
+</table>
+</div>
+
+<p>Boas práticas, em resumo: nome terminando em <code>Exception</code>; pelo menos os construtores <code>(String mensagem)</code> e <code>(String mensagem, Throwable causa)</code>; mensagens com os valores envolvidos; checked ou unchecked escolhido de propósito.</p>
+
+<div class="note">
+<strong>Um aviso que você pode encontrar: <code>serialVersionUID</code></strong>
+<p>Compilando com todos os avisos ligados (<code>-Xlint</code>), o <code>javac</code> comenta sobre as suas exceções:</p>
+<pre class="term">$ javac -Xlint *.java
+SaldoInsuficienteException.java:1: warning: [serial] serializable class SaldoInsuficienteException has no definition of serialVersionUID
+public class SaldoInsuficienteException extends Exception {
+       ^
+1 warning</pre>
+<p>Exceções são "serializáveis" (podem ser transformadas em bytes para viajar pela rede), e o <code>javac</code> sugere um número de versão para isso. É só um aviso: o programa compila e roda normalmente, e sem <code>-Xlint</code> ele nem aparece. Se quiser silenciá-lo, acrescente na classe <code>private static final long serialVersionUID = 1L;</code>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot be converted to Throwable" (esqueceu o <code>extends</code>)</strong>
+<pre class="file" data-file="SaldoInsuficienteException.java">public class SaldoInsuficienteException {
+    public SaldoInsuficienteException(String mensagem) {
+    }
+}
+</pre>
+<pre class="term">$ javac *.java
+Conta.java:10: error: incompatible types: SaldoInsuficienteException cannot be converted to Throwable
+    public void sacar(double valor) throws SaldoInsuficienteException {
+                                           ^
+Conta.java:12: error: incompatible types: SaldoInsuficienteException cannot be converted to Throwable
+            throw new SaldoInsuficienteException(
+            ^
+Main.java:8: error: incompatible types: SaldoInsuficienteException cannot be converted to Throwable
+        } catch (SaldoInsuficienteException e) {
+                 ^
+Main.java:9: error: cannot find symbol
+            System.out.println("Saque negado: " + e.getMessage());
+                                                   ^
+  symbol:   method getMessage()
+  location: variable e of type SaldoInsuficienteException
+4 errors</pre>
+<p><strong>O que aconteceu:</strong> sem <code>extends</code>, a classe não é uma exceção, só uma classe comum que tem "Exception" no nome. Ela não pode aparecer em <code>throws</code>, <code>throw</code> nem <code>catch</code>, e não tem <code>getMessage()</code>. Quatro erros, uma causa só.</p>
+<p><strong>Como resolver:</strong> <code>extends Exception</code> (ou <code>RuntimeException</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>"constructor … cannot be applied to given types" (falta o construtor)</strong>
+<pre class="file" data-file="SaldoInsuficienteException.java">public class SaldoInsuficienteException extends Exception {
+}
+</pre>
+<pre class="term">$ javac *.java
+Conta.java:12: error: constructor SaldoInsuficienteException in class SaldoInsuficienteException cannot be applied to given types;
+            throw new SaldoInsuficienteException(
+                  ^
+  required: no arguments
+  found:    String
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+<p><strong>O que aconteceu:</strong> construtores não são herdados. A classe só tem o construtor padrão, sem parâmetros (<code>required: no arguments</code>, "exigido: nenhum argumento"), e a <code>Conta</code> tentou passar um texto (<code>found: String</code>, "encontrado: String").</p>
+<p><strong>Como resolver:</strong> escreva o construtor <code>public SaldoInsuficienteException(String mensagem) { super(mensagem); }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A mensagem aparece como <code>null</code></strong>
+<pre class="file" data-file="SaldoInsuficienteException.java">public class SaldoInsuficienteException extends Exception {
+    public SaldoInsuficienteException(String mensagem) {
+    }
+}
+</pre>
+<pre class="term">$ javac *.java
+$ java Main
+Ana sacou 30.0. Saldo: 70.0
+Saque negado: null</pre>
+<p><strong>O que aconteceu:</strong> o construtor recebeu a mensagem e não fez nada com ela. Sem <code>super(mensagem)</code>, o Java chama sozinho o <code>super()</code> sem parâmetros, e a <code>Exception</code> fica sem mensagem: <code>getMessage()</code> devolve <code>null</code>.</p>
+<p><strong>Como resolver:</strong> a primeira linha do construtor deve ser <code>super(mensagem);</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintaxe</th><th>O que faz</th></tr>
+<tr><td><code>class XException extends Exception</code></td><td>Exceção própria checked</td></tr>
+<tr><td><code>class XException extends RuntimeException</code></td><td>Exceção própria unchecked</td></tr>
+<tr><td><code>public XException(String m) { super(m); }</code></td><td>Construtor com mensagem</td></tr>
+<tr><td><code>public XException(String m, Throwable c) { super(m, c); }</code></td><td>Construtor com mensagem e causa</td></tr>
+<tr><td><code>throw new XException("…", e);</code></td><td>Lança guardando a exceção original como causa</td></tr>
+<tr><td><code>e.getCause()</code></td><td>Devolve a causa (ou <code>null</code>)</td></tr>
+<tr><td><code>Caused by:</code> no stack trace</td><td>A causa, com o rastro dela</td></tr>
+<tr><td><code>... N more</code></td><td>N molduras iguais às da exceção de cima, omitidas</td></tr>
+<tr><td><code>private static final long serialVersionUID = 1L;</code></td><td>Silencia o aviso <code>[serial]</code> do <code>-Xlint</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A mãe certa</h3>
+<p>Complete para criar uma exceção <strong>unchecked</strong>:</p>
+<div class="ex-code">public class EstoqueEsgotadoException extends <input data-answer="RuntimeException" aria-label="classe mãe"> { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Repassar a mensagem</h3>
+<p>Complete o construtor:</p>
+<div class="ex-code">public EstoqueEsgotadoException(String mensagem) { <input data-answer="super(mensagem);|super(mensagem)" aria-label="linha"> }</div>
+</div>
+
+<div class="exercise">
+<h3>3. Guardar a causa</h3>
+<p>Dentro de <code>catch (NumberFormatException e)</code>, complete para lançar a sua exceção levando a original junto:</p>
+<div class="ex-code">throw new ImportacaoException("idade inválida", <input data-answer="e" aria-label="causa">);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Você criou <code>class AlunoNaoEncontradoException extends Exception</code>. O que acontece com quem chama um método que a lança?</p>
+<label><input type="radio" name="q4"> Nada: nunca precisa tratar.</label>
+<label><input type="radio" name="q4"> Precisa capturar ou declarar <code>throws</code>, senão não compila.</label>
+<label><input type="radio" name="q4"> Precisa estender a classe.</label>
+<label><input type="radio" name="q4"> O programa sempre termina.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que a linha <code>Caused by:</code> de um stack trace mostra?</p>
+<label><input type="radio" name="q5"> O método que capturou a exceção.</label>
+<label><input type="radio" name="q5"> Uma segunda exceção, sem relação com a primeira.</label>
+<label><input type="radio" name="q5"> A exceção original, guardada como causa da de cima.</label>
+<label><input type="radio" name="q5"> A linha do <code>catch</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Um método recebe um CPF com 9 dígitos. O que é mais adequado?</p>
+<label><input type="radio" name="q6"> Lançar <code>IllegalArgumentException</code>, ou uma <code>CpfInvalidoException</code> se o programa for tratar esse caso de forma especial.</label>
+<label><input type="radio" name="q6"> Lançar <code>OutOfMemoryError</code>.</label>
+<label><input type="radio" name="q6"> Lançar <code>Exception</code> sem mensagem.</label>
+<label><input type="radio" name="q6"> Devolver <code>null</code> em silêncio.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Nota registrada: 9.5,excecao:NotaInvalidaException,src:extends\s+RuntimeException">
+<p class="try-task"><strong>Missão final:</strong> crie, na aba <code>NotaInvalidaException.java</code>, uma exceção <strong>unchecked</strong> (herdando de <code>RuntimeException</code>) com construtor que recebe a mensagem. Depois, no <code>Main</code>, troque a <code>IllegalArgumentException</code> por ela. O programa deve registrar 9.5 e terminar com a <code>NotaInvalidaException</code>.</p>
+<pre class="script" data-file="Main.java">public class Main {
+    static void registrarNota(double nota) {
+        if (nota &lt; 0 || nota &gt; 10) {
+            throw new IllegalArgumentException("nota fora de 0 a 10: " + nota);
+        }
+        System.out.println("Nota registrada: " + nota);
+    }
+
+    public static void main(String[] args) {
+        registrarNota(9.5);
+        registrarNota(11);
+    }
+}
+</pre>
+<pre class="script" data-file="NotaInvalidaException.java">public class NotaInvalidaException {
+}
+</pre>
+<pre class="solucao" data-file="Main.java">public class Main {
+    static void registrarNota(double nota) {
+        if (nota &lt; 0 || nota &gt; 10) {
+            throw new NotaInvalidaException("nota fora de 0 a 10: " + nota);
+        }
+        System.out.println("Nota registrada: " + nota);
+    }
+
+    public static void main(String[] args) {
+        registrarNota(9.5);
+        registrarNota(11);
+    }
+}
+</pre>
+<pre class="solucao" data-file="NotaInvalidaException.java">public class NotaInvalidaException extends RuntimeException {
+    public NotaInvalidaException(String mensagem) {
+        super(mensagem);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma exceção própria é uma classe que herda de <code>Exception</code> (checked) ou <code>RuntimeException</code> (unchecked), com nome terminando em <code>Exception</code>.</li>
+  <li>O construtor repassa a mensagem com <code>super(mensagem)</code>; sem isso, <code>getMessage()</code> devolve <code>null</code>.</li>
+  <li>Ela pode ter atributos e métodos (<code>getFaltando()</code>) para levar dados a quem captura.</li>
+  <li>Checked obriga quem chama a tratar ou declarar; unchecked deixa o código mais limpo. Escolha de propósito.</li>
+  <li>Ao trocar uma exceção por outra, passe a original como <strong>causa</strong> (<code>super(mensagem, causa)</code>): ela aparece em <code>getCause()</code> e no <code>Caused by:</code>.</li>
+  <li>Crie exceções quando quem chama vai tratar aquele caso separadamente ou precisa de dados extras; para parâmetro inválido ou estado errado, use as prontas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
