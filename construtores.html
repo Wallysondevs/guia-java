@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Construtores — padrão, com parâmetros e this(...) | Guia Java</title>
+<meta name="description" content="Construtores em Java: o construtor padrão, construtores com parâmetros, vários construtores (sobrecarga), this(...) encadeando, corpos de construtor flexíveis do Java 25 e o erro real constructor cannot be applied to given types.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Construtores</span></h1>
+
+<p class="intro">Até aqui, criar uma fruta levava três linhas: <code>new Fruta()</code>, depois o nome, depois o preço. E nada impedia de esquecer uma delas. O <strong>construtor</strong> resolve isso: é um bloco especial da classe que roda <strong>no momento em que o objeto nasce</strong>, e pode exigir os dados necessários logo no <code>new</code>: <code>new Fruta("maçã", 7.9)</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um construtor e como ele difere de um método.</li>
+  <li>O <strong>construtor padrão</strong> que o Java cria sozinho, e quando ele deixa de existir.</li>
+  <li>Construtores com parâmetros, para cada objeto nascer pronto.</li>
+  <li>Vários construtores na mesma classe (sobrecarga) e o <code>this(…)</code>, que encadeia um no outro.</li>
+  <li>Os erros reais: <code>constructor … cannot be applied to given types</code>, o construtor com <code>void</code> e o <code>recursive constructor invocation</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia antes do código: a maternidade</h2>
+<p>Quando um bebê nasce, ele não sai da maternidade "em branco": já sai com nome, data de nascimento e uma pulseira de identificação. Esse procedimento acontece <strong>uma vez</strong>, no nascimento, e é obrigatório.</p>
+<p>O construtor é o procedimento de nascimento de um objeto. Ele roda automaticamente a cada <code>new</code>, uma única vez por objeto, e serve para deixar o objeto pronto para uso.</p>
+
+<hr>
+
+<h2>O construtor padrão</h2>
+<p>Você já usou construtores sem saber. Em <code>new Fruta()</code>, os parênteses depois de <code>Fruta</code> são uma <strong>chamada de construtor</strong>. Se a classe não escreve nenhum, o Java cria sozinho um construtor vazio, sem parâmetros, chamado <strong>construtor padrão</strong>. Ele não faz nada além de deixar os atributos com os <a href="atributos.html">valores padrão</a>.</p>
+
+<p>Você pode escrever esse construtor sem parâmetros por conta própria, para ver quando ele roda:</p>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+
+    Fruta() {
+        System.out.println("Uma fruta nova nasceu!");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta a = new Fruta();
+        Fruta b = new Fruta();
+        System.out.println(a.nome + ", " + a.preco);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Uma fruta nova nasceu!     « o new da linha 12
+Uma fruta nova nasceu!     « o new da linha 13
+null, 0.0                  « os atributos continuam com os valores padrão</pre>
+
+<dl class="anatomy">
+  <dt>Fruta</dt><dd>O nome do construtor é <strong>exatamente o nome da classe</strong>, com a mesma maiúscula.</dd>
+  <dt>(sem tipo de retorno)</dt><dd>Repare: não há <code>void</code>, nem <code>int</code>, nem nada antes do nome. Um construtor <strong>não devolve valor</strong>; quem "devolve" o objeto pronto é o <code>new</code>. É isso que o diferencia de um método.</dd>
+  <dt>()</dt><dd>A lista de parâmetros. Vazia aqui.</dd>
+  <dt>{ … }</dt><dd>O corpo, executado a cada <code>new Fruta()</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>Construtor com parâmetros</h2>
+<p>O uso mais importante do construtor é receber os dados do objeto e guardá-los nos atributos. A Ana reescreveu a classe:</p>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+
+    Fruta(String nomeInicial, double precoInicial) {
+        nome = nomeInicial;
+        preco = precoInicial;
+    }
+
+    void mostrar() {
+        System.out.println(nome + ": R$ " + preco);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta("maçã", 7.9);
+        Fruta banana = new Fruta("banana", 3.5);
+        maca.mostrar();
+        banana.mostrar();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+maçã: R$ 7.9
+banana: R$ 3.5</pre>
+
+<dl class="anatomy">
+  <dt>Fruta(String nomeInicial, double precoInicial)</dt><dd>Um construtor com dois <a href="parametros.html">parâmetros</a>. Agora, para criar uma fruta, é <strong>obrigatório</strong> informar nome e preço.</dd>
+  <dt>nome = nomeInicial;</dt><dd>Copia o valor recebido para o atributo <code>nome</code> do objeto que está nascendo.</dd>
+  <dt>new Fruta("maçã", 7.9)</dt><dd>Cria o objeto e chama o construtor com os argumentos, na mesma ordem e tipos dos parâmetros. Uma linha, objeto pronto.</dd>
+</dl>
+
+<p>Compare com o jeito antigo:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sem construtor</th><th>Com construtor</th></tr>
+<tr><td><code>Fruta maca = new Fruta();</code><br><code>maca.nome = "maçã";</code><br><code>maca.preco = 7.9;</code></td><td><code>Fruta maca = new Fruta("maçã", 7.9);</code></td></tr>
+<tr><td>Dá para esquecer uma linha, e a fruta fica com nome <code>null</code></td><td>O compilador não deixa criar uma fruta sem nome e preço</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Por que <code>nomeInicial</code> e não só <code>nome</code>?</strong>
+<p>Se o parâmetro se chamasse <code>nome</code>, igual ao atributo, a linha <code>nome = nome;</code> não faria o que parece: o parâmetro faria <a href="escopo.html#sombra">sombra</a> no atributo, e o valor seria copiado dele para ele mesmo. Na prática, os programadores Java usam o <strong>mesmo nome</strong> e resolvem a sombra com <code>this.nome = nome;</code>. Essa é a próxima aula, <a href="this.html">this</a>. Por enquanto, nomes diferentes deixam tudo claro.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Ana: R$ 500.0,out:Bruno: R$ 80.0,src:Conta\s*\(\s*String\s+\w+\s*\,\s*double\s+\w+\s*\)\s*\{,src:new\s+Conta\s*\(\s*&quot;Ana&quot;">
+<p class="try-task"><strong>Missão:</strong> escreva um construtor para a classe <code>Conta</code> que receba o titular (<code>String</code>) e o saldo inicial (<code>double</code>). Depois troque, no <code>main</code>, as linhas de atribuição por <code>new Conta("Ana", 500)</code> e <code>new Conta("Bruno", 80)</code>.</p>
+<pre class="script">class Conta {
+    String titular;
+    double saldo;
+
+    // escreva o construtor aqui
+
+    void mostrar() {
+        System.out.println(titular + ": R$ " + saldo);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta a = new Conta();
+        a.titular = "Ana";
+        a.saldo = 500;
+        Conta b = new Conta();
+        b.titular = "Bruno";
+        b.saldo = 80;
+        a.mostrar();
+        b.mostrar();
+    }
+}
+</pre>
+<pre class="solucao">class Conta {
+    String titular;
+    double saldo;
+
+    Conta(String titularInicial, double saldoInicial) {
+        titular = titularInicial;
+        saldo = saldoInicial;
+    }
+
+    void mostrar() {
+        System.out.println(titular + ": R$ " + saldo);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Conta a = new Conta("Ana", 500);
+        Conta b = new Conta("Bruno", 80);
+        a.mostrar();
+        b.mostrar();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="some">Quando você escreve um construtor, o padrão some</h2>
+<p>Este é o ponto que mais pega quem está começando. O Java só cria o construtor padrão (vazio) se a classe <strong>não tiver nenhum</strong>. A partir do momento em que você escreve <code>Fruta(String, double)</code>, o <code>Fruta()</code> automático deixa de existir:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">class Fruta {
+    String nome;
+    double preco;
+
+    Fruta(String nomeInicial, double precoInicial) {
+        nome = nomeInicial;
+        preco = precoInicial;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta();
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:13: error: constructor Fruta in class Fruta cannot be applied to given types;
+        Fruta maca = new Fruta();
+                     ^
+  required: String,double
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha da mensagem</th><th>Tradução</th></tr>
+<tr><td><code>constructor Fruta in class Fruta cannot be applied to given types;</code></td><td>O construtor de <code>Fruta</code> não pode ser usado com os argumentos dados.</td></tr>
+<tr><td><code>required: String,double</code></td><td>O único construtor que existe pede um texto e um número.</td></tr>
+<tr><td><code>found: no arguments</code></td><td>A chamada não mandou nada.</td></tr>
+<tr><td><code>reason: actual and formal argument lists differ in length</code></td><td>As listas têm tamanhos diferentes.</td></tr>
+</table>
+</div>
+
+<p>É a mesma mensagem dos <a href="parametros.html">métodos com argumentos errados</a>, só que com <code>constructor</code> no lugar de <code>method</code>. Há duas saídas: passar os argumentos (<code>new Fruta("maçã", 7.9)</code>) ou, se fizer sentido criar frutas "em branco", escrever também um construtor sem parâmetros. Isso leva à próxima seção.</p>
+
+<hr>
+
+<h2>Vários construtores</h2>
+<p>Uma classe pode ter <strong>vários</strong> construtores, desde que as listas de parâmetros sejam diferentes. É a mesma regra da <a href="sobrecarga.html">sobrecarga</a> de métodos. Assim, quem cria o objeto escolhe quanta informação passar:</p>
+
+<pre class="file" data-file="trecho">class Fruta {
+    String nome;
+    double preco;
+    int estoque;
+
+    Fruta(String nomeInicial) {
+        nome = nomeInicial;
+        preco = 0.0;
+        estoque = 0;
+    }
+
+    Fruta(String nomeInicial, double precoInicial) {
+        nome = nomeInicial;
+        preco = precoInicial;
+        estoque = 10;
+    }
+
+    Fruta(String nomeInicial, double precoInicial, int estoqueInicial) {
+        nome = nomeInicial;
+        preco = precoInicial;
+        estoque = estoqueInicial;
+    }
+}
+</pre>
+
+<p>Funciona, mas olhe a repetição: as linhas <code>nome = …</code>, <code>preco = …</code> e <code>estoque = …</code> aparecem três vezes. Se amanhã a Ana precisar validar o preço (não aceitar negativo), terá de lembrar dos três lugares.</p>
+
+<h3 id="this-encadeado"><code>this(…)</code>: um construtor chama o outro</h3>
+<p>Dentro de um construtor, <code>this(…)</code> quer dizer "chame <strong>outro construtor desta mesma classe</strong>, com estes argumentos". Os construtores curtos passam a delegar para o completo, que é o único a fazer o trabalho:</p>
+
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+    int estoque;
+
+    Fruta() {
+        this("sem nome", 0.0, 0);
+    }
+
+    Fruta(String nomeInicial) {
+        this(nomeInicial, 0.0, 0);
+    }
+
+    Fruta(String nomeInicial, double precoInicial) {
+        this(nomeInicial, precoInicial, 10);
+    }
+
+    Fruta(String nomeInicial, double precoInicial, int estoqueInicial) {
+        nome = nomeInicial;
+        preco = precoInicial;
+        estoque = estoqueInicial;
+        System.out.println("Criada: " + nome + ", R$ " + preco + ", estoque " + estoque);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        new Fruta();
+        new Fruta("kiwi");
+        new Fruta("maçã", 7.9);
+        new Fruta("uva", 12.0, 30);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Criada: sem nome, R$ 0.0, estoque 0
+Criada: kiwi, R$ 0.0, estoque 0
+Criada: maçã, R$ 7.9, estoque 10
+Criada: uva, R$ 12.0, estoque 30</pre>
+
+<dl class="anatomy">
+  <dt>this("sem nome", 0.0, 0);</dt><dd>Chama o construtor de três parâmetros com valores "padrão". O Java escolhe qual construtor pelos tipos dos argumentos, como na sobrecarga.</dd>
+  <dt>this(nomeInicial, precoInicial, 10);</dt><dd>Repassa o que recebeu e completa o que falta (estoque 10).</dd>
+  <dt>o construtor de três parâmetros</dt><dd>O único que realmente preenche os atributos. Toda fruta, criada por qualquer construtor, passa por ele. Por isso o <code>println</code> aparece nas quatro criações.</dd>
+  <dt>new Fruta();</dt><dd>Um <code>new</code> sem guardar o objeto numa variável é permitido; aqui só queremos ver o construtor rodar.</dd>
+</dl>
+
+<p>É a técnica dos "valores padrão" que você viu em <a href="sobrecarga.html">Sobrecarga</a>, aplicada a construtores. Regras do <code>this(…)</code>:</p>
+<ul>
+  <li>Só pode ser usado <strong>dentro de um construtor</strong>, e no máximo uma vez.</li>
+  <li>Um construtor não pode chamar a si mesmo, nem formar um ciclo (A chama B, que chama A). O <code>javac</code> recusa: <code>recursive constructor invocation</code>.</li>
+  <li>Antes do <code>this(…)</code>, o objeto ainda não está pronto: nenhuma linha antes dele pode usar os atributos ou métodos do objeto.</li>
+</ul>
+
+<div class="note">
+<strong>O <code>this(…)</code> precisa ser a primeira linha? <span class="versao">Java 25+</span></strong>
+<p>Até o Java 24, sim: qualquer instrução antes do <code>this(…)</code> era erro. O Java 25 trouxe os "corpos de construtor flexíveis": agora você pode escrever instruções antes, desde que elas <strong>não usem o objeto</strong> que está nascendo (por exemplo, validar ou imprimir um parâmetro). Veja:</p>
+<pre class="file" data-file="Main.java">class Fruta {
+    String nome;
+    double preco;
+
+    Fruta(String nomeInicial) {
+        System.out.println("Preparando " + nomeInicial);
+        this(nomeInicial, 0.0);
+    }
+
+    Fruta(String nomeInicial, double precoInicial) {
+        nome = nomeInicial;
+        preco = precoInicial;
+        System.out.println("Criada: " + nome);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        new Fruta("kiwi");
+    }
+}
+</pre>
+<p>Pedindo ao <code>javac</code> que compile como Java 21 (opção <code>--release 21</code>), o código é recusado; no Java 25, compila e roda:</p>
+<pre class="term">$ javac --release 21 Main.java
+Main.java:7: error: flexible constructors is not supported in -source 21
+        this(nomeInicial, 0.0);
+            ^
+  (use -source 25 or higher to enable flexible constructors)
+1 error
+$ javac Main.java &amp;&amp; java Main
+Preparando kiwi                « o println antes do this(…) rodou primeiro
+Criada: kiwi</pre>
+<p>Se o seu código precisa rodar em versões antigas, mantenha o <code>this(…)</code> na primeira linha. E, mesmo no Java 25, ler um atributo antes dele é erro: <code>cannot reference nome before supertype constructor has been called</code>.</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de criar objetos prontos</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Construtor padrão + atribuições</td><td><code>new Fruta(); f.nome = …;</code></td><td>Só em exemplos; fácil esquecer um campo</td></tr>
+<tr><td>Um construtor com todos os dados</td><td><code>new Fruta("maçã", 7.9)</code></td><td>O caso mais comum: todo objeto precisa desses dados</td></tr>
+<tr><td>Vários construtores + <code>this(…)</code></td><td><code>new Fruta("kiwi")</code> e <code>new Fruta("uva", 12.0, 30)</code></td><td>Alguns dados são opcionais e têm um valor padrão razoável</td></tr>
+<tr><td>Valor inicial no atributo</td><td><code>int estoque = 10;</code></td><td>O valor é o mesmo para todos e não depende de parâmetro</td></tr>
+<tr><td><a href="records.html">record</a></td><td><code>record Fruta(String nome, double preco) {}</code></td><td>Classes que só carregam dados imutáveis: o Java escreve o construtor por você</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"constructor … cannot be applied to given types"</strong>
+<pre class="term">$ javac Main.java
+Main.java:13: error: constructor Fruta in class Fruta cannot be applied to given types;
+        Fruta maca = new Fruta();
+                     ^
+  required: String,double
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+<p><strong>O que aconteceu:</strong> nenhum construtor da classe aceita os argumentos do <code>new</code>. O caso clássico: a classe ganhou um construtor com parâmetros, o padrão sumiu, e algum lugar ainda faz <code>new Fruta()</code>.</p>
+<p><strong>Como resolver:</strong> passe os argumentos que o construtor pede (veja a linha <code>required</code>) ou acrescente um construtor sem parâmetros, de preferência com <code>this(…)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Argumentos na ordem errada</strong>
+<pre class="term">$ javac Main.java
+Main.java:13: error: incompatible types: double cannot be converted to String
+        Fruta maca = new Fruta(7.9, "maçã");
+                               ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o construtor é <code>Fruta(String, double)</code> e a chamada mandou primeiro o número.</p>
+<p><strong>Como resolver:</strong> <code>new Fruta("maçã", 7.9)</code>, na ordem da declaração.</p>
+</div>
+
+<div class="cenario">
+<strong>Construtor com <code>void</code> (virou método!)</strong>
+<pre class="file" data-file="Main.java — com erro de propósito">class Fruta {
+    String nome;
+    double preco;
+
+    void Fruta(String nomeInicial, double precoInicial) {
+        nome = nomeInicial;
+        preco = precoInicial;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Fruta maca = new Fruta("maçã", 7.9);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:13: error: constructor Fruta in class Fruta cannot be applied to given types;
+        Fruta maca = new Fruta("maçã", 7.9);
+                     ^
+  required: no arguments
+  found:    String,double
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+<p><strong>O que aconteceu:</strong> com <code>void</code> na frente, <code>Fruta(…)</code> deixou de ser construtor: virou um <strong>método</strong> comum que, por acaso, tem o nome da classe. Como a classe ficou sem construtor nenhum, o Java criou o padrão, sem parâmetros. Daí o curioso <code>required: no arguments</code>.</p>
+<p><strong>Como resolver:</strong> apague o <code>void</code>. Construtores nunca têm tipo de retorno.</p>
+</div>
+
+<div class="cenario">
+<strong>"recursive constructor invocation"</strong>
+<pre class="term">$ javac Main.java
+Main.java:6: error: recursive constructor invocation
+        this(nomeInicial);
+        ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> o construtor <code>Fruta(String)</code> chamou <code>this(nomeInicial)</code>, ou seja, ele mesmo. Seria uma <a href="recursao.html">recursão</a> sem fim, e o compilador a detecta antes de rodar.</p>
+<p><strong>Como resolver:</strong> o <code>this(…)</code> deve chamar um construtor <strong>diferente</strong>, normalmente o mais completo.</p>
+</div>
+
+<div class="cenario">
+<strong>O construtor rodou, mas os atributos ficaram vazios</strong>
+<pre class="term">$ java Main.java
+null: R$ 0.0</pre>
+<p><strong>O que aconteceu:</strong> o construtor foi escrito como <code>Fruta(String nome, double preco) { nome = nome; preco = preco; }</code>. Os parâmetros têm o mesmo nome dos atributos e fazem sombra neles: cada linha copia o parâmetro para ele mesmo. Os atributos nunca foram tocados. Compila, roda, e está errado.</p>
+<p><strong>Como resolver:</strong> <code>this.nome = nome;</code> e <code>this.preco = preco;</code>. A explicação completa está em <a href="this.html">this</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Significado</th></tr>
+<tr><td><code>NomeDaClasse(params) { … }</code></td><td>Construtor: nome igual ao da classe, sem tipo de retorno</td></tr>
+<tr><td><code>new NomeDaClasse(args)</code></td><td>Cria o objeto e chama o construtor que combina com os argumentos</td></tr>
+<tr><td>Construtor padrão</td><td>Criado pelo Java só se a classe não tiver nenhum construtor; sem parâmetros, vazio</td></tr>
+<tr><td>Vários construtores</td><td>Permitido, com listas de parâmetros diferentes (sobrecarga)</td></tr>
+<tr><td><code>this(args);</code></td><td>Dentro de um construtor: chama outro construtor da mesma classe</td></tr>
+<tr><td><code>void NomeDaClasse(…)</code></td><td>Não é construtor: é um método com nome estranho</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: dois jeitos de matricular</h2>
+<div class="tryjava" data-goal="out:Carla - turma 1A,out:Davi - turma 2B,src:this\s*\(\s*\w+\s*\,\s*&quot;1A&quot;\s*\)">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Aluno</code> já tem o construtor <code>Aluno(String nomeInicial, String turmaInicial)</code>. Escreva um segundo construtor, <code>Aluno(String nomeInicial)</code>, que use <code>this(…)</code> para matricular o aluno na turma <code>"1A"</code>. O <code>main</code> já cria a Carla (sem turma) e o Davi (turma 2B).</p>
+<pre class="script">class Aluno {
+    String nome;
+    String turma;
+
+    Aluno(String nomeInicial, String turmaInicial) {
+        nome = nomeInicial;
+        turma = turmaInicial;
+    }
+
+    // escreva o construtor com um parâmetro aqui
+
+    void mostrar() {
+        System.out.println(nome + " - turma " + turma);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno carla = new Aluno("Carla");
+        Aluno davi = new Aluno("Davi", "2B");
+        carla.mostrar();
+        davi.mostrar();
+    }
+}
+</pre>
+<pre class="solucao">class Aluno {
+    String nome;
+    String turma;
+
+    Aluno(String nomeInicial, String turmaInicial) {
+        nome = nomeInicial;
+        turma = turmaInicial;
+    }
+
+    Aluno(String nomeInicial) {
+        this(nomeInicial, "1A");
+    }
+
+    void mostrar() {
+        System.out.println(nome + " - turma " + turma);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Aluno carla = new Aluno("Carla");
+        Aluno davi = new Aluno("Davi", "2B");
+        carla.mostrar();
+        davi.mostrar();
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O nome do construtor</h3>
+<p>Complete a declaração do construtor da classe <code>Livro</code> que recebe o título:</p>
+<div class="ex-code"><input data-answer="Livro" aria-label="nome">(String tituloInicial) {</div>
+</div>
+
+<div class="exercise">
+<h3>2. Criar com argumentos</h3>
+<p>O construtor é <code>Conta(String titular, double saldo)</code>. Complete para criar a conta da Ana com 300:</p>
+<div class="ex-code">Conta c = <input data-answer="new Conta(&quot;Ana&quot;, 300);|new Conta(&quot;Ana&quot;, 300.0);|new Conta(&quot;Ana&quot;,300);" aria-label="criação"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Encadear</h3>
+<p>Complete o construtor sem parâmetros para chamar o construtor <code>Fruta(String)</code> com <code>"sem nome"</code>:</p>
+<div class="ex-code">Fruta() { <input data-answer="this(&quot;sem nome&quot;);" aria-label="chamada"> }</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. A classe <code>Fruta</code> só tem o construtor <code>Fruta(String nome)</code>. O que acontece com <code>new Fruta()</code>?</p>
+<label><input type="radio" name="q4"> Funciona: o Java sempre cria o construtor padrão.</label>
+<label><input type="radio" name="q4"> Cria uma fruta com nome <code>null</code>.</label>
+<label><input type="radio" name="q4"> Erro: <code>constructor Fruta in class Fruta cannot be applied to given types</code>.</label>
+<label><input type="radio" name="q4"> <code>NullPointerException</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual é a diferença de declaração entre um construtor e um método?</p>
+<label><input type="radio" name="q5"> O construtor tem o nome da classe e nenhum tipo de retorno (nem <code>void</code>).</label>
+<label><input type="radio" name="q5"> O construtor sempre tem <code>static</code>.</label>
+<label><input type="radio" name="q5"> O construtor sempre devolve <code>boolean</code>.</label>
+<label><input type="radio" name="q5"> Não há diferença.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Quantas vezes o construtor roda para cada objeto?</p>
+<label><input type="radio" name="q6"> Toda vez que um atributo muda.</label>
+<label><input type="radio" name="q6"> Uma vez, no <code>new</code>.</label>
+<label><input type="radio" name="q6"> Toda vez que um método é chamado.</label>
+<label><input type="radio" name="q6"> Nenhuma, a menos que você o chame pelo nome.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <strong>construtor</strong> roda uma vez, no <code>new</code>, para deixar o objeto pronto. Tem o nome da classe e <strong>nenhum tipo de retorno</strong>.</li>
+  <li>Sem construtor escrito, o Java cria o <strong>padrão</strong> (vazio, sem parâmetros). Escreveu algum? O padrão some.</li>
+  <li>Construtores com parâmetros obrigam quem cria o objeto a informar os dados: <code>new Fruta("maçã", 7.9)</code>.</li>
+  <li>Vários construtores = sobrecarga. Use <code>this(…)</code> para os curtos chamarem o completo.</li>
+  <li>Erros típicos: <code>constructor … cannot be applied to given types</code> (argumentos não combinam), <code>void</code> no construtor (vira método), <code>recursive constructor invocation</code>.</li>
+  <li>Com parâmetros de mesmo nome dos atributos, use <code>this.nome = nome</code> (próxima aula).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
