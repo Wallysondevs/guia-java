@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Novidades do 17 ao 25 — o que mudou na linguagem e na API | Guia Java</title>
+<meta name="description" content="Tabela das novidades do Java 17 ao 25: sealed, records, pattern matching, threads virtuais, sequenced collections, _ sem nome, void main e IO, import module, construtores flexíveis, scoped values; o que é final e o que é preview no JDK 25, e o fim dos String templates.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Novidades do 17 ao 25</span></h1>
+
+<p class="intro">O Java ganha uma versão nova a cada seis meses, e a cada dois anos uma delas é <strong>LTS</strong> (com suporte longo): 17, 21 e 25. Esta aula é um mapa do que mudou entre o Java 17 e o Java 25, o que este guia ensina. Cada novidade tem o selo da versão em que ficou pronta, e as principais têm um exemplo rodado no JDK 25 da máquina da Ana.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre um recurso <strong>final</strong>, um <strong>preview</strong> e um <strong>incubator</strong>, e como ligar um preview (<code>--enable-preview</code>), com as mensagens reais.</li>
+  <li>Uma tabela, versão por versão, das novidades de linguagem e de biblioteca do 17 ao 25.</li>
+  <li>Exemplos curtos das novidades que mais mudam o dia a dia: <code>void main()</code> e <code>IO</code>, <code>import module</code>, construtores flexíveis, <code>getFirst()</code>/<code>reversed()</code>, o <code>_</code> sem nome e os <em>scoped values</em>.</li>
+  <li>O que aconteceu com os <em>String templates</em> (<code>STR."…"</code>): foram retirados.</li>
+</ul>
+</div>
+
+<p>Se você quer saber o que é LTS e qual versão instalar, veja antes <a href="versoes.html">Versões e LTS</a>. Tudo nesta página foi conferido no laboratório:</p>
+
+<pre class="term" data-cwd="~/java">$ java -version
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)</pre>
+
+<hr>
+
+<h2>A ideia antes do código: final, preview e incubator</h2>
+<p>Pense numa receita nova num restaurante. Antes de entrar no cardápio, ela é servida como <strong>prato do dia</strong>, para os clientes provarem e darem opinião; o chef pode mudar a receita ou até tirá-la de vez. Só depois de aprovada ela entra no <strong>cardápio fixo</strong>.</p>
+<p>O Java faz igual. Cada mudança é descrita num documento chamado <strong>JEP</strong> (<em>JDK Enhancement Proposal</em>, "proposta de melhoria do JDK"), com um número. E passa por estágios:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Estágio</th><th>O que quer dizer</th><th>Posso usar?</th></tr>
+<tr><td><strong>Final</strong> (permanente)</td><td>Entrou no cardápio fixo. Não muda mais.</td><td>Sim, normalmente.</td></tr>
+<tr><td><strong>Preview</strong> (prévia)</td><td>Prato do dia: completo, mas pode mudar ou sumir na próxima versão.</td><td>Só ligando a opção <code>--enable-preview</code>. Bom para experimentar, não para produção.</td></tr>
+<tr><td><strong>Incubator</strong> (incubadora)</td><td>Uma biblioteca ainda em teste, num módulo separado <code>jdk.incubator.…</code>.</td><td>Só adicionando o módulo à mão.</td></tr>
+</table>
+</div>
+
+<h3>Tentando usar um preview sem a opção</h3>
+<p>No JDK 25, os <strong>padrões com tipos primitivos</strong> (como <code>case int n</code>) ainda são preview. Veja o que o <code>javac</code> diz:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int nota = 8;
+        String r = switch (nota) {
+            case int n when n &gt;= 7 -&gt; "aprovado";
+            case int n -&gt; "reprovado";
+        };
+        System.out.println(r);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:5: error: primitive patterns are a preview feature and are disabled by default.
+            case int n when n &gt;= 7 -&gt; "aprovado";
+                 ^
+  (use --enable-preview to enable primitive patterns)
+1 error</pre>
+
+<p>"Padrões primitivos são um recurso em prévia e estão desligados por padrão (use <code>--enable-preview</code> para ligar)." Para APIs em prévia, a mensagem é parecida: <code>error: StructuredTaskScope is a preview API and is disabled by default.</code></p>
+
+<h3>Ligando o preview</h3>
+<p>A opção precisa ir nos <strong>dois</strong> lugares: no <code>javac</code> (junto com <code>--release</code>, a versão exata) e no <code>java</code>:</p>
+
+<pre class="term" data-cwd="~/java">$ javac --enable-preview Main.java
+error: --enable-preview must be used with either -source or --release
+$ javac --release 25 --enable-preview Main.java
+Note: Main.java uses preview features of Java SE 25.
+Note: Recompile with -Xlint:preview for details.
+$ java Main
+Erro: o método main não foi encontrado na classe Main; defina o método main como:
+   public static void main(String[] args)
+ou uma classe de aplicativo JavaFX deve expandir java.lang.UnsupportedClassVersionError: Preview features are not enabled for Main (class file version 69.65535). Try running with '--enable-preview'
+$ java --enable-preview Main
+aprovado
+$ java --enable-preview Main.java      « modo arquivo-fonte: compila e roda numa tacada
+aprovado</pre>
+
+<p>Repare na terceira tentativa: compilou com preview, mas rodou <strong>sem</strong> a opção. A mensagem do lançador sai embaralhada (começa com o aviso de <code>main</code> em português e termina no meio da frase), mas o final diz o que importa: "recursos em prévia não estão ligados para <code>Main</code>; tente rodar com <code>--enable-preview</code>". O número <code>69.65535</code> é a versão do arquivo <code>.class</code>: 69 é o Java 25, e 65535 é a marca de "usa preview".</p>
+
+<div class="warning">
+<strong>Preview prende você a uma versão</strong>
+<p>Um <code>.class</code> compilado com preview do Java 25 só roda no Java 25 (nem no 26). Por isso, este guia ensina apenas recursos <strong>finais</strong>, e a tabela abaixo marca os previews do JDK 25 separadamente.</p>
+</div>
+
+<hr>
+
+<h2>A tabela: do Java 17 ao 25</h2>
+<p>Linguagem = o que muda na forma de escrever código; API = classes e métodos novos na biblioteca; ferramentas = <code>java</code>, <code>javac</code>, <code>javadoc</code>… Só aparecem os recursos <strong>finais</strong> de cada versão (o número entre parênteses é o da JEP).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Linguagem</th><th>API e ferramentas</th></tr>
+<tr><td><span class="versao">Java 17</span><br>set/2021 · LTS</td>
+<td>Classes seladas: <code>sealed</code>, <code>permits</code>, <code>non-sealed</code> (409) → <a href="sealed.html">aula</a>.<br>Chegaram entre o 11 e o 17 e você já usa: <code>switch</code> com setas (14) → <a href="switch-expressoes.html">aula</a>; text blocks <code>"""</code> (15) → <a href="text-blocks.html">aula</a>; records (16) → <a href="records.html">aula</a>; <code>instanceof</code> com padrão (16) → <a href="pattern-matching.html">aula</a>.</td>
+<td>Novos geradores de números aleatórios, <code>RandomGenerator</code> (356). As partes internas do JDK ficam sempre trancadas para reflexão (403) → <a href="reflexao.html">aula</a>.</td></tr>
+<tr><td><span class="versao">Java 18</span><br>mar/2022</td>
+<td>—</td>
+<td>UTF-8 é o padrão para ler e escrever texto em qualquer sistema (400). Servidor web simples de linha de comando, <code>jwebserver</code> (408). Exemplos de código no Javadoc com <code>@snippet</code> (413).</td></tr>
+<tr><td><span class="versao">Java 19</span> e <span class="versao">Java 20</span><br>set/2022, mar/2023</td>
+<td colspan="2">Nenhum recurso de linguagem final: foram as versões de "prato do dia" das threads virtuais, dos record patterns e dos padrões no <code>switch</code>, que ficaram prontos no 21.</td></tr>
+<tr><td><span class="versao">Java 21</span><br>set/2023 · LTS</td>
+<td>Padrões no <code>switch</code>, com <code>when</code> e <code>case null</code> (441); record patterns (440) → <a href="pattern-matching.html">aula</a>.</td>
+<td>Threads virtuais (444) → <a href="virtual-threads.html">aula</a>. Coleções sequenciadas: <code>getFirst()</code>, <code>getLast()</code>, <code>reversed()</code>, <code>addFirst()</code> (431) → exemplo abaixo.</td></tr>
+<tr><td><span class="versao">Java 22</span><br>mar/2024</td>
+<td>Variáveis e padrões sem nome: <code>_</code> (456) → exemplo abaixo.</td>
+<td>Rodar programas de vários arquivos direto com <code>java Main.java</code> (458). API de funções e memória externas (<em>Foreign Function &amp; Memory</em>), para chamar código C sem JNI (454).</td></tr>
+<tr><td><span class="versao">Java 23</span><br>set/2024</td>
+<td>—</td>
+<td>Comentários de documentação em Markdown, com <code>///</code> (467) → <a href="javadoc.html">aula</a>. Os String templates, que estavam em preview, foram <strong>retirados</strong> (veja abaixo).</td></tr>
+<tr><td><span class="versao">Java 24</span><br>mar/2025</td>
+<td>—</td>
+<td><em>Stream gatherers</em>: operações intermediárias novas, como <code>Gatherers.windowFixed</code> (485) → <a href="streams.html">streams</a>. API para ler e gerar arquivos <code>.class</code> (484). Threads virtuais não ficam mais "presas" em <code>synchronized</code> (491). Criptografia resistente a computadores quânticos, ML-KEM e ML-DSA (496, 497).</td></tr>
+<tr><td><span class="versao">Java 25</span><br>set/2025 · LTS</td>
+<td>Arquivos-fonte compactos e <code>void main()</code> de instância, com a classe <code>IO</code> (512) → exemplo abaixo e <a href="primeiro-programa.html">Olá, Mundo</a>. <code>import module</code> (511). Corpos de construtor flexíveis: código antes do <code>super(…)</code> (513).</td>
+<td><em>Scoped values</em> (506) → exemplo abaixo. Cabeçalhos de objeto compactos, que economizam memória (519). API de derivação de chaves, KDF (510).</td></tr>
+</table>
+</div>
+
+<h3>Em preview (ou incubadora) no JDK 25</h3>
+<p>Conferido no laboratório: estes <strong>não</strong> funcionam sem <code>--enable-preview</code> no JDK 25.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Recurso</th><th>Estágio no 25</th><th>Mensagem sem a opção</th></tr>
+<tr><td>Tipos primitivos em padrões, <code>instanceof</code> e <code>switch</code> (507)</td><td>3ª prévia</td><td><code>primitive patterns are a preview feature and are disabled by default.</code></td></tr>
+<tr><td>Concorrência estruturada, <code>StructuredTaskScope</code> (505)</td><td>5ª prévia</td><td><code>StructuredTaskScope is a preview API and is disabled by default.</code></td></tr>
+<tr><td>Valores estáveis, <code>StableValue</code> (502)</td><td>1ª prévia</td><td><code>StableValue is a preview API and is disabled by default.</code></td></tr>
+<tr><td>Codificação PEM de chaves e certificados (470)</td><td>1ª prévia</td><td>(API em prévia)</td></tr>
+<tr><td>Vector API, <code>jdk.incubator.vector</code> (508)</td><td>incubadora (10ª)</td><td>(módulo separado)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>As novidades na prática</h2>
+
+<h3><code>void main()</code> e <code>IO</code> <span class="versao">Java 25+</span></h3>
+<p>A mudança mais visível para quem começa. Desde sempre, o menor programa Java precisava de uma classe, de <code>public static void main(String[] args)</code> e de <code>System.out.println</code>. No Java 25, um arquivo pode ter só o método <code>main</code>, sem classe em volta (um <strong>arquivo-fonte compacto</strong>), e a classe <code>IO</code> ("entrada e saída") oferece <code>IO.println</code>, <code>IO.print</code> e <code>IO.readln</code>:</p>
+
+<pre class="file" data-file="Ola.java">void main() {
+    IO.println("Olá, Ana!");
+    IO.println("2 + 3 = " + somar(2, 3));
+}
+
+int somar(int a, int b) {
+    return a + b;
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Ola.java
+Olá, Ana!
+2 + 3 = 5
+$ javac Ola.java &amp;&amp; java Ola
+Olá, Ana!
+2 + 3 = 5
+$ ls
+Ola.class
+Ola.java</pre>
+
+<p>Por baixo, o Java cria uma classe chamada <code>Ola</code> (o nome do arquivo) para você. Funciona com <code>java Ola.java</code> e também com <code>javac</code> + <code>java</code>. Outra vantagem: um arquivo compacto já enxerga toda a biblioteca básica (<code>List</code>, <code>ArrayList</code>, <code>Map</code>…) sem nenhum <code>import</code>. As duas formas valem no Java 25:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Clássica (todas as versões)</th><th>Compacta <span class="versao">Java 25+</span></th></tr>
+<tr><td><code>public class Ola {<br>&nbsp;&nbsp;public static void main(String[] args) {<br>&nbsp;&nbsp;&nbsp;&nbsp;System.out.println("Olá");<br>&nbsp;&nbsp;}<br>}</code></td><td><code>void main() {<br>&nbsp;&nbsp;IO.println("Olá");<br>}</code></td></tr>
+</table>
+</div>
+
+<p>Em projetos de verdade, com pacotes e várias classes, a forma clássica continua sendo a regra. A compacta brilha em programas pequenos, scripts e no aprendizado.</p>
+
+<div class="tryjava" data-goal="out:Olá\, Java 25!,src:void\s+main\s*\(\s*\)">
+<p class="try-task"><strong>Missão:</strong> reescreva este programa no formato compacto do Java 25: apague a classe, deixe só <code>void main()</code> e troque <code>System.out.println</code> por <code>IO.println</code>. A saída deve continuar <code>Olá, Java 25!</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, Java 25!");
+    }
+}
+</pre>
+<pre class="solucao">void main() {
+    IO.println("Olá, Java 25!");
+}
+</pre>
+</div>
+
+<h3><code>import module</code> <span class="versao">Java 25+</span></h3>
+<p>Em vez de uma linha de <code>import</code> para cada classe, você importa um <a href="modulos.html">módulo</a> inteiro. <code>java.base</code> é o módulo com o básico do Java (<code>java.util</code>, <code>java.time</code>, <code>java.io</code>…):</p>
+
+<pre class="file" data-file="Main.java">import module java.base;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("maçã", "uva"));
+        Map&lt;String, Integer&gt; estoque = new HashMap&lt;&gt;();
+        estoque.put("maçã", 10);
+        System.out.println(frutas + " " + estoque + " " + LocalDate.of(2026, 10, 16));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+[maçã, uva] {maçã=10} 2026-10-16</pre>
+
+<p><code>List</code>, <code>ArrayList</code>, <code>Map</code>, <code>HashMap</code> e <code>LocalDate</code> vieram de três pacotes diferentes com uma linha só.</p>
+
+<h3>Código antes do <code>super(…)</code> <span class="versao">Java 25+</span></h3>
+<p>Até o Java 24, a chamada <a href="super.html"><code>super(…)</code></a> tinha de ser a <strong>primeira</strong> linha do construtor. Agora dá para validar ou preparar os argumentos antes, desde que não se use o objeto que ainda está sendo construído (<code>this</code>):</p>
+
+<pre class="file" data-file="Main.java">class Pessoa {
+    String nome;
+    Pessoa(String nome) { this.nome = nome; }
+}
+
+class Cliente extends Pessoa {
+    Cliente(String nome) {
+        if (nome == null || nome.isBlank()) {
+            throw new IllegalArgumentException("nome vazio");
+        }
+        super(nome.strip());
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(new Cliente("  Ana  ").nome);
+        new Cliente(" ");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Ana
+Exception in thread "main" java.lang.IllegalArgumentException: nome vazio
+	at Cliente.&lt;init&gt;(Main.java:9)
+	at Main.main(Main.java:18)</pre>
+
+<p>O primeiro cliente teve os espaços removidos com <code>strip()</code> antes de chegar à classe mãe; o segundo foi recusado antes mesmo de a <code>Pessoa</code> ser construída (<code>&lt;init&gt;</code> no rastro é como o Java chama um construtor).</p>
+
+<h3>Coleções sequenciadas <span class="versao">Java 21+</span></h3>
+<p>Listas, <code>LinkedHashMap</code>, <code>TreeSet</code> e outras coleções que têm uma ordem ganharam métodos com nomes óbvios:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.LinkedHashMap;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; fila = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Carla"));
+        System.out.println(fila.getFirst());
+        System.out.println(fila.getLast());
+        System.out.println(fila.reversed());
+        fila.addFirst("Zé");
+        System.out.println(fila);
+        LinkedHashMap&lt;String, Integer&gt; notas = new LinkedHashMap&lt;&gt;();
+        notas.put("Ana", 9);
+        notas.put("Bruno", 7);
+        System.out.println(notas.firstEntry() + " " + notas.lastEntry());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Ana
+Carla
+[Carla, Bruno, Ana]
+[Zé, Ana, Bruno, Carla]
+Ana=9 Bruno=7</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Antes do 21</th><th>Java 21+</th></tr>
+<tr><td><code>lista.get(0)</code></td><td><code>lista.getFirst()</code></td></tr>
+<tr><td><code>lista.get(lista.size() - 1)</code></td><td><code>lista.getLast()</code></td></tr>
+<tr><td>Copiar e chamar <code>Collections.reverse(copia)</code></td><td><code>lista.reversed()</code> (uma "visão" ao contrário, sem copiar)</td></tr>
+<tr><td><code>lista.add(0, x)</code></td><td><code>lista.addFirst(x)</code></td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-goal="out:Primeiro: Ana,out:Último: Davi,out:Ao contrário: [Davi\, Carla\, Bruno\, Ana]">
+<p class="try-task"><strong>Missão:</strong> complete as três linhas usando <code>getFirst()</code>, <code>getLast()</code> e <code>reversed()</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; fila = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Carla", "Davi"));
+        System.out.println("Primeiro: ");
+        System.out.println("Último: ");
+        System.out.println("Ao contrário: ");
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; fila = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Carla", "Davi"));
+        System.out.println("Primeiro: " + fila.getFirst());
+        System.out.println("Último: " + fila.getLast());
+        System.out.println("Ao contrário: " + fila.reversed());
+    }
+}
+</pre>
+</div>
+
+<h3>O <code>_</code> sem nome <span class="versao">Java 22+</span></h3>
+<p>Quando o Java exige uma variável que você não vai usar, escreva <code>_</code> (sublinhado). Fica claro para quem lê que aquilo foi ignorado de propósito:</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        int total = 0;
+        for (String _ : List.of("a", "b", "c")) {
+            total++;
+        }
+        IO.println("Itens: " + total);
+        try {
+            Integer.parseInt("dez");
+        } catch (NumberFormatException _) {
+            IO.println("Não é número");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Itens: 3
+Não é número</pre>
+
+<p>Também vale em padrões: <code>case Ponto(int x, _)</code> (veja <a href="pattern-matching.html">Pattern Matching</a>) e em lambdas: <code>(_, valor) -&gt; …</code>. Repare que o <code>IO.println</code> também funciona dentro de uma classe comum.</p>
+
+<h3><em>Scoped values</em> <span class="versao">Java 25+</span></h3>
+<p>Um <code>ScopedValue</code> ("valor com escopo") guarda uma informação, como o usuário logado, que fica visível para todos os métodos chamados <strong>dentro</strong> de um trecho, sem precisar passá-la de parâmetro em parâmetro. Fora do trecho, ela some. É a substituta moderna do <code>ThreadLocal</code>, pensada para conviver bem com as <a href="virtual-threads.html">threads virtuais</a>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static final ScopedValue&lt;String&gt; USUARIO = ScopedValue.newInstance();
+
+    static void registrar(String acao) {
+        System.out.println(USUARIO.get() + " fez: " + acao);
+    }
+
+    public static void main(String[] args) {
+        ScopedValue.where(USUARIO, "ana").run(() -&gt; registrar("venda"));
+        ScopedValue.where(USUARIO, "bruno").run(() -&gt; registrar("estoque"));
+        System.out.println("Fora: " + USUARIO.isBound());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+ana fez: venda
+bruno fez: estoque
+Fora: false</pre>
+
+<p>O método <code>registrar</code> não recebeu o usuário como parâmetro, mas soube quem era. Depois do <code>run</code>, o valor não está mais ligado (<code>isBound()</code> = "está ligado?" deu <code>false</code>). É um recurso avançado: guarde o nome para quando trabalhar com servidores.</p>
+
+<h3>Stream gatherers <span class="versao">Java 24+</span></h3>
+<p>O método <code>gather</code> permite operações novas no meio de um <a href="streams.html">stream</a>, como agrupar os itens de dois em dois:</p>
+<pre class="file" data-file="Main.java">List&lt;List&lt;Integer&gt;&gt; pares = Stream.of(1, 2, 3, 4, 5).gather(Gatherers.windowFixed(2)).toList();
+System.out.println(pares);
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+[[1, 2], [3, 4], [5]]</pre>
+
+<hr>
+
+<h2>O que <strong>não</strong> entrou: String templates</h2>
+<p>Você pode encontrar na internet artigos sobre <strong>String templates</strong>, uma forma de colocar variáveis dentro de textos: <code>STR."Olá, \{nome}!"</code>. Eles foram preview no Java 21 e no 22 e, depois das opiniões recebidas, os responsáveis decidiram que o desenho não estava bom: o recurso foi <strong>retirado</strong> no Java 23 e não existe no 25, nem com <code>--enable-preview</code>:</p>
+
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        String s = STR."Olá, \{nome}!";
+        System.out.println(s);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: illegal escape character
+        String s = STR."Olá, \{nome}!";
+                              ^
+1 error
+$ java --enable-preview Main.java
+Main.java:4: error: illegal escape character
+        String s = STR."Olá, \{nome}!";
+                              ^
+1 error
+error: compilation failed</pre>
+
+<p>Para o Java 25, <code>\{</code> é só um <a href="escapes.html">escape</a> desconhecido. Para montar textos, continue usando <a href="concatenacao.html">concatenação</a>, <a href="formatacao.html"><code>String.format</code> / <code>formatted</code></a> ou <a href="stringbuilder.html">StringBuilder</a>. Essa história mostra para que serve o estágio de preview: experimentar sem prometer.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3><code>… is a preview feature and is disabled by default</code></h3>
+<p>Você usou um recurso que, na sua versão, ainda é preview. <strong>Conserto:</strong> confira se não há uma forma final de fazer o mesmo; se quiser só experimentar, compile com <code>javac --release 25 --enable-preview</code> e rode com <code>java --enable-preview</code>.</p>
+</div>
+
+<div class="cenario">
+<h3><code>--enable-preview must be used with either -source or --release</code></h3>
+<p>O <code>javac</code> precisa saber a versão exata, porque o preview de uma versão não vale na outra. <strong>Conserto:</strong> acrescente <code>--release 25</code>.</p>
+</div>
+
+<div class="cenario">
+<h3><code>Preview features are not enabled for Main (class file version 69.65535)</code></h3>
+<p>O <code>.class</code> foi compilado com preview, mas o <code>java</code> rodou sem a opção. <strong>Conserto:</strong> <code>java --enable-preview Main</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>Um recurso novo num Java velho</h3>
+<p>Se alguém rodar seu <code>void main()</code> num Java 21, ou <code>getFirst()</code> num Java 17, vai ver erros de compilação, porque aquela versão não conhece o recurso. É por isso que as aulas marcam o selo <span class="versao">Java 21+</span>: confira a versão com <code>java -version</code> e, no Maven ou Gradle, a versão configurada no projeto (veja <a href="maven.html">Maven</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida: recurso → versão final</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Recurso</th><th>Final desde</th><th>Aula</th></tr>
+<tr><td><code>var</code></td><td>Java 10</td><td><a href="var.html">var</a></td></tr>
+<tr><td><code>switch</code> com setas e <code>yield</code></td><td>Java 14</td><td><a href="switch-expressoes.html">switch com Setas</a></td></tr>
+<tr><td>Text blocks <code>"""</code></td><td>Java 15</td><td><a href="text-blocks.html">Text Blocks</a></td></tr>
+<tr><td>Records</td><td>Java 16</td><td><a href="records.html">Records</a></td></tr>
+<tr><td><code>instanceof</code> com padrão</td><td>Java 16</td><td><a href="pattern-matching.html">Pattern Matching</a></td></tr>
+<tr><td>Classes seladas</td><td>Java 17</td><td><a href="sealed.html">Classes Seladas</a></td></tr>
+<tr><td>Padrões no <code>switch</code>, record patterns</td><td>Java 21</td><td><a href="pattern-matching.html">Pattern Matching</a></td></tr>
+<tr><td>Threads virtuais</td><td>Java 21</td><td><a href="virtual-threads.html">Threads Virtuais</a></td></tr>
+<tr><td><code>getFirst()</code>, <code>getLast()</code>, <code>reversed()</code></td><td>Java 21</td><td>esta</td></tr>
+<tr><td><code>_</code> sem nome</td><td>Java 22</td><td>esta</td></tr>
+<tr><td>Javadoc em Markdown <code>///</code></td><td>Java 23</td><td><a href="javadoc.html">Javadoc</a></td></tr>
+<tr><td>Stream gatherers</td><td>Java 24</td><td>esta</td></tr>
+<tr><td><code>void main()</code>, <code>IO</code>, arquivo compacto</td><td>Java 25</td><td>esta e <a href="primeiro-programa.html">Olá, Mundo</a></td></tr>
+<tr><td><code>import module</code></td><td>Java 25</td><td>esta</td></tr>
+<tr><td>Código antes do <code>super(…)</code></td><td>Java 25</td><td>esta</td></tr>
+<tr><td><code>ScopedValue</code></td><td>Java 25</td><td>esta</td></tr>
+<tr><td>Padrões primitivos, <code>StructuredTaskScope</code>, <code>StableValue</code></td><td>(preview no 25)</td><td>—</td></tr>
+<tr><td>String templates <code>STR."…"</code></td><td>(retirado no 23)</td><td>—</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete com a opção que liga os recursos em prévia:</p>
+<div class="ex-code">java <input data-answer="--enable-preview"> Main.java</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete para pegar o último elemento da lista (Java 21+):</p>
+<div class="ex-code">String ultimo = fila.<input data-answer="getLast()">;</div>
+</div>
+
+<div class="exercise">
+<p>3. Complete o programa compacto do Java 25:</p>
+<div class="ex-code">void main() { <input data-answer="IO">.println("Olá"); }</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que aconteceu com os String templates (<code>STR."Olá, \{nome}"</code>)?</p>
+<label><input type="radio" name="q4"> Ficaram finais no Java 21.</label>
+<label><input type="radio" name="q4"> Ainda são preview no Java 25.</label>
+<label><input type="radio" name="q4"> Foram retirados no Java 23 e não existem no 25.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Quais versões são LTS entre as estudadas aqui?</p>
+<label><input type="radio" name="q5"> 18, 22 e 24</label>
+<label><input type="radio" name="q5"> 17, 21 e 25</label>
+<label><input type="radio" name="q5"> Todas</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Por que este guia evita ensinar recursos em preview?</p>
+<label><input type="radio" name="q6"> Porque eles podem mudar ou sumir, e o <code>.class</code> só roda na mesma versão, com <code>--enable-preview</code>.</label>
+<label><input type="radio" name="q6"> Porque são mais lentos.</label>
+<label><input type="radio" name="q6"> Porque só funcionam no Windows.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Última venda: 25,out:Mais recentes primeiro: [25\, 80\, 12\, 45\, 30],src:void\s+main\s*\(\s*\)">
+<p class="try-task"><strong>Missão final:</strong> num arquivo compacto do Java 25 (só <code>void main()</code>, sem classe e sem <code>import</code>), acrescente a venda <code>25</code> no fim com <code>addLast</code>, mostre a última venda com <code>getLast()</code> e a lista ao contrário com <code>reversed()</code>, usando <code>IO.println</code>.</p>
+<pre class="script">void main() {
+    var vendas = new ArrayList&lt;&gt;(List.of(30, 45, 12, 80));
+    // acrescente 25 no fim e mostre as duas linhas
+}
+</pre>
+<pre class="solucao">void main() {
+    var vendas = new ArrayList&lt;&gt;(List.of(30, 45, 12, 80));
+    vendas.addLast(25);
+    IO.println("Última venda: " + vendas.getLast());
+    IO.println("Mais recentes primeiro: " + vendas.reversed());
+}
+</pre>
+</div>
+
+<p>Saída real da solução:</p>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Última venda: 25
+Mais recentes primeiro: [25, 80, 12, 45, 30]</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma versão nova a cada 6 meses; LTS a cada 2 anos: <strong>17, 21, 25</strong>.</li>
+  <li>Recursos passam por <strong>preview</strong> (precisa de <code>--enable-preview</code> no <code>javac</code>, com <code>--release</code>, e no <code>java</code>) antes de virar <strong>finais</strong>. Sem a opção: <code>… is a preview feature and is disabled by default</code>.</li>
+  <li>17: classes seladas. 21: padrões no <code>switch</code>, record patterns, threads virtuais, <code>getFirst</code>/<code>reversed</code>. 22: <code>_</code>. 24: gatherers. 25: <code>void main()</code> + <code>IO</code>, <code>import module</code>, código antes do <code>super</code>, <code>ScopedValue</code>.</li>
+  <li>No JDK 25 ainda são preview: padrões primitivos, <code>StructuredTaskScope</code>, <code>StableValue</code>.</li>
+  <li>String templates foram retirados (Java 23).</li>
+</ul>
+
+<p>Próxima aula: <a href="threads.html">Threads</a>, o começo da concorrência.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
