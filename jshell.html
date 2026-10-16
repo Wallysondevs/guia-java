@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java JShell — testar código linha por linha | Guia Java</title>
+<meta name="description" content="O JShell, o console interativo do Java: abrir e sair, expressões e o $1 ==> 15, variáveis, métodos, os comandos /vars, /methods, /list, /save, /open, /reset e /edit, a tecla Tab, as mensagens de erro e quando usar o JShell ou um arquivo .java.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">JShell</span></h1>
+
+<p class="intro">Para testar uma conta ou ver o que um método faz, escrever uma classe inteira, compilar e rodar é trabalho demais. O <strong>JShell</strong> resolve: você digita uma linha de Java, aperta <kbd>Enter</kbd> e a resposta aparece na hora. Ele vem no JDK desde o Java 9 e é o lugar ideal para experimentar. Nesta aula você aprende a usá-lo e a ler as respostas dele.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Abrir e fechar o JShell.</li>
+  <li>Calcular expressões e entender o <code>$1 ==&gt; 15</code>.</li>
+  <li>Criar variáveis e métodos, sem classe e sem <code>main</code>.</li>
+  <li>Os comandos <code>/vars</code>, <code>/methods</code>, <code>/list</code>, <code>/save</code>, <code>/open</code>, <code>/reset</code>, <code>/edit</code> e <code>/exit</code>.</li>
+  <li>Completar com <kbd>Tab</kbd> e repetir com as setas.</li>
+  <li>Ler as mensagens <code>|  Error:</code> e <code>|  Exception</code>.</li>
+  <li>Quando usar o JShell e quando escrever um arquivo <code>.java</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma calculadora que entende Java</h2>
+<p>Um programa em arquivo é como uma carta: você escreve tudo, envia e só depois vê a resposta. O JShell é uma conversa: você fala uma frase, ele responde, você fala outra. Esse tipo de ferramenta se chama <strong>REPL</strong>, de <em>Read–Eval–Print Loop</em>: "lê, avalia, mostra, repete". O nome JShell vem de <em>Java shell</em>, "concha" ou "console" do Java.</p>
+
+<p>No JShell você não precisa de <code>public class</code>, nem de <code>main</code>, nem de compilar. E, na maioria das linhas, nem do <code>;</code> no fim.</p>
+
+<hr>
+
+<h2>Abrir e sair</h2>
+<p>No terminal, digite <code>jshell</code> (ele vem no JDK, junto com o <code>javac</code>; se der "comando não encontrado", veja <a href="jdk-jre-jvm.html#errado">JDK, JRE e JVM</a>):</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; /exit
+|  Goodbye
+$</pre>
+
+<dl class="anatomy">
+  <dt>|  Welcome to JShell</dt><dd>"Bem-vindo ao JShell", com a versão do Java. O JShell só fala inglês. As linhas que começam com <code>|</code> são mensagens do próprio JShell.</dd>
+  <dt>/help intro</dt><dd>Sugestão: digite isso para ler uma introdução (em inglês).</dd>
+  <dt>jshell&gt;</dt><dd>O <strong>prompt</strong> do JShell: ele está esperando você digitar. Não confunda com o prompt do terminal (<code>ana@notebook:~$</code>): dentro do JShell, comandos do terminal como <code>ls</code> não funcionam.</dd>
+  <dt>/exit</dt><dd>Sai do JShell e volta ao terminal. As palavras que começam com <code>/</code> são <strong>comandos do JShell</strong>, não Java. Também dá para sair com <kbd>Ctrl</kbd>+<kbd>D</kbd>.</dd>
+</dl>
+
+<p>Na primeira vez que o JShell abre, pode aparecer uma linha extra, como <code>INFO: Created user preferences directory.</code> ("criei a pasta de preferências do usuário"). É só um aviso de primeira vez.</p>
+
+<hr>
+
+<h2>Expressões: o <code>$1 ==&gt; 15</code></h2>
+<p>Uma <strong>expressão</strong> é qualquer pedaço de código que produz um valor: uma conta, um texto, uma comparação. Digite uma e aperte <kbd>Enter</kbd>:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; 7 + 8
+$1 ==&gt; 15
+
+jshell&gt; 10 / 3
+$2 ==&gt; 3                                « divisão entre inteiros: a parte decimal é descartada
+
+jshell&gt; 10.0 / 3
+$3 ==&gt; 3.3333333333333335              « com um número decimal, a divisão é decimal
+
+jshell&gt; "Olá, " + "Ana"
+$4 ==&gt; "Olá, Ana"                      « texto + texto = texto emendado
+
+jshell&gt; $1 * 2
+$5 ==&gt; 30                               « dá para usar um resultado anterior</pre>
+
+<p>Cada resposta tem o formato <code>NOME ==&gt; VALOR</code>:</p>
+
+<dl class="anatomy">
+  <dt>$1</dt><dd>O JShell guardou o resultado numa variável criada por ele, chamada <code>$1</code> (a primeira; depois <code>$2</code>, <code>$3</code>…). O número é a ordem da linha na sessão. Você pode usar essa variável depois, como no <code>$1 * 2</code>.</dd>
+  <dt>==&gt;</dt><dd>Uma seta que quer dizer "vale".</dd>
+  <dt>15</dt><dd>O valor. Textos aparecem entre aspas (<code>"Olá, Ana"</code>) para você ver onde começam e terminam.</dd>
+</dl>
+
+<p>Os resultados desta sessão já mostram duas lições que voltam em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a> e <a href="decimais.html">double e float</a>: <code>10 / 3</code> dá <code>3</code> (inteiro dividido por inteiro dá inteiro), e <code>10.0 / 3</code> dá <code>3.3333333333333335</code>, com um 5 "estranho" no fim, porque o computador guarda decimais de forma aproximada.</p>
+
+<div class="tryjshell" data-goal="out:3.5">
+<p class="try-task"><strong>Missão:</strong> calcule a média de 3 e 4 (some e divida por 2). Se o resultado der <code>3</code>, você caiu na divisão inteira: use <code>2.0</code> no lugar de <code>2</code>.</p>
+<pre class="solucao">(3 + 4) / 2.0</pre>
+</div>
+
+<hr>
+
+<h2>Variáveis</h2>
+<p>Você pode criar suas próprias variáveis (caixas com nome que guardam um valor; a aula <a href="variaveis.html">Variáveis</a> explica com calma). O JShell responde com o nome e o valor guardado:</p>
+
+<pre class="term">jshell&gt; int idade = 29
+idade ==&gt; 29                            « a caixa idade foi criada com 29
+
+jshell&gt; idade + 1
+$7 ==&gt; 30                               « uma conta com a variável (ela continua 29)
+
+jshell&gt; idade = idade + 1
+idade ==&gt; 30                            « agora sim: idade passou a valer 30
+
+jshell&gt; String nome = "Ana"
+nome ==&gt; "Ana"
+
+jshell&gt; nome.length()
+$10 ==&gt; 3                               « quantas letras tem "Ana"
+
+jshell&gt; nome.toUpperCase()
+$11 ==&gt; "ANA"                           « o texto em maiúsculas
+
+jshell&gt; System.out.println("Oi, " + nome)
+Oi, Ana                                 « o println escreve; não há valor para mostrar</pre>
+
+<p>Repare na última linha: o <code>println</code> não produz um valor, só escreve na tela. Por isso não aparece <code>$12 ==&gt;</code>, só o texto escrito. E nenhuma das linhas levou <code>;</code>: o JShell aceita sem, quando a linha é uma instrução só. (Se você puser, tudo bem também.)</p>
+
+<p>Para ver todas as variáveis da sessão, use <code>/vars</code>:</p>
+
+<pre class="term">jshell&gt; /vars
+|    int $1 = 15
+|    int $2 = 3
+|    double $3 = 3.3333333333333335
+|    String $4 = "Olá, Ana"
+|    int $5 = 30
+|    int idade = 30
+|    int $7 = 30
+|    String nome = "Ana"
+|    int $10 = 3
+|    String $11 = "ANA"</pre>
+
+<p>Cada linha mostra o <strong>tipo</strong> (<code>int</code> = inteiro, <code>double</code> = decimal, <code>String</code> = texto), o nome e o valor atual. O JShell escolheu sozinho o tipo das variáveis <code>$</code>.</p>
+
+<div class="tryjshell" data-goal="out:&quot;ANA&quot;">
+<p class="try-task"><strong>Missão:</strong> crie <code>String nome = "Ana"</code> e depois mostre o nome em maiúsculas com <code>nome.toUpperCase()</code>.</p>
+<pre class="solucao">String nome = "Ana"
+nome.toUpperCase()</pre>
+</div>
+
+<hr>
+
+<h2>Métodos</h2>
+<p>Também dá para criar <strong>métodos</strong> (blocos de código com nome, que recebem valores e devolvem um resultado; assunto de <a href="metodos.html">Métodos</a>). Quando a linha termina com <code>{</code>, o JShell entende que o código continua e muda o prompt para <code>...&gt;</code> até você fechar a chave. Numa sessão nova:</p>
+
+<pre class="term">jshell&gt; double media(double a, double b) {
+   ...&gt;     return (a + b) / 2;
+   ...&gt; }
+|  created method media(double,double)         « "criei o método media, que recebe dois double"
+
+jshell&gt; media(7, 8)
+$2 ==&gt; 7.5
+
+jshell&gt; media(6.5, 9)
+$3 ==&gt; 7.75
+
+jshell&gt; String saudacao(String nome) { return "Olá, " + nome + "!"; }
+|  created method saudacao(String)
+
+jshell&gt; saudacao("Ana")
+$5 ==&gt; "Olá, Ana!"
+
+jshell&gt; /methods
+|    double media(double,double)
+|    String saudacao(String)</pre>
+
+<p>Dentro do método, o <code>;</code> volta a ser obrigatório, como num arquivo. O comando <code>/methods</code> lista os métodos criados. Para corrigir um método, basta escrevê-lo de novo com o mesmo nome; o JShell avisa que o <strong>modificou</strong>:</p>
+
+<pre class="term">jshell&gt; String saudacao(String nome) { return "Oi, " + nome + "!"; }
+|  modified method saudacao(String)
+
+jshell&gt; saudacao("Ana")
+$7 ==&gt; "Oi, Ana!"</pre>
+
+<hr>
+
+<h2>Os comandos do JShell</h2>
+<p>Tudo o que começa com <code>/</code> é um comando do próprio JShell. Os mais úteis:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>/vars</code></td><td>Lista as variáveis com tipo e valor.</td></tr>
+<tr><td><code>/methods</code></td><td>Lista os métodos criados.</td></tr>
+<tr><td><code>/list</code></td><td>Mostra tudo o que você digitou (que deu certo), numerado.</td></tr>
+<tr><td><code>/save arquivo.jsh</code></td><td>Grava o que você digitou num arquivo.</td></tr>
+<tr><td><code>/open arquivo.jsh</code></td><td>Executa de novo as linhas de um arquivo.</td></tr>
+<tr><td><code>/reset</code></td><td>Apaga tudo e recomeça a sessão do zero.</td></tr>
+<tr><td><code>/edit nome</code></td><td>Abre um editor para mudar uma variável ou método.</td></tr>
+<tr><td><code>/imports</code></td><td>Lista as bibliotecas já importadas.</td></tr>
+<tr><td><code>/help</code></td><td>A ajuda (em inglês); <code>/help vars</code> explica um comando.</td></tr>
+<tr><td><code>/exit</code></td><td>Sai do JShell.</td></tr>
+</table>
+</div>
+
+<h3><code>/list</code>, <code>/save</code>, <code>/reset</code> e <code>/open</code></h3>
+<p>Numa sessão nova, a Ana fez algumas contas e um método, e depois pediu a lista:</p>
+
+<pre class="term">jshell&gt; /list
+
+   1 : 7 + 8
+   2 : int idade = 29;                 « o JShell completou o ; nas declarações
+   3 : idade + 1
+   4 : String nome = "Ana";
+   5 : double media(double a, double b) { return (a + b) / 2; }
+   6 : media(7, 8)
+
+jshell&gt; /save contas.jsh               « grava tudo em ~/contas.jsh
+
+jshell&gt; /reset
+|  Resetting state.                    « "reiniciando": tudo foi apagado
+
+jshell&gt; idade
+|  Error:
+|  cannot find symbol
+|    symbol:   variable idade
+|  idade
+|  ^---^                               « a variável não existe mais
+
+jshell&gt; /open contas.jsh               « roda de novo as linhas gravadas
+
+jshell&gt; idade
+idade ==&gt; 29                           « voltou</pre>
+
+<p>O arquivo <code>.jsh</code> é texto comum, com uma linha por trecho. Ele é útil para guardar experiências e retomá-las outro dia: <code>jshell contas.jsh</code> já abre carregando o arquivo.</p>
+
+<h3><code>/edit</code></h3>
+<p><code>/edit media</code> abre uma pequena janela de edição com o código do método <code>media</code>; você muda, clica em <em>Accept</em> ("aceitar") e o JShell recria o método. Sem nome, <code>/edit</code> abre todos os trechos de uma vez. Num terminal sem interface gráfica, dá para escolher o editor do terminal com <code>/set editor nano</code>. (<strong>Ilustrativo</strong>: a janela não pôde ser mostrada na máquina do guia.)</p>
+
+<hr>
+
+<h2>Tab e as setas</h2>
+<p>Duas teclas tornam o JShell muito mais rápido:</p>
+<ul>
+  <li><kbd>Tab</kbd> <strong>completa</strong>: digite <code>nome.toU</code> e aperte <kbd>Tab</kbd>, e o JShell completa para <code>nome.toUpperCase(</code>. Se houver várias opções, ele lista todas. Digitar <code>Math.</code> e <kbd>Tab</kbd> mostra tudo o que a classe <code>Math</code> oferece. Apertar <kbd>Tab</kbd> de novo depois de um nome de método mostra a documentação dele (em inglês).</li>
+  <li><kbd>↑</kbd> e <kbd>↓</kbd> percorrem as linhas já digitadas, como no terminal. Para corrigir um erro, aperte <kbd>↑</kbd>, conserte e <kbd>Enter</kbd>.</li>
+</ul>
+<p>(A lista exata que o <kbd>Tab</kbd> mostra depende do que você digitou; experimente no seu computador.)</p>
+
+<hr>
+
+<h2>Quando dá errado: <code>|  Error:</code> e <code>|  Exception</code></h2>
+<p>O JShell mostra os mesmos dois tipos de problema de um programa normal (veja <a href="simulador.html">O Editor do Guia</a>): erros de compilação e exceções. A diferença é o formato, com a barra <code>|</code> na frente e um sublinhado <code>^--^</code> no lugar do <code>^</code> sozinho do <code>javac</code>.</p>
+
+<div class="cenario">
+<strong><code>|  Error:</code> — o código não compila</strong>
+<pre class="term">jshell&gt; int x = "oi"
+|  Error:
+|  incompatible types: java.lang.String cannot be converted to int
+|  int x = "oi";
+|          ^--^
+
+jshell&gt; idadee
+|  Error:
+|  cannot find symbol
+|    symbol:   variable idadee
+|  idadee
+|  ^----^</pre>
+<p><strong>O que aconteceu:</strong> no primeiro, um texto (<code>String</code>) numa caixa de inteiros (<code>int</code>): "tipos incompatíveis: String não pode ser convertido em int". No segundo, um nome que não existe (erro de digitação): "não encontrei o símbolo". O <code>^----^</code> sublinha exatamente o trecho com problema. As mensagens são as mesmas do <code>javac</code>; a aula <a href="erros-compilacao.html">Lendo Erros do javac</a> explica cada uma.</p>
+<p><strong>Como resolver:</strong> aperte <kbd>↑</kbd>, corrija e <kbd>Enter</kbd>. A linha com erro não é guardada: nada foi criado.</p>
+</div>
+
+<div class="cenario">
+<strong><code>|  Exception</code> — o código rodou e quebrou</strong>
+<pre class="term">jshell&gt; 10 / 0
+|  Exception java.lang.ArithmeticException: / by zero
+|        at (#1:1)</pre>
+<p><strong>O que aconteceu:</strong> a conta compila, mas dividir um inteiro por zero é impossível, e o Java lança uma <strong>exceção</strong>. O <code>at (#1:1)</code> diz onde: no trecho número 1, linha 1. Num programa normal, a mesma exceção apareceria como <code>Exception in thread "main" java.lang.ArithmeticException: / by zero</code> (veja <a href="excecoes.html">O que são Exceções</a>). No JShell, a sessão continua normalmente depois do erro.</p>
+</div>
+
+<div class="cenario">
+<strong><code>';' expected</code> dentro de um método</strong>
+<pre class="term">jshell&gt; void ola() { System.out.println("olá") }
+|  Error:
+|  ';' expected
+|  void ola() { System.out.println("olá") }
+|                                        ^</pre>
+<p><strong>O que aconteceu:</strong> o JShell dispensa o <code>;</code> só no fim de uma linha solta. Dentro das chaves de um método, as regras são as do Java normal. <strong>Como resolver:</strong> <code>void ola() { System.out.println("olá"); }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Digitei <code>ls</code> ou <code>javac</code> e deu erro</strong>
+<p><strong>O que aconteceu:</strong> você ainda está dentro do JShell (o prompt é <code>jshell&gt;</code>), e ele tenta entender <code>ls</code> como código Java. <strong>Como resolver:</strong> <code>/exit</code> para voltar ao terminal.</p>
+</div>
+
+<hr>
+
+<h2>JShell ou arquivo <code>.java</code>?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th><th>Por quê</th></tr>
+<tr><td>Testar uma conta, um método de <code>String</code>, uma ideia</td><td>JShell</td><td>Resposta na hora, sem arquivo nem compilação.</td></tr>
+<tr><td>Descobrir o que um método faz ou devolve</td><td>JShell</td><td><kbd>Tab</kbd> mostra as opções; o <code>==&gt;</code> mostra o valor e o tipo (<code>/vars</code>).</td></tr>
+<tr><td>Um programa de verdade, para rodar de novo amanhã</td><td>Arquivo <code>.java</code></td><td>O código fica guardado e organizado numa classe.</td></tr>
+<tr><td>Programa que lê o teclado, recebe argumentos ou tem várias classes</td><td>Arquivo <code>.java</code></td><td>É como os programas Java são feitos e distribuídos.</td></tr>
+<tr><td>Aprender um recurso novo deste guia</td><td>Os dois</td><td>Experimente as partes no JShell; junte tudo num arquivo.</td></tr>
+</table>
+</div>
+
+<p>Uma terceira opção, para programas curtos: o <code>main</code> simplificado do Java 25 com <code>java Main.java</code> (veja <a href="primeiro-programa.html#simples">Olá, Mundo</a> e <a href="compilar-executar.html">javac e java</a>).</p>
+
+<div class="tryjshell" data-goal="out:7.5">
+<p class="try-task"><strong>Missão:</strong> crie um método <code>double media(double a, double b)</code> que devolve a média dos dois números, e chame <code>media(7, 8)</code>. O resultado deve ser <code>7.5</code>. Lembre do <code>;</code> dentro das chaves.</p>
+<pre class="solucao">double media(double a, double b) { return (a + b) / 2; }
+media(7, 8)</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Sair</h3>
+<p>Qual comando sai do JShell?</p>
+<div class="ex-code"><input data-answer="/exit" aria-label="comando"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Listar variáveis</h3>
+<p>Qual comando lista todas as variáveis da sessão, com tipo e valor?</p>
+<div class="ex-code"><input data-answer="/vars" aria-label="comando"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Você digitou <code>5 * 4</code> e o JShell respondeu <code>$3 ==&gt; 20</code>. O que é <code>$3</code>?</p>
+<label><input type="radio" name="q3"> Um erro: o resultado deveria ser 3.</label>
+<label><input type="radio" name="q3"> Uma variável criada pelo JShell para guardar o resultado, que você pode usar depois.</label>
+<label><input type="radio" name="q3"> O preço do cálculo.</label>
+<label><input type="radio" name="q3"> O número de vezes que você digitou a conta.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que o JShell responde para <code>10 / 4</code>?</p>
+<label><input type="radio" name="q4"> <code>$1 ==&gt; 2.5</code></label>
+<label><input type="radio" name="q4"> <code>$1 ==&gt; 2,5</code></label>
+<label><input type="radio" name="q4"> <code>|  Error:</code></label>
+<label><input type="radio" name="q4"> <code>$1 ==&gt; 2</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O prompt mudou para <code>...&gt;</code> depois que você digitou uma linha terminada em <code>{</code>. O que o JShell espera?</p>
+<label><input type="radio" name="q5"> O resto do código, até a chave <code>}</code> que fecha.</label>
+<label><input type="radio" name="q5"> Que você digite <code>/exit</code>.</label>
+<label><input type="radio" name="q5"> Nada; ele travou.</label>
+<label><input type="radio" name="q5"> Um comando do terminal.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>jshell</code> abre; <code>/exit</code> (ou <kbd>Ctrl</kbd>+<kbd>D</kbd>) sai. O prompt é <code>jshell&gt;</code>.</li>
+  <li>Expressões respondem com <code>$N ==&gt; valor</code>; o <code>$N</code> é uma variável que você pode reusar.</li>
+  <li>Variáveis (<code>int idade = 29</code>) e métodos funcionam sem classe nem <code>main</code>; fora das chaves, o <code>;</code> é opcional.</li>
+  <li><code>/vars</code>, <code>/methods</code>, <code>/list</code>, <code>/save</code>, <code>/open</code>, <code>/reset</code>, <code>/edit</code>: os comandos começam com <code>/</code>.</li>
+  <li><kbd>Tab</kbd> completa; <kbd>↑</kbd> repete e corrige.</li>
+  <li><code>|  Error:</code> = não compilou (mensagens do <code>javac</code>); <code>|  Exception</code> = quebrou ao rodar. A sessão continua.</li>
+  <li>JShell para experimentar; arquivo <code>.java</code> para programas de verdade.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
