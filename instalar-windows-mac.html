@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Instalar no Windows e macOS — .msi, winget, .pkg e Homebrew | Guia Java</title>
+<meta name="description" content="Como instalar o JDK 25 (Temurin) no Windows, pelo instalador .msi ou pelo winget, configurando JAVA_HOME e Path, e no macOS, pelo .pkg ou pelo Homebrew, com java_home. Como conferir no terminal e os erros comuns.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Instalar no Windows e macOS</span></h1>
+
+<p class="intro">No Windows e no Mac, o jeito mais simples de ter o JDK 25 é o instalador gráfico do <strong>Eclipse Temurin</strong>: baixar, clicar em "Avançar" e conferir no terminal. Esta aula mostra cada tela, as duas variáveis que importam (<code>JAVA_HOME</code> e <code>Path</code>) e os instaladores de linha de comando, o <code>winget</code> do Windows e o Homebrew do Mac.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Instalar o Temurin 25 no Windows pelo <code>.msi</code>, marcando a opção do <code>JAVA_HOME</code>.</li>
+  <li>Criar e conferir as variáveis de ambiente <code>JAVA_HOME</code> e <code>Path</code> à mão.</li>
+  <li>Instalar pelo <code>winget</code>.</li>
+  <li>Instalar no macOS pelo <code>.pkg</code> ou pelo Homebrew, e usar o <code>java_home</code>.</li>
+  <li>Conferir no terminal e resolver "não é reconhecido como um comando".</li>
+</ul>
+</div>
+
+<div class="warning">
+<strong>Tudo nesta aula é ilustrativo</strong>
+<p>A máquina de testes do guia é um Linux, então as telas e saídas do Windows e do macOS desta página não puderam ser produzidas nela. Elas seguem as instruções oficiais do Adoptium (adoptium.net), da Microsoft e do Homebrew, mas os nomes de botões, pastas e números de versão podem mudar. O resultado final, o <code>java -version</code>, tem as mesmas três linhas do Linux, que você já viu em <a href="versoes.html">Versões e LTS</a>.</p>
+</div>
+
+<p>Usa Linux? A aula é <a href="instalar-linux.html">Instalar no Linux</a>. No Windows, outra opção é instalar o Linux dentro dele (o WSL) e seguir a aula do Linux.</p>
+
+<hr>
+
+<h2>Antes de baixar: 64 bits, Intel ou ARM?</h2>
+<p>O JDK é um programa compilado para cada tipo de processador. Baixar o errado dá erro na hora de rodar. Descubra o seu:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sistema</th><th>Como descobrir</th><th>Qual baixar</th></tr>
+<tr><td>Windows</td><td>Configurações → Sistema → Sobre → "Tipo de sistema"</td><td>"Sistema operacional de 64 bits, processador baseado em x64" → <strong>x64</strong>. Em notebooks com processador Snapdragon → <strong>aarch64</strong>.</td></tr>
+<tr><td>macOS</td><td>Menu Apple → Sobre Este Mac → "Chip" ou "Processador"</td><td>"Apple M1, M2, M3, M4…" → <strong>aarch64</strong>. "Intel" → <strong>x64</strong>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Windows: pelo instalador <code>.msi</code></h2>
+
+<ol class="passo">
+  <li><strong>Baixe.</strong> Em adoptium.net, escolha <em>Temurin 25 (LTS)</em>, sistema <em>Windows</em>, arquitetura <em>x64</em>, pacote <em>JDK</em>, formato <em>.msi</em>. O arquivo tem um nome parecido com <code>OpenJDK25U-jdk_x64_windows_hotspot_25.0.4.1_1.msi</code>.</li>
+  <li><strong>Abra o arquivo</strong> com dois cliques. O Windows pode perguntar se você permite que o aplicativo faça alterações: clique em <strong>Sim</strong>.</li>
+  <li><strong>Licença.</strong> Aceite os termos (a licença do OpenJDK, gratuita) e clique em <strong>Next</strong> ("Avançar").</li>
+  <li><strong>Escolha os recursos (<em>Custom Setup</em>).</strong> Esta é a tela importante. Ela mostra uma lista com ícones de disco ao lado de cada item:
+    <ul>
+      <li><strong>Add to PATH</strong> ("adicionar ao Path"): já vem marcado. Deixe.</li>
+      <li><strong>Associate .jar</strong> ("associar arquivos .jar"): já vem marcado. Deixe.</li>
+      <li><strong>Set JAVA_HOME variable</strong> ("criar a variável JAVA_HOME"): vem <strong>desmarcado</strong> (com um X vermelho). Clique no ícone ao lado e escolha <em>Will be installed on local hard drive</em> ("será instalado no disco local").</li>
+      <li><strong>JavaSoft (Oracle) registry keys</strong>: deixe como está.</li>
+    </ul>
+  </li>
+  <li><strong>Instale.</strong> Clique em <strong>Next</strong> e depois em <strong>Install</strong>. Ao terminar, <strong>Finish</strong>.</li>
+</ol>
+
+<p>O JDK fica numa pasta como <code>C:\Program Files\Eclipse Adoptium\jdk-25.0.4.1-hotspot\</code>, com os programas em <code>bin</code>, igualzinho à pasta do Linux que você viu em <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>.</p>
+
+<h3>Conferir no Windows</h3>
+<p>Abra um terminal <strong>novo</strong> (os que já estavam abertos não enxergam as variáveis novas): tecle <kbd>Win</kbd>, digite <code>cmd</code> (Prompt de Comando) ou <code>powershell</code> e aperte <kbd>Enter</kbd>. No Prompt de Comando (saída <strong>ilustrativa</strong>):</p>
+
+<pre class="term" data-title="Prompt de Comando">$ java -version
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)
+$ javac -version
+javac 25.0.4.1
+$ where java                                                   « o "which" do Windows
+C:\Program Files\Eclipse Adoptium\jdk-25.0.4.1-hotspot\bin\java.exe
+$ echo %JAVA_HOME%                                             « no Prompt de Comando, variáveis entre %
+C:\Program Files\Eclipse Adoptium\jdk-25.0.4.1-hotspot\</pre>
+
+<p>No Windows o prompt real é algo como <code>C:\Users\Ana&gt;</code>; o guia mostra o mesmo desenho de prompt para tudo. No PowerShell, as variáveis se escrevem diferente:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que você quer</th><th>Prompt de Comando (<code>cmd</code>)</th><th>PowerShell</th><th>Linux e macOS</th></tr>
+<tr><td>Ver o <code>JAVA_HOME</code></td><td><code>echo %JAVA_HOME%</code></td><td><code>$env:JAVA_HOME</code></td><td><code>echo $JAVA_HOME</code></td></tr>
+<tr><td>Achar o <code>java</code></td><td><code>where java</code></td><td><code>Get-Command java</code> ou <code>where.exe java</code></td><td><code>which java</code></td></tr>
+<tr><td>Separador de pastas</td><td><code>\</code></td><td><code>\</code> (aceita <code>/</code>)</td><td><code>/</code></td></tr>
+</table>
+</div>
+
+<h3 id="manual">Configurar <code>JAVA_HOME</code> e <code>Path</code> à mão</h3>
+<p>Se você esqueceu de marcar a opção do <code>JAVA_HOME</code>, ou instalou de um <code>.zip</code>, configure as variáveis pela janela do Windows:</p>
+
+<ol class="passo">
+  <li>Tecle <kbd>Win</kbd> e digite <strong>variáveis de ambiente</strong>. Abra <em>Editar as variáveis de ambiente do sistema</em> e clique no botão <strong>Variáveis de Ambiente…</strong></li>
+  <li>Em <em>Variáveis do sistema</em> (a lista de baixo), clique em <strong>Novo…</strong>. Nome: <code>JAVA_HOME</code>. Valor: a pasta do JDK, por exemplo <code>C:\Program Files\Eclipse Adoptium\jdk-25.0.4.1-hotspot</code> (o botão <em>Procurar no Diretório…</em> evita erros de digitação). <strong>OK</strong>.</li>
+  <li>Na mesma lista, selecione <code>Path</code> e clique em <strong>Editar…</strong>. Clique em <strong>Novo</strong> e escreva <code>%JAVA_HOME%\bin</code>. Use <strong>Mover para Cima</strong> até ele ficar acima de qualquer outro caminho com "Java" ou "Oracle". <strong>OK</strong> em todas as janelas.</li>
+  <li>Feche e abra o terminal, e confira com <code>java -version</code> e <code>javac -version</code>.</li>
+</ol>
+
+<p>É a mesma ideia do <code>~/.bashrc</code> do Linux: <code>JAVA_HOME</code> diz onde o JDK mora; o <code>Path</code> é a lista de pastas onde o terminal procura comandos, na ordem. O <code>%JAVA_HOME%\bin</code> no topo faz o JDK 25 ser achado primeiro.</p>
+
+<h3>Windows: pelo <code>winget</code></h3>
+<p>O Windows 10 e o 11 têm um gerenciador de pacotes de linha de comando, o <code>winget</code>. Num PowerShell ou Prompt de Comando (<strong>ilustrativo</strong>; confira o nome exato com <code>winget search Temurin</code>):</p>
+
+<pre class="term" data-title="PowerShell">$ winget search Temurin                              « lista os pacotes do Temurin
+$ winget install EclipseAdoptium.Temurin.25.JDK      « instala o JDK 25</pre>
+
+<dl class="anatomy">
+  <dt>winget</dt><dd>O gerenciador de pacotes do Windows (de <em>Windows Package Manager</em>).</dd>
+  <dt>install</dt><dd>A ação: instalar.</dd>
+  <dt>EclipseAdoptium.Temurin.25.JDK</dt><dd>O identificador do pacote: fabricante, produto, versão e tipo (JDK, não JRE).</dd>
+</dl>
+
+<p>O <code>winget</code> roda o mesmo instalador <code>.msi</code>, com as opções padrão: o <code>Path</code> é configurado, mas confira se o <code>JAVA_HOME</code> foi criado (<code>echo %JAVA_HOME%</code>); se não, crie-o à mão como acima.</p>
+
+<hr>
+
+<h2>macOS: pelo instalador <code>.pkg</code></h2>
+
+<ol class="passo">
+  <li><strong>Baixe.</strong> Em adoptium.net, escolha <em>Temurin 25 (LTS)</em>, sistema <em>macOS</em>, arquitetura <em>aarch64</em> (chips Apple M) ou <em>x64</em> (Intel), pacote <em>JDK</em>, formato <em>.pkg</em>.</li>
+  <li><strong>Abra o arquivo</strong> e siga o instalador: Continuar, aceitar a licença, Instalar. O macOS pede a senha do seu usuário.</li>
+  <li><strong>Pronto.</strong> O JDK fica em <code>/Library/Java/JavaVirtualMachines/temurin-25.jdk/</code>.</li>
+</ol>
+
+<p>No Mac você não precisa mexer no <code>PATH</code>: o macOS tem um <code>/usr/bin/java</code> "porteiro", que procura sozinho o JDK mais novo dentro de <code>/Library/Java/JavaVirtualMachines</code>. Abra o <strong>Terminal</strong> (em Aplicativos → Utilitários) e confira (<strong>ilustrativo</strong>):</p>
+
+<pre class="term" data-title="Terminal do macOS">$ java -version
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)
+$ javac -version
+javac 25.0.4.1
+$ /usr/libexec/java_home -V                « lista todos os JDKs instalados
+Matching Java Virtual Machines (1):
+    25.0.4.1 (arm64) "Eclipse Adoptium" - "OpenJDK 25.0.4.1" /Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home
+/Library/Java/JavaVirtualMachines/temurin-25.jdk/Contents/Home</pre>
+
+<p>O <code>/usr/libexec/java_home</code> é um utilitário do macOS que responde "onde está o JDK". Com <code>-v 25</code>, ele devolve a pasta do Java 25. É assim que se configura o <code>JAVA_HOME</code> no Mac, no arquivo <code>~/.zshrc</code> (o Mac usa o shell Zsh por padrão; o arquivo faz o papel do <code>~/.bashrc</code>):</p>
+
+<pre class="file" data-file="~/.zshrc (no fim do arquivo)">export JAVA_HOME=$(/usr/libexec/java_home -v 25)
+</pre>
+
+<p>Depois, <code>source ~/.zshrc</code> ou abra um Terminal novo, e <code>echo $JAVA_HOME</code> deve mostrar a pasta <code>…/temurin-25.jdk/Contents/Home</code>. Com vários JDKs instalados, trocar o <code>25</code> por <code>21</code> escolhe o outro.</p>
+
+<h3>macOS: pelo Homebrew</h3>
+<p>Se você usa o <strong>Homebrew</strong> (brew.sh), o gerenciador de pacotes mais popular do Mac, o Temurin 25 é um <em>cask</em> (um aplicativo pronto). <strong>Ilustrativo</strong>:</p>
+
+<pre class="term" data-title="Terminal do macOS">$ brew search temurin                 « lista as versões disponíveis
+$ brew install --cask temurin@25      « instala o JDK 25 (pede a senha)</pre>
+
+<dl class="anatomy">
+  <dt>brew install</dt><dd>Instala um pacote do Homebrew.</dd>
+  <dt>--cask</dt><dd>O pacote é um aplicativo pronto (aqui, o mesmo <code>.pkg</code> do Adoptium), não um programa compilado na sua máquina.</dd>
+  <dt>temurin@25</dt><dd>O Temurin, versão 25. Sem o <code>@25</code>, o <code>temurin</code> instala sempre a versão mais nova, que pode não ser LTS.</dd>
+</dl>
+
+<hr>
+
+<h2>Um teste que funciona em qualquer sistema</h2>
+<p>Para confirmar a instalação, compile e rode um programa. Este pergunta ao Java em que sistema ele está rodando. Crie uma pasta, salve o arquivo como <code>Main.java</code> e rode no terminal com <code>javac Main.java</code> e <code>java Main</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Sistema: " + System.getProperty("os.name"));
+        System.out.println("Arquitetura: " + System.getProperty("os.arch"));
+        System.out.println("Separador de pastas: " + java.io.File.separator);
+    }
+}
+</pre>
+
+<p>Na máquina da Ana, um Linux, a saída real é:</p>
+
+<pre class="term">$ java Main.java
+Sistema: Linux
+Arquitetura: amd64
+Separador de pastas: /</pre>
+
+<p>O mesmo programa, sem mudar nada, num Windows 11 mostraria <code>Sistema: Windows 11</code>, <code>Arquitetura: amd64</code> e <code>Separador de pastas: \</code>; num Mac com chip M, <code>Sistema: Mac OS X</code> e <code>Arquitetura: aarch64</code> (<strong>ilustrativo</strong>). É o "escreva uma vez, rode em qualquer lugar" de <a href="introducao.html">O que é Java</a>: o código é o mesmo; a JVM de cada sistema se adapta.</p>
+
+<p>No editor do guia, o teste mais simples:</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> rode e depois troque <code>Windows</code> pelo nome do seu sistema.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Instalei o Java 25 no Windows!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"'javac' não é reconhecido como um comando interno ou externo"</strong>
+<pre class="term" data-title="Prompt de Comando">$ javac -version
+'javac' não é reconhecido como um comando interno
+ou externo, um programa operável ou um arquivo em lotes.</pre>
+<p>(<strong>Ilustrativo.</strong> No PowerShell, a mensagem começa com <code>javac : O termo 'javac' não é reconhecido como nome de cmdlet…</code>.)</p>
+<p><strong>O que aconteceu:</strong> o Windows procurou <code>javac.exe</code> em todas as pastas do <code>Path</code> e não achou. Três causas comuns: o terminal foi aberto <strong>antes</strong> da instalação; a opção <em>Add to PATH</em> foi desmarcada; ou o que está instalado é só um JRE (sem <code>javac</code>).</p>
+<p><strong>Como resolver:</strong> feche e abra o terminal. Se continuar, confira o <code>Path</code> (seção <a href="#manual">Configurar à mão</a>): deve haver <code>%JAVA_HOME%\bin</code> ou o caminho completo da pasta <code>bin</code> do JDK. Se <code>java -version</code> funciona e <code>javac</code> não, instale o JDK, não o JRE.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>java -version</code> mostra uma versão velha (como <code>1.8.0_…</code>)</strong>
+<p><strong>O que aconteceu:</strong> o computador já tinha um Java antigo (muitas vezes instalado por um programa de banco ou do governo), e a pasta dele está acima no <code>Path</code>. No Windows, o Java antigo da Oracle também costuma colocar um atalho em <code>C:\Program Files (x86)\Common Files\Oracle\Java\javapath</code>.</p>
+<p><strong>Como resolver:</strong> <code>where java</code> mostra todos os <code>java.exe</code>, na ordem; o primeiro vence. Mova <code>%JAVA_HOME%\bin</code> para o topo do <code>Path</code>. No Mac, use o <code>JAVA_HOME</code> com <code>java_home -v 25</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>macOS: "Unable to locate a Java Runtime"</strong>
+<p><strong>O que aconteceu:</strong> o <code>/usr/bin/java</code> "porteiro" do macOS não achou nenhum JDK em <code>/Library/Java/JavaVirtualMachines</code>. Você ainda não instalou, ou instalou de um jeito que deixou o JDK em outra pasta (o Homebrew, com a fórmula <code>openjdk</code> em vez do cask, faz isso).</p>
+<p><strong>Como resolver:</strong> instale pelo <code>.pkg</code> ou pelo cask <code>temurin@25</code>, e confira com <code>/usr/libexec/java_home -V</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escrevi um caminho do Windows no código e deu "illegal escape character"</strong>
+<p>Este é real, compilado na máquina do guia. O código tem um erro de propósito:</p>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        System.out.println("C:\Program Files\Eclipse Adoptium");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal escape character
+        System.out.println("C:\Program Files\Eclipse Adoptium");
+                               ^
+Main.java:3: error: illegal escape character
+        System.out.println("C:\Program Files\Eclipse Adoptium");
+                                             ^
+2 errors</pre>
+<p><strong>O que aconteceu:</strong> dentro das aspas de um texto Java, a barra invertida <code>\</code> é especial: ela começa um "código de escape", como <code>\n</code> (pular linha). <code>\P</code> e <code>\E</code> não são códigos válidos, e o <code>javac</code> aponta cada um com o <code>^</code>.</p>
+<p><strong>Como resolver:</strong> para escrever uma barra invertida, escreva duas: <code>"C:\\Program Files\\Eclipse Adoptium"</code>. Ou use a barra normal, <code>/</code>, que o Java aceita também no Windows. A aula <a href="escapes.html">Caracteres Especiais</a> explica todos os códigos.</p>
+</div>
+
+<div class="tryjava" data-goal="out:C:\Program Files\Eclipse Adoptium">
+<p class="try-task"><strong>Missão:</strong> o programa tem o erro acima. Rode para ver a mensagem; depois conserte para ele mostrar exatamente <code>C:\Program Files\Eclipse Adoptium</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("C:\Program Files\Eclipse Adoptium");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        System.out.println("C:\\Program Files\\Eclipse Adoptium");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tarefa</th><th>Windows</th><th>macOS</th></tr>
+<tr><td>Instalador gráfico</td><td><code>.msi</code> do Temurin (marque <em>Set JAVA_HOME</em>)</td><td><code>.pkg</code> do Temurin</td></tr>
+<tr><td>Linha de comando</td><td><code>winget install EclipseAdoptium.Temurin.25.JDK</code></td><td><code>brew install --cask temurin@25</code></td></tr>
+<tr><td>Onde fica</td><td><code>C:\Program Files\Eclipse Adoptium\jdk-25…</code></td><td><code>/Library/Java/JavaVirtualMachines/temurin-25.jdk</code></td></tr>
+<tr><td>Configurar <code>JAVA_HOME</code></td><td>Variáveis de Ambiente do sistema</td><td><code>export JAVA_HOME=$(/usr/libexec/java_home -v 25)</code> no <code>~/.zshrc</code></td></tr>
+<tr><td>Ver qual Java roda</td><td><code>where java</code></td><td><code>which java</code>, <code>/usr/libexec/java_home -V</code></td></tr>
+<tr><td>Conferir</td><td colspan="2"><code>java -version</code> e <code>javac -version</code> num terminal aberto <strong>depois</strong> da instalação</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">1. No instalador <code>.msi</code> do Temurin, qual opção vem desmarcada e vale a pena marcar?</p>
+<label><input type="radio" name="q1"> Add to PATH</label>
+<label><input type="radio" name="q1"> Associate .jar</label>
+<label><input type="radio" name="q1"> Set JAVA_HOME variable</label>
+<label><input type="radio" name="q1"> Nenhuma</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">2. Você instalou o JDK e o Prompt de Comando que já estava aberto diz que <code>javac</code> não é reconhecido. Primeira coisa a tentar?</p>
+<label><input type="radio" name="q2"> Fechar e abrir o terminal.</label>
+<label><input type="radio" name="q2"> Formatar o computador.</label>
+<label><input type="radio" name="q2"> Instalar o JavaScript.</label>
+<label><input type="radio" name="q2"> Apagar a variável <code>Path</code>.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Num Mac com chip Apple M3, qual arquitetura baixar?</p>
+<label><input type="radio" name="q3"> x64</label>
+<label><input type="radio" name="q3"> x86 (32 bits)</label>
+<label><input type="radio" name="q3"> Windows</label>
+<label><input type="radio" name="q3"> aarch64</label>
+</div>
+
+<div class="exercise">
+<h3>4. O Path do Windows</h3>
+<p>Complete a entrada do <code>Path</code> que aponta para os comandos do JDK usando a variável <code>JAVA_HOME</code>:</p>
+<div class="ex-code"><input data-answer="%JAVA_HOME%\bin" aria-label="entrada do Path"></div>
+</div>
+
+<div class="exercise">
+<h3>5. A barra invertida</h3>
+<p>Complete o texto Java para ele mostrar <code>C:\java</code> na tela:</p>
+<div class="ex-code">System.out.println("<input data-answer="C:\\java" aria-label="texto">");</div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Descubra a arquitetura antes de baixar: x64 (Intel/AMD) ou aarch64 (Apple M, Snapdragon).</li>
+  <li>Windows: <code>.msi</code> do Temurin com <em>Add to PATH</em> e <em>Set JAVA_HOME</em>, ou <code>winget install EclipseAdoptium.Temurin.25.JDK</code>.</li>
+  <li>As variáveis <code>JAVA_HOME</code> (pasta do JDK) e <code>Path</code> (<code>%JAVA_HOME%\bin</code> no topo) se editam em "Variáveis de Ambiente".</li>
+  <li>macOS: <code>.pkg</code> ou <code>brew install --cask temurin@25</code>; o <code>PATH</code> já funciona; <code>JAVA_HOME</code> com <code>/usr/libexec/java_home -v 25</code>.</li>
+  <li>Sempre confira num terminal aberto depois da instalação: <code>java -version</code> e <code>javac -version</code>.</li>
+  <li>"Não é reconhecido como um comando" = pasta fora do <code>Path</code>, terminal antigo ou só JRE instalado.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

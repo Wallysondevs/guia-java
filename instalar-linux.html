@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Instalar no Linux — apt, dnf, pacman, tarball, JAVA_HOME e PATH | Guia Java</title>
+<meta name="description" content="Como instalar o JDK 25 no Linux: pelo gerenciador de pacotes (Debian, Ubuntu, Fedora, Arch), pelo arquivo .tar.gz do Temurin em /opt com JAVA_HOME e PATH no ~/.bashrc, pelo SDKMAN, várias versões com update-alternatives, como conferir e o erro javac: comando não encontrado.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Instalar no Linux</span></h1>
+
+<p class="intro">Para programar em Java no seu computador, você precisa do <strong>JDK</strong> (o kit com o compilador <code>javac</code>, veja <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>). No Linux há três caminhos: pelo gerenciador de pacotes do sistema (o mais fácil), baixando o arquivo do Temurin (o que a máquina do guia usa) ou por uma ferramenta que gerencia versões, o SDKMAN. Nesta aula você faz a instalação, configura o <code>JAVA_HOME</code> e o <code>PATH</code> e confere se deu tudo certo.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Instalar o JDK 25 pelo <code>apt</code> (Debian, Ubuntu), pelo <code>dnf</code> (Fedora) e pelo <code>pacman</code> (Arch).</li>
+  <li>Instalar o Temurin a partir do arquivo <code>.tar.gz</code> em <code>/opt/jdk-25</code>, como na máquina do guia.</li>
+  <li>O que são <code>JAVA_HOME</code> e <code>PATH</code> e como configurá-los no <code>~/.bashrc</code>.</li>
+  <li>Instalar com o SDKMAN e conviver com várias versões (<code>update-alternatives</code>).</li>
+  <li>Conferir a instalação e resolver <code>javac: comando não encontrado</code>.</li>
+</ul>
+</div>
+
+<p>As sessões de terminal acontecem na máquina fictícia da Ana, um Ubuntu em português. Comandos com <code>sudo</code> pedem a sua senha (ela não aparece enquanto você digita). Se você ainda não conhece o terminal, não se preocupe: basta copiar os comandos com atenção, um por vez, e comparar com a saída mostrada. Usa Windows ou Mac? Vá para <a href="instalar-windows-mac.html">Instalar no Windows e macOS</a>.</p>
+
+<hr>
+
+<h2>Antes: já tem Java aí?</h2>
+<p>Muitos Linux já vêm com um Java, às vezes só o de <strong>rodar</strong> programas. Abra o terminal e pergunte as duas versões, uma de cada vez: <code>java -version</code> e <code>javac -version</code>. Compare o que apareceu com a tabela:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que apareceu</th><th>O que quer dizer</th><th>O que fazer</th></tr>
+<tr><td>As duas mostram <code>25</code> (ou mais)</td><td>O JDK 25 já está instalado.</td><td>Nada: pule para <a href="#conferir">Conferir a instalação</a>.</td></tr>
+<tr><td><code>java</code> mostra uma versão, <code>javac</code> dá "comando não encontrado"</td><td>Só há um JRE.</td><td>Instale o JDK (abaixo). Veja também <a href="#errado">Quando dá errado</a>.</td></tr>
+<tr><td>As duas dão "comando não encontrado"</td><td>Não há Java nenhum.</td><td>Instale o JDK (abaixo).</td></tr>
+<tr><td>As duas funcionam, mas com versão menor que 25 (17, 21…)</td><td>Há um JDK antigo.</td><td>Instale o 25 ao lado; veja <a href="#varias">Várias versões</a>. Para o Nível 1, o 17 e o 21 quase sempre servem.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Caminho 1: pelo gerenciador de pacotes</h2>
+<p>Cada família de Linux tem o seu "loja de aplicativos" de terminal, o <strong>gerenciador de pacotes</strong>. Ele baixa, instala e depois mantém o Java atualizado junto com o resto do sistema. É o caminho mais simples. O que muda é o nome do comando e do pacote:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sistema</th><th>Comando</th><th>Observação</th></tr>
+<tr><td>Ubuntu 26.04, Debian 13 e derivados (Mint, Pop!_OS…)</td><td><code>sudo apt install openjdk-25-jdk</code></td><td>O pacote <code>openjdk-25-jre</code> é só o de rodar; o <code>-headless</code> é sem a parte gráfica (para servidores).</td></tr>
+<tr><td>Fedora</td><td><code>sudo dnf install java-25-openjdk-devel</code></td><td>No Fedora, o JDK é o pacote <code>-devel</code> ("desenvolvimento"); <code>java-25-openjdk</code> sozinho é só o de rodar.</td></tr>
+<tr><td>Arch, Manjaro</td><td><code>sudo pacman -S jdk25-openjdk</code></td><td><code>jdk-openjdk</code> é sempre a versão <strong>mais nova</strong> (hoje, o 27, que não é LTS). Para o 25, use <code>jdk25-openjdk</code>.</td></tr>
+</table>
+</div>
+
+<p>Os nomes acima foram conferidos nos repositórios oficiais em outubro de 2026. Num sistema mais antigo, o 25 pode não existir; procure com <code>apt search openjdk</code>, <code>dnf search openjdk</code> ou <code>pacman -Ss openjdk</code>, ou use o <a href="#tarball">Caminho 2</a>.</p>
+
+<h3>No Ubuntu, passo a passo</h3>
+<p>Primeiro, veja o que o Ubuntu oferece. O <code>apt-cache search</code> procura pacotes pelo nome:</p>
+
+<pre class="term">$ apt-cache search --names-only "^openjdk-25-(jdk|jre)"
+openjdk-25-jdk - OpenJDK Development Kit (JDK)                           « este: o kit completo
+openjdk-25-jdk-headless - OpenJDK Development Kit (JDK) (headless)
+openjdk-25-jre - OpenJDK Java runtime, using Hotspot JIT                « só para rodar
+openjdk-25-jre-headless - OpenJDK Java runtime, using Hotspot JIT (headless)
+openjdk-25-jre-zero - Alternative JVM for OpenJDK, using Zero</pre>
+
+<p>E qual versão seria instalada:</p>
+
+<pre class="term">$ apt-cache policy openjdk-25-jdk
+openjdk-25-jdk:
+  Instalado: (nenhum)                « ainda não está instalado
+  Candidato: 25.0.4.1+1-1~26.04.4    « a versão que o apt instalaria: Java 25.0.4.1
+  Tabela de versão:
+     25.0.4.1+1-1~26.04.4 500
+        500 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 Packages
+        500 http://security.ubuntu.com/ubuntu resolute-security/main amd64 Packages
+     25.0.3~7ea-2 500
+        500 http://archive.ubuntu.com/ubuntu resolute/main amd64 Packages</pre>
+
+<p>Para instalar, atualize a lista de pacotes e peça o JDK:</p>
+
+<dl class="anatomy">
+  <dt>sudo</dt><dd>Roda o comando como administrador (instalar programas mexe no sistema todo).</dd>
+  <dt>apt</dt><dd>O gerenciador de pacotes do Debian e do Ubuntu.</dd>
+  <dt>install</dt><dd>A ação: instalar.</dd>
+  <dt>openjdk-25-jdk</dt><dd>O pacote: o JDK 25 do OpenJDK. Ele puxa sozinho o <code>openjdk-25-jre</code> e o <code>openjdk-25-jdk-headless</code>, de que depende.</dd>
+</dl>
+
+<p>Saída <strong>ilustrativa</strong> (a lista de pacotes e os tamanhos variam de computador para computador):</p>
+
+<pre class="term">$ sudo apt update
+[sudo] senha para ana:                  « digite a sua senha (não aparece nada) e Enter
+…                                       « o apt baixa a lista de pacotes atualizada
+$ sudo apt install openjdk-25-jdk
+…                                       « o apt mostra os pacotes que vai instalar
+Continuar? [S/n] S                      « digite S e Enter
+…                                       « download e instalação; leva alguns minutos</pre>
+
+<p>O apt instala o JDK em <code>/usr/lib/jvm/java-25-openjdk-amd64</code> e cria atalhos em <code>/usr/bin</code> (pelo sistema de "alternativas", que você vai ver em <a href="#varias">Várias versões</a>), de modo que <code>java</code> e <code>javac</code> funcionam na hora, sem configurar nada. Pule para <a href="#conferir">Conferir a instalação</a>.</p>
+
+<hr>
+
+<h2 id="tarball">Caminho 2: o arquivo do Temurin em <code>/opt</code></h2>
+<p>Este é o caminho da máquina do guia. Você baixa o JDK "em pacote" (um arquivo <code>.tar.gz</code>, como um <code>.zip</code>), descompacta numa pasta e avisa o terminal onde ela está. Vantagens: funciona em qualquer Linux, você escolhe a versão exata e pode ter várias lado a lado. Desvantagem: as atualizações não chegam sozinhas; você repete o processo quando sair uma nova.</p>
+
+<h3>1. Baixar</h3>
+<p>No site <strong>adoptium.net</strong>, escolha <em>Temurin 25 (LTS)</em>, sistema <em>Linux</em>, arquitetura <em>x64</em> (computadores comuns; <em>aarch64</em> para placas ARM, como o Raspberry Pi), pacote <em>JDK</em>, formato <em>.tar.gz</em>. Baixe também o arquivo de conferência, o <em>checksum</em> (<code>.sha256.txt</code>). Pelo terminal (<strong>ilustrativo</strong>: o nome do arquivo muda a cada atualização):</p>
+
+<pre class="term">$ cd ~/Downloads
+$ ls
+OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz
+OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz.sha256.txt
+$ sha256sum -c OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz.sha256.txt
+OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz: SUCESSO       « o arquivo chegou inteiro e é o original</pre>
+
+<p>O <code>sha256sum -c</code> calcula uma "impressão digital" do arquivo baixado e compara com a publicada pelo Adoptium. <code>SUCESSO</code> quer dizer que são iguais. Se aparecer <code>FALHOU</code>, o download veio corrompido: baixe de novo.</p>
+
+<h3>2. Descompactar em <code>/opt</code></h3>
+<p>A pasta <code>/opt</code> (de <em>optional</em>) é o lugar tradicional do Linux para programas instalados "à mão". Como ela pertence ao administrador, os comandos levam <code>sudo</code>:</p>
+
+<dl class="anatomy">
+  <dt>sudo tar</dt><dd>O programa que abre arquivos <code>.tar</code>, rodando como administrador.</dd>
+  <dt>-xzf</dt><dd>Três opções juntas: <code>x</code> = extrair, <code>z</code> = o arquivo está comprimido com gzip (o <code>.gz</code>), <code>f</code> = o arquivo vem a seguir.</dd>
+  <dt>OpenJDK25U-…tar.gz</dt><dd>O arquivo baixado (aperte <kbd>Tab</kbd> para completar o nome).</dd>
+  <dt>-C /opt</dt><dd>Extrair dentro de <code>/opt</code> (<code>C</code> de <em>change directory</em>).</dd>
+</dl>
+
+<pre class="term">$ sudo tar -xzf OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz -C /opt
+$ ls /opt
+jdk-25.0.4.1+1                              « a pasta vem com a versão completa no nome
+$ sudo mv /opt/jdk-25.0.4.1+1 /opt/jdk-25   « um nome curto, que não muda nas atualizações</pre>
+
+<p>(Etapa <strong>ilustrativa</strong>: o <code>tar</code> e o <code>mv</code> não mostram nada quando dão certo; o nome da pasta segue o da versão baixada.) Renomear para <code>jdk-25</code> é um truque: quando sair a atualização 25.0.5, você troca a pasta e todas as configurações continuam valendo.</p>
+
+<p>A partir daqui, tudo é real, na máquina da Ana. O JDK já funciona, desde que você diga o caminho inteiro:</p>
+
+<pre class="term">$ ls /opt/jdk-25
+bin  conf  include  legal  lib  man  NOTICE  release
+$ /opt/jdk-25/bin/java -version
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)</pre>
+
+<h3>3. <code>JAVA_HOME</code> e <code>PATH</code>: ensinar o caminho ao terminal</h3>
+<p>Ninguém quer digitar <code>/opt/jdk-25/bin/java</code> toda vez. Duas <strong>variáveis de ambiente</strong> (anotações que o terminal passa para todos os programas) resolvem:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Variável</th><th>O que guarda</th><th>Quem usa</th></tr>
+<tr><td><code>JAVA_HOME</code></td><td>A pasta do JDK: <code>/opt/jdk-25</code> (a "casa" do Java).</td><td>Maven, Gradle, IDEs e muitos programas Java, para achar o JDK.</td></tr>
+<tr><td><code>PATH</code></td><td>A lista de pastas, separadas por <code>:</code>, onde o terminal procura os comandos.</td><td>O terminal: quando você digita <code>javac</code>, ele procura um arquivo <code>javac</code> em cada pasta do <code>PATH</code>, na ordem.</td></tr>
+</table>
+</div>
+
+<p>Para valerem sempre, as duas linhas vão no fim do arquivo <code>~/.bashrc</code>, que o Bash lê toda vez que um terminal abre. Você pode abrir o arquivo num editor (<code>nano ~/.bashrc</code>) e colar as linhas no fim, ou acrescentá-las de uma vez com <code>cat &gt;&gt;</code>:</p>
+
+<pre class="term">$ cat &gt;&gt; ~/.bashrc &lt;&lt;'FIM'
+&gt;
+&gt; # Java (Temurin JDK 25)
+&gt; export JAVA_HOME=/opt/jdk-25
+&gt; export PATH="$JAVA_HOME/bin:$PATH"
+&gt; FIM
+$ tail -4 ~/.bashrc
+
+# Java (Temurin JDK 25)
+export JAVA_HOME=/opt/jdk-25
+export PATH="$JAVA_HOME/bin:$PATH"</pre>
+
+<p>As duas linhas, parte por parte:</p>
+
+<dl class="anatomy">
+  <dt>export</dt><dd>Cria a variável e a passa para todos os programas abertos por este terminal.</dd>
+  <dt>JAVA_HOME=/opt/jdk-25</dt><dd>A pasta do JDK. Sem espaços em volta do <code>=</code>.</dd>
+  <dt>PATH="$JAVA_HOME/bin:$PATH"</dt><dd>O novo <code>PATH</code> é <code>/opt/jdk-25/bin</code>, depois <code>:</code>, depois o <code>PATH</code> antigo inteiro. Colocar o JDK <strong>na frente</strong> garante que ele seja achado antes de qualquer outro Java do sistema.</dd>
+</dl>
+
+<p>O <code>~/.bashrc</code> só é lido quando um terminal abre. Para o terminal atual, peça para lê-lo de novo com <code>source</code> (ou feche e abra o terminal):</p>
+
+<pre class="term">$ source ~/.bashrc
+$ echo $JAVA_HOME
+/opt/jdk-25
+$ echo $PATH
+/opt/jdk-25/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin    « o JDK em primeiro lugar</pre>
+
+<div class="warning">
+<strong>Cuidado com o <code>$PATH</code> no fim</strong>
+<p>Se você escrever <code>export PATH="$JAVA_HOME/bin"</code> (esquecendo o <code>:$PATH</code>), o <code>PATH</code> passa a ter <strong>só</strong> a pasta do Java, e comandos como <code>ls</code> e <code>nano</code> deixam de ser achados ("comando não encontrado"). Se isso acontecer, abra o arquivo com o caminho completo, <code>/usr/bin/nano ~/.bashrc</code>, corrija a linha e abra um terminal novo.</p>
+</div>
+
+<hr>
+
+<h2 id="conferir">Conferir a instalação</h2>
+<p>Seja qual for o caminho, confira três coisas: as versões, de onde vêm os comandos e se um programa compila e roda.</p>
+
+<pre class="term">$ java -version
+openjdk version "25.0.4.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)
+OpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)
+$ javac -version
+javac 25.0.4.1                          « o compilador existe e é da mesma versão
+$ which java javac
+/opt/jdk-25/bin/java                    « os dois vêm da mesma pasta
+/opt/jdk-25/bin/javac</pre>
+
+<p>O <code>which</code> mostra <strong>qual</strong> arquivo o terminal vai usar para cada comando. Se houver mais de um Java no computador, o <code>type -a</code> lista todos, na ordem de busca; o primeiro é o que vale:</p>
+
+<pre class="term">$ type -a java
+java é /opt/jdk-25/bin/java             « o primeiro: é este que roda
+java é /usr/bin/java                    « um Java do sistema, que fica "escondido" atrás
+java é /bin/java</pre>
+
+<p>Por fim, o teste de verdade: um programa que compila, roda e conta qual Java está rodando. Crie a pasta <code>~/java/teste</code> e, dentro dela, o arquivo <code>Teste.java</code> com o editor de sua preferência (veja <a href="editores-ide.html">Editores e IDEs</a>):</p>
+
+<pre class="file" data-file="Teste.java">public class Teste {
+    public static void main(String[] args) {
+        System.out.println("O Java está funcionando!");
+        System.out.println("Versão: " + System.getProperty("java.version"));
+        System.out.println("Fornecedor: " + System.getProperty("java.vendor"));
+        System.out.println("Pasta do Java: " + System.getProperty("java.home"));
+    }
+}
+</pre>
+
+<pre class="term">$ cd ~/java/teste
+$ javac Teste.java
+$ java Teste
+O Java está funcionando!
+Versão: 25.0.4.1
+Fornecedor: Eclipse Adoptium            « o Temurin é feito pela Eclipse Adoptium
+Pasta do Java: /opt/jdk-25</pre>
+
+<p>O <code>System.getProperty("java.version")</code> pergunta ao próprio Java qual é a versão dele. Se você instalou pelo <code>apt</code>, o fornecedor e a pasta serão outros (<code>Ubuntu</code> e <code>/usr/lib/jvm/java-25-openjdk-amd64</code>). Se apareceu <code>O Java está funcionando!</code>, você está pronto para o resto do guia. Os detalhes de <code>javac</code> e <code>java</code> estão em <a href="compilar-executar.html">javac e java</a>.</p>
+
+<p>Enquanto não instala, faça o mesmo teste no editor do guia:</p>
+
+<div class="tryjava" data-file="Teste.java">
+<p class="try-task"><strong>Brinque com o código:</strong> clique em <strong>Rodar</strong>. Depois troque a mensagem por uma sua. O arquivo aqui se chama <code>Teste.java</code>, por isso a classe se chama <code>Teste</code>.</p>
+<pre class="script">public class Teste {
+    public static void main(String[] args) {
+        System.out.println("O Java está funcionando!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Caminho 3: SDKMAN</h2>
+<p>O <strong>SDKMAN</strong> é um programa que instala e troca versões do Java (e do Maven, do Gradle…) sem <code>sudo</code>, tudo dentro da sua pasta pessoal. É popular entre programadores que precisam de várias versões. Passos <strong>ilustrativos</strong> (veja as instruções atuais em sdkman.io):</p>
+
+<pre class="term">$ curl -s "https://get.sdkman.io" | bash        « instala o SDKMAN
+$ source "$HOME/.sdkman/bin/sdkman-init.sh"
+$ sdk list java                                 « lista as versões; as do Temurin terminam em -tem
+$ sdk install java 25.0.4.1-tem                 « use o identificador que aparecer na lista
+$ sdk use java 21.0.12.1-tem                    « troca só neste terminal
+$ sdk default java 25.0.4.1-tem                 « escolhe a versão padrão</pre>
+
+<p>O SDKMAN cuida sozinho do <code>JAVA_HOME</code> e do <code>PATH</code>. Não misture: se usar o SDKMAN, não acrescente as linhas do Caminho 2 no <code>~/.bashrc</code>.</p>
+
+<hr>
+
+<h2 id="varias">Várias versões no mesmo computador</h2>
+<p>É normal ter mais de um Java: um projeto da empresa pede o 17, o guia usa o 25, um programa antigo exige o 8. A máquina da Ana, por exemplo, tem o Temurin 25 em <code>/opt/jdk-25</code> e, instalados pelo sistema, o Java 8 e o Java 21 em <code>/usr/lib/jvm</code>. Quem decide qual roda é o <strong>primeiro</strong> encontrado no <code>PATH</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como</th><th>Quando usar</th></tr>
+<tr><td>Caminho completo</td><td><code>/usr/lib/jvm/java-21-openjdk-amd64/bin/java -version</code></td><td>Testar uma vez com outra versão.</td></tr>
+<tr><td>Trocar o <code>JAVA_HOME</code> no terminal</td><td><code>export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64</code> e <code>export PATH="$JAVA_HOME/bin:$PATH"</code></td><td>Trabalhar um tempo com outra versão; vale até fechar o terminal.</td></tr>
+<tr><td><code>update-alternatives</code></td><td><code>sudo update-alternatives --config java</code></td><td>Debian/Ubuntu, para os Javas instalados pelo <code>apt</code>: escolhe o que <code>/usr/bin/java</code> aponta.</td></tr>
+<tr><td>SDKMAN</td><td><code>sdk use java …</code></td><td>Quem troca de versão o tempo todo.</td></tr>
+</table>
+</div>
+
+<p>No Debian e no Ubuntu, os Javas do <code>apt</code> se registram nas "alternativas" do sistema. O comando abaixo mostra um menu para escolher (saída <strong>ilustrativa</strong>, no formato real):</p>
+
+<pre class="term">$ sudo update-alternatives --config java
+Há 3 escolhas como alternativas de java. (fornecendo /usr/bin/java).
+
+  Seleção    Caminho                                         Prioridade Estado
+------------------------------------------------------------
+* 0            /usr/lib/jvm/java-25-openjdk-amd64/bin/java      2511      modo automático
+  1            /usr/lib/jvm/java-21-openjdk-amd64/bin/java      2111      modo manual
+  2            /usr/lib/jvm/java-25-openjdk-amd64/bin/java      2511      modo manual
+  3            /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java   1081      modo manual
+
+Pressione &lt;enter&gt; para manter o padrão[*] ou digite o número da seleção: 1</pre>
+
+<p>O <code>*</code> marca o atual. Em "modo automático", vence o de maior prioridade (o mais novo). Digitando <code>1</code>, o <code>/usr/bin/java</code> passa a ser o Java 21. Faça o mesmo para o compilador com <code>sudo update-alternatives --config javac</code>, senão o <code>java</code> e o <code>javac</code> ficam de versões diferentes.</p>
+
+<div class="note">
+<strong>O <code>PATH</code> vence as alternativas</strong>
+<p>As alternativas só mexem em <code>/usr/bin/java</code>. Se você colocou <code>/opt/jdk-25/bin</code> na frente do <code>PATH</code> (Caminho 2), o Temurin 25 continua sendo o primeiro, não importa o que o <code>update-alternatives</code> diga. Na dúvida, <code>which java</code> responde.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>javac: comando não encontrado</code>, mas o <code>java</code> funciona</strong>
+<pre class="term">$ java -version
+openjdk version "25.0.4.1" 2026-08-18
+OpenJDK Runtime Environment (build 25.0.4.1+1-1-26.04.4-Ubuntu)
+OpenJDK 64-Bit Server VM (build 25.0.4.1+1-1-26.04.4-Ubuntu, mixed mode, sharing)
+$ javac -version
+bash: javac: comando não encontrado
+$ ls /usr/lib/jvm/java-25-openjdk-amd64/bin
+java  jpackage  keytool  rmiregistry</pre>
+<p><strong>O que aconteceu:</strong> este Ubuntu tem o pacote <code>openjdk-25-jre</code>, o Java de <strong>rodar</strong> programas. A pasta dele não tem <code>javac</code>. É comum: outro programa instalou o JRE como dependência, ou alguém digitou <code>jre</code> no lugar de <code>jdk</code>.</p>
+<p><strong>Como resolver:</strong> instale o JDK: <code>sudo apt install openjdk-25-jdk</code> (no Fedora, <code>java-25-openjdk-devel</code>; no Arch, <code>jdk25-openjdk</code>). Em alguns Ubuntu, o próprio terminal sugere o pacote quando você digita um comando que não existe; confira se a sugestão é um <code>-jdk</code>, não um <code>-jre</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Configurei o <code>~/.bashrc</code> e nada mudou</strong>
+<p><strong>O que aconteceu:</strong> o arquivo só é lido quando um terminal abre. O terminal que já estava aberto continua com o <code>PATH</code> antigo.</p>
+<p><strong>Como resolver:</strong> <code>source ~/.bashrc</code> ou feche e abra o terminal. Depois, <code>echo $JAVA_HOME</code> deve mostrar <code>/opt/jdk-25</code>. Se continuar vazio, confira com <code>tail ~/.bashrc</code> se as linhas foram mesmo gravadas e se não há espaço em volta do <code>=</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>bash: /opt/jdk-25/bin/java: Arquivo ou diretório inexistente</code></strong>
+<p><strong>O que aconteceu:</strong> o caminho não bate com a pasta extraída. Talvez ela ainda se chame <code>jdk-25.0.4.1+1</code> (faltou o <code>mv</code>), ou o <code>tar</code> extraiu em outro lugar (faltou o <code>-C /opt</code>).</p>
+<p><strong>Como resolver:</strong> <code>ls /opt</code> mostra o nome real. Renomeie com <code>sudo mv</code> ou ajuste o <code>JAVA_HOME</code> para o nome que está lá.</p>
+</div>
+
+<div class="cenario">
+<strong><code>cannot execute binary file: Exec format error</code></strong>
+<p><strong>O que aconteceu:</strong> você baixou o JDK de uma arquitetura diferente da do computador (por exemplo, <em>aarch64</em> num PC comum, ou <em>x64</em> num Raspberry Pi). Descubra a sua com <code>uname -m</code>: <code>x86_64</code> = baixe o <em>x64</em>; <code>aarch64</code> = baixe o <em>aarch64</em>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>java -version</code> mostra outra versão (8, 17, 21…)</strong>
+<p><strong>O que aconteceu:</strong> outro Java está antes no <code>PATH</code>. <strong>Como resolver:</strong> <code>type -a java</code> mostra a ordem. Coloque o JDK 25 na frente (Caminho 2) ou escolha-o com <code>update-alternatives</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>Para que serve</th></tr>
+<tr><td><code>sudo apt install openjdk-25-jdk</code></td><td>Instala o JDK 25 no Debian/Ubuntu.</td></tr>
+<tr><td><code>sudo dnf install java-25-openjdk-devel</code></td><td>Instala o JDK 25 no Fedora.</td></tr>
+<tr><td><code>sudo pacman -S jdk25-openjdk</code></td><td>Instala o JDK 25 no Arch.</td></tr>
+<tr><td><code>sudo tar -xzf ARQUIVO.tar.gz -C /opt</code></td><td>Extrai o JDK baixado em <code>/opt</code>.</td></tr>
+<tr><td><code>export JAVA_HOME=/opt/jdk-25</code></td><td>Diz onde está o JDK (no <code>~/.bashrc</code>).</td></tr>
+<tr><td><code>export PATH="$JAVA_HOME/bin:$PATH"</code></td><td>Põe os comandos do JDK na frente da busca.</td></tr>
+<tr><td><code>source ~/.bashrc</code></td><td>Relê o <code>~/.bashrc</code> no terminal atual.</td></tr>
+<tr><td><code>java -version</code>, <code>javac -version</code></td><td>Confere as versões.</td></tr>
+<tr><td><code>which java</code>, <code>type -a java</code></td><td>Mostra qual Java o terminal usa.</td></tr>
+<tr><td><code>sudo update-alternatives --config java</code></td><td>Escolhe entre os Javas do sistema (Debian/Ubuntu).</td></tr>
+</table>
+</div>
+
+<div class="tryjava" data-file="Teste.java" data-goal="out:javac: ok,out:java: ok">
+<p class="try-task"><strong>Missão:</strong> faça o programa de teste mostrar duas linhas, <code>javac: ok</code> e <code>java: ok</code>, uma embaixo da outra. Dica: copie a linha do <code>println</code> e mude o texto.</p>
+<pre class="script">public class Teste {
+    public static void main(String[] args) {
+        System.out.println("javac: ok");
+    }
+}
+</pre>
+<pre class="solucao">public class Teste {
+    public static void main(String[] args) {
+        System.out.println("javac: ok");
+        System.out.println("java: ok");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O pacote certo</h3>
+<p>Complete o comando para instalar o JDK 25 (não só o JRE) no Ubuntu:</p>
+<div class="ex-code">sudo apt install <input data-answer="openjdk-25-jdk|openjdk-25-jdk-headless" aria-label="pacote"></div>
+</div>
+
+<div class="exercise">
+<h3>2. A casa do Java</h3>
+<p>Complete a linha do <code>~/.bashrc</code> que diz onde o JDK está, na máquina da Ana:</p>
+<div class="ex-code">export JAVA_HOME=<input data-answer="/opt/jdk-25" aria-label="pasta"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Você acrescentou as linhas no <code>~/.bashrc</code>, mas <code>echo $JAVA_HOME</code> continua vazio no mesmo terminal. Por quê?</p>
+<label><input type="radio" name="q3"> O JDK não foi instalado.</label>
+<label><input type="radio" name="q3"> O <code>~/.bashrc</code> só é lido quando o terminal abre; falta <code>source ~/.bashrc</code>.</label>
+<label><input type="radio" name="q3"> O <code>JAVA_HOME</code> só funciona no Windows.</label>
+<label><input type="radio" name="q3"> Precisa reiniciar o computador.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Por que <code>$JAVA_HOME/bin</code> vem <strong>antes</strong> de <code>$PATH</code> na linha do <code>PATH</code>?</p>
+<label><input type="radio" name="q4"> Por ordem alfabética.</label>
+<label><input type="radio" name="q4"> Porque o terminal lê o <code>PATH</code> de trás para a frente.</label>
+<label><input type="radio" name="q4"> Não faz diferença.</label>
+<label><input type="radio" name="q4"> Para que o JDK 25 seja achado antes de outros Javas do sistema.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. No Arch, qual pacote instala especificamente o JDK 25?</p>
+<label><input type="radio" name="q5"> <code>jdk25-openjdk</code></label>
+<label><input type="radio" name="q5"> <code>jdk-openjdk</code></label>
+<label><input type="radio" name="q5"> <code>jre25-openjdk</code></label>
+<label><input type="radio" name="q5"> <code>java-25-openjdk-devel</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Confira antes: <code>java -version</code> e <code>javac -version</code>. Precisa dos dois.</li>
+  <li>Pelo sistema: <code>apt install openjdk-25-jdk</code>, <code>dnf install java-25-openjdk-devel</code>, <code>pacman -S jdk25-openjdk</code>. Sem configuração extra.</li>
+  <li>Pelo arquivo do Temurin: extraia em <code>/opt</code>, renomeie para <code>/opt/jdk-25</code> e acrescente <code>JAVA_HOME</code> e <code>PATH</code> no <code>~/.bashrc</code>; depois <code>source ~/.bashrc</code>.</li>
+  <li><code>which java</code> e <code>type -a java</code> mostram qual Java está sendo usado; o primeiro do <code>PATH</code> vence.</li>
+  <li>Várias versões: caminho completo, <code>JAVA_HOME</code> no terminal, <code>update-alternatives</code> ou SDKMAN.</li>
+  <li><code>javac: comando não encontrado</code> com o <code>java</code> funcionando = só JRE; instale o pacote <code>-jdk</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

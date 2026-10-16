@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Editores e IDEs — VS Code, IntelliJ IDEA, Eclipse e NetBeans | Guia Java</title>
+<meta name="description" content="Onde escrever código Java: do editor de texto ao IDE. VS Code com o Extension Pack for Java, IntelliJ IDEA, Eclipse e NetBeans comparados, o que uma IDE faz por você (compilar, completar, depurar), por que começar pelo terminal e os erros de arquivo .java.txt e de codificação.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Editores e IDEs</span></h1>
+
+<p class="intro">Um programa Java é um arquivo de texto. Você pode escrevê-lo em qualquer editor, do Bloco de Notas a uma <strong>IDE</strong>, um programa que escreve, compila, roda e depura tudo na mesma janela. Nesta aula você conhece as opções, entende o que a IDE faz por baixo dos panos e vê por que este guia começa pelo terminal.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre editor de texto, editor de código e IDE.</li>
+  <li>As quatro ferramentas mais usadas para Java: VS Code, IntelliJ IDEA, Eclipse e NetBeans.</li>
+  <li>O que a IDE faz por você e qual comando do terminal está por trás de cada botão.</li>
+  <li>Por que começar com o terminal, e quando passar para a IDE.</li>
+  <li>Dois erros de editor: o arquivo <code>Main.java.txt</code> e a acentuação estragada.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: do caderno à oficina</h2>
+<p>Pense em consertar uma bicicleta. Dá para fazer com uma chave de boca e paciência. Numa oficina, você tem um suporte que segura a bicicleta, ferramentas penduradas na ordem e uma lista do que verificar. As duas consertam a mesma bicicleta; a oficina só deixa o trabalho mais rápido e com menos erros.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Exemplos</th><th>O que oferece</th></tr>
+<tr><td><strong>Editor de texto</strong></td><td>Bloco de Notas (Windows), Editor de Texto (Linux), TextEdit (Mac), <code>nano</code> (terminal)</td><td>Só escrever e salvar. Nenhuma ajuda com o Java.</td></tr>
+<tr><td><strong>Editor de código</strong></td><td>VS Code, Notepad++, Sublime Text, Kate</td><td>Cores no código, numeração de linhas, recuo automático. Com extensões, chega perto de uma IDE.</td></tr>
+<tr><td><strong>IDE</strong></td><td>IntelliJ IDEA, Eclipse, NetBeans</td><td>Tudo junto: editor, compilador, execução, depurador, sugestões enquanto você digita, ferramentas de projeto.</td></tr>
+</table>
+</div>
+
+<p>IDE é a sigla de <em>Integrated Development Environment</em>, "ambiente de desenvolvimento integrado": integrado porque junta numa janela o que no terminal são vários programas separados.</p>
+
+<hr>
+
+<h2>Primeiro: o terminal e um editor simples</h2>
+<p>Este guia mostra tudo com o terminal: você escreve o arquivo num editor qualquer, compila com <code>javac</code> e roda com <code>java</code>. Pode parecer trabalhoso, mas tem três vantagens para quem está começando:</p>
+
+<ol>
+  <li><strong>Você entende o que acontece.</strong> Na IDE, um botão verde faz tudo; quando algo dá errado, você não sabe qual etapa falhou. No terminal, você vê que o <code>javac</code> gerou o <code>.class</code> e que o <code>java</code> o executou.</li>
+  <li><strong>As mensagens de erro são as do Java.</strong> A IDE mostra o erro do jeito dela (às vezes com outras palavras). As aulas mostram a mensagem do <code>javac</code>, igual em todo lugar, e ensinam a lê-la (veja <a href="erros-compilacao.html">Lendo Erros do javac</a>).</li>
+  <li><strong>Você não depende de nada.</strong> Num servidor, numa prova ou num computador emprestado nem sempre há IDE, mas sempre há um terminal.</li>
+</ol>
+
+<p>Quando você chegar ao Nível 2, com programas de várias classes, uma IDE vai fazer muita diferença. Até lá, qualquer editor serve. Um exemplo no terminal da Ana: ela escreveu o arquivo no editor, salvou como <code>Main.java</code> e conferiu o conteúdo com <code>cat</code> antes de compilar:</p>
+
+<pre class="term">$ cat Main.java
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+    }
+}
+$ javac Main.java
+$ java Main
+Olá, mundo!</pre>
+
+<div class="tip">
+<strong>Duas regras para qualquer editor</strong>
+<p>1. O nome do arquivo termina em <code>.java</code> e é igual ao nome da classe: <code>public class Main</code> vai em <code>Main.java</code> (a aula <a href="primeiro-programa.html">Olá, Mundo</a> explica por quê). 2. Salve em <strong>UTF-8</strong>, a codificação que guarda acentos do mesmo jeito em todo sistema. Os erros que aparecem quando uma das duas falha estão em <a href="#errado">Quando dá errado</a>.</p>
+</div>
+
+<p>O próprio guia tem um editor: as caixas Experimente. Ele não substitui uma IDE, mas compila e roda na hora (a aula <a href="simulador.html">O Editor do Guia</a> mostra tudo o que ele faz):</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> o editor do guia colore o código e numera as linhas, como um editor de código. Rode, depois apague o <code>;</code> do fim da linha 3 e rode de novo para ver o erro no formato do <code>javac</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Olá, mundo!");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>As quatro ferramentas mais usadas</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ferramenta</th><th>De quem</th><th>Preço</th><th>Pontos fortes</th><th>Bom para</th></tr>
+<tr><td><strong>VS Code</strong> + <em>Extension Pack for Java</em></td><td>Microsoft</td><td>Grátis</td><td>Leve, abre rápido, serve para muitas linguagens. O pacote de extensões traz compilação, sugestões, depurador, testes e Maven/Gradle.</td><td>Quem já usa o VS Code ou tem um computador modesto.</td></tr>
+<tr><td><strong>IntelliJ IDEA</strong></td><td>JetBrains</td><td>Grátis (recursos principais; antes chamada <em>Community Edition</em>); versão paga com recursos para web e empresas</td><td>Sugestões muito inteligentes, avisos de código ruim, refatoração. A IDE mais usada por programadores Java profissionais.</td><td>Quem vai trabalhar com Java; computadores com 8 GB de memória ou mais.</td></tr>
+<tr><td><strong>Eclipse IDE for Java Developers</strong></td><td>Fundação Eclipse</td><td>Grátis, código aberto</td><td>Clássica, muito usada em empresas e universidades, cheia de plugins.</td><td>Quem vai trabalhar num lugar que já usa Eclipse.</td></tr>
+<tr><td><strong>Apache NetBeans</strong></td><td>Fundação Apache</td><td>Grátis, código aberto</td><td>Simples de configurar, bom suporte a Maven e a interfaces gráficas (Swing).</td><td>Cursos e projetos com interface gráfica.</td></tr>
+</table>
+</div>
+
+<p>Todas usam o JDK que você instalou (<a href="instalar-linux.html">Linux</a>, <a href="instalar-windows-mac.html">Windows e macOS</a>). Algumas oferecem baixar um JDK por conta própria; tudo bem aceitar, desde que seja o 25.</p>
+
+<h3>VS Code: instalando o suporte a Java</h3>
+<p>O VS Code sozinho é só um editor de código. O suporte a Java vem de um pacote de extensões da Microsoft:</p>
+<ol class="passo">
+  <li>Instale o VS Code (code.visualstudio.com) e abra.</li>
+  <li>Clique no ícone de <strong>Extensões</strong> na barra da esquerda (quatro quadradinhos) ou tecle <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd>.</li>
+  <li>Procure por <strong>Extension Pack for Java</strong>, da Microsoft, e clique em <strong>Install</strong>. Ele instala várias extensões de uma vez, entre elas o suporte à linguagem (da Red Hat), o depurador, o executor de testes e o suporte ao Maven.</li>
+  <li>Abra uma pasta (<em>File → Open Folder</em>) e crie um arquivo <code>Main.java</code>. Ao digitar <code>main</code>, o editor sugere escrever o método <code>main</code> inteiro (aceite com <kbd>Enter</kbd>). Aparecem as palavras <strong>Run | Debug</strong> acima do <code>main</code>: clique em <strong>Run</strong>, e a saída aparece no terminal de baixo.</li>
+</ol>
+
+<h3>IntelliJ IDEA: o primeiro projeto</h3>
+<ol class="passo">
+  <li>Baixe em jetbrains.com/idea a versão gratuita e instale.</li>
+  <li><em>New Project</em>: dê um nome, escolha a linguagem <strong>Java</strong>, o sistema de build <strong>IntelliJ</strong> (o mais simples) e, em <em>JDK</em>, o 25 que você instalou.</li>
+  <li>A IDE cria uma pasta <code>src</code> com um <code>Main.java</code> de exemplo. Um triângulo verde aparece ao lado do <code>main</code>: clique nele e escolha <em>Run</em>.</li>
+  <li>A saída aparece no painel <em>Run</em>, embaixo, seguida de <code>Process finished with exit code 0</code> ("processo terminou com código de saída 0", o mesmo código de sucesso do terminal).</li>
+</ol>
+
+<p>O Eclipse e o NetBeans seguem o mesmo roteiro: criar um projeto Java, escolher o JDK, criar uma classe com <code>main</code>, clicar em <em>Run</em>.</p>
+
+<hr>
+
+<h2>O que a IDE faz por você</h2>
+<p>Nada do que a IDE faz é mágica: por trás de cada botão está uma ferramenta do JDK que você vai conhecer neste guia.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Recurso da IDE</th><th>Como aparece</th><th>No terminal, seria</th></tr>
+<tr><td><strong>Compilar</strong></td><td>Automático, ao salvar ou ao clicar em Run</td><td><code>javac Main.java</code> (<a href="compilar-executar.html">javac e java</a>)</td></tr>
+<tr><td><strong>Rodar</strong></td><td>Botão ▶ verde ou "Run" acima do <code>main</code></td><td><code>java Main</code></td></tr>
+<tr><td><strong>Apontar erros enquanto você digita</strong></td><td>Sublinhado vermelho; passe o mouse para ler a mensagem</td><td>As mensagens do <code>javac</code> (<a href="erros-compilacao.html">Lendo Erros do javac</a>)</td></tr>
+<tr><td><strong>Completar código</strong></td><td>Ao digitar <code>System.out.</code>, uma lista com <code>println</code>, <code>print</code>…</td><td>A tecla <kbd>Tab</kbd> do <a href="jshell.html">JShell</a>, em versão turbinada</td></tr>
+<tr><td><strong>Formatar</strong></td><td>Arruma o recuo e os espaços (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd> no IntelliJ, <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> no VS Code)</td><td>Fazer à mão (veja <a href="sintaxe.html">Sintaxe e Estrutura</a>)</td></tr>
+<tr><td><strong>Depurar</strong></td><td>Clicar ao lado do número da linha cria um ponto de parada; o programa para ali e mostra os valores das variáveis</td><td><code>jdb</code> (<a href="depuracao.html">Depurar</a>)</td></tr>
+<tr><td><strong>Refatorar</strong></td><td>Renomear uma variável e todas as vezes em que ela aparece, de uma vez</td><td>Procurar e trocar com cuidado</td></tr>
+<tr><td><strong>Gerenciar projetos</strong></td><td>Baixa bibliotecas e roda testes</td><td><code>mvn</code>, <code>gradle</code> (<a href="maven.html">Maven</a>, <a href="gradle.html">Gradle</a>)</td></tr>
+</table>
+</div>
+
+<h3>A mesma mensagem, dois jeitos</h3>
+<p>Quando você erra o nome de uma variável, o <code>javac</code> do terminal responde assim (real; o código tem um erro de propósito: <code>ntoa</code> em vez de <code>nota</code>):</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int nota = 8;
+        System.out.println(ntoa);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(ntoa);
+                           ^
+  symbol:   variable ntoa
+  location: class Main
+1 error</pre>
+
+<p>Numa IDE, você nem precisa compilar: o <code>ntoa</code> fica sublinhado de vermelho enquanto você digita. Passando o mouse, o IntelliJ escreve algo como <em>Cannot resolve symbol 'ntoa'</em> e o VS Code, <em>ntoa cannot be resolved to a variable</em> (as palavras mudam de uma IDE para outra). Muitas vezes a IDE já oferece a correção: "trocar por <code>nota</code>?". É a mesma informação que o <code>javac</code> deu: o arquivo, a linha e o nome que ela não achou.</p>
+
+<div class="tryjava" data-goal="out:8">
+<p class="try-task"><strong>Missão:</strong> o editor do guia também aponta este erro. Rode, leia a mensagem e conserte o nome da variável para o programa mostrar <code>8</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int nota = 8;
+        System.out.println(ntoa);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int nota = 8;
+        System.out.println(nota);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Sugestão</th></tr>
+<tr><td>Nível 1 deste guia</td><td>As caixas Experimente + qualquer editor de código (VS Code, por exemplo) + o terminal.</td></tr>
+<tr><td>Computador com pouca memória (4 GB)</td><td>VS Code, ou um editor simples e o terminal.</td></tr>
+<tr><td>A partir do Nível 2, com várias classes</td><td>IntelliJ IDEA ou VS Code com o Extension Pack for Java.</td></tr>
+<tr><td>Projetos com Maven ou Gradle (Nível 3)</td><td>Qualquer uma das quatro; todas entendem esses projetos.</td></tr>
+<tr><td>A escola ou a empresa já usa uma</td><td>Use a mesma: ajuda a receber e dar ajuda.</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>A IDE não substitui entender o Java</strong>
+<p>A IDE completa nomes e conserta erros com um clique, mas só se você souber o que pedir. Quem aprendeu a ler a mensagem do <code>javac</code> entende também os avisos da IDE. Por isso as aulas continuam mostrando o terminal, mesmo para quem já usa uma IDE.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: file not found: Main.java</code> (mas eu salvei!)</strong>
+<pre class="term">$ ls
+Main.java.txt
+$ javac Main.java
+error: file not found: Main.java
+Usage: javac &lt;options&gt; &lt;source files&gt;
+use --help for a list of possible options</pre>
+<p><strong>O que aconteceu:</strong> o editor salvou o arquivo como <code>Main.java.txt</code>. O Bloco de Notas do Windows faz isso quando o tipo está em "Documentos de texto (*.txt)", e o Windows esconde o <code>.txt</code> no Explorador de Arquivos, então você vê só <code>Main.java</code>. O <code>javac</code> procurou <code>Main.java</code> e não achou.</p>
+<p><strong>Como resolver:</strong> renomeie o arquivo (<code>mv Main.java.txt Main.java</code> no Linux e no Mac; no Windows, ative "Extensões de nomes de arquivos" na aba Exibir do Explorador e apague o <code>.txt</code>). No Bloco de Notas, salve escolhendo "Todos os arquivos (*.*)" e digitando o nome <code>Main.java</code>. Um editor de código não tem esse problema.</p>
+</div>
+
+<div class="cenario">
+<strong><code>unmappable character (0xE1) for encoding UTF-8</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: unmappable character (0xE1) for encoding UTF-8
+        System.out.println("Ol�, mundo!");
+                              ^
+1 error
+$ file Main.java
+Main.java: Java source, ISO-8859 text          « o arquivo não está em UTF-8</pre>
+<p><strong>O que aconteceu:</strong> o arquivo foi salvo numa codificação antiga (ISO-8859-1, também chamada "Latin-1" ou "ANSI" em editores do Windows), em que o <code>á</code> é o byte <code>0xE1</code>. O <code>javac</code> 25 lê os arquivos como UTF-8, onde esse byte sozinho não é letra nenhuma, e por isso mostra um <code>�</code> e para.</p>
+<p><strong>Como resolver:</strong> salve de novo em UTF-8 (no VS Code, clique em "ISO 8859-1" na barra de baixo e escolha <em>Save with Encoding → UTF-8</em>; no Bloco de Notas, escolha "UTF-8" em "Codificação" ao salvar). Para um arquivo antigo que você não quer converter, dá para avisar o <code>javac</code>: <code>javac -encoding ISO-8859-1 Main.java</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A IDE diz "Project JDK is not defined" ou "No JDK found"</strong>
+<p><strong>O que aconteceu:</strong> a IDE não achou um JDK. Acontece quando o JDK foi instalado depois da IDE, ou fora do lugar padrão.</p>
+<p><strong>Como resolver:</strong> nas configurações do projeto (no IntelliJ, <em>File → Project Structure → SDK</em>; no VS Code, o comando <em>Java: Configure Java Runtime</em>), aponte para a pasta do JDK: o seu <code>JAVA_HOME</code>, como <code>/opt/jdk-25</code>.</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">1. O que quer dizer IDE?</p>
+<label><input type="radio" name="q1"> Interpretador de Dados Externos</label>
+<label><input type="radio" name="q1"> Ambiente de Desenvolvimento Integrado</label>
+<label><input type="radio" name="q1"> Instalador do Java</label>
+<label><input type="radio" name="q1"> Uma versão do JDK</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">2. Quando você clica no botão ▶ de uma IDE num programa Java, o que acontece por baixo?</p>
+<label><input type="radio" name="q2"> A IDE executa o <code>.java</code> sem compilar.</label>
+<label><input type="radio" name="q2"> O código é enviado para a internet.</label>
+<label><input type="radio" name="q2"> A IDE traduz o programa para JavaScript.</label>
+<label><input type="radio" name="q2"> O código é compilado (como o <code>javac</code>) e executado (como o <code>java</code>).</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. O <code>javac</code> diz <code>file not found: Main.java</code>, e o <code>ls</code> mostra <code>Main.java.txt</code>. O que fazer?</p>
+<label><input type="radio" name="q3"> Renomear o arquivo para <code>Main.java</code>.</label>
+<label><input type="radio" name="q3"> Compilar com <code>javac Main.java.txt</code>.</label>
+<label><input type="radio" name="q3"> Reinstalar o JDK.</label>
+<label><input type="radio" name="q3"> Trocar <code>Main</code> por <code>main</code>.</label>
+</div>
+
+<div class="exercise">
+<h3>4. A codificação certa</h3>
+<p>Em qual codificação os arquivos <code>.java</code> devem ser salvos para os acentos funcionarem com o <code>javac</code> 25?</p>
+<div class="ex-code"><input data-answer="UTF-8|utf-8|UTF8|utf8" aria-label="codificação"></div>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Editor de texto só escreve; editor de código colore e organiza; IDE junta editor, compilador, execução e depurador.</li>
+  <li>As mais usadas: VS Code + Extension Pack for Java, IntelliJ IDEA, Eclipse e NetBeans, todas com versão gratuita.</li>
+  <li>Cada botão da IDE é uma ferramenta do JDK: compilar = <code>javac</code>, rodar = <code>java</code>, depurar = <code>jdb</code>.</li>
+  <li>O guia começa pelo terminal para você entender cada etapa e ler as mensagens reais do <code>javac</code>.</li>
+  <li>Salve como <code>NomeDaClasse.java</code> (cuidado com o <code>.txt</code> escondido) e em UTF-8.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
