@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Métodos de String — charAt, indexOf, substring, split e mais | Guia Java</title>
+<meta name="description" content="Os métodos de String mais usados em Java, um por um, com exemplo e saída real: toUpperCase, charAt, indexOf, substring, contains, startsWith, replace, strip, isBlank, split, join, repeat e chars, e os erros StringIndexOutOfBoundsException.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Métodos de String</span></h1>
+
+<p class="intro">Na aula <a href="strings.html">Strings</a> você criou textos, mediu com <code>length()</code> e comparou com <code>equals</code>. Agora vai conhecer as "ferramentas" que toda String traz: deixar em maiúsculas, pegar uma letra, procurar um pedaço, cortar, trocar, limpar espaços, quebrar em partes. São os métodos que você vai usar em praticamente todo programa.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como as posições (<strong>índices</strong>) de uma String são contadas, a partir de zero.</li>
+  <li><code>toUpperCase</code>/<code>toLowerCase</code>, <code>charAt</code>, <code>indexOf</code>/<code>lastIndexOf</code> e <code>substring</code>.</li>
+  <li><code>contains</code>, <code>startsWith</code>/<code>endsWith</code>, <code>replace</code>, <code>trim</code>/<code>strip</code>, <code>isEmpty</code>/<code>isBlank</code>.</li>
+  <li><code>split</code>, <code>String.join</code>, <code>repeat</code> e <code>chars</code>.</li>
+  <li>Como encadear métodos (<code>texto.strip().toLowerCase()</code>).</li>
+  <li>O que a <code>StringIndexOutOfBoundsException</code> quer dizer e como evitá-la.</li>
+</ul>
+</div>
+
+<div class="tip">
+<strong>Lembre: Strings são imutáveis</strong>
+<p>Nenhum método desta aula altera a String original. Os que "transformam" o texto devolvem uma String <strong>nova</strong>; para usar o resultado, guarde-o numa variável ou imprima direto. Veja a prova em <a href="strings.html">Strings</a>.</p>
+</div>
+
+<hr>
+
+<h2>Antes de tudo: as posições começam em 0</h2>
+<p>Cada caractere de uma String tem uma <strong>posição</strong>, chamada <strong>índice</strong> (<em>index</em>). Em Java, como na maioria das linguagens, a contagem começa em <strong>zero</strong>: o primeiro caractere está na posição 0, o segundo na 1, e assim por diante. O último está na posição <code>length() - 1</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Índice</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr>
+<tr><th><code>"banana"</code></th><td><code>b</code></td><td><code>a</code></td><td><code>n</code></td><td><code>a</code></td><td><code>n</code></td><td><code>a</code></td></tr>
+</table>
+</div>
+
+<p>Pense numa fila de seis cadeiras numeradas a partir do zero: a sexta cadeira tem o número 5. Não existe cadeira número 6. Guarde essa imagem: quase todos os erros desta aula vêm de esquecer que <strong>a última posição é o tamanho menos um</strong>.</p>
+
+<hr>
+
+<h2>Maiúsculas e minúsculas: <code>toUpperCase</code> e <code>toLowerCase</code></h2>
+<p><code>toUpperCase()</code> (<em>upper case</em> = "caixa alta", maiúsculas) devolve uma cópia com todas as letras em maiúsculas. <code>toLowerCase()</code> (<em>lower case</em> = "caixa baixa") faz o contrário. Números, espaços e pontuação ficam como estão.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana Souza";
+        System.out.println(nome.toUpperCase());
+        System.out.println(nome.toLowerCase());
+        System.out.println("Maçã e Pão".toUpperCase());
+        System.out.println(nome);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+ANA SOUZA
+ana souza
+MAÇÃ E PÃO      « acentos e ç também viram maiúsculos
+Ana Souza       « a original não mudou</pre>
+
+<p>Uso típico: padronizar um texto antes de comparar ou guardar (por exemplo, e-mails sempre em minúsculas).</p>
+
+<hr>
+
+<h2>Um caractere: <code>charAt</code></h2>
+<p><code>charAt(índice)</code> (<em>char at</em> = "caractere na posição") devolve o caractere que está naquela posição. O resultado é um <code>char</code>, não uma String.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String fruta = "banana";
+        System.out.println(fruta.charAt(0));
+        System.out.println(fruta.charAt(1));
+        System.out.println(fruta.charAt(5));
+        System.out.println(fruta.charAt(fruta.length() - 1));
+        char primeira = fruta.charAt(0);
+        System.out.println(primeira);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+b      « posição 0: o primeiro
+a      « posição 1: o segundo
+a      « posição 5: o último de "banana"
+a      « length() - 1 = 5: o jeito de pegar o último em qualquer String
+b</pre>
+
+<dl class="anatomy">
+  <dt>fruta.charAt(0)</dt><dd>O primeiro caractere. Sempre <code>0</code>, nunca <code>1</code>.</dd>
+  <dt>fruta.length() - 1</dt><dd>O índice do último caractere. Funciona para Strings de qualquer tamanho, sem você precisar contar.</dd>
+  <dt>char primeira</dt><dd>O resultado de <code>charAt</code> é um <code>char</code>, então a variável que o recebe tem de ser <code>char</code>.</dd>
+</dl>
+
+<h3>Posição que não existe: <code>StringIndexOutOfBoundsException</code></h3>
+<p>Pedir uma posição fora da String derruba o programa. <em>Este código tem um erro de propósito</em>: <code>"banana"</code> tem posições de 0 a 5, e o código pede a 6.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String fruta = "banana";
+        System.out.println(fruta.charAt(6));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.StringIndexOutOfBoundsException: Index 6 out of bounds for length 6
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:55)
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:52)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:213)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:210)
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:98)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+	at java.base/java.lang.String.checkIndex(String.java:4904)
+	at java.base/java.lang.StringLatin1.charAt(StringLatin1.java:45)
+	at java.base/java.lang.String.charAt(String.java:1624)
+	at Main.main(Main.java:4)</pre>
+
+<p>Assusta, mas é simples de ler:</p>
+<dl class="anatomy">
+  <dt>StringIndexOutOfBoundsException</dt><dd>"Exceção de índice de String fora dos limites".</dd>
+  <dt>Index 6 out of bounds for length 6</dt><dd>"Índice 6 fora dos limites para o tamanho 6". Com tamanho 6, os índices válidos vão de 0 a 5.</dd>
+  <dt>at java.base/…</dt><dd>As linhas com <code>java.base/</code> são o caminho que o erro fez <strong>dentro da biblioteca do Java</strong>, até chegar ao <code>charAt</code>. Você não precisa lê-las.</dd>
+  <dt>at Main.main(Main.java:4)</dt><dd>A linha que interessa: <strong>a primeira com o nome do seu arquivo</strong>. O problema está na linha 4 do <code>Main.java</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>Procurar: <code>indexOf</code> e <code>lastIndexOf</code></h2>
+<p><code>indexOf</code> ("índice de") procura um caractere ou um pedaço de texto e devolve a <strong>posição</strong> onde ele aparece pela primeira vez. <code>lastIndexOf</code> devolve a posição da <strong>última</strong> vez. Se não achar, os dois devolvem <code>-1</code> (uma posição impossível, que quer dizer "não está aí").</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String fruta = "banana";
+        System.out.println(fruta.indexOf('a'));
+        System.out.println(fruta.lastIndexOf('a'));
+        System.out.println(fruta.indexOf("na"));
+        System.out.println(fruta.lastIndexOf("na"));
+        System.out.println(fruta.indexOf('a', 2));
+        System.out.println(fruta.indexOf("uva"));
+        System.out.println(fruta.indexOf('B'));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+1      « o primeiro 'a' está na posição 1
+5      « o último 'a' está na posição 5
+2      « "na" começa na posição 2
+4      « o último "na" começa na posição 4
+3      « procurando 'a' a partir da posição 2: achou na 3
+-1     « "uva" não aparece
+-1     « 'B' maiúsculo não aparece: a busca diferencia maiúsculas</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Chamada</th><th>O que faz</th></tr>
+<tr><td><code>s.indexOf('a')</code></td><td>Posição do primeiro caractere <code>'a'</code></td></tr>
+<tr><td><code>s.indexOf("na")</code></td><td>Posição onde começa o primeiro <code>"na"</code></td></tr>
+<tr><td><code>s.indexOf('a', 2)</code></td><td>Mesma busca, mas começando na posição 2</td></tr>
+<tr><td><code>s.lastIndexOf('a')</code></td><td>Posição do último <code>'a'</code></td></tr>
+</table>
+</div>
+
+<p>O <code>indexOf</code> brilha junto com o próximo método, o <code>substring</code>: um acha <strong>onde</strong> cortar, o outro corta.</p>
+
+<hr>
+
+<h2>Cortar um pedaço: <code>substring</code></h2>
+<p><code>substring</code> ("sub-texto") devolve um pedaço da String. Tem duas formas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Devolve</th></tr>
+<tr><td><code>s.substring(início)</code></td><td>Do <code>início</code> até o fim</td></tr>
+<tr><td><code>s.substring(início, fim)</code></td><td>Do <code>início</code> até <strong>antes</strong> do <code>fim</code> (o <code>fim</code> não entra)</td></tr>
+</table>
+</div>
+
+<p>A regra do "<code>fim</code> não entra" confunde no começo, mas tem uma vantagem: o tamanho do pedaço é sempre <code>fim - início</code>. Veja com <code>"Ana Souza"</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Índice</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td></tr>
+<tr><th><code>"Ana Souza"</code></th><td><code>A</code></td><td><code>n</code></td><td><code>a</code></td><td>(espaço)</td><td><code>S</code></td><td><code>o</code></td><td><code>u</code></td><td><code>z</code></td><td><code>a</code></td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana Souza";
+        System.out.println(nome.substring(4));
+        System.out.println(nome.substring(0, 3));
+        System.out.println(nome.substring(1, 3));
+        System.out.println(nome.substring(4, 4).isEmpty());
+        int espaco = nome.indexOf(' ');
+        String primeiro = nome.substring(0, espaco);
+        String sobrenome = nome.substring(espaco + 1);
+        System.out.println(primeiro);
+        System.out.println(sobrenome);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Souza   « da posição 4 até o fim
+Ana     « posições 0, 1 e 2 (a 3 não entra): 3 - 0 = 3 caracteres
+na      « posições 1 e 2: 3 - 1 = 2 caracteres
+true    « início igual ao fim: pedaço vazio
+Ana     « do começo até antes do espaço
+Souza   « depois do espaço até o fim</pre>
+
+<dl class="anatomy">
+  <dt>int espaco = nome.indexOf(' ');</dt><dd>Acha a posição do espaço (3) e guarda numa variável <code>int</code>.</dd>
+  <dt>nome.substring(0, espaco)</dt><dd>Do começo até <strong>antes</strong> do espaço: <code>Ana</code>. O espaço não entra, graças à regra do fim.</dd>
+  <dt>nome.substring(espaco + 1)</dt><dd>Do caractere <strong>depois</strong> do espaço até o fim: <code>Souza</code>.</dd>
+</dl>
+
+<p>Esse par <code>indexOf</code> + <code>substring</code> resolve muitos problemas reais: separar nome e sobrenome, pegar o usuário de um e-mail (antes do <code>@</code>), a extensão de um arquivo (depois do último <code>.</code>).</p>
+
+<div class="tryjava" data-goal="out:Lima,src:substring">
+<p class="try-task"><strong>Missão:</strong> mostre só o sobrenome de <code>"Bruno Lima"</code>, usando <code>indexOf</code> para achar o espaço e <code>substring</code> para cortar. Não escreva o número 6 à mão: o programa deve funcionar com qualquer nome de duas palavras.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String nome = "Bruno Lima";
+        // ache o espaço e mostre o que vem depois dele
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String nome = "Bruno Lima";
+        int espaco = nome.indexOf(' ');
+        String sobrenome = nome.substring(espaco + 1);
+        System.out.println(sobrenome);
+    }
+}
+</pre>
+</div>
+
+<h3>Índices errados no <code>substring</code></h3>
+<p>Se o <code>fim</code> passa do tamanho, ou se o <code>início</code> é maior que o <code>fim</code>, vem a mesma exceção do <code>charAt</code>, com outra mensagem. <em>Este código tem um erro de propósito.</em></p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana Souza";
+        System.out.println(nome.substring(4, 20));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.StringIndexOutOfBoundsException: Range [4, 20) out of bounds for length 9
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:55)
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:52)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:213)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:210)
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:98)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckFromToIndex(Preconditions.java:112)
+	at java.base/jdk.internal.util.Preconditions.checkFromToIndex(Preconditions.java:349)
+	at java.base/java.lang.String.checkBoundsBeginEnd(String.java:4937)
+	at java.base/java.lang.String.substring(String.java:2899)
+	at Main.main(Main.java:4)</pre>
+
+<p><code>Range [4, 20) out of bounds for length 9</code>: "o intervalo de 4 até 20 está fora dos limites para o tamanho 9". Repare na notação <code>[4, 20)</code>: o colchete <code>[</code> quer dizer "o 4 entra" e o parêntese <code>)</code> quer dizer "o 20 não entra", exatamente a regra do <code>substring</code>. Com <code>substring(2, 1)</code> em <code>"Ana"</code>, a mensagem seria <code>Range [2, 1) out of bounds for length 3</code>.</p>
+
+<hr>
+
+<h2>Perguntas de sim ou não: <code>contains</code>, <code>startsWith</code>, <code>endsWith</code></h2>
+<p>Estes três devolvem um <code>boolean</code> (<code>true</code> ou <code>false</code>):</p>
+<ul>
+  <li><code>contains(x)</code>: "contém <code>x</code> em algum lugar?"</li>
+  <li><code>startsWith(x)</code>: "começa com <code>x</code>?" (<em>starts with</em>)</li>
+  <li><code>endsWith(x)</code>: "termina com <code>x</code>?" (<em>ends with</em>)</li>
+</ul>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String arquivo = "relatorio-2026.pdf";
+        System.out.println(arquivo.contains("2026"));
+        System.out.println(arquivo.contains("2025"));
+        System.out.println(arquivo.startsWith("relatorio"));
+        System.out.println(arquivo.endsWith(".pdf"));
+        System.out.println(arquivo.endsWith(".PDF"));
+        System.out.println(arquivo.contains(""));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+true
+false
+true
+true
+false    « diferencia maiúsculas: ".PDF" não é ".pdf"
+true     « toda String "contém" a String vazia</pre>
+
+<p>Para ignorar a caixa, padronize antes: <code>arquivo.toLowerCase().endsWith(".pdf")</code>. Se você precisa da <strong>posição</strong>, use <code>indexOf</code>; se só quer saber se está lá, <code>contains</code> deixa o código mais claro.</p>
+
+<hr>
+
+<h2>Trocar: <code>replace</code></h2>
+<p><code>replace(velho, novo)</code> ("substituir") devolve uma cópia em que <strong>todas</strong> as ocorrências de <code>velho</code> viram <code>novo</code>. Funciona com caracteres ou com pedaços de texto.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String fruta = "banana";
+        System.out.println(fruta.replace('a', 'o'));
+        System.out.println(fruta.replace("na", "NA"));
+        System.out.println(fruta.replace("x", "y"));
+        String data = "16/10/2026";
+        System.out.println(data.replace("/", "-"));
+        System.out.println("R$ 1.250,90".replace(".", "").replace(",", "."));
+        System.out.println(fruta);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+bonono       « todos os 'a' viraram 'o'
+baNANA       « os dois "na" foram trocados
+banana       « não achou "x": devolve igual, sem erro
+16-10-2026
+R$ 1250.90   « dois replace seguidos: tira o ponto, troca a vírgula
+banana       « a original continua igual</pre>
+
+<p>Para trocar texto usando <strong>padrões</strong> (como "qualquer dígito"), existem <code>replaceAll</code> e <code>replaceFirst</code>, que usam expressões regulares; veja <a href="regex.html">Expressões Regulares</a>.</p>
+
+<hr>
+
+<h2>Limpar espaços: <code>trim</code> e <code>strip</code></h2>
+<p>Texto digitado por pessoas vem com espaços sobrando nas pontas. <code>strip()</code> ("descascar") e <code>trim()</code> ("aparar") devolvem uma cópia sem os espaços do começo e do fim. Os espaços do meio ficam.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String digitado = "   Ana   ";
+        System.out.println("[" + digitado + "]");
+        System.out.println("[" + digitado.trim() + "]");
+        System.out.println("[" + digitado.strip() + "]");
+        System.out.println("[" + digitado.stripLeading() + "]");
+        System.out.println("[" + digitado.stripTrailing() + "]");
+        String comEspacoLargo = "\u2003Ana\u2003";
+        System.out.println("[" + comEspacoLargo.trim() + "]");
+        System.out.println("[" + comEspacoLargo.strip() + "]");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+[   Ana   ]
+[Ana]
+[Ana]
+[Ana   ]    « stripLeading: só o começo (leading = "da frente")
+[   Ana]    « stripTrailing: só o fim (trailing = "de trás")
+[ Ana ]     « trim NÃO tirou o "espaço largo" do Unicode
+[Ana]       « strip tirou</pre>
+
+<p>Qual a diferença? O <code>trim()</code> é antigo e só conhece os espaços "clássicos" (o espaço comum, o tab, a quebra de linha). O <code>strip()</code>, criado no Java 11, conhece <strong>todos</strong> os tipos de espaço do Unicode, como o "espaço largo" <code>\u2003</code> que aparece em textos copiados de sites e documentos (o <code>\u2003</code> no código é um jeito de escrever esse caractere; veja <a href="escapes.html">Caracteres Especiais</a>). <strong>Prefira <code>strip()</code>.</strong></p>
+
+<hr>
+
+<h2>Vazia ou em branco: <code>isEmpty</code> e <code>isBlank</code></h2>
+<p><code>isEmpty()</code> ("está vazia?") só dá <code>true</code> se a String tem <strong>zero</strong> caracteres. <code>isBlank()</code> ("está em branco?", Java 11+) dá <code>true</code> também quando só há espaços. Para validar um campo digitado, <code>isBlank()</code> é o que você quer.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String vazia = "";
+        String espacos = "   ";
+        String nome = "Ana";
+        System.out.println(vazia.isEmpty() + " " + vazia.isBlank());
+        System.out.println(espacos.isEmpty() + " " + espacos.isBlank());
+        System.out.println(nome.isEmpty() + " " + nome.isBlank());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+true true      « "": vazia e em branco
+false true     « "   ": não é vazia (tem 3 caracteres), mas está em branco
+false false    « "Ana": nem uma coisa nem outra</pre>
+
+<p>Os dois quebram com <code>NullPointerException</code> se a variável for <code>null</code>; veja <a href="strings.html">Strings</a>.</p>
+
+<hr>
+
+<h2>Quebrar em partes: <code>split</code></h2>
+<p><code>split(separador)</code> ("dividir") corta a String em vários pedaços, onde aparecer o separador, e devolve todos eles num <strong>array</strong>: uma fileira de Strings numeradas a partir do 0. Arrays têm aula própria (<a href="arrays.html">Arrays</a>); aqui basta saber três coisas: o tipo é <code>String[]</code>, o pedaço número 0 é <code>partes[0]</code> e a quantidade de pedaços é <code>partes.length</code> (sem parênteses).</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String linha = "maçã,banana,uva";
+        String[] frutas = linha.split(",");
+        System.out.println(frutas.length);
+        System.out.println(frutas[0]);
+        System.out.println(frutas[1]);
+        System.out.println(frutas[2]);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+3
+maçã
+banana
+uva</pre>
+
+<dl class="anatomy">
+  <dt>String[] frutas</dt><dd>Uma variável que guarda <strong>várias</strong> Strings (um array). Os colchetes <code>[]</code> no tipo indicam isso.</dd>
+  <dt>linha.split(",")</dt><dd>Corta nas vírgulas. As vírgulas somem; ficam só os pedaços.</dd>
+  <dt>frutas.length</dt><dd>Quantos pedaços: 3.</dd>
+  <dt>frutas[0]</dt><dd>O primeiro pedaço. De novo, a contagem começa em zero.</dd>
+</dl>
+
+<h3>Duas armadilhas do <code>split</code></h3>
+<p>O separador do <code>split</code> não é um texto comum: é uma <strong>expressão regular</strong> (um "padrão"). Na maioria dos casos (vírgula, ponto e vírgula, espaço) isso não faz diferença, mas veja:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String frase = "Ana  gosta de Java";
+        String[] palavras = frase.split(" ");
+        System.out.println(palavras.length);
+        System.out.println("[" + palavras[1] + "]");
+        String[] certas = frase.split(" +");
+        System.out.println(certas.length);
+        String[] partes = "16.10.2026".split(".");
+        System.out.println(partes.length);
+        String[] data = "16.10.2026".split("\\.");
+        System.out.println(data.length + " " + data[2]);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+5          « 4 palavras, mas 5 pedaços…
+[]         « …porque entre os dois espaços havia um pedaço vazio
+4          « " +" quer dizer "um ou mais espaços": agora sim, 4
+0          « "." no padrão quer dizer "qualquer caractere": sobrou nada!
+3 2026     « "\\." quer dizer "um ponto de verdade"</pre>
+
+<ul>
+  <li><strong>Espaços repetidos</strong> geram pedaços vazios. Use <code>split(" +")</code> (o <code>+</code> quer dizer "um ou mais") ou, melhor, <code>frase.strip().split("\\s+")</code> (<code>\s</code> = qualquer espaço).</li>
+  <li><strong>Ponto, barra vertical, asterisco</strong> e outros símbolos têm significado especial em padrões. Para cortar num ponto, escreva <code>"\\."</code>; num <code>|</code>, <code>"\\|"</code>. As duas barras são explicadas em <a href="escapes.html">Caracteres Especiais</a> e <a href="regex.html">Expressões Regulares</a>.</li>
+</ul>
+
+<hr>
+
+<h2>Juntar e repetir: <code>String.join</code> e <code>repeat</code></h2>
+<p><code>String.join(separador, partes…)</code> faz o contrário do <code>split</code>: junta vários textos, colocando o separador entre eles. Repare que ele é chamado na própria classe (<code>String.join</code>), não numa variável, porque não "pertence" a nenhum texto em particular. <code>repeat(n)</code> (Java 11+) devolve o texto repetido <code>n</code> vezes.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String lista = String.join(", ", "maçã", "banana", "uva");
+        System.out.println(lista);
+        String[] partes = {"16", "10", "2026"};
+        System.out.println(String.join("/", partes));
+        System.out.println("=".repeat(20));
+        System.out.println("ab".repeat(3));
+        System.out.println("[" + "x".repeat(0) + "]");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+maçã, banana, uva       « o separador vai só ENTRE os itens, não no fim
+16/10/2026              « também aceita um array
+====================    « uma linha de 20 sinais de igual
+ababab
+[]                      « repetir 0 vezes dá a String vazia</pre>
+
+<p>A aula <a href="concatenacao.html">Concatenação</a> compara o <code>join</code> com outras formas de juntar texto.</p>
+
+<hr>
+
+<h2>Os códigos dos caracteres: <code>chars</code></h2>
+<p><code>chars()</code> devolve os caracteres da String como uma sequência de <strong>números</strong> (o código de cada caractere), num formato chamado <em>stream</em> ("fluxo"). Streams são assunto do Nível 3 (<a href="streams.html">Streams</a>), mas dois usos simples já aparecem no dia a dia: contar e examinar caractere por caractere.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String fruta = "banana";
+        System.out.println(fruta.chars().count());
+        System.out.println(fruta.chars().filter(c -&gt; c == 'a').count());
+        fruta.chars().forEach(c -&gt; System.out.println(c + " " + (char) c));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+6          « quantos caracteres (o mesmo que length())
+3          « quantos são 'a'
+98 b       « cada caractere: o código e, convertido de volta, a letra
+97 a
+110 n
+97 a
+110 n
+97 a</pre>
+
+<dl class="anatomy">
+  <dt>fruta.chars()</dt><dd>A sequência de códigos: 98, 97, 110, 97, 110, 97.</dd>
+  <dt>.filter(c -&gt; c == 'a')</dt><dd>"Filtre": deixa passar só os códigos iguais ao de <code>'a'</code>. O <code>c -&gt; …</code> é uma <strong>lambda</strong>, uma função curtinha escrita no meio do código; você vai aprendê-las em <a href="lambdas.html">Lambdas</a>.</dd>
+  <dt>.count()</dt><dd>Conta quantos passaram.</dd>
+  <dt>(char) c</dt><dd>Converte o número de volta em caractere (um <em>cast</em>; veja <a href="conversao-tipos.html">Conversão de Tipos</a>).</dd>
+</dl>
+
+<p>Por enquanto, guarde o uso pronto: <code>texto.chars().filter(c -&gt; c == 'x').count()</code> conta quantas vezes o caractere <code>x</code> aparece. Para percorrer letra por letra, a forma mais comum para iniciantes é um <a href="for.html">for</a> com <code>charAt(i)</code>.</p>
+
+<hr>
+
+<h2>Encadear métodos</h2>
+<p>Como cada método devolve uma String nova, você pode chamar outro método direto no resultado, com mais um ponto. O Java executa da esquerda para a direita:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String digitado = "  ANA souza ";
+        String limpo = digitado.strip().toLowerCase();
+        System.out.println("[" + limpo + "]");
+        String email = "  Ana.Souza@Exemplo.com ";
+        System.out.println(email.strip().toLowerCase().endsWith("@exemplo.com"));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+[ana souza]
+true</pre>
+
+<p>Leia <code>digitado.strip().toLowerCase()</code> como uma linha de montagem: <code>"  ANA souza "</code> → <code>strip()</code> → <code>"ANA souza"</code> → <code>toLowerCase()</code> → <code>"ana souza"</code>. Encadear é ótimo, mas com moderação: se a linha ficar comprida demais, guarde os passos em variáveis com nomes claros.</p>
+
+<hr>
+
+<h2>Tabela: os métodos desta aula</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>length()</code></td><td><code>int</code></td><td><code>"banana".length()</code> → <code>6</code></td></tr>
+<tr><td><code>toUpperCase()</code></td><td>String</td><td><code>"Ana".toUpperCase()</code> → <code>"ANA"</code></td></tr>
+<tr><td><code>toLowerCase()</code></td><td>String</td><td><code>"Ana".toLowerCase()</code> → <code>"ana"</code></td></tr>
+<tr><td><code>charAt(i)</code></td><td><code>char</code></td><td><code>"banana".charAt(0)</code> → <code>'b'</code></td></tr>
+<tr><td><code>indexOf(x)</code></td><td><code>int</code> (ou <code>-1</code>)</td><td><code>"banana".indexOf("na")</code> → <code>2</code></td></tr>
+<tr><td><code>indexOf(x, desde)</code></td><td><code>int</code></td><td><code>"banana".indexOf('a', 2)</code> → <code>3</code></td></tr>
+<tr><td><code>lastIndexOf(x)</code></td><td><code>int</code></td><td><code>"banana".lastIndexOf('a')</code> → <code>5</code></td></tr>
+<tr><td><code>substring(i)</code></td><td>String</td><td><code>"Ana Souza".substring(4)</code> → <code>"Souza"</code></td></tr>
+<tr><td><code>substring(i, f)</code></td><td>String (o <code>f</code> não entra)</td><td><code>"Ana Souza".substring(0, 3)</code> → <code>"Ana"</code></td></tr>
+<tr><td><code>contains(x)</code></td><td><code>boolean</code></td><td><code>"banana".contains("nan")</code> → <code>true</code></td></tr>
+<tr><td><code>startsWith(x)</code></td><td><code>boolean</code></td><td><code>"banana".startsWith("ba")</code> → <code>true</code></td></tr>
+<tr><td><code>endsWith(x)</code></td><td><code>boolean</code></td><td><code>"foto.png".endsWith(".png")</code> → <code>true</code></td></tr>
+<tr><td><code>replace(a, b)</code></td><td>String</td><td><code>"banana".replace('a', 'o')</code> → <code>"bonono"</code></td></tr>
+<tr><td><code>strip()</code> / <code>trim()</code></td><td>String</td><td><code>"  Ana ".strip()</code> → <code>"Ana"</code></td></tr>
+<tr><td><code>stripLeading()</code> / <code>stripTrailing()</code></td><td>String</td><td>Só o começo / só o fim</td></tr>
+<tr><td><code>isEmpty()</code></td><td><code>boolean</code></td><td><code>"   ".isEmpty()</code> → <code>false</code></td></tr>
+<tr><td><code>isBlank()</code></td><td><code>boolean</code></td><td><code>"   ".isBlank()</code> → <code>true</code></td></tr>
+<tr><td><code>split(sep)</code></td><td><code>String[]</code></td><td><code>"a,b,c".split(",")</code> → 3 pedaços</td></tr>
+<tr><td><code>String.join(sep, …)</code></td><td>String</td><td><code>String.join("-", "a", "b")</code> → <code>"a-b"</code></td></tr>
+<tr><td><code>repeat(n)</code></td><td>String</td><td><code>"ab".repeat(3)</code> → <code>"ababab"</code></td></tr>
+<tr><td><code>chars()</code></td><td>Stream de códigos</td><td><code>"banana".chars().count()</code> → <code>6</code></td></tr>
+</table>
+</div>
+
+<p>Comparações (<code>equals</code>, <code>equalsIgnoreCase</code>, <code>compareTo</code>) estão em <a href="strings.html">Strings</a>. A lista completa, com todos os métodos da classe, está em <a href="ref-string.html">Referência: Métodos de String</a>.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> troque a frase e experimente outros métodos da tabela. O que <code>frase.indexOf("Java")</code> devolve? E <code>frase.replace(" ", "")</code>?</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String frase = "Eu estou aprendendo Java";
+        System.out.println(frase.toUpperCase());
+        System.out.println(frase.indexOf("Java"));
+        System.out.println(frase.substring(9));
+        System.out.println(frase.split(" ").length + " palavras");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: cannot find symbol … symbol: variable length</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        System.out.println(nome.length);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: cannot find symbol
+        System.out.println(nome.length);
+                               ^
+  symbol:   variable length
+  location: variable nome of type String
+1 error</pre>
+<p><strong>O que aconteceu:</strong> sem parênteses, o <code>javac</code> procurou uma <strong>variável</strong> chamada <code>length</code> dentro da String (<code>symbol: variable length</code>) e não achou. Em String, <code>length</code> é um método.</p>
+<p><strong>Como resolver:</strong> <code>nome.length()</code>. (Em arrays é o contrário: <code>frutas.length</code>, sem parênteses.)</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: incompatible types: char cannot be converted to String</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        String inicial = nome.charAt(0);
+        System.out.println(inicial);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: char cannot be converted to String
+        String inicial = nome.charAt(0);
+                                    ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> <code>charAt</code> devolve um <code>char</code>, e o <code>javac</code> não transforma <code>char</code> em String sozinho ("tipos incompatíveis").</p>
+<p><strong>Como resolver:</strong> guarde num <code>char</code> (<code>char inicial = nome.charAt(0);</code>) ou, se precisa de uma String, use <code>nome.substring(0, 1)</code> ou <code>String.valueOf(nome.charAt(0))</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>StringIndexOutOfBoundsException: Index 6 out of bounds for length 6</code></strong>
+<p><strong>O que aconteceu:</strong> o <code>charAt</code> recebeu uma posição que não existe. Quase sempre é o "mais um": usar <code>length()</code> como índice em vez de <code>length() - 1</code>, ou contar a partir de 1.</p>
+<p><strong>Como resolver:</strong> lembre que as posições vão de <code>0</code> a <code>length() - 1</code>. Se o índice vem de um <code>indexOf</code>, confira antes se ele não é <code>-1</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>StringIndexOutOfBoundsException: Range [2, 1) out of bounds for length 3</code></strong>
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.StringIndexOutOfBoundsException: Range [2, 1) out of bounds for length 3
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:55)
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:52)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:213)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:210)
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:98)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckFromToIndex(Preconditions.java:112)
+	at java.base/jdk.internal.util.Preconditions.checkFromToIndex(Preconditions.java:349)
+	at java.base/java.lang.String.checkBoundsBeginEnd(String.java:4937)
+	at java.base/java.lang.String.substring(String.java:2899)
+	at Main.main(Main.java:4)</pre>
+<p><strong>O que aconteceu:</strong> foi um <code>"Ana".substring(2, 1)</code>: o início (2) ficou depois do fim (1). Também acontece quando o fim passa do tamanho, ou quando um <code>indexOf</code> devolveu <code>-1</code> (não achou) e esse <code>-1</code> foi usado como índice.</p>
+<p><strong>Como resolver:</strong> confira os dois números. O início tem de ser <code>&gt;= 0</code>, o fim <code>&lt;= length()</code> e o início <code>&lt;=</code> fim.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>split</code> devolveu pedaços vazios ou nenhum pedaço</strong>
+<p><strong>O que aconteceu:</strong> o separador é um padrão. Espaços repetidos criam pedaços vazios; <code>"."</code> quer dizer "qualquer caractere" e "come" o texto inteiro (0 pedaços).</p>
+<p><strong>Como resolver:</strong> para espaços, <code>split("\\s+")</code> depois de um <code>strip()</code>; para símbolos, escape com <code>\\</code>: <code>split("\\.")</code>, <code>split("\\|")</code>.</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:ana.souza@exemplo.com,out:Usuário: ana.souza,src:strip\(\)|trim\(\),src:substring">
+<p class="try-task"><strong>Missão final:</strong> o e-mail foi digitado com espaços e maiúsculas. Mostre o e-mail limpo (sem espaços nas pontas e todo em minúsculas) e, na linha de baixo, <code>Usuário: </code> seguido da parte <strong>antes</strong> do <code>@</code>. A saída deve ser:<br><code>ana.souza@exemplo.com</code><br><code>Usuário: ana.souza</code></p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String email = "  Ana.Souza@Exemplo.COM  ";
+        // limpe, mostre, e depois mostre o usuário
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String email = "  Ana.Souza@Exemplo.COM  ";
+        String limpo = email.strip().toLowerCase();
+        System.out.println(limpo);
+        String usuario = limpo.substring(0, limpo.indexOf('@'));
+        System.out.println("Usuário: " + usuario);
+    }
+}
+</pre>
+</div>
+
+<div class="tryjava" data-goal="out:4 itens,out:arroz | feijão | café | leite,out:----------,src:split,src:join,src:repeat">
+<p class="try-task"><strong>Missão extra:</strong> a lista de compras veio separada por ponto e vírgula. Use <code>split</code> para contar os itens (mostre <code>4 itens</code>), <code>String.join</code> para mostrá-los separados por <code>" | "</code> e <code>repeat</code> para desenhar uma linha de 10 traços.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String compras = "arroz;feijão;café;leite";
+        // escreva aqui
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String compras = "arroz;feijão;café;leite";
+        String[] itens = compras.split(";");
+        System.out.println(itens.length + " itens");
+        System.out.println(String.join(" | ", itens));
+        System.out.println("-".repeat(10));
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. A primeira letra</h3>
+<p>Complete para guardar a primeira letra de <code>nome</code>:</p>
+<div class="ex-code">char inicial = nome.<input data-answer="charAt(0)" aria-label="método">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Só o começo</h3>
+<p>Complete para pegar os 3 primeiros caracteres de <code>"Recife"</code> (<code>"Rec"</code>):</p>
+<div class="ex-code">String inicio = "Recife".substring(<input data-answer="0, 3|0,3" aria-label="índices">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Campo em branco</h3>
+<p>Complete para saber se <code>campo</code> está vazio <strong>ou só com espaços</strong>:</p>
+<div class="ex-code">boolean semNada = campo.<input data-answer="isBlank()" aria-label="método">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>"programa".indexOf("r")</code> devolve?</p>
+<label><input type="radio" name="q4"> <code>2</code></label>
+<label><input type="radio" name="q4"> <code>1</code></label>
+<label><input type="radio" name="q4"> <code>4</code></label>
+<label><input type="radio" name="q4"> <code>-1</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que <code>"Java".substring(1, 3)</code> devolve?</p>
+<label><input type="radio" name="q5"> <code>"Jav"</code></label>
+<label><input type="radio" name="q5"> <code>"ava"</code></label>
+<label><input type="radio" name="q5"> <code>"av"</code></label>
+<label><input type="radio" name="q5"> <code>"Ja"</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Depois de <code>String s = "oi"; s.replace("oi", "olá");</code>, quanto vale <code>s</code>?</p>
+<label><input type="radio" name="q6"> <code>"olá"</code></label>
+<label><input type="radio" name="q6"> <code>"oiolá"</code></label>
+<label><input type="radio" name="q6"> Dá erro de compilação</label>
+<label><input type="radio" name="q6"> <code>"oi"</code>, porque o resultado não foi guardado</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Qual é a diferença entre <code>trim()</code> e <code>strip()</code>?</p>
+<label><input type="radio" name="q7"> <code>strip()</code> reconhece todos os espaços do Unicode; <code>trim()</code> só os clássicos.</label>
+<label><input type="radio" name="q7"> <code>trim()</code> tira os espaços do meio também.</label>
+<label><input type="radio" name="q7"> <code>strip()</code> altera a String original.</label>
+<label><input type="radio" name="q7"> Nenhuma.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>As posições começam em <strong>0</strong>; a última é <code>length() - 1</code>. Posição inválida dá <code>StringIndexOutOfBoundsException</code>; leia a linha com o nome do <strong>seu</strong> arquivo no fim.</li>
+  <li><code>charAt</code> pega um <code>char</code>; <code>indexOf</code>/<code>lastIndexOf</code> acham posições (<code>-1</code> = não achou); <code>substring(início, fim)</code> corta, e o <code>fim</code> não entra.</li>
+  <li><code>contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>isEmpty</code>, <code>isBlank</code> respondem <code>true</code>/<code>false</code>.</li>
+  <li><code>toUpperCase</code>, <code>toLowerCase</code>, <code>replace</code>, <code>strip</code>, <code>repeat</code> devolvem uma String nova; a original não muda.</li>
+  <li><code>split</code> quebra em um array (cuidado: o separador é um padrão); <code>String.join</code> junta.</li>
+  <li>Métodos podem ser encadeados: <code>texto.strip().toLowerCase()</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

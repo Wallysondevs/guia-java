@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Strings — texto, length, == × equals e null | Guia Java</title>
+<meta name="description" content="O que é uma String em Java, como criar, medir com length(), por que ela é imutável, a pegadinha do == × equals (literais × new String), equalsIgnoreCase, compareTo e a diferença entre String vazia e null, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Strings</span></h1>
+
+<p class="intro">Quase todo programa trabalha com texto: nomes de alunos, mensagens, endereços, senhas. Em Java, um texto é uma <strong>String</strong>. Nesta aula você vai entender o que ela é, como criar uma, medir o tamanho e, principalmente, como <strong>comparar</strong> duas Strings do jeito certo, porque o jeito "óbvio" (<code>==</code>) é a pegadinha mais famosa do Java.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma String e como criar uma com aspas duplas.</li>
+  <li>Como descobrir quantos caracteres ela tem com <code>length()</code>.</li>
+  <li>Por que uma String nunca muda (<strong>imutabilidade</strong>) e o que isso significa na prática.</li>
+  <li>A diferença entre <code>==</code> e <code>equals</code>, com a prova real de que <code>==</code> engana.</li>
+  <li>Como comparar ignorando maiúsculas (<code>equalsIgnoreCase</code>) e em ordem alfabética (<code>compareTo</code>).</li>
+  <li>A diferença entre String vazia (<code>""</code>) e <code>null</code>, e a <code>NullPointerException</code>.</li>
+</ul>
+</div>
+
+<p>Todos os exemplos rodaram no computador fictício da Ana (o <strong>notebook</strong>), com o JDK 25. Você pode repetir cada um no editor do guia, nas caixas <strong>Experimente</strong>.</p>
+
+<hr>
+
+<h2>A ideia: um colar de letras</h2>
+<p>Imagine um colar de contas, em que cada conta tem uma letra. O colar <code>Ana</code> tem três contas: <code>A</code>, <code>n</code> e <code>a</code>. Uma String é exatamente isso: uma <strong>sequência de caracteres</strong>, um atrás do outro, em ordem. O nome vem do inglês <em>string</em>, "cordão", "fileira" (como em <em>a string of pearls</em>, "um colar de pérolas").</p>
+
+<p>Os caracteres podem ser letras, números, espaços, pontuação, acentos, emojis. Na aula <a href="char-boolean.html">char e boolean</a> você viu o tipo <code>char</code>, que guarda <strong>um</strong> caractere. A String guarda <strong>vários</strong> (ou nenhum).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Guarda</th><th>Escrito com</th><th>Exemplo</th></tr>
+<tr><td><code>char</code></td><td>Um caractere</td><td>Aspas simples <code>'…'</code></td><td><code>'A'</code></td></tr>
+<tr><td><code>String</code></td><td>Zero ou mais caracteres</td><td>Aspas duplas <code>"…"</code></td><td><code>"Ana"</code>, <code>"A"</code>, <code>""</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Criar uma String</h2>
+<p>Você cria uma String escrevendo o texto entre <strong>aspas duplas</strong>. Esse texto escrito direto no código se chama <strong>literal</strong> (ele é "literalmente" o valor). Depois, guarda numa variável do tipo <code>String</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        String fruta = "maçã";
+        String vazia = "";
+        System.out.println(nome);
+        System.out.println(nome.length());
+        System.out.println(fruta.length());
+        System.out.println(vazia.length());
+        System.out.println("Ana Souza".length());
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>String</dt><dd>O tipo da variável. Repare no <strong>S maiúsculo</strong>: <code>String</code> não é um tipo primitivo como <code>int</code>; é uma <strong>classe</strong> que vem pronta com o Java (você vai estudar classes no Nível 2). Por enquanto, basta saber que é o tipo dos textos.</dd>
+  <dt>nome</dt><dd>O nome da variável, como em qualquer <a href="variaveis.html">variável</a>.</dd>
+  <dt>"Ana"</dt><dd>O literal: o texto entre aspas duplas. As aspas <strong>não</strong> fazem parte do texto; elas só marcam onde ele começa e termina.</dd>
+  <dt>""</dt><dd>Duas aspas coladas: a <strong>String vazia</strong>, um texto com zero caracteres. É um texto válido, só que sem nada dentro.</dd>
+  <dt>nome.length()</dt><dd>Pergunta à String quantos caracteres ela tem. O ponto quer dizer "da String <code>nome</code>, use o método <code>length</code>" (<em>length</em> = comprimento). Os parênteses vazios são obrigatórios.</dd>
+</dl>
+
+<pre class="term">$ java Main.java
+Ana
+3
+4
+0
+9</pre>
+
+<p>Linha por linha: <code>Ana</code> é o conteúdo; <code>3</code> é o tamanho de <code>"Ana"</code>; <code>4</code> é o de <code>"maçã"</code> (o <code>ç</code> e o <code>ã</code> contam como um caractere cada); <code>0</code> é o da String vazia; e <code>9</code> é o de <code>"Ana Souza"</code>, porque o <strong>espaço também é um caractere</strong>.</p>
+
+<div class="tip">
+<strong>Método: uma pergunta ou um pedido que você faz ao valor</strong>
+<p>Um <strong>método</strong> é uma ação que a String sabe fazer. Você chama com <code>valor.nome()</code>: o valor, um ponto, o nome do método e parênteses. A String tem dezenas de métodos (deixar em maiúsculas, cortar um pedaço, procurar uma letra); eles têm uma aula só para eles: <a href="metodos-string.html">Métodos de String</a>.</p>
+</div>
+
+<div class="warning">
+<strong><code>length()</code> com parênteses</strong>
+<p>Em Strings é <code>length()</code>, um método, com parênteses. Nos <a href="arrays.html">arrays</a>, que você vai ver mais adiante, é <code>length</code> sem parênteses. Misturar os dois é um erro muito comum; o <code>javac</code> avisa com <code>cannot find symbol</code>.</p>
+</div>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> troque os textos, acrescente espaços ou acentos e veja como o <code>length()</code> muda. Experimente também <code>"".length()</code> e <code>" ".length()</code> (uma String com um espaço).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        String cidade = "São Paulo";
+        System.out.println(nome + " tem " + nome.length() + " letras");
+        System.out.println(cidade + " tem " + cidade.length() + " caracteres");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Strings são imutáveis</h2>
+<p><strong>Imutável</strong> quer dizer "que não pode ser mudado". Depois de criada, uma String <strong>nunca</strong> muda. Os métodos que parecem "mudar" o texto, como <code>toUpperCase()</code> (deixar em maiúsculas), na verdade <strong>criam uma String nova</strong> e devolvem essa nova. A original continua igual.</p>
+
+<p>É como uma foto impressa: se você quer a foto em preto e branco, a loja faz <strong>outra cópia</strong> em preto e branco. A foto colorida que você levou continua colorida. Veja a prova:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = "ana";
+        nome.toUpperCase();
+        System.out.println(nome);
+
+        String grande = nome.toUpperCase();
+        System.out.println(grande);
+        System.out.println(nome);
+
+        nome = nome.toUpperCase();
+        System.out.println(nome);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+ana            « a linha 4 criou "ANA", mas ninguém guardou: o texto se perdeu
+ANA            « desta vez a String nova foi guardada em "grande"
+ana            « e "nome" continua o mesmo
+ANA            « agora "nome" passou a apontar para a String nova</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que acontece</th></tr>
+<tr><td><code>nome.toUpperCase();</code></td><td>Cria a String <code>"ANA"</code> e a devolve, mas o resultado não foi guardado em lugar nenhum. É jogado fora. <code>nome</code> continua <code>"ana"</code>.</td></tr>
+<tr><td><code>String grande = nome.toUpperCase();</code></td><td>Cria <code>"ANA"</code> e guarda na variável nova <code>grande</code>.</td></tr>
+<tr><td><code>nome = nome.toUpperCase();</code></td><td>Cria <code>"ANA"</code> e guarda <strong>na própria variável</strong> <code>nome</code>. A String <code>"ana"</code> antiga não mudou: a variável é que passou a guardar outra.</td></tr>
+</table>
+</div>
+
+<p>Repare que o Java <strong>não reclama</strong> da linha 4: o código compila e roda, só não faz o que um iniciante espera. Esse é um engano muito comum. A regra: <strong>todo método de String que "transforma" o texto devolve uma String nova; guarde o resultado</strong>.</p>
+
+<div class="note">
+<strong>A variável pode mudar; a String não</strong>
+<p>Uma variável <code>String</code> pode receber outro texto a qualquer momento (<code>nome = "Bruno";</code>). O que não muda é o texto em si. Pense na variável como uma etiqueta presa a um colar: dá para tirar a etiqueta e prender em outro colar, mas não dá para trocar as contas do colar.</p>
+</div>
+
+<p>Por que o Java faz assim? Porque é mais seguro: se você entrega o seu texto para outra parte do programa, tem certeza de que ninguém vai alterá-lo pelas suas costas. E permite uma economia que você vai ver agora, na comparação.</p>
+
+<hr>
+
+<h2>Comparar Strings: <code>==</code> × <code>equals</code></h2>
+<p>Esta é a seção mais importante da aula. Em Java existem duas formas de perguntar "estes dois textos são iguais?", e só uma está certa para Strings.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>O que pergunta</th><th>Comparação do dia a dia</th></tr>
+<tr><td><code>a == b</code></td><td>"<code>a</code> e <code>b</code> são o <strong>mesmo objeto</strong> na memória?"</td><td>"Este livro é o <strong>mesmo exemplar</strong> que aquele?"</td></tr>
+<tr><td><code>a.equals(b)</code></td><td>"<code>a</code> e <code>b</code> têm o <strong>mesmo conteúdo</strong>?"</td><td>"Estes dois livros têm o <strong>mesmo texto</strong>?"</td></tr>
+</table>
+</div>
+
+<p>Duas cópias do mesmo livro, compradas em lojas diferentes, têm o mesmo texto (<code>equals</code> dá <code>true</code>), mas são exemplares diferentes (<code>==</code> dá <code>false</code>). Quase sempre, o que você quer saber é se o <strong>texto</strong> é igual. Veja a prova, com o JDK de verdade:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String a = "Ana";
+        String b = "Ana";
+        String c = new String("Ana");
+        String parte = "An";
+        String d = parte + "a";
+
+        System.out.println(a == b);
+        System.out.println(a == c);
+        System.out.println(a == d);
+
+        System.out.println(a.equals(b));
+        System.out.println(a.equals(c));
+        System.out.println(a.equals(d));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+true           « a == b: os dois literais são o MESMO objeto
+false          « a == c: new String criou um objeto novo
+false          « a == d: o texto montado durante a execução é outro objeto
+true           « a.equals(b)
+true           « a.equals(c): o conteúdo é igual
+true           « a.equals(d): o conteúdo é igual</pre>
+
+<p>As quatro variáveis guardam o texto <code>Ana</code>. O <code>equals</code> disse <code>true</code> para todas. O <code>==</code> disse <code>true</code> para uma e <code>false</code> para as outras. Por quê?</p>
+
+<dl class="anatomy">
+  <dt>String a = "Ana"; String b = "Ana";</dt><dd>Quando o mesmo literal aparece no código, o Java guarda <strong>uma única cópia</strong> num lugar especial da memória, o <strong>pool de Strings</strong> (<em>pool</em> = "reservatório"). <code>a</code> e <code>b</code> apontam para a mesma cópia. Isso só é seguro porque Strings são imutáveis: ninguém consegue estragar a cópia compartilhada.</dd>
+  <dt>new String("Ana")</dt><dd><code>new</code> (novo) manda o Java <strong>criar um objeto novo</strong>, fora do pool, com o mesmo texto. Mesmo conteúdo, outro exemplar.</dd>
+  <dt>parte + "a"</dt><dd>Um texto montado <strong>durante a execução</strong> (a partir de uma variável) também é um objeto novo.</dd>
+</dl>
+
+<div class="warning">
+<strong>A pegadinha: <code>==</code> às vezes funciona</strong>
+<p>O perigo do <code>==</code> é que ele dá <code>true</code> quando os dois textos são literais escritos no código. Você testa, funciona, e acha que está certo. Mas, quando o texto vem do teclado (<a href="scanner.html">Scanner</a>), de um arquivo ou de uma conta, ele é um objeto novo, e o <code>==</code> passa a dar <code>false</code> com o mesmo texto. <strong>Para comparar o conteúdo de Strings, use sempre <code>equals</code>.</strong></p>
+</div>
+
+<p>Um caso de verdade: a senha correta é <code>java25</code>, e a senha "digitada" foi montada juntando <code>"java"</code> com o número <code>25</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String senha = "java25";
+        int versao = 25;
+        String digitada = "java" + versao;
+        System.out.println(digitada);
+        if (digitada == senha) {
+            System.out.println("Acesso liberado");
+        } else {
+            System.out.println("Senha errada");
+        }
+        if (digitada.equals(senha)) {
+            System.out.println("Acesso liberado");
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+java25           « o texto é exatamente "java25"
+Senha errada     « mas o == recusou: são objetos diferentes
+Acesso liberado  « o equals compara o conteúdo e aceita</pre>
+
+<p>O <code>if</code> ("se") executa um bloco só quando a condição é verdadeira; você vai estudá-lo em <a href="if-else.html">if, else if, else</a>. Aqui ele mostra bem o estrago: com <code>==</code>, a usuária digitou a senha certa e foi barrada.</p>
+
+<div class="tryjava" data-goal="out:Acesso liberado,src:\.equals\(">
+<p class="try-task"><strong>Missão:</strong> rode o programa e veja a mensagem <code>Senha errada</code>, mesmo com a senha certa. Depois corrija a comparação para usar <code>equals</code> e fazer aparecer <code>Acesso liberado</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String senha = "java25";
+        int versao = 25;
+        String digitada = "java" + versao;
+        if (digitada == senha) {
+            System.out.println("Acesso liberado");
+        } else {
+            System.out.println("Senha errada");
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String senha = "java25";
+        int versao = 25;
+        String digitada = "java" + versao;
+        if (digitada.equals(senha)) {
+            System.out.println("Acesso liberado");
+        } else {
+            System.out.println("Senha errada");
+        }
+    }
+}
+</pre>
+</div>
+
+<h3>Uma curiosidade: o <code>javac</code> junta literais antes</h3>
+<p>Se você trocar <code>"java" + versao</code> por <code>"java" + 25</code> (os dois pedaços escritos direto no código), o <code>==</code> dá <code>true</code>. O <code>javac</code> percebe que <code>"java" + 25</code> é sempre <code>"java25"</code>, faz a conta na hora de compilar e usa a cópia do pool. O mesmo vale para <code>"An" + "a"</code>. Isso só piora a pegadinha: o resultado do <code>==</code> depende de detalhes que você não controla. Não tente decorar quando ele funciona; use <code>equals</code>.</p>
+
+<p>No <a href="jshell.html">JShell</a> dá para ver o mesmo comportamento, uma linha por vez:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; String nome = "Ana"
+nome ==&gt; "Ana"
+
+jshell&gt; nome.length()
+$2 ==&gt; 3
+
+jshell&gt; nome == new String("Ana")
+$3 ==&gt; false
+
+jshell&gt; /exit
+|  Goodbye</pre>
+
+<div class="tryjshell">
+<p class="try-task"><strong>Brinque no JShell:</strong> crie <code>String a = "Ana"</code> e compare com <code>a == "Ana"</code>, <code>a == new String("Ana")</code>, <code>a.equals(new String("Ana"))</code>. Qual delas é confiável?</p>
+</div>
+
+<hr>
+
+<h2>Ignorar maiúsculas: <code>equalsIgnoreCase</code></h2>
+<p>O <code>equals</code> compara <strong>caractere por caractere</strong>, e <code>S</code> maiúsculo é um caractere diferente de <code>s</code> minúsculo. Quando a diferença entre maiúsculas e minúsculas não importa (uma resposta "sim", o nome de uma cidade), use <code>equalsIgnoreCase</code> (<em>ignore case</em> = "ignorar a caixa", ou seja, maiúsculas/minúsculas):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String resposta = "SIM";
+        System.out.println(resposta.equals("sim"));
+        System.out.println(resposta.equalsIgnoreCase("sim"));
+        System.out.println("Maçã".equalsIgnoreCase("MAÇÃ"));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+false     « equals: "SIM" e "sim" têm caracteres diferentes
+true      « equalsIgnoreCase: só a caixa muda, então é igual
+true      « funciona com acentos também</pre>
+
+<p>Ele não ignora outras diferenças: espaços sobrando e acentos diferentes (<code>"maca"</code> × <code>"maçã"</code>) continuam contando. Para tirar espaços das pontas antes de comparar, existe o <code>strip()</code>, visto em <a href="metodos-string.html">Métodos de String</a>.</p>
+
+<hr>
+
+<h2>Ordem alfabética: <code>compareTo</code></h2>
+<p>O <code>equals</code> responde "igual ou não". Para saber <strong>qual vem antes</strong> no dicionário (para ordenar uma lista de nomes, por exemplo), use <code>compareTo</code> (<em>compare to</em> = "comparar com"). Ele devolve um <strong>número</strong>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>a.compareTo(b)</code> devolve</th><th>Quer dizer</th></tr>
+<tr><td>Um número <strong>negativo</strong></td><td><code>a</code> vem <strong>antes</strong> de <code>b</code></td></tr>
+<tr><td><code>0</code></td><td>São iguais</td></tr>
+<tr><td>Um número <strong>positivo</strong></td><td><code>a</code> vem <strong>depois</strong> de <code>b</code></td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Ana".compareTo("Bruno"));
+        System.out.println("Bruno".compareTo("Ana"));
+        System.out.println("Ana".compareTo("Ana"));
+        System.out.println("Ana".compareTo("Ana Souza"));
+        System.out.println("ana".compareTo("Ana"));
+        System.out.println("Zeca".compareTo("ana"));
+        System.out.println("Zeca".compareToIgnoreCase("ana"));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+-1     « "Ana" vem antes de "Bruno"
+1      « "Bruno" vem depois de "Ana"
+0      « iguais
+-6     « "Ana" é o começo de "Ana Souza": o mais curto vem antes
+32     « "ana" vem DEPOIS de "Ana": minúsculas vêm depois das maiúsculas
+-7     « "Zeca" vem ANTES de "ana"!
+25     « ignorando a caixa, "Zeca" volta a vir depois de "ana"</pre>
+
+<p>De onde vêm esses números? O <code>compareTo</code> anda pelas duas Strings até achar a primeira letra diferente e devolve a <strong>diferença entre os códigos</strong> dessas letras (lembre que, em Java, cada <code>char</code> é um número; veja <a href="char-boolean.html">char e boolean</a>). <code>'A'</code> é 65 e <code>'B'</code> é 66: 65 − 66 = <code>-1</code>. <code>'a'</code> é 97: 97 − 65 = <code>32</code>. Se uma String é o começo da outra, devolve a diferença de tamanho: 3 − 9 = <code>-6</code>.</p>
+
+<p><strong>Não use o valor exato</strong>, só o sinal (negativo, zero, positivo). O que importa é "antes, igual ou depois".</p>
+
+<div class="warning">
+<strong>Maiúsculas vêm antes de todas as minúsculas</strong>
+<p>Como a ordem segue os códigos dos caracteres, todas as maiúsculas (65 a 90) vêm antes de todas as minúsculas (97 a 122). Por isso <code>"Zeca"</code> fica antes de <code>"ana"</code>. Para uma ordem "de dicionário", use <code>compareToIgnoreCase</code>. Acentos também ficam fora do lugar (<code>"Ágata"</code> vem depois de <code>"Zeca"</code>); a ordenação correta para português usa o <code>Collator</code>, assunto de <a href="comparable-comparator.html">Comparable e Comparator</a>.</p>
+</div>
+
+<hr>
+
+<h2>String vazia × <code>null</code></h2>
+<p>Duas coisas parecem "nada", mas são bem diferentes:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>String vazia <code>""</code></th><th><code>null</code></th></tr>
+<tr><td>O que é</td><td>Uma String de verdade, com zero caracteres</td><td><strong>Nenhuma</strong> String: a variável não aponta para objeto nenhum</td></tr>
+<tr><td>Comparação</td><td>Um copo vazio</td><td>Nenhum copo</td></tr>
+<tr><td><code>length()</code></td><td><code>0</code></td><td><strong>Erro</strong>: <code>NullPointerException</code></td></tr>
+<tr><td>Ao imprimir</td><td>Nada aparece</td><td>Aparece a palavra <code>null</code></td></tr>
+</table>
+</div>
+
+<p>Você pode perguntar o tamanho de um copo vazio (zero). Mas não dá para perguntar o tamanho de um copo que não existe. <code>null</code> (em inglês, "nulo") é uma palavra do Java que quer dizer "esta variável não aponta para nada". Veja:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String vazia = "";
+        String nada = null;
+        System.out.println("[" + vazia + "]");
+        System.out.println(vazia.length());
+        System.out.println(vazia.isEmpty());
+        System.out.println("[" + nada + "]");
+        System.out.println(nada.length());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[]
+0
+true
+[null]
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "&lt;local2&gt;" is null
+	at Main.main(Main.java:9)
+$ echo $?
+1</pre>
+
+<p>Os colchetes mostram onde o texto começa e termina. A String vazia aparece como <code>[]</code>, tem tamanho <code>0</code> e o <code>isEmpty()</code> ("está vazia?") responde <code>true</code>. Já o <code>null</code>, juntado com texto, vira a palavra <code>null</code>. E, na linha 9, pedir o <code>length()</code> de <code>nada</code> derrubou o programa.</p>
+
+<h3>Lendo a <code>NullPointerException</code></h3>
+<p>Uma <strong>exceção</strong> é o jeito do Java avisar que algo deu errado <strong>durante a execução</strong> (o código compilou, mas falhou ao rodar). Você vai estudá-las em <a href="excecoes.html">O que são Exceções</a>; por ora, leia a mensagem por partes:</p>
+
+<dl class="anatomy">
+  <dt>Exception in thread "main"</dt><dd>"Exceção na linha de execução principal": o seu programa.</dd>
+  <dt>java.lang.NullPointerException</dt><dd>O tipo do erro: "exceção de ponteiro nulo". Você tentou usar algo que é <code>null</code>.</dd>
+  <dt>Cannot invoke "String.length()"</dt><dd>"Não foi possível chamar o método <code>length()</code> de String"…</dd>
+  <dt>because "&lt;local2&gt;" is null</dt><dd>…"porque a variável local número 2 é nula". Contando a partir de zero, a variável 0 é o <code>args</code>, a 1 é <code>vazia</code> e a 2 é <code>nada</code>.</dd>
+  <dt>at Main.main(Main.java:9)</dt><dd>Onde aconteceu: no método <code>main</code> da classe <code>Main</code>, arquivo <code>Main.java</code>, <strong>linha 9</strong>.</dd>
+</dl>
+
+<p>Essa mensagem detalhada ("<em>because … is null</em>") existe desde o Java 14 (as versões antigas diziam só <code>java.lang.NullPointerException</code>, sem explicação). Por que <code>&lt;local2&gt;</code> e não <code>nada</code>? Porque o <code>javac</code>, por padrão, não guarda os nomes das variáveis locais dentro do <code>.class</code>. Compilando com a opção <code>-g</code> (de <em>debug</em>, "depuração"), os nomes ficam guardados e a mensagem fica ainda melhor:</p>
+
+<pre class="term">$ javac -g Main.java
+$ java Main
+[]
+0
+true
+[null]
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "nada" is null
+	at Main.main(Main.java:9)</pre>
+
+<p>As IDEs (veja <a href="editores-ide.html">Editores e IDEs</a>) já compilam com <code>-g</code>, por isso nelas você vê o nome da variável.</p>
+
+<h3>Comparar com segurança quando pode haver <code>null</code></h3>
+<p>Chamar <code>equals</code> numa variável <code>null</code> também quebra. O truque é colocar o <strong>literal na frente</strong>: o literal nunca é <code>null</code>.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = null;
+        System.out.println("Ana".equals(nome));
+        System.out.println(nome.equals("Ana"));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+false
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.equals(Object)" because "&lt;local1&gt;" is null
+	at Main.main(Main.java:5)</pre>
+
+<p><code>"Ana".equals(nome)</code> responde <code>false</code> com calma ("Ana" não é igual a nada). <code>nome.equals("Ana")</code> tenta chamar um método em <code>null</code> e derruba o programa. Para saber se uma variável é <code>null</code>, aí sim se usa <code>==</code>: <code>nome == null</code>, porque a pergunta é "aponta para algum objeto?", e não sobre o conteúdo.</p>
+
+<div class="tryjava" data-goal="out:false,out:true,src:==\s*null">
+<p class="try-task"><strong>Missão:</strong> o programa quebra com <code>NullPointerException</code>. Corrija a linha 4 para comparar de forma segura (o literal na frente) e acrescente uma linha que mostre se <code>apelido</code> é <code>null</code> (<code>apelido == null</code>). A saída deve ser <code>false</code> e depois <code>true</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String apelido = null;
+        System.out.println(apelido.equals("Ana"));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String apelido = null;
+        System.out.println("Ana".equals(apelido));
+        System.out.println(apelido == null);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Qual comparação usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer saber…</th><th>Use</th><th>Exemplo</th></tr>
+<tr><td>Se dois textos são iguais</td><td><code>equals</code></td><td><code>senha.equals(digitada)</code></td></tr>
+<tr><td>Se são iguais, sem ligar para maiúsculas</td><td><code>equalsIgnoreCase</code></td><td><code>resposta.equalsIgnoreCase("sim")</code></td></tr>
+<tr><td>Qual vem antes em ordem alfabética</td><td><code>compareTo</code> / <code>compareToIgnoreCase</code></td><td><code>a.compareTo(b) &lt; 0</code></td></tr>
+<tr><td>Se a variável pode ser <code>null</code> e vai comparar com um texto fixo</td><td>Literal na frente</td><td><code>"Ana".equals(nome)</code></td></tr>
+<tr><td>Se a variável é <code>null</code></td><td><code>==</code></td><td><code>nome == null</code></td></tr>
+<tr><td>Se a String está vazia</td><td><code>isEmpty()</code></td><td><code>nome.isEmpty()</code></td></tr>
+<tr><td>Se são o mesmo objeto (raro)</td><td><code>==</code></td><td>quase nunca é o que você quer</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: cannot find symbol … symbol: class string</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        string nome = "Ana";
+        System.out.println(nome);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        string nome = "Ana";
+        ^
+  symbol:   class string
+  location: class Main
+1 error</pre>
+<p><strong>O que aconteceu:</strong> Java diferencia maiúsculas de minúsculas. <code>string</code>, com s minúsculo, não existe; o <code>javac</code> procurou uma classe com esse nome (<code>symbol: class string</code>, "símbolo: classe string") e não achou.</p>
+<p><strong>Como resolver:</strong> escreva <code>String</code>, com S maiúsculo.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: unclosed character literal</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = 'Ana';
+        System.out.println(nome);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: unclosed character literal
+        String nome = 'Ana';
+                      ^
+Main.java:3: error: unclosed character literal
+        String nome = 'Ana';
+                          ^
+Main.java:3: error: not a statement
+        String nome = 'Ana';
+                        ^
+3 errors</pre>
+<p><strong>O que aconteceu:</strong> aspas simples são para <strong>um</strong> <code>char</code>. O <code>javac</code> leu <code>'A</code>, esperava a aspa de fechamento logo depois de uma letra e não achou: "literal de caractere não fechado". Um único engano gerou três erros em cascata; conserte sempre o <strong>primeiro</strong>.</p>
+<p><strong>Como resolver:</strong> texto vai entre aspas <strong>duplas</strong>: <code>"Ana"</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Duas Strings iguais e o <code>if</code> diz que são diferentes</strong>
+<p><strong>O que aconteceu:</strong> a comparação foi feita com <code>==</code>, que compara objetos e não o conteúdo. Não aparece mensagem de erro nenhuma: o programa só toma a decisão errada (veja o exemplo da senha, acima).</p>
+<p><strong>Como resolver:</strong> troque <code>a == b</code> por <code>a.equals(b)</code> e <code>a != b</code> por <code>!a.equals(b)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException: Cannot invoke "String…" because … is null</code></strong>
+<p><strong>O que aconteceu:</strong> você chamou um método (<code>length()</code>, <code>equals</code>, <code>toUpperCase()</code>…) numa variável que vale <code>null</code>. A linha está no final da mensagem (<code>Main.java:9</code>).</p>
+<p><strong>Como resolver:</strong> descubra por que a variável ficou <code>null</code> e dê um valor a ela; se <code>null</code> for possível, teste antes com <code>if (nome != null)</code> ou ponha o literal na frente: <code>"Ana".equals(nome)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O texto não mudou depois do <code>toUpperCase()</code></strong>
+<p><strong>O que aconteceu:</strong> Strings são imutáveis. <code>nome.toUpperCase();</code> sozinho cria uma String nova e a joga fora. Não há erro nem aviso.</p>
+<p><strong>Como resolver:</strong> guarde o resultado: <code>nome = nome.toUpperCase();</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>String s = "texto";</code></td><td>Cria uma String com um literal</td><td><code>String nome = "Ana";</code></td></tr>
+<tr><td><code>""</code></td><td>String vazia</td><td><code>"".length()</code> → <code>0</code></td></tr>
+<tr><td><code>s.length()</code></td><td>Quantidade de caracteres</td><td><code>"Ana Souza".length()</code> → <code>9</code></td></tr>
+<tr><td><code>s.isEmpty()</code></td><td>Está vazia?</td><td><code>"".isEmpty()</code> → <code>true</code></td></tr>
+<tr><td><code>a.equals(b)</code></td><td>Mesmo conteúdo?</td><td><code>"Ana".equals("ana")</code> → <code>false</code></td></tr>
+<tr><td><code>a.equalsIgnoreCase(b)</code></td><td>Mesmo conteúdo, ignorando a caixa?</td><td><code>"Ana".equalsIgnoreCase("ANA")</code> → <code>true</code></td></tr>
+<tr><td><code>a.compareTo(b)</code></td><td>Ordem: negativo, 0 ou positivo</td><td><code>"Ana".compareTo("Bruno")</code> → <code>-1</code></td></tr>
+<tr><td><code>a.compareToIgnoreCase(b)</code></td><td>Ordem, ignorando a caixa</td><td><code>"Zeca".compareToIgnoreCase("ana")</code> → <code>25</code></td></tr>
+<tr><td><code>a == b</code></td><td>Mesmo objeto? (não use para conteúdo)</td><td><code>"Ana" == new String("Ana")</code> → <code>false</code></td></tr>
+<tr><td><code>s == null</code></td><td>A variável aponta para nada?</td><td><code>null == null</code> → <code>true</code></td></tr>
+</table>
+</div>
+<p>A lista completa de métodos está em <a href="ref-string.html">Referência: Métodos de String</a>.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Acertou!,out:A palavra tem 6 letras,src:equalsIgnoreCase">
+<p class="try-task"><strong>Missão final:</strong> num jogo de perguntas, a cidade certa é <code>Recife</code> e a jogadora respondeu <code>RECIFE</code>. Complete o programa para mostrar <code>Acertou!</code> quando a resposta for igual à cidade <strong>ignorando maiúsculas</strong>, e depois a linha <code>A palavra tem 6 letras</code> usando <code>length()</code> (não escreva o 6 à mão).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String cidade = "Recife";
+        String resposta = "RECIFE";
+        // escreva aqui
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String cidade = "Recife";
+        String resposta = "RECIFE";
+        if (resposta.equalsIgnoreCase(cidade)) {
+            System.out.println("Acertou!");
+        }
+        System.out.println("A palavra tem " + cidade.length() + " letras");
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. Tamanho</h3>
+<p>Complete para mostrar quantos caracteres tem a variável <code>nome</code>:</p>
+<div class="ex-code">System.out.println(nome.<input data-answer="length()" aria-label="método">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Comparar o conteúdo</h3>
+<p>Complete para comparar o <strong>conteúdo</strong> de <code>a</code> e <code>b</code>:</p>
+<div class="ex-code">boolean iguais = a.<input data-answer="equals(b)" aria-label="comparação">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Sem quebrar com null</h3>
+<p>A variável <code>cor</code> pode ser <code>null</code>. Complete para comparar com <code>"azul"</code> sem risco de <code>NullPointerException</code>:</p>
+<div class="ex-code">boolean azul = <input data-answer="&quot;azul&quot;.equals(cor)" aria-label="comparação segura">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>System.out.println("Ana" == new String("Ana"));</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação</label>
+<label><input type="radio" name="q4"> <code>false</code></label>
+<label><input type="radio" name="q4"> <code>Ana</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Depois de <code>String s = "oi"; s.toUpperCase(); System.out.println(s);</code>, o que aparece?</p>
+<label><input type="radio" name="q5"> <code>OI</code></label>
+<label><input type="radio" name="q5"> <code>oi</code></label>
+<label><input type="radio" name="q5"> <code>Oi</code></label>
+<label><input type="radio" name="q5"> Um erro, porque o resultado não foi guardado</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. <code>"banana".compareTo("abacaxi")</code> devolve um número…</p>
+<label><input type="radio" name="q6"> positivo, porque "banana" vem depois de "abacaxi"</label>
+<label><input type="radio" name="q6"> negativo, porque "banana" é maior</label>
+<label><input type="radio" name="q6"> zero, porque as duas são frutas</label>
+<label><input type="radio" name="q6"> <code>true</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Qual é a diferença entre <code>""</code> e <code>null</code>?</p>
+<label><input type="radio" name="q7"> Nenhuma: as duas são "texto vazio".</label>
+<label><input type="radio" name="q7"> <code>""</code> dá erro ao imprimir; <code>null</code> não.</label>
+<label><input type="radio" name="q7"> <code>null</code> tem tamanho 0.</label>
+<label><input type="radio" name="q7"> <code>""</code> é uma String sem caracteres; <code>null</code> é a ausência de String, e chamar um método nela dá <code>NullPointerException</code>.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <code>String</code> é uma sequência de caracteres, escrita entre <strong>aspas duplas</strong>. <code>String</code> tem S maiúsculo.</li>
+  <li><code>length()</code> devolve a quantidade de caracteres (espaços contam); <code>""</code> tem tamanho 0.</li>
+  <li>Strings são <strong>imutáveis</strong>: métodos como <code>toUpperCase()</code> devolvem uma String nova. Guarde o resultado.</li>
+  <li><code>==</code> compara se é o <strong>mesmo objeto</strong>; <code>equals</code> compara o <strong>conteúdo</strong>. Para texto, use <code>equals</code>, mesmo quando o <code>==</code> "parece funcionar".</li>
+  <li><code>equalsIgnoreCase</code> ignora maiúsculas; <code>compareTo</code> diz a ordem (negativo, 0, positivo).</li>
+  <li><code>null</code> é "nenhuma String". Chamar método em <code>null</code> dá <code>NullPointerException</code>; compare com <code>"literal".equals(variavel)</code> e teste com <code>variavel == null</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
