@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java break e continue — sair do laço ou pular uma volta | Guia Java</title>
+<meta name="description" content="Aula de break e continue em Java para iniciantes: parar um laço quando achar o que procura, pular uma volta, os dois em while e for, a armadilha do continue no while, rótulos para laços aninhados e os erros reais do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">break e continue</span></h1>
+
+<p class="intro">Um laço normalmente vai até o fim: roda todas as voltas, e cada volta roda o corpo inteiro. Às vezes você quer mudar isso no meio do caminho: <strong>parar tudo</strong> porque já achou o que procurava, ou <strong>pular só esta volta</strong> porque o item não interessa. Para isso existem o <code>break</code> e o <code>continue</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>break</code>: sair do laço na hora, sem terminar as voltas.</li>
+  <li><code>continue</code>: pular o resto desta volta e ir para a próxima.</li>
+  <li>Como os dois funcionam no <code>for</code>, no for-each e no <code>while</code> (e a armadilha do <code>continue</code> no <code>while</code>).</li>
+  <li>O laço <code>while (true)</code> com <code>break</code>.</li>
+  <li><strong>Rótulos</strong> (<code>externo:</code>) para sair de dois laços de uma vez.</li>
+  <li>Os erros reais do <code>javac</code> com <code>break</code> e <code>continue</code>.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25) com <code>java Main.java</code>. Esta aula usa os laços das aulas anteriores: <a href="while.html">while</a>, <a href="for.html">for</a> e <a href="for-each.html">for-each</a>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>A Ana está procurando as chaves de casa nas gavetas da cozinha. São dez gavetas.</p>
+<ul>
+  <li>Achou as chaves na terceira gaveta? Ela <strong>para de procurar</strong>. Não faz sentido abrir as outras sete. Isso é o <code>break</code> (em inglês, "quebrar", "interromper").</li>
+  <li>A quinta gaveta está emperrada? Ela <strong>pula essa</strong> e continua na sexta. Isso é o <code>continue</code> ("continuar", "seguir para a próxima").</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>break</code></th><th><code>continue</code></th></tr>
+<tr><td>Tradução</td><td>"interromper"</td><td>"continuar"</td></tr>
+<tr><td>O que faz</td><td>Sai do laço inteiro</td><td>Abandona só esta volta</td></tr>
+<tr><td>Para onde o programa vai</td><td>Para a primeira linha <strong>depois</strong> do laço</td><td>Para o <strong>próximo teste</strong> da condição (no <code>for</code>, passa antes pelo passo)</td></tr>
+<tr><td>Na gaveta</td><td>Achei as chaves: paro de procurar</td><td>Gaveta emperrada: pulo para a próxima</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2><code>break</code>: sair do laço</h2>
+<p>Qual é o primeiro múltiplo de 7 a partir de 50? Vamos testar os números um por um e parar no primeiro que servir:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 50; i &lt;= 100; i++) {
+            System.out.println("Testando " + i);
+            if (i % 7 == 0) {
+                System.out.println("Achei: " + i + " é múltiplo de 7");
+                break;
+            }
+        }
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Testando 50
+Testando 51
+Testando 52
+Testando 53
+Testando 54
+Testando 55
+Testando 56
+Achei: 56 é múltiplo de 7
+Fim do programa              « o break pulou direto para cá</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>for (int i = 50; i &lt;= 100; i++)</code></td><td>Prepara 51 voltas, de 50 a 100.</td></tr>
+<tr><td><code>if (i % 7 == 0)</code></td><td>Resto zero na divisão por 7: é múltiplo.</td></tr>
+<tr><td><code>break;</code></td><td>Sai do <code>for</code> <strong>agora</strong>. As voltas de 57 a 100 nunca acontecem.</td></tr>
+<tr><td><code>System.out.println("Fim do programa");</code></td><td>A primeira linha depois do laço: é aqui que o <code>break</code> leva.</td></tr>
+</table>
+</div>
+
+<p>O laço estava preparado para 51 voltas e deu só 7. Em buscas com milhares de itens, parar no primeiro achado economiza muito trabalho.</p>
+
+<h3><code>break</code> no for-each: procurar um nome</h3>
+<p>A Ana confere se uma convidada está na lista da festa. Ao achar, para; se o laço acabar sem achar, ela não está:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] convidados = {"Bruno", "Carla", "Ana", "Davi"};
+        String procurado = "Ana";
+        boolean achou = false;
+        for (String nome : convidados) {
+            System.out.println("Conferindo " + nome);
+            if (nome.equals(procurado)) {
+                achou = true;
+                break;
+            }
+        }
+        if (achou) {
+            System.out.println(procurado + " está na lista!");
+        } else {
+            System.out.println(procurado + " não está na lista.");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Conferindo Bruno
+Conferindo Carla
+Conferindo Ana
+Ana está na lista!            « o Davi nem foi conferido</pre>
+
+<p>A variável <code>achou</code> é uma <strong>bandeira</strong> (<em>flag</em>): começa <code>false</code> e vira <code>true</code> quando a busca dá certo. Depois do laço, ela conta o que aconteceu lá dentro. (Para comparar textos usamos <code>equals</code>, e não <code>==</code>; veja <a href="strings.html">Strings</a>.)</p>
+
+<h3><code>while (true)</code> + <code>break</code></h3>
+<p>Às vezes a condição de parada só pode ser testada <strong>no meio</strong> do corpo. No caixa da loja, a Ana digita o valor de cada item e um <strong>0</strong> para fechar a conta. A pergunta "parar?" só faz sentido depois de ler o valor. O jeito clássico é um laço "infinito" que tem uma saída lá dentro (o <code>Scanner</code>, que lê o teclado, tem a sua aula: <a href="scanner.html">Scanner</a>):</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        int soma = 0;
+        while (true) {
+            System.out.print("Valor do item (0 para fechar a conta): ");
+            int valor = teclado.nextInt();
+            if (valor == 0) {
+                break;
+            }
+            soma += valor;
+        }
+        System.out.println("Total: R$ " + soma);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Valor do item (0 para fechar a conta): 25
+Valor do item (0 para fechar a conta): 10
+Valor do item (0 para fechar a conta): 7
+Valor do item (0 para fechar a conta): 0
+Total: R$ 42</pre>
+
+<p>O <code>while (true)</code> sozinho nunca terminaria (veja o laço infinito em <a href="while.html">while</a>); é o <code>break</code> que dá a saída. Repare que o 0 <strong>não</strong> é somado: o <code>break</code> acontece antes da linha <code>soma += valor</code>. Esse padrão, "ler, testar, sair ou processar", é muito comum em menus e leitura de dados.</p>
+
+<hr>
+
+<h2><code>continue</code>: pular uma volta</h2>
+<p>O <code>continue</code> não sai do laço: ele abandona <strong>o resto da volta atual</strong> e passa para a próxima. Mostrando só os pares de 1 a 10:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 10; i++) {
+            if (i % 2 != 0) {
+                continue;
+            }
+            System.out.println(i + " é par");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+2 é par
+4 é par
+6 é par
+8 é par
+10 é par</pre>
+
+<p>Quando <code>i</code> é ímpar (resto diferente de zero), o <code>continue</code> pula o <code>println</code>. No <code>for</code>, o "ir para a próxima volta" passa pelo <strong>passo</strong> (<code>i++</code>) e depois pela condição, então a contagem segue normalmente.</p>
+
+<h3>Um uso real: pular dados que não contam</h3>
+<p>Na planilha da professora, <code>-1</code> quer dizer "o aluno faltou à prova". Essas notas não podem entrar na média:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {8, -1, 7, 9, -1, 6};
+        int soma = 0;
+        int validas = 0;
+        for (int nota : notas) {
+            if (nota == -1) {
+                System.out.println("Aluno faltou, pulando...");
+                continue;
+            }
+            soma += nota;
+            validas++;
+        }
+        System.out.println("Média das provas feitas: " + (double) soma / validas);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Aluno faltou, pulando...
+Aluno faltou, pulando...
+Média das provas feitas: 7.5  « (8 + 7 + 9 + 6) / 4</pre>
+
+<p>O <code>(double)</code> transforma a soma em número com vírgula antes da divisão, para não perder o ",5" (veja <a href="conversao-tipos.html">Conversão de Tipos</a>).</p>
+
+<div class="note">
+<strong><code>continue</code> ou <code>if</code>?</strong>
+<p>Todo <code>continue</code> pode ser trocado por um <code>if</code> que envolve o resto do corpo: <code>if (nota != -1) { soma += nota; validas++; }</code>. O <code>continue</code> ganha quando as condições de "pular" são várias e ficam no topo do laço, como uma lista de "isto não me interessa". Com uma condição só, os dois são igualmente bons.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Total depositado: 390,src:\bcontinue\s*;">
+<p class="try-task"><strong>Missão:</strong> no extrato da Ana, valores negativos são saques e positivos são depósitos. Use <code>continue</code> para pular os saques e somar só os depósitos. O resultado deve ser <code>Total depositado: 390</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int[] extrato = {100, -30, 250, -80, 40};
+        int depositos = 0;
+        for (int valor : extrato) {
+            // pule os valores negativos aqui
+
+            depositos += valor;
+        }
+        System.out.println("Total depositado: " + depositos);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int[] extrato = {100, -30, 250, -80, 40};
+        int depositos = 0;
+        for (int valor : extrato) {
+            if (valor &lt; 0) {
+                continue;
+            }
+            depositos += valor;
+        }
+        System.out.println("Total depositado: " + depositos);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="armadilha">A armadilha do <code>continue</code> no <code>while</code></h2>
+<p>No <code>for</code>, o passo fica no cabeçalho e roda mesmo depois de um <code>continue</code>. No <code>while</code>, o passo é uma linha comum do corpo, e o <code>continue</code> pode <strong>pulá-la</strong>. Veja o mesmo "mostrar os pares", agora com <code>while</code>:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int i = 0;
+        while (i &lt; 10) {
+            if (i % 2 != 0) {
+                continue;
+            }
+            System.out.println(i + " é par");
+            i++;
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+0 é par
+^C                           « travou; a Ana apertou Ctrl+C depois de 4 segundos
+$ echo $?
+130</pre>
+
+<p>O que aconteceu, volta por volta: com <code>i = 0</code>, mostrou "0 é par" e fez <code>i++</code>. Com <code>i = 1</code>, o <code>continue</code> mandou de volta para a condição <strong>sem passar pelo <code>i++</code></strong>. O <code>i</code> ficou 1 para sempre: laço infinito, e silencioso.</p>
+<p>A correção é fazer o passo <strong>antes</strong> de qualquer <code>continue</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int i = 0;
+        while (i &lt; 10) {
+            i++;
+            if (i % 2 != 0) {
+                continue;
+            }
+            System.out.println(i + " é par");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+2 é par
+4 é par
+6 é par
+8 é par
+10 é par</pre>
+
+<p>Repare que agora o <code>i++</code> vem primeiro, então o laço testa os valores de 1 a 10 (e não de 0 a 9). Por isso o 10 aparece e o 0 não. Sempre que usar <code>continue</code> num <code>while</code>, pergunte-se: "o passo ainda roda?".</p>
+
+<hr>
+
+<h2>Laços aninhados: <code>break</code> só sai de um</h2>
+<p>Quando há um laço dentro de outro (assunto da próxima aula, <a href="lacos-aninhados.html">Laços Aninhados</a>), o <code>break</code> e o <code>continue</code> agem só no laço <strong>mais de dentro</strong>, aquele onde eles estão escritos.</p>
+<p>Vamos procurar dois números de 1 a 9 cuja multiplicação dá 24. O laço de fora escolhe o <code>i</code>; o de dentro testa cada <code>j</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 9; i++) {
+            for (int j = 1; j &lt;= 9; j++) {
+                if (i * j == 24) {
+                    System.out.println("Achei: " + i + " x " + j + " = 24");
+                    break;
+                }
+            }
+        }
+        System.out.println("Fim da busca");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Achei: 3 x 8 = 24
+Achei: 4 x 6 = 24            « o laço de fora continuou!
+Achei: 6 x 4 = 24
+Achei: 8 x 3 = 24
+Fim da busca</pre>
+
+<p>A Ana queria só o <strong>primeiro</strong> par, mas vieram quatro. O <code>break</code> saiu do laço do <code>j</code>, só que o laço do <code>i</code> seguiu para o próximo número e a busca recomeçou. Para sair dos <strong>dois</strong> laços de uma vez, o Java tem os rótulos.</p>
+
+<h2>Rótulos: <code>break externo</code></h2>
+<p>Um <strong>rótulo</strong> (<em>label</em>) é um nome que você dá a um laço, escrito antes dele e seguido de dois-pontos. Depois, <code>break nome;</code> sai do laço com esse nome, mesmo de dentro de outro laço:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        externo:
+        for (int i = 1; i &lt;= 9; i++) {
+            for (int j = 1; j &lt;= 9; j++) {
+                if (i * j == 24) {
+                    System.out.println("Achei: " + i + " x " + j + " = 24");
+                    break externo;
+                }
+            }
+        }
+        System.out.println("Fim da busca");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Achei: 3 x 8 = 24
+Fim da busca                 « saiu dos dois laços de uma vez</pre>
+
+<dl class="anatomy">
+  <dt>externo:</dt><dd>O rótulo: um nome à sua escolha (as regras são as dos nomes de variáveis) mais dois-pontos, logo antes do laço que ele nomeia. <code>externo</code>, <code>fora</code>, <code>busca</code> são nomes comuns.</dd>
+  <dt>for (…)</dt><dd>O laço de fora, que agora se chama <code>externo</code>.</dd>
+  <dt>break externo;</dt><dd>"Saia do laço chamado <code>externo</code>". O programa vai para a primeira linha depois <strong>dele</strong>.</dd>
+</dl>
+
+<h3><code>continue externo</code></h3>
+<p>O <code>continue</code> também aceita rótulo: ele abandona o laço de dentro e vai para a <strong>próxima volta do laço de fora</strong>. Na agenda do consultório, quando chega a hora do almoço (10h, num dia de expediente curto), o dia acaba e passa-se para o próximo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        externo:
+        for (int dia = 1; dia &lt;= 3; dia++) {
+            for (int hora = 8; hora &lt;= 11; hora++) {
+                if (hora == 10) {
+                    System.out.println("Dia " + dia + ": almoço cedo, encerrando o dia");
+                    continue externo;
+                }
+                System.out.println("Dia " + dia + ", " + hora + "h: atendendo");
+            }
+            System.out.println("Esta linha nunca aparece");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Dia 1, 8h: atendendo
+Dia 1, 9h: atendendo
+Dia 1: almoço cedo, encerrando o dia
+Dia 2, 8h: atendendo
+Dia 2, 9h: atendendo
+Dia 2: almoço cedo, encerrando o dia
+Dia 3, 8h: atendendo
+Dia 3, 9h: atendendo
+Dia 3: almoço cedo, encerrando o dia</pre>
+
+<p>O <code>continue externo</code> pulou as 10h e 11h <strong>e</strong> a linha "Esta linha nunca aparece", que fica no corpo do laço de fora, e foi direto para o próximo dia.</p>
+
+<div class="tip">
+<strong>Use rótulos com moderação</strong>
+<p>Rótulos resolvem bem o "sair de dois laços", mas código cheio deles fica difícil de seguir. Quando o laço duplo ficar grande, a alternativa mais limpa é colocá-lo num <a href="metodos.html">método</a> e usar <code>return</code>, que sai do método inteiro (e, portanto, de todos os laços), assunto de <a href="retorno.html">Valores de Retorno</a>.</p>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de parar um laço</h2>
+<p>Para "parar no primeiro múltiplo de 7", o <code>break</code> não é a única saída. Dá para colocar a parada <strong>na própria condição</strong>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int encontrado = -1;
+        for (int i = 50; i &lt;= 100 &amp;&amp; encontrado == -1; i++) {
+            if (i % 7 == 0) {
+                encontrado = i;
+            }
+        }
+        System.out.println("Primeiro múltiplo de 7: " + encontrado);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Primeiro múltiplo de 7: 56</pre>
+
+<p>Aqui o laço continua <strong>enquanto</strong> não passou de 100 <strong>e</strong> (<code>&amp;&amp;</code>) ainda não achou nada. O <code>-1</code> é um valor "impossível" que significa "nada encontrado ainda".</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Como fica</th><th>Quando usar</th></tr>
+<tr><td><code>break</code></td><td>Sai assim que achar</td><td>Buscas: é o mais direto e o mais comum.</td></tr>
+<tr><td>Condição com bandeira</td><td><code>i &lt;= 100 &amp;&amp; encontrado == -1</code></td><td>Quando você quer ler a regra de parada no cabeçalho.</td></tr>
+<tr><td><code>while (true)</code> + <code>break</code></td><td>Sai de dentro do corpo</td><td>Quando o teste só pode ser feito no meio (depois de ler um dado).</td></tr>
+<tr><td><code>break rótulo</code></td><td>Sai de vários laços</td><td>Busca em laços aninhados.</td></tr>
+<tr><td><code>return</code></td><td>Sai do método todo</td><td>Quando o laço está num método que já tem a resposta (Nível 2).</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>E o <code>break</code> do <code>switch</code>?</strong>
+<p>Você já viu <code>break</code> em <a href="switch.html">switch</a>, onde ele encerra um <code>case</code>. É a mesma palavra com a mesma ideia ("saia daqui"). Cuidado com um <code>switch</code> dentro de um laço: um <code>break</code> dentro do <code>switch</code> sai só do <code>switch</code>, não do laço. Os <code>switch</code> com setas (<a href="switch-expressoes.html">switch com Setas</a>) não precisam de <code>break</code>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"break outside switch or loop"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int idade = 15;
+        if (idade &lt; 18) {
+            System.out.println("Menor de idade");
+            break;
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:6: error: break outside switch or loop
+            break;
+            ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "break fora de switch ou laço". O <code>break</code> só existe dentro de um laço ou de um <code>switch</code>; um <code>if</code> sozinho não é um laço. Quem escreve isso geralmente quer "parar o programa" ou "sair do if".</p>
+<p><strong>Como consertar:</strong> para não rodar o resto, use <code>else</code> (veja <a href="if-else.html">if, else</a>). Para encerrar o método, <code>return;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"continue outside of loop"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int idade = 15;
+        if (idade &lt; 18) {
+            continue;
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:5: error: continue outside of loop
+            continue;
+            ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "continue fora de laço". O <code>continue</code> só existe dentro de laços (nem no <code>switch</code> ele vale sozinho).</p>
+</div>
+
+<div class="cenario">
+<strong>"undefined label"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        externo:
+        for (int i = 1; i &lt;= 3; i++) {
+            for (int j = 1; j &lt;= 3; j++) {
+                if (j == 2) {
+                    break exterior;
+                }
+            }
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:7: error: undefined label: exterior
+                    break exterior;
+                    ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "rótulo não definido: exterior". O laço se chama <code>externo</code>, e o <code>break</code> pediu <code>exterior</code>. O rótulo precisa ser escrito igualzinho, e o <code>break</code> tem que estar <strong>dentro</strong> do laço rotulado.</p>
+</div>
+
+<div class="cenario">
+<strong>"unreachable statement" depois do <code>break</code></strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 5; i++) {
+            break;
+            System.out.println(i);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:5: error: unreachable statement
+            System.out.println(i);
+            ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "instrução inalcançável". Um <code>break</code> (ou <code>continue</code>) solto, sem <code>if</code>, faz o programa sair sempre, então nada depois dele pode rodar. O <code>javac</code> entende que é um engano. Quase sempre faltou o <code>if</code> em volta do <code>break</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O laço trava depois de usar <code>continue</code></strong>
+<p>Se é um <code>while</code> ou <code>do-while</code>, o <code>continue</code> provavelmente está pulando o passo (<code>i++</code>). Veja <a href="#armadilha">a armadilha do continue no while</a> acima: mova o passo para antes do <code>continue</code>, ou troque o laço por um <code>for</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>O que faz</th></tr>
+<tr><td><code>break;</code></td><td>Sai do laço (ou <code>switch</code>) mais de dentro</td></tr>
+<tr><td><code>continue;</code></td><td>Vai para a próxima volta do laço mais de dentro (no <code>for</code>, passa pelo passo)</td></tr>
+<tr><td><code>nome:</code> antes de um laço</td><td>Dá um rótulo ao laço</td></tr>
+<tr><td><code>break nome;</code></td><td>Sai do laço rotulado <code>nome</code>, mesmo de dentro de outro laço</td></tr>
+<tr><td><code>continue nome;</code></td><td>Vai para a próxima volta do laço rotulado <code>nome</code></td></tr>
+<tr><td><code>while (true) { … if (…) break; … }</code></td><td>Laço com a saída no meio do corpo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Parar na hora certa</h3>
+<p>Complete para o laço parar quando encontrar o nome "Carla":</p>
+<div class="ex-code">for (String nome : nomes) { if (nome.equals("Carla")) { <input data-answer="break;" aria-label="instrução"> } }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Pular uma volta</h3>
+<p>Complete para não mostrar o número 5 (e mostrar todos os outros de 1 a 10):</p>
+<div class="ex-code">for (int i = 1; i &lt;= 10; i++) { if (i == 5) { <input data-answer="continue;" aria-label="instrução"> } System.out.println(i); }</div>
+</div>
+
+<div class="exercise">
+<h3>3. Sair dos dois laços</h3>
+<p>O laço de fora tem o rótulo <code>busca:</code>. Complete para sair dos dois:</p>
+<div class="ex-code">if (achou) { <input data-answer="break busca;" aria-label="instrução"> }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>for (int i = 1; i &lt;= 5; i++) { if (i == 3) break; System.out.print(i); }</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>1245</code></label>
+<label><input type="radio" name="q4"> <code>12</code></label>
+<label><input type="radio" name="q4"> <code>123</code></label>
+<label><input type="radio" name="q4"> <code>12345</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. E com <code>continue</code> no lugar do <code>break</code>?</p>
+<label><input type="radio" name="q5"> <code>1245</code></label>
+<label><input type="radio" name="q5"> <code>12</code></label>
+<label><input type="radio" name="q5"> <code>345</code></label>
+<label><input type="radio" name="q5"> Laço infinito</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Um <code>break</code> (sem rótulo) dentro de um laço que está dentro de outro laço…</p>
+<label><input type="radio" name="q6"> …encerra o programa.</label>
+<label><input type="radio" name="q6"> …sai dos dois laços.</label>
+<label><input type="radio" name="q6"> …sai só do laço de dentro; o de fora continua.</label>
+<label><input type="radio" name="q6"> …não compila.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">7. Por que um <code>continue</code> pode travar um <code>while</code> e não um <code>for</code>?</p>
+<label><input type="radio" name="q7"> Porque <code>continue</code> não existe no <code>while</code>.</label>
+<label><input type="radio" name="q7"> Porque o <code>while</code> não tem condição.</label>
+<label><input type="radio" name="q7"> Porque o <code>for</code> sempre dá um número fixo de voltas.</label>
+<label><input type="radio" name="q7"> Porque no <code>while</code> o passo está no corpo e o <code>continue</code> pode pulá-lo.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Achei: 4 x 9 = 36,src:break\s+\w+\s*;">
+<p class="try-task"><strong>Missão final:</strong> este programa mostra <strong>todos</strong> os pares de 1 a 9 que multiplicados dão 36. Mude-o para mostrar <strong>só o primeiro</strong> (<code>Achei: 4 x 9 = 36</code>) e parar, usando um rótulo e <code>break</code> com o nome dele.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 9; i++) {
+            for (int j = 1; j &lt;= 9; j++) {
+                if (i * j == 36) {
+                    System.out.println("Achei: " + i + " x " + j + " = 36");
+                }
+            }
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        externo:
+        for (int i = 1; i &lt;= 9; i++) {
+            for (int j = 1; j &lt;= 9; j++) {
+                if (i * j == 36) {
+                    System.out.println("Achei: " + i + " x " + j + " = 36");
+                    break externo;
+                }
+            }
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>break</code> sai do laço na hora; o programa segue na primeira linha depois dele.</li>
+  <li><code>continue</code> pula o resto da volta atual e vai para a próxima (no <code>for</code>, passando pelo passo).</li>
+  <li>Os dois funcionam em <code>for</code>, for-each, <code>while</code> e <code>do-while</code>. O <code>break</code> também funciona no <code>switch</code>.</li>
+  <li>No <code>while</code>, cuidado: um <code>continue</code> antes do passo cria um laço infinito.</li>
+  <li><code>while (true)</code> + <code>break</code> é o padrão para "ler, testar, sair ou processar".</li>
+  <li>Sem rótulo, eles agem só no laço mais de dentro. Com rótulo (<code>externo:</code> + <code>break externo;</code>), saem ou pulam no laço de fora.</li>
+  <li>Fora de um laço, dão erro de compilação: <code>break outside switch or loop</code> e <code>continue outside of loop</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
