@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Lambdas — funções sem nome: x -&gt; x * 2 | Guia Java</title>
+<meta name="description" content="Lambdas em Java do zero: o que é uma função sem nome, a sintaxe (x -&gt; x * 2, (a, b) -&gt; a + b, bloco com return), como substituem a classe anônima, variáveis efetivamente final e o erro real do javac, forEach, removeIf e replaceAll, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Lambdas</span></h1>
+
+<p class="intro">Uma <strong>lambda</strong> é uma função sem nome, escrita no lugar onde vai ser usada: <code>x -&gt; x * 2</code> quer dizer "dado <code>x</code>, devolva <code>x * 2</code>". Com ela, você passa um <strong>comportamento</strong> para um método do mesmo jeito que passa um número ou um texto. Você já usou algumas nas aulas de coleções (<code>removeIf(n -&gt; n &lt; 5)</code>); agora vai entender cada pedaço. É a porta de entrada da <strong>programação funcional</strong> em Java (Java 8+).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma lambda e por que ela existe (o "antes": a classe anônima).</li>
+  <li>A sintaxe, em todas as formas: sem parâmetro, um, dois, com tipo, com bloco e <code>return</code>.</li>
+  <li>Onde uma lambda pode ser usada: no lugar de uma <strong>interface funcional</strong>.</li>
+  <li>A regra das variáveis "efetivamente final" e o erro real do <code>javac</code>.</li>
+  <li>Lambdas com coleções: <code>forEach</code>, <code>removeIf</code>, <code>replaceAll</code>, <code>sort</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: um bilhete com instruções</h2>
+<p>A Ana vai viajar e deixa a turma com uma professora substituta. Em vez de dar à colega um <strong>manual inteiro</strong> com capa, índice e o nome da autora, ela deixa um <strong>bilhete</strong>: "para cada aluno, se a nota for menor que 5, marque recuperação". O bilhete não tem nome nem capa: é só a instrução.</p>
+
+<p>Em Java, antes do Java 8, para passar uma instrução para um método você precisava escrever um "manual": uma classe inteira (às vezes anônima) com um método dentro. A lambda é o bilhete: só os parâmetros, uma seta e o que fazer.</p>
+
+<hr>
+
+<h2>Antes e depois: classe anônima × lambda</h2>
+<p>Vamos usar uma <a href="interfaces.html">interface</a> bem simples, com <strong>um único método</strong>: uma operação que recebe dois números e devolve um.</p>
+
+<pre class="file" data-file="Main.java">interface Operacao {
+    int aplicar(int a, int b);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        // 1. classe anônima
+        Operacao soma = new Operacao() {
+            @Override
+            public int aplicar(int a, int b) {
+                return a + b;
+            }
+        };
+
+        // 2. lambda
+        Operacao multiplica = (a, b) -&gt; a * b;
+
+        System.out.println("soma: " + soma.aplicar(7, 3));
+        System.out.println("multiplica: " + multiplica.aplicar(7, 3));
+        System.out.println("calcular: " + calcular(7, 3, (a, b) -&gt; a - b));
+    }
+
+    static int calcular(int x, int y, Operacao op) {
+        return op.aplicar(x, y);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+soma: 10
+multiplica: 21
+calcular: 4</pre>
+
+<p>A <a href="classes-internas.html">classe anônima</a> (forma 1) tem 6 linhas, e só uma delas importa: <code>return a + b;</code>. A lambda (forma 2) diz a mesma coisa em uma linha. Compare as peças:</p>
+
+<pre class="syntax">new Operacao() {                          « o compilador já sabe que é uma Operacao
+    @Override
+    public int aplicar(int a, int b) {    « e que o único método recebe (int, int)
+        return a + b;                     « o que realmente importa
+    }
+};
+
+(a, b) -&gt; a + b                           « só o que importa</pre>
+
+<p>A lambda funciona porque o compilador <strong>deduz</strong> o resto pelo contexto: a variável é do tipo <code>Operacao</code>, <code>Operacao</code> tem um só método abstrato, esse método recebe dois <code>int</code> e devolve um <code>int</code>. Então <code>(a, b) -&gt; a * b</code> só pode ser a implementação de <code>aplicar</code>, com <code>a</code> e <code>b</code> do tipo <code>int</code>.</p>
+
+<p>A terceira linha mostra a maior vantagem: a lambda foi escrita <strong>direto no argumento</strong> de <code>calcular</code>. O método <code>calcular</code> não sabe que conta vai fazer; quem chama é que decide, passando o "bilhete".</p>
+
+<hr>
+
+<h2>A sintaxe, peça por peça</h2>
+
+<dl class="anatomy">
+  <dt>(a, b)</dt><dd>Os <strong>parâmetros</strong>, como os de um método, mas em geral sem o tipo (o compilador deduz).</dd>
+  <dt>-&gt;</dt><dd>A <strong>seta</strong> (hífen + sinal de maior). Lê-se "vai para" ou "resulta em".</dd>
+  <dt>a + b</dt><dd>O <strong>corpo</strong>. Se for uma expressão só, o valor dela é devolvido automaticamente, sem escrever <code>return</code>.</dd>
+</dl>
+
+<p>Todas as formas possíveis:</p>
+
+<pre class="file" data-file="Main.java">interface Acao {
+    void executar();
+}
+
+interface Transformacao {
+    int aplicar(int x);
+}
+
+interface Operacao {
+    int aplicar(int a, int b);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Acao ola = () -&gt; System.out.println("Olá!");
+        Transformacao dobro = x -&gt; x * 2;
+        Transformacao triplo = (x) -&gt; x * 3;
+        Transformacao quadrado = (int x) -&gt; x * x;
+        Operacao soma = (a, b) -&gt; a + b;
+        Operacao media = (a, b) -&gt; {
+            int total = a + b;
+            return total / 2;
+        };
+
+        ola.executar();
+        System.out.println(dobro.aplicar(5));
+        System.out.println(triplo.aplicar(5));
+        System.out.println(quadrado.aplicar(5));
+        System.out.println(soma.aplicar(7, 4));
+        System.out.println(media.aplicar(7, 4));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Olá!
+10
+15
+25
+11
+5             « 11 / 2 com int: divisão inteira</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Regra</th></tr>
+<tr><td>Sem parâmetros</td><td><code>() -&gt; System.out.println("Olá!")</code></td><td>Parênteses vazios são obrigatórios.</td></tr>
+<tr><td>Um parâmetro</td><td><code>x -&gt; x * 2</code></td><td>Os parênteses são opcionais.</td></tr>
+<tr><td>Um parâmetro, com parênteses</td><td><code>(x) -&gt; x * 3</code></td><td>O mesmo que o anterior.</td></tr>
+<tr><td>Com o tipo</td><td><code>(int x) -&gt; x * x</code></td><td>Com tipo, os parênteses são obrigatórios. Também vale <code>(var x) -&gt; …</code>.</td></tr>
+<tr><td>Dois ou mais</td><td><code>(a, b) -&gt; a + b</code></td><td>Parênteses obrigatórios.</td></tr>
+<tr><td>Corpo com bloco</td><td><code>(a, b) -&gt; { int t = a + b; return t / 2; }</code></td><td>Com chaves, é um bloco normal: precisa de <code>return</code> (se devolve algo) e de <code>;</code> em cada instrução.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Expressão ou bloco?</strong>
+<p>Se a lambda cabe numa expressão, escreva sem chaves: <code>x -&gt; x * 2</code>. Se precisa de várias linhas, use o bloco com <code>return</code>. Se o bloco ficou grande (mais de 3 ou 4 linhas), é sinal de que aquilo merece virar um método com nome; aí você pode até usar uma <a href="method-references.html">referência de método</a>.</p>
+</div>
+
+<div class="tryjava" data-goal="out:maior(7\, 10) = 10,out:maior(8\, 2) = 8,src:-&gt;">
+<p class="try-task"><strong>Missão:</strong> complete a lambda <code>maior</code> para devolver o maior dos dois números (dica: o <a href="ternario.html">operador ternário</a> <code>a &gt; b ? a : b</code>). A saída deve ser <code>maior(7, 10) = 10</code> e <code>maior(8, 2) = 8</code>.</p>
+<pre class="script">interface Operacao {
+    int aplicar(int a, int b);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Operacao maior = (a, b) -&gt; 0;
+        System.out.println("maior(7, 10) = " + maior.aplicar(7, 10));
+        System.out.println("maior(8, 2) = " + maior.aplicar(8, 2));
+    }
+}
+</pre>
+<pre class="solucao">interface Operacao {
+    int aplicar(int a, int b);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Operacao maior = (a, b) -&gt; a &gt; b ? a : b;
+        System.out.println("maior(7, 10) = " + maior.aplicar(7, 10));
+        System.out.println("maior(8, 2) = " + maior.aplicar(8, 2));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Onde uma lambda pode ser usada</h2>
+<p>Uma lambda não existe sozinha: ela sempre vira um objeto de uma <strong>interface funcional</strong>, ou seja, uma interface com <strong>exatamente um método abstrato</strong> (como <code>Operacao</code>, <code>Acao</code>, <code>Comparator</code>, <code>Runnable</code>). O tipo da variável ou do parâmetro diz qual é. Duas consequências:</p>
+
+<ul>
+  <li>A lambda precisa "encaixar" no método: mesmo número de parâmetros e retorno compatível.</li>
+  <li>Não dá para guardar uma lambda numa variável <code>Object</code> ou <code>var</code>: o compilador não saberia qual interface ela implementa.</li>
+</ul>
+
+<p>Você não precisa criar uma interface para cada caso: o Java já traz dezenas prontas (<code>Function</code>, <code>Predicate</code>, <code>Consumer</code>…). Elas são o assunto da próxima aula, <a href="interfaces-funcionais.html">Interfaces Funcionais</a>.</p>
+
+<hr>
+
+<h2>Lambdas com coleções</h2>
+<p>É com coleções que as lambdas aparecem mais no dia a dia. Muitos métodos recebem um "bilhete" dizendo o que fazer com cada elemento:</p>
+
+<pre class="file" data-file="Main.java">import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;(List.of("carla", "ana", "bruno", "edu"));
+
+        nomes.forEach(n -&gt; System.out.println("Olá, " + n));
+
+        nomes.replaceAll(n -&gt; n.toUpperCase());
+        System.out.println("replaceAll: " + nomes);
+
+        nomes.removeIf(n -&gt; n.length() &lt;= 3);
+        System.out.println("removeIf:   " + nomes);
+
+        nomes.sort((a, b) -&gt; a.compareTo(b));
+        System.out.println("sort:       " + nomes);
+
+        Map&lt;String, Double&gt; notas = new TreeMap&lt;&gt;(Map.of("Ana", 9.5, "Bruno", 7.0));
+        notas.forEach((nome, nota) -&gt; System.out.println(nome + " tirou " + nota));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Olá, carla
+Olá, ana
+Olá, bruno
+Olá, edu
+replaceAll: [CARLA, ANA, BRUNO, EDU]
+removeIf:   [CARLA, BRUNO]
+sort:       [BRUNO, CARLA]
+Ana tirou 9.5
+Bruno tirou 7.0</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>A lambda recebe…</th><th>…e devolve</th><th>O método faz</th></tr>
+<tr><td><code>lista.forEach(x -&gt; …)</code></td><td>cada elemento</td><td>nada</td><td>Executa a ação para cada um.</td></tr>
+<tr><td><code>lista.replaceAll(x -&gt; …)</code></td><td>cada elemento</td><td>o novo valor</td><td>Troca cada elemento pelo resultado.</td></tr>
+<tr><td><code>lista.removeIf(x -&gt; …)</code></td><td>cada elemento</td><td><code>true</code>/<code>false</code></td><td>Remove os que deram <code>true</code> (veja <a href="iterator.html">Iterator</a>).</td></tr>
+<tr><td><code>lista.sort((a, b) -&gt; …)</code></td><td>dois elementos</td><td>negativo/zero/positivo</td><td>Ordena (veja <a href="comparable-comparator.html">Comparator</a>).</td></tr>
+<tr><td><code>mapa.forEach((k, v) -&gt; …)</code></td><td>chave e valor</td><td>nada</td><td>Executa para cada par.</td></tr>
+</table>
+</div>
+
+<p>E o próximo passo, os <a href="streams.html">Streams</a>, é praticamente feito só de lambdas: <code>filter(n -&gt; n &gt;= 7)</code>, <code>map(n -&gt; n * 2)</code>…</p>
+
+<hr>
+
+<h2>Variáveis de fora: "efetivamente final"</h2>
+<p>Uma lambda pode <strong>usar</strong> variáveis locais do método onde ela foi escrita. Isso se chama <strong>capturar</strong> a variável:</p>
+
+<pre class="file" data-file="Main.java">        int bonus = 1;
+        Transformacao comBonus = nota -&gt; nota + bonus;
+        System.out.println(comBonus.aplicar(8));
+        System.out.println(comBonus.aplicar(6));
+</pre>
+
+<pre class="term">$ java Main
+9
+7</pre>
+
+<p>Mas há uma regra: a variável capturada precisa ser <strong><code>final</code> ou "efetivamente final"</strong> (<em>effectively final</em>), isto é, nunca pode mudar de valor depois de criada, nem antes nem depois da lambda. Se a Ana mudar o bônus depois:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">interface Transformacao {
+    int aplicar(int x);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        int bonus = 1;
+        Transformacao comBonus = nota -&gt; nota + bonus;
+        bonus = 2;
+        System.out.println(comBonus.aplicar(8));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:8: error: local variables referenced from a lambda expression must be final or effectively final
+        Transformacao comBonus = nota -&gt; nota + bonus;
+                                                ^
+1 error</pre>
+
+<p>"Variáveis locais referenciadas por uma expressão lambda precisam ser final ou efetivamente final." Repare que o erro aponta a linha da <strong>lambda</strong> (8), embora o "culpado" seja o <code>bonus = 2</code> da linha 9: foi essa linha que tirou do <code>bonus</code> o status de "efetivamente final".</p>
+
+<p>Por que essa regra? A lambda pode ser executada <strong>depois</strong>, até em outro lugar do programa (em outra <a href="threads.html">thread</a>, por exemplo). Ela guarda uma <strong>cópia</strong> do valor da variável. Se a variável pudesse mudar, ficaria a dúvida: a lambda usa o valor antigo ou o novo? O Java elimina a dúvida proibindo a mudança.</p>
+
+<h3>O caso mais comum: somar dentro de um forEach</h3>
+<p>Quem começa com lambdas logo tenta isto:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;Integer&gt; notas = List.of(7, 10, 3);
+        int soma = 0;
+        notas.forEach(n -&gt; soma += n);
+        System.out.println(soma);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:7: error: local variables referenced from a lambda expression must be final or effectively final
+        notas.forEach(n -&gt; soma += n);
+                           ^
+1 error</pre>
+
+<p>A lambda tenta <strong>mudar</strong> <code>soma</code>, e isso é proibido. As soluções, da mais simples à mais moderna:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Solução</th><th>Código</th></tr>
+<tr><td>Um for-each comum (sem lambda)</td><td><code>for (int n : notas) { soma += n; }</code></td></tr>
+<tr><td>Um <a href="streams.html">stream</a>, que soma sozinho</td><td><code>int soma = notas.stream().mapToInt(n -&gt; n).sum();</code></td></tr>
+<tr><td>Um atributo da classe (não é variável local)</td><td><code>static int soma;</code> fora do <code>main</code></td></tr>
+</table>
+</div>
+
+<p>Laços comuns continuam valendo! Lambda é uma ferramenta a mais, não uma obrigação. Use <code>forEach</code> para <strong>fazer algo</strong> com cada elemento (mostrar, enviar); para <strong>acumular</strong> um resultado, use um laço ou um stream.</p>
+
+<div class="note">
+<strong>Atributos podem mudar</strong>
+<p>A regra vale para <strong>variáveis locais</strong> (e parâmetros) do método. Atributos de objetos e variáveis <code>static</code> podem ser lidos e alterados dentro de uma lambda normalmente. E o <code>this</code> numa lambda é o objeto onde ela foi escrita (diferente da classe anônima, onde <code>this</code> é a própria classe anônima).</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"local variables referenced from a lambda expression must be final or effectively final"</strong>
+<p><strong>O que aconteceu:</strong> a lambda usa uma variável local que muda de valor em algum lugar do método (dentro ou fora da lambda).</p>
+<p><strong>Como consertar:</strong> não mude a variável (crie outra, <code>final int bonusAtual = bonus;</code>, e use essa na lambda), ou troque o <code>forEach</code> por um laço comum ou um stream.</p>
+</div>
+
+<div class="cenario">
+<strong>"not a statement": bloco sem <code>return</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        Operacao media = (a, b) -&gt; {
+            int total = a + b;
+            total / 2;
+        };
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:9: error: not a statement
+            total / 2;
+                  ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "isto não é uma instrução". Dentro de chaves, a lambda é um bloco comum, e uma conta solta não faz nada.</p>
+<p><strong>Como consertar:</strong> <code>return total / 2;</code>. Ou, se cabe numa expressão, tire as chaves: <code>(a, b) -&gt; (a + b) / 2</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"incompatible parameter types in lambda expression": número de parâmetros errado</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        Operacao dobro = x -&gt; x * 2;
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:7: error: incompatible types: incompatible parameter types in lambda expression
+        Operacao dobro = x -&gt; x * 2;
+                         ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> a lambda tem um parâmetro, mas o método de <code>Operacao</code> recebe dois.</p>
+<p><strong>Como consertar:</strong> use a interface certa (uma com um parâmetro só, como <code>Transformacao</code>), ou escreva <code>(a, b) -&gt; …</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Object is not a functional interface"</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">        Object o = () -&gt; 1;
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: Object is not a functional interface
+        Object o = () -&gt; 1;
+                   ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> uma lambda só pode virar uma interface funcional (com um método abstrato). <code>Object</code> é uma classe.</p>
+<p><strong>Como consertar:</strong> declare a variável com a interface: <code>Operacao</code>, <code>Runnable</code>, <code>Supplier&lt;Integer&gt;</code>…</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Equivale a um método…</th></tr>
+<tr><td><code>() -&gt; expr</code></td><td><code>() -&gt; 42</code></td><td>sem parâmetros que devolve <code>42</code></td></tr>
+<tr><td><code>() -&gt; { … }</code></td><td><code>() -&gt; System.out.println("oi")</code></td><td>sem parâmetros e sem retorno</td></tr>
+<tr><td><code>x -&gt; expr</code></td><td><code>x -&gt; x * 2</code></td><td>de um parâmetro</td></tr>
+<tr><td><code>(a, b) -&gt; expr</code></td><td><code>(a, b) -&gt; a + b</code></td><td>de dois parâmetros</td></tr>
+<tr><td><code>(int a, int b) -&gt; expr</code></td><td><code>(int a, int b) -&gt; a * b</code></td><td>com os tipos escritos</td></tr>
+<tr><td><code>(a, b) -&gt; { …; return r; }</code></td><td><code>(a, b) -&gt; { int t = a + b; return t / 2; }</code></td><td>com várias instruções</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O dobro</h3>
+<p>Complete a lambda que recebe <code>x</code> e devolve o dobro:</p>
+<div class="ex-code">Transformacao dobro = <input data-answer="x -&gt; x * 2|x -&gt; 2 * x|(x) -&gt; x * 2|x-&gt;x*2" aria-label="lambda">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Sem parâmetros</h3>
+<p>Complete a lambda de uma <code>Acao</code> (sem parâmetros) que mostra "Oi":</p>
+<div class="ex-code">Acao oi = <input data-answer="() -&gt; System.out.println(&quot;Oi&quot;)" aria-label="lambda">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Para cada um</h3>
+<p>Complete para mostrar cada nome da lista <code>nomes</code>:</p>
+<div class="ex-code">nomes.<input data-answer="forEach(n -&gt; System.out.println(n))|forEach(nome -&gt; System.out.println(nome))|forEach(System.out::println)" aria-label="chamada">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destas lambdas <strong>não</strong> compila?</p>
+<label><input type="radio" name="q4"> <code>(a, b) -&gt; a + b</code></label>
+<label><input type="radio" name="q4"> <code>a, b -&gt; a + b</code></label>
+<label><input type="radio" name="q4"> <code>x -&gt; x + 1</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. <code>int total = 0; lista.forEach(x -&gt; total += x);</code> …</p>
+<label><input type="radio" name="q5"> soma os elementos em <code>total</code>.</label>
+<label><input type="radio" name="q5"> compila, mas <code>total</code> continua 0.</label>
+<label><input type="radio" name="q5"> não compila: <code>total</code> não é efetivamente final.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Uma lambda pode ser guardada numa variável de qual tipo?</p>
+<label><input type="radio" name="q6"> De uma interface com exatamente um método abstrato.</label>
+<label><input type="radio" name="q6"> <code>Object</code>.</label>
+<label><input type="radio" name="q6"> Qualquer classe.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Olá\, Bruno!,out:Olá\, Carla!,src:removeIf\(,src:forEach\(">
+<p class="try-task"><strong>Missão final:</strong> usando só lambdas (sem <code>for</code>): remova da lista os nomes com <strong>menos de 4 letras</strong> com <code>removeIf</code> e depois cumprimente cada um com <code>forEach</code>. A saída deve ser <code>Olá, Bruno!</code> e <code>Olá, Carla!</code>.</p>
+<pre class="script">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Edu", "Carla"));
+
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;(List.of("Ana", "Bruno", "Edu", "Carla"));
+        nomes.removeIf(n -&gt; n.length() &lt; 4);
+        nomes.forEach(n -&gt; System.out.println("Olá, " + n + "!"));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma lambda é uma função sem nome: <code>parâmetros -&gt; corpo</code>.</li>
+  <li>Ela substitui a classe anônima quando a interface tem um único método abstrato (uma <strong>interface funcional</strong>).</li>
+  <li>Formas: <code>() -&gt; …</code>, <code>x -&gt; …</code>, <code>(a, b) -&gt; …</code>, <code>(int x) -&gt; …</code>, e bloco <code>{ …; return …; }</code>.</li>
+  <li>O tipo dos parâmetros e o retorno são deduzidos pela interface do contexto.</li>
+  <li>Variáveis locais usadas na lambda precisam ser efetivamente final; para acumular, use um laço ou um stream.</li>
+  <li>Com coleções: <code>forEach</code>, <code>replaceAll</code>, <code>removeIf</code>, <code>sort</code>, <code>Map.forEach</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="interfaces-funcionais.html">Interfaces Funcionais</a>, as interfaces prontas do Java para receber lambdas.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
