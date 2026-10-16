@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Operadores Lógicos — &amp;&amp;, || e ! | Guia Java</title>
+<meta name="description" content="Os operadores lógicos do Java: &amp;&amp; (e), || (ou), ! (não), as tabelas-verdade, o curto-circuito demonstrado com saídas reais, &amp; e | sem curto-circuito, o ou-exclusivo ^ e os erros reais de quem escreve !idade &gt; 18 ou a and b, com o JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Operadores Lógicos</span></h1>
+
+<p class="intro">Uma comparação responde uma pergunta simples: "a idade é 18 ou mais?". Mas as decisões reais costumam ter várias condições: "pode dirigir quem tem 18 anos <strong>e</strong> carteira"; "paga meia quem é estudante <strong>ou</strong> idoso". Os <strong>operadores lógicos</strong> juntam vários <code>boolean</code> num só. Nesta aula você vai conhecer os três principais (<code>&amp;&amp;</code>, <code>||</code> e <code>!</code>), o "curto-circuito" que eles fazem e os primos <code>&amp;</code>, <code>|</code> e <code>^</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>&amp;&amp;</code> (e), <code>||</code> (ou) e <code>!</code> (não), com as tabelas-verdade.</li>
+  <li>Como combinar várias condições numa expressão legível.</li>
+  <li>O <strong>curto-circuito</strong>: quando o Java nem olha a segunda condição, e por que isso evita erros.</li>
+  <li>A diferença entre <code>&amp;&amp;</code> e <code>&amp;</code>, entre <code>||</code> e <code>|</code>, e o ou-exclusivo <code>^</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: "e", "ou" e "não"</h2>
+<p>Você usa esses operadores todos os dias em português:</p>
+<ul>
+  <li>"Vou à praia se fizer sol <strong>e</strong> eu estiver de folga." Precisa das duas coisas.</li>
+  <li>"Aceito pagamento em dinheiro <strong>ou</strong> cartão." Basta uma.</li>
+  <li>"Entro na piscina se <strong>não</strong> estiver chovendo." Inverte a condição.</li>
+</ul>
+
+<p>Em Java, cada um tem um símbolo. Os operandos precisam ser <code>boolean</code> (valores ou comparações) e o resultado também é <code>boolean</code>:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Nome</th><th>Lê-se</th><th>Dá <code>true</code> quando…</th></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>E lógico (<em>AND</em>)</td><td>"a e b"</td><td><strong>os dois</strong> são <code>true</code></td></tr>
+<tr><td><code>a || b</code></td><td>Ou lógico (<em>OR</em>)</td><td>"a ou b"</td><td><strong>pelo menos um</strong> é <code>true</code></td></tr>
+<tr><td><code>!a</code></td><td>Não lógico (<em>NOT</em>)</td><td>"não a"</td><td><code>a</code> é <code>false</code> (inverte)</td></tr>
+</table>
+</div>
+
+<p>O <code>|</code> é a "barra vertical": fica na mesma tecla da barra invertida <code>\</code>, com <kbd>Shift</kbd> (no teclado brasileiro ABNT2, é a tecla à esquerda do <kbd>Z</kbd>). O <code>&amp;</code> é o "e comercial" (<kbd>Shift</kbd> + <kbd>7</kbd>).</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 20;
+        boolean temCarteira = false;
+        System.out.println(idade &gt;= 18 &amp;&amp; temCarteira);
+        System.out.println(idade &gt;= 18 || temCarteira);
+        System.out.println(!temCarteira);
+        boolean podeDirigir = idade &gt;= 18 &amp;&amp; temCarteira;
+        System.out.println("Pode dirigir? " + podeDirigir);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+false              « 20 &gt;= 18 é true, mas temCarteira é false: "e" exige os dois
+true               « "ou": basta a idade
+true               « !false
+Pode dirigir? false</pre>
+
+<dl class="anatomy">
+  <dt>idade &gt;= 18</dt><dd>Primeira condição: uma comparação que dá <code>true</code>.</dd>
+  <dt>&amp;&amp;</dt><dd>"E": o resultado só é <code>true</code> se as duas condições forem.</dd>
+  <dt>temCarteira</dt><dd>Segunda condição: uma variável <code>boolean</code>, que vale <code>false</code>.</dd>
+</dl>
+
+<p>Repare que não foi preciso usar parênteses em <code>idade &gt;= 18 &amp;&amp; temCarteira</code>: as comparações são feitas antes dos operadores lógicos (<a href="precedencia.html">Precedência</a>).</p>
+
+<hr>
+
+<h2>Tabelas-verdade</h2>
+<p>Como cada operando só pode ser <code>true</code> ou <code>false</code>, dá para listar <strong>todas</strong> as combinações. Essa lista se chama <strong>tabela-verdade</strong>. Este programa testa todas, no JDK de verdade:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(true &amp;&amp; true);
+        System.out.println(true &amp;&amp; false);
+        System.out.println(false &amp;&amp; true);
+        System.out.println(false &amp;&amp; false);
+        System.out.println(true || true);
+        System.out.println(true || false);
+        System.out.println(false || true);
+        System.out.println(false || false);
+        System.out.println(!true);
+        System.out.println(!false);
+        System.out.println(true ^ true);
+        System.out.println(true ^ false);
+        System.out.println(false ^ true);
+        System.out.println(false ^ false);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+true
+false
+false
+false
+true
+true
+true
+false
+false
+true
+false
+true
+true
+false</pre>
+
+<p>Organizando a saída em tabelas (o <code>^</code> é explicado mais adiante):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>a</code></th><th><code>b</code></th><th><code>a &amp;&amp; b</code></th><th><code>a || b</code></th><th><code>a ^ b</code></th></tr>
+<tr><td><code>true</code></td><td><code>true</code></td><td><code>true</code></td><td><code>true</code></td><td><code>false</code></td></tr>
+<tr><td><code>true</code></td><td><code>false</code></td><td><code>false</code></td><td><code>true</code></td><td><code>true</code></td></tr>
+<tr><td><code>false</code></td><td><code>true</code></td><td><code>false</code></td><td><code>true</code></td><td><code>true</code></td></tr>
+<tr><td><code>false</code></td><td><code>false</code></td><td><code>false</code></td><td><code>false</code></td><td><code>false</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>a</code></th><th><code>!a</code></th></tr>
+<tr><td><code>true</code></td><td><code>false</code></td></tr>
+<tr><td><code>false</code></td><td><code>true</code></td></tr>
+</table>
+</div>
+
+<p>Para memorizar: <code>&amp;&amp;</code> só dá <code>true</code> numa linha (tudo verdadeiro); <code>||</code> só dá <code>false</code> numa linha (tudo falso).</p>
+
+<hr>
+
+<h2>Combinando condições</h2>
+<p>Você pode encadear quantas condições quiser. A Ana usa isso em vários lugares:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int idade = 70;
+        boolean estudante = false;
+        boolean meia = idade &lt; 18 || idade &gt;= 60 || estudante;
+        System.out.println("Meia-entrada? " + meia);
+        int nota = 8;
+        int faltas = 3;
+        boolean aprovado = nota &gt;= 6 &amp;&amp; faltas &lt;= 10;
+        System.out.println("Aprovado? " + aprovado);
+        boolean fimDeSemana = true;
+        boolean feriado = false;
+        System.out.println("Dia útil? " + !(fimDeSemana || feriado));
+        System.out.println("Dia útil? " + (!fimDeSemana &amp;&amp; !feriado));
+        boolean temCafe = true;
+        boolean temCha = true;
+        System.out.println("Só um dos dois? " + (temCafe ^ temCha));
+        System.out.println(true || false &amp;&amp; false);
+        System.out.println((true || false) &amp;&amp; false);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Meia-entrada? true         « idade &gt;= 60 bastou
+Aprovado? true             « nota e faltas, os dois ok
+Dia útil? false            « não (fim de semana ou feriado)
+Dia útil? false            « (não fim de semana) e (não feriado): a mesma coisa
+Só um dos dois? false      « tem os dois, então não é "só um"
+true                       « &amp;&amp; é feito antes de ||
+false                      « com parênteses, o || é feito antes</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>Em português</th></tr>
+<tr><td><code>idade &lt; 18 || idade &gt;= 60 || estudante</code></td><td>menor de idade, ou idoso, ou estudante</td></tr>
+<tr><td><code>nota &gt;= 6 &amp;&amp; faltas &lt;= 10</code></td><td>nota suficiente e poucas faltas</td></tr>
+<tr><td><code>idade &gt;= 18 &amp;&amp; idade &lt; 60</code></td><td>entre 18 e 59 (a forma Java de "18 ≤ idade &lt; 60", como visto em <a href="operadores-comparacao.html">Operadores de Comparação</a>)</td></tr>
+<tr><td><code>!(fimDeSemana || feriado)</code></td><td>não é fim de semana nem feriado</td></tr>
+</table>
+</div>
+
+<h3><code>&amp;&amp;</code> vem antes de <code>||</code></h3>
+<p>As duas últimas linhas da saída mostram uma regra importante: assim como a multiplicação vem antes da soma, o <code>&amp;&amp;</code> é calculado antes do <code>||</code>. Por isso <code>true || false &amp;&amp; false</code> é lido como <code>true || (false &amp;&amp; false)</code> e dá <code>true</code>. O <code>!</code> vem antes dos dois. Quando misturar <code>&amp;&amp;</code> e <code>||</code>, <strong>use parênteses</strong>, mesmo que não sejam necessários: quem lê agradece. A tabela completa está em <a href="precedencia.html">Precedência</a>.</p>
+
+<h3>Inverter um "e" ou um "ou"</h3>
+<p>As duas linhas "Dia útil?" deram o mesmo resultado. Não é coincidência: "não (A ou B)" é o mesmo que "(não A) e (não B)". Essa regra se chama <strong>Lei de De Morgan</strong> e funciona também ao contrário:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Isto…</th><th>…é o mesmo que</th></tr>
+<tr><td><code>!(a || b)</code></td><td><code>!a &amp;&amp; !b</code></td></tr>
+<tr><td><code>!(a &amp;&amp; b)</code></td><td><code>!a || !b</code></td></tr>
+</table>
+</div>
+
+<p>Ela é útil para simplificar condições confusas e para inverter um <code>if</code>. Ao "distribuir" o <code>!</code>, o <code>&amp;&amp;</code> vira <code>||</code> e vice-versa.</p>
+
+<div class="tryjava" data-goal="out:Meia-entrada? true,src:\|\|">
+<p class="try-task"><strong>Missão:</strong> paga meia quem é <strong>estudante ou professor</strong>. A Ana é professora, mas o programa diz que ela paga inteira. Troque o operador lógico errado para mostrar <code>Meia-entrada? true</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        boolean estudante = false;
+        boolean professor = true;
+        boolean meia = estudante &amp;&amp; professor;
+        System.out.println("Meia-entrada? " + meia);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        boolean estudante = false;
+        boolean professor = true;
+        boolean meia = estudante || professor;
+        System.out.println("Meia-entrada? " + meia);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Curto-circuito: o Java para quando já sabe a resposta</h2>
+<p>Pense no <code>&amp;&amp;</code>: se a primeira condição é <code>false</code>, o resultado já é <code>false</code>, não importa a segunda. E no <code>||</code>: se a primeira é <code>true</code>, o resultado já é <code>true</code>. Nesses casos, o Java <strong>nem calcula</strong> a segunda condição. Isso se chama <strong>avaliação de curto-circuito</strong>.</p>
+
+<p>Para ver o Java "pulando" a segunda parte, usamos uma condição com <strong>efeito colateral</strong>: <code>++contador &gt; 0</code> soma 1 ao contador toda vez que é calculada. Se o contador não mudar, é porque a condição não foi calculada:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int contador = 0;
+        boolean r1 = false &amp;&amp; (++contador &gt; 0);
+        System.out.println("&amp;&amp;: r1 = " + r1 + ", contador = " + contador);
+        boolean r2 = true || (++contador &gt; 0);
+        System.out.println("||: r2 = " + r2 + ", contador = " + contador);
+        boolean r3 = false &amp; (++contador &gt; 0);
+        System.out.println("&amp;:  r3 = " + r3 + ", contador = " + contador);
+        boolean r4 = true | (++contador &gt; 0);
+        System.out.println("|:  r4 = " + r4 + ", contador = " + contador);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+&amp;&amp;: r1 = false, contador = 0      « a segunda parte NÃO rodou
+||: r2 = true, contador = 0       « a segunda parte NÃO rodou
+&amp;:  r3 = false, contador = 1      « &amp; calcula os dois lados sempre
+|:  r4 = true, contador = 2       « | também</pre>
+
+<p>Com <code>&amp;&amp;</code> e <code>||</code>, o <code>++contador</code> foi pulado (o contador continuou 0). Com <code>&amp;</code> e <code>|</code>, versões <strong>sem</strong> curto-circuito, os dois lados sempre são calculados, e o contador subiu. O resultado lógico é o mesmo; o que muda é se a segunda parte <strong>executa</strong>.</p>
+
+<h3>Por que isso importa: condições de guarda</h3>
+<p>O curto-circuito permite escrever uma condição que <strong>protege</strong> a seguinte. Dividir por zero com inteiros para o programa (<a href="operadores-aritmeticos.html">Operadores Aritméticos</a>), então primeiro confirmamos que o divisor não é zero:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int convidados = 0;
+        int bolos = 10;
+        if (convidados != 0 &amp;&amp; bolos / convidados &gt;= 2) {
+            System.out.println("Bolo de sobra!");
+        }
+        System.out.println("Fim do teste com &amp;&amp;");
+        if (convidados != 0 &amp; bolos / convidados &gt;= 2) {
+            System.out.println("Bolo de sobra!");
+        }
+        System.out.println("Fim do teste com &amp;");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Fim do teste com &amp;&amp;
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.main(Main.java:9)</pre>
+
+<p>Com <code>&amp;&amp;</code>, a primeira condição (<code>convidados != 0</code>) deu <code>false</code> e a divisão nunca aconteceu. Com <code>&amp;</code>, o Java fez a divisão mesmo assim, e o programa parou na linha 9. O <code>if</code> é apresentado em <a href="if-else.html">if, else if, else</a>; aqui basta saber que ele executa o bloco entre chaves quando a condição é <code>true</code>.</p>
+
+<div class="warning">
+<strong>A ordem das condições importa</strong>
+<p>A guarda tem de vir <strong>primeiro</strong>. <code>bolos / convidados &gt;= 2 &amp;&amp; convidados != 0</code> divide antes de conferir e lança a exceção do mesmo jeito. O mesmo padrão aparece com textos: <code>nome != null &amp;&amp; nome.length() &gt; 0</code> confere se a variável aponta para algum texto antes de pedir o tamanho dele (veja <a href="strings.html">Strings</a>).</p>
+</div>
+
+<div class="tryjava" data-goal="out:Sobra bolo? false">
+<p class="try-task"><strong>Missão:</strong> o programa para com <code>ArithmeticException</code>. Reorganize a condição para que a guarda (<code>convidados != 0</code>) venha primeiro e o curto-circuito evite a divisão. A saída deve ser <code>Sobra bolo? false</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int convidados = 0;
+        int bolos = 10;
+        boolean sobra = bolos / convidados &gt;= 2 &amp;&amp; convidados != 0;
+        System.out.println("Sobra bolo? " + sobra);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int convidados = 0;
+        int bolos = 10;
+        boolean sobra = convidados != 0 &amp;&amp; bolos / convidados &gt;= 2;
+        System.out.println("Sobra bolo? " + sobra);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>&amp;</code>, <code>|</code> e <code>^</code></h2>
+
+<h3><code>&amp;</code> e <code>|</code>: sem curto-circuito</h3>
+<p>Com <code>boolean</code>, <code>&amp;</code> e <code>|</code> dão os mesmos resultados que <code>&amp;&amp;</code> e <code>||</code> (mesmas tabelas-verdade), mas sempre calculam os dois lados, como você viu. Use <code>&amp;&amp;</code> e <code>||</code> no dia a dia; <code>&amp;</code> e <code>|</code> com <code>boolean</code> são raros, para quando a segunda parte <strong>precisa</strong> executar.</p>
+
+<p>Com números inteiros, <code>&amp;</code>, <code>|</code> e <code>^</code> são outra coisa: operadores de <strong>bits</strong>, que comparam os números bit a bit (<code>5 &amp; 3</code> dá <code>1</code>, <code>5 | 3</code> dá <code>7</code>, <code>5 ^ 3</code> dá <code>6</code>). É um assunto avançado, usado em permissões e protocolos; não é preciso para este curso.</p>
+
+<h3><code>^</code>: ou-exclusivo</h3>
+<p>O <code>^</code> (acento circunflexo) é o "ou exclusivo" (<em>XOR</em>): dá <code>true</code> quando <strong>exatamente um</strong> dos lados é <code>true</code>. É o "ou" do garçom: "acompanha arroz ou fritas" (um dos dois, não ambos). Com dois <code>boolean</code>, <code>a ^ b</code> é o mesmo que <code>a != b</code>.</p>
+
+<div class="tryjshell" data-goal="out:true">
+<p class="try-task"><strong>Missão:</strong> no JShell, calcule <code>true ^ false</code> (exatamente um verdadeiro). Depois compare com <code>true ^ true</code> e <code>true || true</code>.</p>
+<pre class="solucao">true ^ false</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>!idade &gt; 18</code>: "bad operand type int for unary operator '!'"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int idade = 30;
+        System.out.println(!idade &gt; 18);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: bad operand type int for unary operator '!'
+        System.out.println(!idade &gt; 18);
+                           ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> o <code>!</code> é aplicado <strong>antes</strong> da comparação, então o Java tentou fazer <code>!idade</code>, e "não 30" não faz sentido: <code>!</code> só funciona com <code>boolean</code>.</p>
+<p><strong>Como consertar:</strong> parênteses em volta da comparação, <code>!(idade &gt; 18)</code>, ou, mais simples, inverta o operador: <code>idade &lt;= 18</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Números com <code>&amp;&amp;</code>: "bad operand types for binary operator '&amp;&amp;'"</strong>
+<pre class="term">$ javac Main.java
+Main.java:5: error: bad operand types for binary operator '&amp;&amp;'
+        System.out.println(a &amp;&amp; b);
+                             ^
+  first type:  int
+  second type: int
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>a</code> e <code>b</code> são <code>int</code>. Em outras linguagens, números valem como verdadeiro ou falso; em Java, os operadores lógicos só aceitam <code>boolean</code> (<a href="char-boolean.html">char e boolean</a>).</p>
+<p><strong>Como consertar:</strong> escreva as comparações completas: <code>a &gt; 0 &amp;&amp; b &gt; 0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Comparação pela metade: <code>x &gt; 1 &amp;&amp; &lt; 10</code></strong>
+<pre class="term">$ javac Main.java
+Main.java:4: error: illegal start of type
+        System.out.println(x &gt; 1 &amp;&amp; &lt; 10);
+                                      ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> em português dizemos "maior que 1 e menor que 10", mas em Java cada lado do <code>&amp;&amp;</code> é uma condição completa. <code>&lt; 10</code> sozinho não é nada.</p>
+<p><strong>Como consertar:</strong> repita a variável: <code>x &gt; 1 &amp;&amp; x &lt; 10</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>and</code>, <code>or</code>, <code>not</code> não existem</strong>
+<pre class="term">$ javac Main.java
+Main.java:5: error: ')' or ',' expected
+        System.out.println(a and b);
+                            ^
+Main.java:5: error: ';' expected
+        System.out.println(a and b);
+                                  ^
+2 errors</pre>
+<p><strong>O que quer dizer:</strong> quem vem do Python escreve <code>and</code>; para o Java, <code>and</code> é só um nome desconhecido no meio da expressão, e ele se perde.</p>
+<p><strong>Como consertar:</strong> <code>&amp;&amp;</code> no lugar de <code>and</code>, <code>||</code> no lugar de <code>or</code>, <code>!</code> no lugar de <code>not</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O resultado está "invertido" ou sempre igual</strong>
+<p><strong>O que aconteceu:</strong> normalmente é <code>&amp;&amp;</code> no lugar de <code>||</code> (ou o contrário). "Paga meia quem é estudante ou idoso" escrito com <code>&amp;&amp;</code> exige as duas coisas. Outro clássico: <code>idade &lt; 18 &amp;&amp; idade &gt; 60</code> é <strong>sempre</strong> <code>false</code> (ninguém é as duas coisas).</p>
+<p><strong>Como consertar:</strong> leia a condição em voz alta, trocando os símbolos por "e" e "ou". Em caso de dúvida, imprima cada parte separadamente.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Nome</th><th>Resultado <code>true</code> quando</th><th>Curto-circuito?</th></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>E</td><td>os dois são <code>true</code></td><td>Sim: se <code>a</code> é <code>false</code>, não calcula <code>b</code></td></tr>
+<tr><td><code>a || b</code></td><td>Ou</td><td>pelo menos um é <code>true</code></td><td>Sim: se <code>a</code> é <code>true</code>, não calcula <code>b</code></td></tr>
+<tr><td><code>!a</code></td><td>Não</td><td><code>a</code> é <code>false</code></td><td>—</td></tr>
+<tr><td><code>a &amp; b</code></td><td>E (sem curto-circuito)</td><td>os dois são <code>true</code></td><td>Não</td></tr>
+<tr><td><code>a | b</code></td><td>Ou (sem curto-circuito)</td><td>pelo menos um é <code>true</code></td><td>Não</td></tr>
+<tr><td><code>a ^ b</code></td><td>Ou exclusivo</td><td>exatamente um é <code>true</code></td><td>Não</td></tr>
+</table>
+</div>
+
+<p>Ordem: <code>!</code> primeiro, depois comparações, depois <code>&amp;</code>, <code>^</code>, <code>|</code>, <code>&amp;&amp;</code> e, por último, <code>||</code>. Veja <a href="precedencia.html">Precedência</a>. Para usar essas condições em decisões, continue em <a href="booleanos.html">Expressões Booleanas</a> e <a href="if-else.html">if, else if, else</a>.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Os dois</h3>
+<p>Complete para <code>pode</code> ser <code>true</code> só quando <code>maior</code> <strong>e</strong> <code>convidado</code> forem verdadeiros:</p>
+<div class="ex-code">boolean pode = maior <input data-answer="&amp;&amp;" aria-label="operador"> convidado;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Inverter</h3>
+<p>Complete para <code>aberto</code> ser o contrário de <code>fechado</code>:</p>
+<div class="ex-code">boolean aberto = <input data-answer="!" aria-label="operador">fechado;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Entre dois valores</h3>
+<p>Complete a condição "nota de 0 a 10":</p>
+<div class="ex-code">nota &gt;= 0 &amp;&amp; <input data-answer="nota &lt;= 10|nota&lt;=10|10 &gt;= nota" aria-label="condição"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Quanto vale <code>true || false &amp;&amp; false</code>?</p>
+<label><input type="radio" name="q4"> <code>false</code>, porque é calculado da esquerda para a direita.</label>
+<label><input type="radio" name="q4"> <code>true</code>, porque o <code>&amp;&amp;</code> é calculado antes do <code>||</code>.</label>
+<label><input type="radio" name="q4"> Não compila.</label>
+<label><input type="radio" name="q4"> Depende da versão do Java.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Com <code>int c = 0;</code>, quanto vale <code>c</code> depois de <code>boolean r = false &amp;&amp; (++c &gt; 0);</code>?</p>
+<label><input type="radio" name="q5"> <code>1</code></label>
+<label><input type="radio" name="q5"> <code>2</code></label>
+<label><input type="radio" name="q5"> <code>0</code>, porque o curto-circuito pulou a segunda parte.</label>
+<label><input type="radio" name="q5"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Qual condição evita a divisão por zero?</p>
+<label><input type="radio" name="q6"> <code>total / n &gt; 5 &amp;&amp; n != 0</code></label>
+<label><input type="radio" name="q6"> <code>n != 0 &amp; total / n &gt; 5</code></label>
+<label><input type="radio" name="q6"> <code>total / n &gt; 5 || n != 0</code></label>
+<label><input type="radio" name="q6"> <code>n != 0 &amp;&amp; total / n &gt; 5</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. "Paga meia quem é estudante <strong>ou</strong> idoso". Qual operador usar entre as duas condições?</p>
+<label><input type="radio" name="q7"> <code>||</code></label>
+<label><input type="radio" name="q7"> <code>&amp;&amp;</code></label>
+<label><input type="radio" name="q7"> <code>!</code></label>
+<label><input type="radio" name="q7"> <code>^</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>&amp;&amp;</code> (e): <code>true</code> só se os dois forem <code>true</code>. <code>||</code> (ou): <code>true</code> se pelo menos um for. <code>!</code> (não): inverte.</li>
+  <li>Os operandos têm de ser <code>boolean</code>; números não valem como verdadeiro ou falso.</li>
+  <li><code>!</code> vem antes das comparações (<code>!(idade &gt; 18)</code> precisa de parênteses); <code>&amp;&amp;</code> vem antes de <code>||</code>. Na dúvida, parênteses.</li>
+  <li>Curto-circuito: <code>&amp;&amp;</code> e <code>||</code> param assim que sabem a resposta. Use isso para guardas: <code>n != 0 &amp;&amp; total / n &gt; 5</code>.</li>
+  <li><code>&amp;</code> e <code>|</code> calculam sempre os dois lados; <code>^</code> é o ou-exclusivo (exatamente um).</li>
+  <li><code>!(a || b)</code> = <code>!a &amp;&amp; !b</code> e <code>!(a &amp;&amp; b)</code> = <code>!a || !b</code> (De Morgan).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
