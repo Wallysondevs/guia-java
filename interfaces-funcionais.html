@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Interfaces Funcionais — Function, Predicate, Consumer, Supplier | Guia Java</title>
+<meta name="description" content="Interfaces funcionais em Java: @FunctionalInterface, Function, BiFunction, Predicate, Consumer, Supplier, UnaryOperator e BinaryOperator, como compor com andThen, compose, and, or e negate, e como criar a sua, com saídas e erros reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Interfaces Funcionais</span></h1>
+
+<p class="intro">Na aula de <a href="lambdas.html">Lambdas</a> você criou interfaces como <code>Operacao</code> só para ter onde "encaixar" uma lambda. Na prática, quase nunca é preciso: o Java traz, no pacote <code>java.util.function</code>, um conjunto de <strong>interfaces funcionais prontas</strong> para os formatos mais comuns de função: "recebe um e devolve outro", "responde sim ou não", "só faz alguma coisa", "fabrica um valor"… Nesta aula você vai conhecer as sete principais, aprender a combiná-las e a criar a sua quando nenhuma servir.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma interface funcional e o que faz a anotação <code>@FunctionalInterface</code>.</li>
+  <li><code>Function</code> e <code>BiFunction</code> (transformar), <code>Predicate</code> (testar), <code>Consumer</code> (usar), <code>Supplier</code> (fornecer).</li>
+  <li><code>UnaryOperator</code> e <code>BinaryOperator</code> (quando entrada e saída são do mesmo tipo).</li>
+  <li>Compor funções: <code>andThen</code>, <code>compose</code>, <code>and</code>, <code>or</code>, <code>negate</code>.</li>
+  <li>Escrever métodos que recebem funções, e quando criar a sua própria interface.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: tomadas padronizadas</h2>
+<p>Uma lambda é como um aparelho elétrico, e uma interface funcional é a <strong>tomada</strong> onde ele encaixa. Se cada fabricante inventasse a sua tomada, nada se conectaria com nada. Por isso o Java padronizou as tomadas mais comuns. Quando um método da biblioteca pede um <code>Predicate&lt;String&gt;</code>, você já sabe que ele quer "uma função que recebe um texto e responde <code>true</code> ou <code>false</code>", e qualquer lambda nesse formato serve.</p>
+
+<p>Relembrando a definição: <strong>interface funcional</strong> é uma interface com <strong>exatamente um método abstrato</strong>. Ela pode ter quantos métodos <code>default</code> e <code>static</code> quiser (é assim que <code>Predicate</code> ganha <code>and</code> e <code>negate</code>, como você vai ver).</p>
+
+<hr>
+
+<h2>Criando a sua: <code>@FunctionalInterface</code></h2>
+<p>Comecemos pela que você já sabe fazer, agora com uma anotação nova:</p>
+
+<pre class="file" data-file="Main.java">@FunctionalInterface
+interface Desconto {
+    double aplicar(double preco);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Desconto blackFriday = preco -&gt; preco * 0.5;
+        Desconto clienteFiel = preco -&gt; preco - 10;
+        System.out.println(blackFriday.aplicar(80.0));
+        System.out.println(clienteFiel.aplicar(80.0));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+40.0
+70.0</pre>
+
+<p>A <a href="anotacoes.html">anotação</a> <code>@FunctionalInterface</code> não muda o funcionamento: ela é um <strong>aviso ao compilador</strong>: "esta interface é para lambdas; me avise se alguém estragar isso". Se um colega acrescentar um segundo método abstrato:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">@FunctionalInterface
+interface Desconto {
+    double aplicar(double preco);
+    String descricao();
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:1: error: Unexpected @FunctionalInterface annotation
+@FunctionalInterface
+^
+  Desconto is not a functional interface
+    multiple non-overriding abstract methods found in interface Desconto
+1 error</pre>
+
+<p>"Anotação @FunctionalInterface inesperada: Desconto não é uma interface funcional; foram encontrados vários métodos abstratos." Sem a anotação, o erro só apareceria depois, em cada lugar onde uma lambda fosse usada como <code>Desconto</code>. Com ela, aparece no lugar certo: na interface.</p>
+
+<hr>
+
+<h2>As interfaces prontas</h2>
+<p>Todas moram em <code>java.util.function</code>. O nome de cada uma descreve o formato da função, e cada uma tem o seu método (que você chama para "executar" a lambda):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Interface</th><th>Recebe</th><th>Devolve</th><th>Método</th><th>Ideia</th><th>Exemplo</th></tr>
+<tr><td><code>Function&lt;T, R&gt;</code></td><td>um <code>T</code></td><td>um <code>R</code></td><td><code>apply</code></td><td>transformar</td><td><code>s -&gt; s.length()</code></td></tr>
+<tr><td><code>BiFunction&lt;T, U, R&gt;</code></td><td><code>T</code> e <code>U</code></td><td>um <code>R</code></td><td><code>apply</code></td><td>combinar dois</td><td><code>(preco, qtd) -&gt; preco * qtd</code></td></tr>
+<tr><td><code>Predicate&lt;T&gt;</code></td><td>um <code>T</code></td><td><code>boolean</code></td><td><code>test</code></td><td>testar, filtrar</td><td><code>n -&gt; n &gt;= 7</code></td></tr>
+<tr><td><code>Consumer&lt;T&gt;</code></td><td>um <code>T</code></td><td>nada</td><td><code>accept</code></td><td>usar, fazer algo</td><td><code>s -&gt; System.out.println(s)</code></td></tr>
+<tr><td><code>Supplier&lt;T&gt;</code></td><td>nada</td><td>um <code>T</code></td><td><code>get</code></td><td>fornecer, fabricar</td><td><code>() -&gt; new ArrayList&lt;&gt;()</code></td></tr>
+<tr><td><code>UnaryOperator&lt;T&gt;</code></td><td>um <code>T</code></td><td>um <code>T</code></td><td><code>apply</code></td><td>transformar sem mudar o tipo</td><td><code>s -&gt; s.toUpperCase()</code></td></tr>
+<tr><td><code>BinaryOperator&lt;T&gt;</code></td><td>dois <code>T</code></td><td>um <code>T</code></td><td><code>apply</code></td><td>juntar dois do mesmo tipo</td><td><code>(a, b) -&gt; a + b</code></td></tr>
+</table>
+</div>
+
+<p>Nos <code>&lt; &gt;</code>, como você viu em <a href="generics.html">Generics</a>: <code>T</code> é o tipo de entrada, <code>R</code> (de <em>result</em>) o de saída, <code>U</code> o segundo de entrada. Vamos a cada uma.</p>
+
+<h3><code>Function</code> e <code>BiFunction</code>: transformar</h3>
+
+<pre class="file" data-file="Main.java">import java.util.function.BiFunction;
+import java.util.function.Function;
+
+public class Main {
+    public static void main(String[] args) {
+        Function&lt;String, Integer&gt; tamanho = s -&gt; s.length();
+        Function&lt;Double, String&gt; conceito = nota -&gt; nota &gt;= 7 ? "aprovado" : "recuperação";
+        BiFunction&lt;Double, Integer, Double&gt; total = (preco, qtd) -&gt; preco * qtd;
+
+        System.out.println(tamanho.apply("Carla"));
+        System.out.println(conceito.apply(8.5));
+        System.out.println(conceito.apply(4.0));
+        System.out.println(total.apply(2.5, 4));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+5
+aprovado
+recuperação
+10.0</pre>
+
+<dl class="anatomy">
+  <dt>Function&lt;String, Integer&gt;</dt><dd>"Função de String para Integer": recebe um texto, devolve um número.</dd>
+  <dt>tamanho.apply("Carla")</dt><dd><code>apply</code> = aplicar. É assim que se executa a função guardada na variável.</dd>
+  <dt>BiFunction&lt;Double, Integer, Double&gt;</dt><dd>"Bi" = dois: recebe um <code>Double</code> (preço) e um <code>Integer</code> (quantidade), devolve um <code>Double</code>. O último tipo é sempre o do resultado.</dd>
+</dl>
+
+<h3><code>Predicate</code>: testar (sim ou não)</h3>
+<p>Um <em>predicado</em>, em lógica, é uma afirmação que pode ser verdadeira ou falsa sobre algo: "a nota é maior ou igual a 7". É a interface usada por <code>removeIf</code> e pelo <code>filter</code> dos streams.</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+
+public class Main {
+    public static void main(String[] args) {
+        Predicate&lt;Double&gt; aprovado = n -&gt; n &gt;= 7;
+        Predicate&lt;Double&gt; nota10 = n -&gt; n == 10;
+        Predicate&lt;Double&gt; valida = n -&gt; n &gt;= 0 &amp;&amp; n &lt;= 10;
+
+        System.out.println("aprovado.test(8.0): " + aprovado.test(8.0));
+        System.out.println("aprovado.test(5.5): " + aprovado.test(5.5));
+        System.out.println("negate().test(5.5): " + aprovado.negate().test(5.5));
+        System.out.println("valida.and(aprovado).test(11.0): " + valida.and(aprovado).test(11.0));
+        System.out.println("nota10.or(n -&gt; n &lt; 2).test(1.0): " + nota10.or(n -&gt; n &lt; 2).test(1.0));
+
+        List&lt;Double&gt; notas = new ArrayList&lt;&gt;(List.of(9.5, 4.0, 7.0, 12.0, 6.5));
+        notas.removeIf(valida.negate());
+        System.out.println("notas válidas: " + notas);
+        notas.removeIf(aprovado);
+        System.out.println("em recuperação: " + notas);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+aprovado.test(8.0): true
+aprovado.test(5.5): false
+negate().test(5.5): true                    « negate = "o contrário"
+valida.and(aprovado).test(11.0): false      « 11 passa em aprovado, mas não em valida
+nota10.or(n -&gt; n &lt; 2).test(1.0): true
+notas válidas: [9.5, 4.0, 7.0, 6.5]         « o 12.0 saiu
+em recuperação: [4.0, 6.5]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Equivale a</th><th>Devolve</th></tr>
+<tr><td><code>p.test(x)</code></td><td>executar o teste</td><td><code>boolean</code></td></tr>
+<tr><td><code>p.negate()</code></td><td><code>!p</code> ("não")</td><td>um novo <code>Predicate</code></td></tr>
+<tr><td><code>p.and(q)</code></td><td><code>p &amp;&amp; q</code> ("e")</td><td>um novo <code>Predicate</code></td></tr>
+<tr><td><code>p.or(q)</code></td><td><code>p || q</code> ("ou")</td><td>um novo <code>Predicate</code></td></tr>
+<tr><td><code>Predicate.not(p)</code> <span class="versao">Java 11+</span></td><td>o mesmo que <code>p.negate()</code></td><td>um novo <code>Predicate</code></td></tr>
+</table>
+</div>
+
+<p>Esses métodos <strong>não testam nada</strong>: eles <strong>montam</strong> um predicado novo a partir dos existentes, como peças de Lego. O teste só acontece no <code>test</code> (ou quando o <code>removeIf</code> chama o <code>test</code> por você). Compare com os <a href="operadores-logicos.html">operadores lógicos</a> <code>&amp;&amp;</code>, <code>||</code>, <code>!</code>: a ideia é a mesma, só que com regras guardadas em variáveis.</p>
+
+<div class="tryjava" data-goal="out:6.0 em recuperação? true,out:8.0 em recuperação? false,src:Predicate&lt;Double&gt;">
+<p class="try-task"><strong>Missão:</strong> complete o <code>Predicate&lt;Double&gt;</code> <code>recuperacao</code>: verdadeiro para notas de 5 (inclusive) até 7 (exclusive). A saída deve ser <code>6.0 em recuperação? true</code> e <code>8.0 em recuperação? false</code>.</p>
+<pre class="script">import java.util.function.Predicate;
+
+public class Main {
+    public static void main(String[] args) {
+        Predicate&lt;Double&gt; recuperacao = n -&gt; false;
+        System.out.println("6.0 em recuperação? " + recuperacao.test(6.0));
+        System.out.println("8.0 em recuperação? " + recuperacao.test(8.0));
+    }
+}
+</pre>
+<pre class="solucao">import java.util.function.Predicate;
+
+public class Main {
+    public static void main(String[] args) {
+        Predicate&lt;Double&gt; recuperacao = n -&gt; n &gt;= 5 &amp;&amp; n &lt; 7;
+        System.out.println("6.0 em recuperação? " + recuperacao.test(6.0));
+        System.out.println("8.0 em recuperação? " + recuperacao.test(8.0));
+    }
+}
+</pre>
+</div>
+
+<h3><code>Consumer</code>: usar (sem devolver nada)</h3>
+<p>Um <em>consumidor</em> recebe um valor e faz alguma coisa com ele (mostrar, gravar, enviar), sem devolver resultado. É o que o <code>forEach</code> recebe.</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+public class Main {
+    public static void main(String[] args) {
+        Consumer&lt;String&gt; chamar = nome -&gt; System.out.print("Chamando " + nome);
+        Consumer&lt;String&gt; pular = nome -&gt; System.out.println("...");
+        BiConsumer&lt;String, Double&gt; boletim = (nome, nota) -&gt; System.out.println(nome + ": " + nota);
+
+        chamar.accept("Ana");
+        System.out.println();
+        Consumer&lt;String&gt; chamarEPular = chamar.andThen(pular);
+        List.of("Bruno", "Carla").forEach(chamarEPular);
+        boletim.accept("Duda", 8.0);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+Chamando Ana
+Chamando Bruno...           « andThen: primeiro chamar, depois pular
+Chamando Carla...
+Duda: 8.0</pre>
+
+<p><code>accept</code> = aceitar ("receba este valor"). <code>c1.andThen(c2)</code> monta um consumidor que faz <code>c1</code> e depois <code>c2</code> com o <strong>mesmo</strong> valor. <code>BiConsumer</code> recebe dois valores; é o que o <code>forEach</code> de um <code>Map</code> usa.</p>
+
+<h3><code>Supplier</code>: fornecer (sem receber nada)</h3>
+<p>Um <em>fornecedor</em> não recebe nada e entrega um valor cada vez que você chama <code>get</code>. Serve para "fábricas" e para adiar um cálculo até ele ser necessário (você vai vê-lo no <code>orElseGet</code> do <a href="optional.html">Optional</a>).</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.function.Supplier;
+
+public class Main {
+    public static void main(String[] args) {
+        Random dado = new Random(7);
+        Supplier&lt;Integer&gt; rolar = () -&gt; dado.nextInt(6) + 1;
+        Supplier&lt;List&lt;String&gt;&gt; novaLista = () -&gt; new ArrayList&lt;&gt;();
+        Supplier&lt;String&gt; saudacao = () -&gt; "Bom dia, turma!";
+
+        System.out.println(rolar.get() + " " + rolar.get() + " " + rolar.get());
+        List&lt;String&gt; l = novaLista.get();
+        l.add("Ana");
+        System.out.println(l + " " + saudacao.get());
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+5 3 4                        « cada get() rola o dado de novo (semente 7: sempre 5 3 4)
+[Ana] Bom dia, turma!</pre>
+
+<h3><code>UnaryOperator</code> e <code>BinaryOperator</code>: mesmo tipo dentro e fora</h3>
+<p>São atalhos: <code>UnaryOperator&lt;T&gt;</code> é uma <code>Function&lt;T, T&gt;</code>, e <code>BinaryOperator&lt;T&gt;</code> é uma <code>BiFunction&lt;T, T, T&gt;</code>. "Unário" = de um operando (como o <code>-</code> em <code>-x</code>); "binário" = de dois (como o <code>+</code> em <code>a + b</code>).</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BinaryOperator;
+import java.util.function.UnaryOperator;
+
+public class Main {
+    public static void main(String[] args) {
+        UnaryOperator&lt;String&gt; gritar = s -&gt; s.toUpperCase() + "!";
+        BinaryOperator&lt;Integer&gt; maior = (a, b) -&gt; a &gt; b ? a : b;
+        BinaryOperator&lt;String&gt; juntar = (a, b) -&gt; a + " e " + b;
+
+        System.out.println(gritar.apply("silêncio"));
+        System.out.println(maior.apply(7, 10));
+        System.out.println(juntar.apply("Ana", "Bruno"));
+
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;(List.of("ana", "edu"));
+        nomes.replaceAll(gritar);
+        System.out.println(nomes);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+SILÊNCIO!
+10
+Ana e Bruno
+[ANA!, EDU!]                « replaceAll recebe um UnaryOperator</pre>
+
+<p>O <code>BinaryOperator</code> é a peça do <code>reduce</code> dos streams ("junte todos os elementos dois a dois"), que você vai ver em <a href="streams.html">Streams</a>.</p>
+
+<hr>
+
+<h2>Compor funções: <code>andThen</code> e <code>compose</code></h2>
+<p>Funções podem ser encadeadas como uma linha de montagem: a saída de uma vira a entrada da próxima.</p>
+
+<pre class="file" data-file="Main.java">import java.util.function.Function;
+
+public class Main {
+    public static void main(String[] args) {
+        Function&lt;Integer, Integer&gt; dobro = x -&gt; x * 2;
+        Function&lt;Integer, Integer&gt; maisUm = x -&gt; x + 1;
+
+        System.out.println("dobro.andThen(maisUm).apply(5): " + dobro.andThen(maisUm).apply(5));
+        System.out.println("dobro.compose(maisUm).apply(5): " + dobro.compose(maisUm).apply(5));
+
+        Function&lt;String, String&gt; limpar = s -&gt; s.trim();
+        Function&lt;String, String&gt; etiqueta = limpar
+                .andThen(s -&gt; s.toUpperCase())
+                .andThen(s -&gt; "[" + s + "]");
+        System.out.println(etiqueta.apply("   caderno  "));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+dobro.andThen(maisUm).apply(5): 11      « primeiro dobro (10), depois maisUm (11)
+dobro.compose(maisUm).apply(5): 12      « primeiro maisUm (6), depois dobro (12)
+[CADERNO]</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Composição</th><th>Ordem</th><th>Lê-se</th></tr>
+<tr><td><code>f.andThen(g)</code></td><td><code>f</code>, depois <code>g</code></td><td>"faça f e então g" (a ordem da escrita)</td></tr>
+<tr><td><code>f.compose(g)</code></td><td><code>g</code>, depois <code>f</code></td><td>"f aplicada ao resultado de g" (como na matemática, f(g(x)))</td></tr>
+</table>
+</div>
+
+<p>Na dúvida, use <code>andThen</code>: a ordem de execução é a ordem em que você lê. <code>Function.identity()</code> é a função que devolve o próprio valor (<code>x -&gt; x</code>), útil como "peça neutra" e muito usada com <a href="collectors.html">Collectors</a>.</p>
+
+<hr>
+
+<h2>Métodos que recebem funções</h2>
+<p>O poder de verdade aparece quando <strong>você</strong> escreve métodos que recebem uma interface funcional. O método cuida do "como percorrer"; quem chama decide "o que fazer":</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+public class Main {
+    static List&lt;String&gt; filtrar(List&lt;String&gt; lista, Predicate&lt;String&gt; regra) {
+        List&lt;String&gt; resultado = new ArrayList&lt;&gt;();
+        for (String s : lista) {
+            if (regra.test(s)) {
+                resultado.add(s);
+            }
+        }
+        return resultado;
+    }
+
+    static List&lt;Integer&gt; transformar(List&lt;String&gt; lista, Function&lt;String, Integer&gt; f) {
+        List&lt;Integer&gt; resultado = new ArrayList&lt;&gt;();
+        for (String s : lista) {
+            resultado.add(f.apply(s));
+        }
+        return resultado;
+    }
+
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = List.of("Ana", "Bruno", "Beatriz", "Carla");
+        System.out.println(filtrar(nomes, n -&gt; n.startsWith("B")));
+        System.out.println(filtrar(nomes, n -&gt; n.length() &lt;= 4));
+        System.out.println(transformar(nomes, n -&gt; n.length()));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[Bruno, Beatriz]
+[Ana]
+[3, 5, 7, 5]</pre>
+
+<p>Um único <code>filtrar</code>, infinitas regras. Esses dois métodos são, em miniatura, o <code>filter</code> e o <code>map</code> dos <a href="streams.html">Streams</a>.</p>
+
+<hr>
+
+<h2>Versões para tipos primitivos</h2>
+<p>Como generics não aceitam <code>int</code> e <code>double</code>, um <code>Predicate&lt;Integer&gt;</code> embrulha cada número num <code>Integer</code>. Para evitar isso em cálculos pesados, existem versões especializadas, com o tipo no nome:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Interface</th><th>Formato</th><th>Método</th></tr>
+<tr><td><code>IntPredicate</code>, <code>DoublePredicate</code>, <code>LongPredicate</code></td><td><code>int</code> → <code>boolean</code></td><td><code>test</code></td></tr>
+<tr><td><code>IntFunction&lt;R&gt;</code></td><td><code>int</code> → <code>R</code></td><td><code>apply</code></td></tr>
+<tr><td><code>ToIntFunction&lt;T&gt;</code>, <code>ToDoubleFunction&lt;T&gt;</code></td><td><code>T</code> → <code>int</code> / <code>double</code></td><td><code>applyAsInt</code> / <code>applyAsDouble</code></td></tr>
+<tr><td><code>IntUnaryOperator</code></td><td><code>int</code> → <code>int</code></td><td><code>applyAsInt</code></td></tr>
+<tr><td><code>IntBinaryOperator</code></td><td><code>(int, int)</code> → <code>int</code></td><td><code>applyAsInt</code></td></tr>
+<tr><td><code>IntConsumer</code>, <code>IntSupplier</code>, <code>BooleanSupplier</code></td><td>…</td><td><code>accept</code>, <code>getAsInt</code>, <code>getAsBoolean</code></td></tr>
+</table>
+</div>
+<p>Você vai encontrá-las nos streams de números (<code>IntStream</code>). Para começar, as genéricas bastam.</p>
+
+<hr>
+
+<h2>Usar uma pronta ou criar a sua?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>O formato é um dos da tabela (transformar, testar, consumir, fornecer…)</td><td>A interface pronta. Todo programador Java reconhece <code>Predicate&lt;Aluno&gt;</code>.</td></tr>
+<tr><td>A função tem 3 ou mais parâmetros</td><td>A sua (não existe <code>TriFunction</code> na biblioteca).</td></tr>
+<tr><td>O nome ajuda a entender o domínio (<code>Desconto</code>, <code>RegraDeAprovacao</code>)</td><td>A sua, com <code>@FunctionalInterface</code>.</td></tr>
+<tr><td>O método precisa lançar uma exceção checked (como <code>IOException</code>)</td><td>A sua, com <code>throws</code> no método (as prontas não declaram exceções; veja <a href="checked-unchecked.html">Checked × Unchecked</a>).</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … method apply(int) … Predicate": o método errado</strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.function.Predicate;
+
+public class Main {
+    public static void main(String[] args) {
+        Predicate&lt;Integer&gt; aprovado = n -&gt; n &gt;= 7;
+        System.out.println(aprovado.apply(8));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:6: error: cannot find symbol
+        System.out.println(aprovado.apply(8));
+                                   ^
+  symbol:   method apply(int)
+  location: variable aprovado of type Predicate&lt;Integer&gt;
+1 error</pre>
+<p><strong>O que quer dizer:</strong> <code>Predicate</code> não tem <code>apply</code>: o método dele é <code>test</code>. Cada interface tem o seu nome de método.</p>
+<p><strong>Como consertar:</strong> <code>Function</code>/<code>UnaryOperator</code>/<code>BinaryOperator</code> → <code>apply</code>; <code>Predicate</code> → <code>test</code>; <code>Consumer</code> → <code>accept</code>; <code>Supplier</code> → <code>get</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Unexpected @FunctionalInterface annotation"</strong>
+<p><strong>O que aconteceu:</strong> a interface anotada tem mais de um método abstrato (ou nenhum).</p>
+<p><strong>Como consertar:</strong> deixe um só método abstrato; os outros podem virar <code>default</code> (com corpo). Ou, se ela não é para lambdas, tire a anotação.</p>
+</div>
+
+<div class="cenario">
+<strong>"unexpected type … required: reference … found: int"</strong>
+<p><strong>O que aconteceu:</strong> você escreveu <code>Function&lt;int, int&gt;</code>. Generics não aceitam primitivos (veja <a href="generics.html">Generics</a>).</p>
+<p><strong>Como consertar:</strong> <code>Function&lt;Integer, Integer&gt;</code>, ou a versão primitiva <code>IntUnaryOperator</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Interface</th><th>Método</th><th>Composição</th><th>Usada em</th></tr>
+<tr><td><code>Function&lt;T, R&gt;</code></td><td><code>R apply(T)</code></td><td><code>andThen</code>, <code>compose</code>, <code>identity()</code></td><td><code>stream.map</code>, <code>Comparator.comparing</code></td></tr>
+<tr><td><code>BiFunction&lt;T, U, R&gt;</code></td><td><code>R apply(T, U)</code></td><td><code>andThen</code></td><td><code>Map.merge</code>, <code>Map.replaceAll</code></td></tr>
+<tr><td><code>Predicate&lt;T&gt;</code></td><td><code>boolean test(T)</code></td><td><code>and</code>, <code>or</code>, <code>negate</code>, <code>Predicate.not</code></td><td><code>removeIf</code>, <code>stream.filter</code></td></tr>
+<tr><td><code>Consumer&lt;T&gt;</code></td><td><code>void accept(T)</code></td><td><code>andThen</code></td><td><code>forEach</code></td></tr>
+<tr><td><code>BiConsumer&lt;T, U&gt;</code></td><td><code>void accept(T, U)</code></td><td><code>andThen</code></td><td><code>Map.forEach</code></td></tr>
+<tr><td><code>Supplier&lt;T&gt;</code></td><td><code>T get()</code></td><td>—</td><td><code>Optional.orElseGet</code>, <code>Collectors.toCollection</code></td></tr>
+<tr><td><code>UnaryOperator&lt;T&gt;</code></td><td><code>T apply(T)</code></td><td>(de <code>Function</code>)</td><td><code>List.replaceAll</code></td></tr>
+<tr><td><code>BinaryOperator&lt;T&gt;</code></td><td><code>T apply(T, T)</code></td><td><code>minBy</code>, <code>maxBy</code></td><td><code>stream.reduce</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O método do Predicate</h3>
+<p>Complete para testar se 8 passa no predicado <code>aprovado</code>:</p>
+<div class="ex-code">boolean ok = aprovado.<input data-answer="test(8)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. A interface certa</h3>
+<p>Complete o tipo de uma função que recebe um nome (<code>String</code>) e devolve o tamanho (<code>Integer</code>):</p>
+<div class="ex-code"><input data-answer="Function&lt;String, Integer&gt;|Function&lt;String,Integer&gt;" aria-label="tipo"> tamanho = s -&gt; s.length();</div>
+</div>
+
+<div class="exercise">
+<h3>3. Fornecedor</h3>
+<p>Complete para obter o valor do <code>Supplier&lt;String&gt; saudacao</code>:</p>
+<div class="ex-code">String s = saudacao.<input data-answer="get()" aria-label="chamada">;</div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual interface descreve "recebe um valor e não devolve nada"?</p>
+<label><input type="radio" name="q4"> <code>Supplier</code></label>
+<label><input type="radio" name="q4"> <code>Function</code></label>
+<label><input type="radio" name="q4"> <code>Predicate</code></label>
+<label><input type="radio" name="q4"> <code>Consumer</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>f = x -&gt; x + 1</code>, <code>g = x -&gt; x * 10</code>. Quanto dá <code>f.andThen(g).apply(2)</code>?</p>
+<label><input type="radio" name="q5"> 21</label>
+<label><input type="radio" name="q5"> 30</label>
+<label><input type="radio" name="q5"> 12</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que <code>p.and(q)</code> faz?</p>
+<label><input type="radio" name="q6"> Monta um novo predicado, verdadeiro quando <code>p</code> e <code>q</code> são verdadeiros.</label>
+<label><input type="radio" name="q6"> Testa <code>p</code> e <code>q</code> na hora e devolve um <code>boolean</code>.</label>
+<label><input type="radio" name="q6"> Junta as duas listas.</label>
+</div>
+
+<div class="tryjava" data-goal="out:105.0,src:andThen">
+<p class="try-task"><strong>Missão final:</strong> a loja da Ana dá 10% de desconto e depois soma R$ 15 de frete. Monte <code>precoFinal</code> compondo as duas funções com <code>andThen</code> (na ordem certa!). Para um produto de 100.0, a saída deve ser <code>105.0</code>.</p>
+<pre class="script">import java.util.function.Function;
+
+public class Main {
+    public static void main(String[] args) {
+        Function&lt;Double, Double&gt; desconto = p -&gt; p * 0.9;
+        Function&lt;Double, Double&gt; frete = p -&gt; p + 15;
+        Function&lt;Double, Double&gt; precoFinal = frete.andThen(desconto);
+        System.out.println(precoFinal.apply(100.0));
+    }
+}
+</pre>
+<pre class="solucao">import java.util.function.Function;
+
+public class Main {
+    public static void main(String[] args) {
+        Function&lt;Double, Double&gt; desconto = p -&gt; p * 0.9;
+        Function&lt;Double, Double&gt; frete = p -&gt; p + 15;
+        Function&lt;Double, Double&gt; precoFinal = desconto.andThen(frete);
+        System.out.println(precoFinal.apply(100.0));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Interface funcional = um único método abstrato. <code>@FunctionalInterface</code> pede ao compilador para garantir isso.</li>
+  <li><code>java.util.function</code> traz as prontas: <code>Function</code> (<code>apply</code>), <code>BiFunction</code>, <code>Predicate</code> (<code>test</code>), <code>Consumer</code> (<code>accept</code>), <code>Supplier</code> (<code>get</code>), <code>UnaryOperator</code>, <code>BinaryOperator</code>.</li>
+  <li>Compor: <code>andThen</code>/<code>compose</code> (funções), <code>and</code>/<code>or</code>/<code>negate</code> (predicados), <code>andThen</code> (consumidores).</li>
+  <li>Métodos que recebem interfaces funcionais separam o "como" (o método) do "o quê" (a lambda).</li>
+  <li>Há versões para primitivos: <code>IntPredicate</code>, <code>ToIntFunction</code>…</li>
+  <li>Crie a sua quando nenhum formato pronto servir ou quando um nome do domínio ajudar.</li>
+</ul>
+
+<p>Próxima aula: <a href="method-references.html">Referências de Métodos</a>, o atalho <code>::</code> para lambdas que só chamam um método.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
