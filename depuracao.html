@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Depurar — achar e corrigir erros de lógica | Guia Java</title>
+<meta name="description" content="Como depurar um programa Java: println estratégico, ler o stack trace, uma sessão real do jdb (stop at, run, print, next, cont), o depurador da IDE (breakpoints, step over/into, watches), assert com -ea e logs com java.util.logging e System.Logger.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Depurar</span></h1>
+
+<p class="intro">O programa compila, roda, não dá erro nenhum… e mostra o resultado errado. Esse é o tipo de defeito mais difícil, porque o Java não aponta a linha. <strong>Depurar</strong> é o trabalho de detetive de descobrir onde o programa se desviou do que você queria. Nesta aula você aprende as ferramentas, da mais simples (<code>println</code>) à mais poderosa (o depurador).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O método de depuração: reproduzir, formular uma hipótese, observar, corrigir.</li>
+  <li>Usar <code>println</code> de forma estratégica (e tirar depois).</li>
+  <li>Ler um <em>stack trace</em> para achar a linha de uma exceção.</li>
+  <li>Usar o depurador de linha de comando <code>jdb</code>: <code>stop at</code>, <code>run</code>, <code>print</code>, <code>locals</code>, <code>next</code>, <code>cont</code>.</li>
+  <li>O que o depurador da IDE oferece: <em>breakpoints</em>, <em>step over/into</em>, <em>watches</em>.</li>
+  <li>Verificar suposições com <code>assert</code> e a opção <code>-ea</code>.</li>
+  <li>Registrar o que acontece com logs (<code>java.util.logging</code> e <code>System.Logger</code>).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: o detetive não chuta</h2>
+<p>A palavra inglesa para defeito é <strong>bug</strong> ("inseto"); depurar é <em>debug</em>, "tirar os insetos". Quem começa costuma depurar "no chute": muda uma linha, roda, muda outra, roda… Funciona às vezes, mas costuma criar defeitos novos. O detetive faz diferente:</p>
+<ol class="passo">
+  <li><strong>Reproduzir:</strong> achar uma entrada que sempre mostra o erro.</li>
+  <li><strong>Saber o que devia acontecer:</strong> calcule à mão o resultado certo.</li>
+  <li><strong>Observar:</strong> olhar os valores das variáveis no meio do caminho, até achar o primeiro ponto em que eles divergem do esperado.</li>
+  <li><strong>Corrigir</strong> a causa (e não o sintoma), e rodar de novo. Se houver <a href="junit.html">testes</a>, eles confirmam que nada mais quebrou.</li>
+</ol>
+<p>O passo 3 é o que as ferramentas desta aula fazem: deixar você <strong>ver dentro</strong> do programa enquanto ele roda.</p>
+
+<h3>O caso: a média errada</h3>
+<p>A Ana escreveu um programa para calcular a média das notas de um aluno: 8, 7, 10 e 6. À mão: (8 + 7 + 10 + 6) / 4 = 31 / 4 = <strong>7.75</strong>.</p>
+
+<pre class="file" data-file="Media.java">public class Media {
+    public static void main(String[] args) {
+        int[] notas = {8, 7, 10, 6};
+        int soma = 0;
+        for (int i = 1; i &lt; notas.length; i++) {
+            soma += notas[i];
+        }
+        double media = soma / notas.length;
+        System.out.println("Média: " + media);
+    }
+}
+</pre>
+
+<pre class="term">$ javac -g Media.java
+$ java Media
+Média: 5.0</pre>
+
+<p>5.0, e não 7.75. Nenhuma mensagem de erro. Hora de investigar. (O <code>-g</code> no <code>javac</code> guarda informações extras de depuração no <code>.class</code>, como os nomes das variáveis locais; você vai precisar dele no <code>jdb</code>.)</p>
+
+<hr>
+
+<h2>1. O <code>println</code> estratégico</h2>
+<p>A ferramenta mais simples: pôr <code>System.out.println</code> nos pontos onde você quer ver os valores. "Estratégico" quer dizer: não espalhe prints em todo lugar, ponha onde as suas suposições podem estar erradas, e mostre <strong>nome e valor</strong> de cada variável:</p>
+
+<pre class="file" data-file="Media.java (com prints de depuração)">public class Media {
+    public static void main(String[] args) {
+        int[] notas = {8, 7, 10, 6};
+        int soma = 0;
+        for (int i = 1; i &lt; notas.length; i++) {
+            System.out.println("DEBUG i=" + i + " nota=" + notas[i] + " soma=" + soma);
+            soma += notas[i];
+        }
+        System.out.println("DEBUG soma final=" + soma + " quantidade=" + notas.length);
+        double media = soma / notas.length;
+        System.out.println("Média: " + media);
+    }
+}
+</pre>
+
+<pre class="term">$ java Media.java
+DEBUG i=1 nota=7 soma=0
+DEBUG i=2 nota=10 soma=7
+DEBUG i=3 nota=6 soma=17
+DEBUG soma final=23 quantidade=4
+Média: 5.0</pre>
+
+<p>Leia com olho de detetive: a soma deveria ser 31, mas é 23. Faltam 8, justamente a <strong>primeira</strong> nota. E a primeira linha mostra por quê: o laço começa em <code>i=1</code>, e os arrays começam no índice <strong>0</strong> (veja <a href="arrays.html">Arrays</a>). Primeiro defeito achado: <code>int i = 1</code> deveria ser <code>int i = 0</code>.</p>
+
+<p>Corrigido o laço, a Ana roda de novo, agora com prints da soma e da média:</p>
+<pre class="term">$ java Media.java
+DEBUG soma=31 quantidade=4
+DEBUG media=7.0
+Média: 7.0</pre>
+
+<p>A soma agora está certa (31), mas a média deu 7.0. O problema está entre os dois prints, na linha <code>double media = soma / notas.length;</code>. <code>soma</code> e <code>notas.length</code> são <code>int</code>, então a divisão é <strong>inteira</strong>: 31 / 4 = 7, e só depois o 7 vira <code>7.0</code> ao ser guardado no <code>double</code> (veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). O conserto é converter antes de dividir: <code>(double) soma / notas.length</code>.</p>
+
+<pre class="term">$ java Media.java
+Média: 7.75</pre>
+
+<div class="tip">
+<strong>Boas práticas com prints de depuração</strong>
+<ul>
+  <li>Comece com uma marca fácil de achar (<code>DEBUG</code>) e <strong>apague todos</strong> depois; prints esquecidos poluem a saída do programa.</li>
+  <li>Mostre o nome junto do valor: <code>"soma=" + soma</code>, nunca só <code>soma</code>.</li>
+  <li>Para não misturar com a saída normal, use <code>System.err.println</code>: ela vai para a "saída de erros", que dá para separar no terminal (<code>java Media 2&gt;/dev/null</code> esconde os prints de depuração).</li>
+  <li>Se você se pega pondo os mesmos prints de novo e de novo, é hora de um depurador ou de logs.</li>
+</ul>
+</div>
+
+<div class="tryjava" data-goal="out:Média: 7.75">
+<p class="try-task"><strong>Missão:</strong> este é o programa original, com os <strong>dois</strong> defeitos. Ponha prints de depuração, ache-os e corrija até a saída ser <code>Média: 7.75</code>. Depois, apague os prints.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {8, 7, 10, 6};
+        int soma = 0;
+        for (int i = 1; i &lt; notas.length; i++) {
+            soma += notas[i];
+        }
+        double media = soma / notas.length;
+        System.out.println("Média: " + media);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {8, 7, 10, 6};
+        int soma = 0;
+        for (int i = 0; i &lt; notas.length; i++) {
+            soma += notas[i];
+        }
+        double media = (double) soma / notas.length;
+        System.out.println("Média: " + media);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Ler o <em>stack trace</em></h2>
+<p>Quando o defeito causa uma <a href="excecoes.html">exceção</a>, o Java já faz metade do trabalho de detetive: ele imprime o <strong>stack trace</strong> ("rastro da pilha"), a lista de métodos que estavam rodando no momento do erro. Aqui, a Ana separou o cálculo num método e errou a condição do laço (<code>&lt;=</code> em vez de <code>&lt;</code>):</p>
+
+<pre class="file" data-file="Boletim.java">public class Boletim {
+    static double media(int[] notas) {
+        int soma = 0;
+        for (int i = 0; i &lt;= notas.length; i++) {
+            soma += notas[i];
+        }
+        return (double) soma / notas.length;
+    }
+
+    public static void main(String[] args) {
+        int[] notas = {8, 7, 10, 6};
+        System.out.println("Média: " + media(notas));
+    }
+}
+</pre>
+
+<pre class="term">$ java Boletim.java
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 4 out of bounds for length 4
+	at Boletim.media(Boletim.java:5)
+	at Boletim.main(Boletim.java:12)</pre>
+
+<dl class="anatomy">
+  <dt>Exception in thread "main"</dt><dd>Uma exceção não tratada parou o programa (no <em>thread</em> principal).</dd>
+  <dt>java.lang.ArrayIndexOutOfBoundsException</dt><dd><strong>O quê</strong>: índice fora dos limites do array.</dd>
+  <dt>Index 4 out of bounds for length 4</dt><dd><strong>Detalhes</strong>: tentou usar o índice 4 num array de tamanho 4 (os índices válidos vão de 0 a 3).</dd>
+  <dt>at Boletim.media(Boletim.java:5)</dt><dd><strong>Onde</strong>: a primeira linha <code>at</code> é o lugar exato do erro, o método <code>media</code>, linha 5 (<code>soma += notas[i];</code>).</dd>
+  <dt>at Boletim.main(Boletim.java:12)</dt><dd><strong>Quem chamou</strong>: o <code>media</code> foi chamado pelo <code>main</code>, na linha 12. Lendo de cima para baixo, você vai "voltando" pelo caminho do programa.</dd>
+</dl>
+
+<p>Com o stack trace, a pergunta deixa de ser "onde está o erro?" e vira "por que <code>i</code> chegou a 4 na linha 5?". Resposta: o <code>&lt;=</code> deixa o laço rodar com <code>i == notas.length</code>. Em programas grandes, o stack trace tem dezenas de linhas, muitas de bibliotecas (<code>at java.base/…</code>, <code>at org.junit…</code>); procure a <strong>primeira linha que é do seu código</strong>. A aula <a href="excecoes.html">O que são Exceções</a> explica as partes com mais calma, e a <a href="ref-excecoes.html">Exceções Comuns</a> lista as mais frequentes.</p>
+
+<div class="tryjava" data-goal="out:Média: 7.75">
+<p class="try-task"><strong>Missão:</strong> rode o <code>Boletim</code>, leia o stack trace no editor, vá até a linha apontada e corrija o laço para a saída ser <code>Média: 7.75</code>.</p>
+<pre class="script">public class Main {
+    static double media(int[] notas) {
+        int soma = 0;
+        for (int i = 0; i &lt;= notas.length; i++) {
+            soma += notas[i];
+        }
+        return (double) soma / notas.length;
+    }
+
+    public static void main(String[] args) {
+        int[] notas = {8, 7, 10, 6};
+        System.out.println("Média: " + media(notas));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static double media(int[] notas) {
+        int soma = 0;
+        for (int i = 0; i &lt; notas.length; i++) {
+            soma += notas[i];
+        }
+        return (double) soma / notas.length;
+    }
+
+    public static void main(String[] args) {
+        int[] notas = {8, 7, 10, 6};
+        System.out.println("Média: " + media(notas));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O depurador: <code>jdb</code></h2>
+<p>Um <strong>depurador</strong> (<em>debugger</em>) roda o seu programa em câmera lenta. Você marca uma linha com um <strong>ponto de parada</strong> (<em>breakpoint</em>); quando o programa chega lá, ele <strong>congela</strong>, e você pode olhar todas as variáveis, avançar uma linha por vez, e continuar. Nada de editar o código para pôr prints.</p>
+<p>O JDK traz um depurador de linha de comando, o <code>jdb</code> (<em>Java Debugger</em>). Ele é simples e pouco usado no dia a dia (as IDEs têm depuradores visuais, na próxima seção), mas mostra muito bem como <strong>todo</strong> depurador funciona. Uma sessão real com o <code>Media.java</code> original (o do laço começando em 1), compilado com <code>javac -g</code>:</p>
+
+<pre class="term">$ jdb Media
+Initializing jdb ...
+&gt; stop at Media:6
+Deferring breakpoint Media:6.
+It will be set after the class is loaded.
+&gt; run
+run Media
+Set uncaught java.lang.Throwable
+Set deferred uncaught java.lang.Throwable
+&gt;
+VM Started: Set deferred breakpoint Media:6
+
+Breakpoint hit: "thread=main", Media.main(), line=6 bci=34
+6                soma += notas[i];
+
+main[1] locals
+Method arguments:
+args = instance of java.lang.String[0] (id=431)
+Local variables:
+notas = instance of int[4] (id=432)
+soma = 0
+i = 1
+main[1] print soma
+ soma = 0
+main[1] print notas[i]
+ notas[i] = 7
+main[1] next
+&gt;
+Step completed: "thread=main", Media.main(), line=5 bci=40
+5            for (int i = 1; i &lt; notas.length; i++) {
+
+main[1] next
+&gt;
+Step completed:
+Breakpoint hit: "thread=main", Media.main(), line=6 bci=34
+6                soma += notas[i];
+
+main[1] print soma
+ soma = 7
+main[1] cont
+&gt;
+Breakpoint hit: "thread=main", Media.main(), line=6 bci=34
+6                soma += notas[i];
+
+main[1] print i
+ i = 3
+main[1] print soma
+ soma = 17
+main[1] clear Media:6
+Removed: breakpoint Media:6
+main[1] cont
+&gt; Média: 5.0
+
+The application exited</pre>
+
+<p>Passo a passo do que a Ana fez:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ela digitou</th><th>O que aconteceu</th></tr>
+<tr><td><code>stop at Media:6</code></td><td>Marcou um ponto de parada na linha 6 da classe <code>Media</code> (a linha que soma). Como o programa ainda não começou, o <code>jdb</code> "adia" (<em>deferring</em>) a marca até a classe ser carregada.</td></tr>
+<tr><td><code>run</code></td><td>Começou o programa. Ele rodou até a linha 6 e congelou: <code>Breakpoint hit … line=6</code>. O <code>jdb</code> mostra a linha que <strong>vai</strong> rodar (ainda não rodou). O prompt muda para <code>main[1]</code>: o thread <code>main</code> está parado.</td></tr>
+<tr><td><code>locals</code></td><td>Mostrou todas as variáveis locais. <strong>A pista:</strong> na primeira passada pelo laço, <code>i = 1</code>. Deveria ser 0!</td></tr>
+<tr><td><code>print soma</code>, <code>print notas[i]</code></td><td>Mostrou uma variável ou expressão: a soma ainda é 0, e a nota da vez é 7 (a segunda nota; a primeira, 8, foi pulada).</td></tr>
+<tr><td><code>next</code></td><td>Executou a linha atual e parou na próxima (<em>step over</em>). Foi para a linha 5, o <code>i++</code> e o teste do <code>for</code>. Outro <code>next</code> voltou à linha 6, onde está o breakpoint.</td></tr>
+<tr><td><code>cont</code></td><td>Continuou rodando até o próximo breakpoint (a próxima volta do laço).</td></tr>
+<tr><td><code>clear Media:6</code></td><td>Tirou o breakpoint.</td></tr>
+<tr><td><code>cont</code></td><td>O programa rodou até o fim: <code>Média: 5.0</code> e <code>The application exited</code>.</td></tr>
+</table>
+</div>
+
+<p>Repare: a Ana descobriu o mesmo defeito do <code>println</code>, mas <strong>sem mudar uma linha</strong> do código. Outros comandos úteis do <code>jdb</code>:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>stop in Classe.metodo</code></td><td>Para na entrada de um método</td></tr>
+<tr><td><code>step</code></td><td>Executa a linha e, se ela chamar um método, <strong>entra</strong> nele (<em>step into</em>)</td></tr>
+<tr><td><code>step up</code></td><td>Roda até o fim do método atual e volta para quem chamou (<em>step out</em>)</td></tr>
+<tr><td><code>where</code></td><td>Mostra a pilha de chamadas, como um stack trace</td></tr>
+<tr><td><code>dump objeto</code></td><td>Mostra todos os atributos de um objeto</td></tr>
+<tr><td><code>clear</code></td><td>Lista os breakpoints</td></tr>
+<tr><td><code>help</code></td><td>Lista todos os comandos</td></tr>
+<tr><td><code>exit</code></td><td>Sai do <code>jdb</code> (e encerra o programa)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>4. O depurador da IDE</h2>
+<p>No dia a dia, quase ninguém usa o <code>jdb</code>: as IDEs (IntelliJ IDEA, VS Code, Eclipse, NetBeans; veja <a href="editores-ide.html">Editores e IDEs</a>) têm um depurador visual que faz o mesmo com cliques. Por baixo, elas usam o mesmo mecanismo do <code>jdb</code>. O que você vai encontrar:</p>
+<dl class="anatomy">
+  <dt>Breakpoint</dt><dd>Clique na margem esquerda, ao lado do número da linha: aparece uma bolinha vermelha. É o <code>stop at</code>.</dd>
+  <dt>Botão Debug (o "inseto")</dt><dd>Roda o programa no modo de depuração, em vez do botão Run. É o <code>run</code> do <code>jdb</code>. O programa para na bolinha, e a linha fica destacada.</dd>
+  <dt>Painel de variáveis</dt><dd>Mostra sozinho todas as variáveis locais e os atributos dos objetos, que você pode abrir como pastas. É o <code>locals</code> e o <code>dump</code>, sempre atualizado.</dd>
+  <dt>Step Over</dt><dd>Executa a linha e para na próxima (<code>next</code>). IntelliJ: <kbd>F8</kbd>; VS Code: <kbd>F10</kbd>.</dd>
+  <dt>Step Into</dt><dd>Entra no método chamado na linha (<code>step</code>). IntelliJ: <kbd>F7</kbd>; VS Code: <kbd>F11</kbd>.</dd>
+  <dt>Step Out</dt><dd>Termina o método atual e volta para quem chamou (<code>step up</code>). IntelliJ: <kbd>Shift</kbd>+<kbd>F8</kbd>; VS Code: <kbd>Shift</kbd>+<kbd>F11</kbd>.</dd>
+  <dt>Resume / Continue</dt><dd>Continua até o próximo breakpoint (<code>cont</code>). IntelliJ: <kbd>F9</kbd>; VS Code: <kbd>F5</kbd>.</dd>
+  <dt>Watches (expressões vigiadas)</dt><dd>Uma lista de expressões que você escolhe, como <code>soma / notas.length</code>, recalculadas a cada passo. É um <code>print</code> automático.</dd>
+  <dt>Breakpoint condicional</dt><dd>Clique com o botão direito na bolinha e escreva uma condição, como <code>i == 3</code>: o programa só para quando ela for verdadeira. Ótimo para laços com milhares de voltas.</dd>
+  <dt>Call stack (pilha de chamadas)</dt><dd>A lista de métodos em execução, como o stack trace; clicar numa linha mostra as variáveis daquele método. É o <code>where</code>.</dd>
+</dl>
+<p>Os nomes e atalhos mudam um pouco de uma IDE para outra, mas as ideias são exatamente estas. Se você entendeu a sessão do <code>jdb</code>, sabe usar qualquer depurador.</p>
+
+<hr>
+
+<h2>5. <code>assert</code> e a opção <code>-ea</code></h2>
+<p>Um <code>assert</code> ("afirmar") é uma <strong>suposição escrita no código</strong>: "neste ponto, isto tem de ser verdade". Se não for, o programa para com um <code>AssertionError</code>, bem perto da origem do problema, em vez de seguir com um valor maluco.</p>
+
+<pre class="file" data-file="Turma.java">public class Turma {
+    static double media(int[] notas) {
+        assert notas.length &gt; 0 : "lista de notas vazia";
+        int soma = 0;
+        for (int nota : notas) {
+            soma += nota;
+        }
+        return (double) soma / notas.length;
+    }
+
+    public static void main(String[] args) {
+        int[] semNotas = {};
+        System.out.println("Média: " + media(semNotas));
+    }
+}
+</pre>
+<dl class="anatomy">
+  <dt>assert</dt><dd>Palavra-chave do Java.</dd>
+  <dt>notas.length &gt; 0</dt><dd>A condição que você supõe verdadeira.</dd>
+  <dt>: "lista de notas vazia"</dt><dd>Opcional: a mensagem do erro, se a condição for falsa.</dd>
+</dl>
+
+<p>Agora o detalhe importante: os <code>assert</code> vêm <strong>desligados</strong>. Para ligar, use a opção <code>-ea</code> (<em>enable assertions</em>, "ligar as afirmações") no <code>java</code>:</p>
+
+<pre class="term">$ java Turma.java
+Média: NaN                          « assert desligado: 0.0 / 0 dá NaN ("não é um número")
+$ java -ea Turma.java
+Exception in thread "main" java.lang.AssertionError: lista de notas vazia
+	at Turma.media(Turma.java:3)
+	at Turma.main(Turma.java:13)</pre>
+
+<p>Sem o <code>-ea</code>, o programa segue e mostra <code>NaN</code>, um valor sem sentido que pode ir parar num relatório. Com o <code>-ea</code>, ele para na linha 3 e diz por quê. Funciona igual com classes compiladas: <code>java -ea Turma</code>.</p>
+
+<div class="warning">
+<strong>Não use <code>assert</code> para validar dados do usuário</strong>
+<p>Como os <code>assert</code> ficam desligados quando o programa roda normalmente, eles servem para pegar <strong>erros de programação</strong> enquanto você desenvolve e testa, não para conferir o que vem de fora. Para recusar um valor inválido (um depósito negativo, um campo vazio), use <code>if</code> e <code>throw new IllegalArgumentException(…)</code> (veja <a href="throw-throws.html">throw e throws</a>), que funcionam sempre. E nunca ponha no <code>assert</code> algo que precisa acontecer, como <code>assert lista.remove(x)</code>: com o assert desligado, a remoção também some.</p>
+</div>
+
+<hr>
+
+<h2>6. Logs: um diário do programa</h2>
+<p>Os prints de depuração somem quando você os apaga. Mas, num programa que roda todo dia (um sistema de loja, um servidor), você quer um <strong>diário</strong> permanente: o que aconteceu, quando, e com que gravidade. Isso é um <strong>log</strong> ("diário de bordo"). A diferença para o <code>println</code>: cada mensagem tem um <strong>nível</strong> de importância, data e hora, e você liga ou desliga níveis sem mexer no código.</p>
+
+<h3><code>java.util.logging</code></h3>
+<p>O Java traz um sistema de logs pronto, no pacote <code>java.util.logging</code>:</p>
+<pre class="file" data-file="Loja.java">import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class Loja {
+    private static final Logger LOG = Logger.getLogger(Loja.class.getName());
+
+    public static void main(String[] args) {
+        LOG.info("Caixa aberto");
+        LOG.warning("Estoque baixo: café");
+        LOG.fine("Detalhe que não aparece");
+        LOG.log(Level.SEVERE, "Falha ao gravar a venda", new IllegalStateException("disco cheio"));
+        System.out.println("Fim do expediente");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Loja.java
+$ java Loja
+out. 16, 2026 6:50:21 PM Loja main
+INFORMAÇÕES: Caixa aberto
+out. 16, 2026 6:50:21 PM Loja main
+ADVERTÊNCIA: Estoque baixo: café
+out. 16, 2026 6:50:21 PM Loja main
+GRAVE: Falha ao gravar a venda
+java.lang.IllegalStateException: disco cheio
+	at Loja.main(Loja.java:11)
+
+Fim do expediente</pre>
+
+<dl class="anatomy">
+  <dt>Logger.getLogger(Loja.class.getName())</dt><dd>Pega um <em>logger</em> ("registrador") com o nome da classe. É costume ter um por classe, guardado num atributo <code>private static final</code>.</dd>
+  <dt>LOG.info / LOG.warning</dt><dd>Registram uma mensagem com o nível <code>INFO</code> (informação) ou <code>WARNING</code> (aviso). O idioma do computador traduz o nível: <code>INFORMAÇÕES</code>, <code>ADVERTÊNCIA</code>.</dd>
+  <dt>LOG.fine</dt><dd>Nível <code>FINE</code> (detalhe). <strong>Não apareceu</strong>: por padrão, só <code>INFO</code> para cima é mostrado. Os detalhes ficam no código, prontos para ligar quando precisar investigar, sem poluir a saída no dia a dia.</dd>
+  <dt>LOG.log(Level.SEVERE, "…", exceção)</dt><dd>Nível <code>SEVERE</code> (<code>GRAVE</code>), com a exceção e o stack trace junto.</dd>
+  <dt>out. 16, 2026 6:50:21 PM Loja main</dt><dd>Cada mensagem ganha data, hora, classe e método de onde veio.</dd>
+</dl>
+
+<p>Os logs vão para a <strong>saída de erros</strong>, não para a saída normal. Escondendo a saída de erros, só sobra o <code>println</code>:</p>
+<pre class="term">$ java Loja.java 2&gt;/dev/null
+Fim do expediente</pre>
+
+<p>Os níveis, do mais grave ao mais detalhado: <code>SEVERE</code>, <code>WARNING</code>, <code>INFO</code>, <code>CONFIG</code>, <code>FINE</code>, <code>FINER</code>, <code>FINEST</code>.</p>
+
+<h3><code>System.Logger</code> <span class="versao">Java 9+</span></h3>
+<p>O <code>System.Logger</code> é uma "fachada" mais simples, que já vem no <code>System</code> sem <code>import</code>. Por padrão, ele usa o <code>java.util.logging</code> por baixo (por isso a saída tem o mesmo formato), mas, num projeto grande, pode ser ligado a outra biblioteca de logs sem mudar o seu código. E aceita "buracos" <code>{0}</code>, <code>{1}</code> para os valores:</p>
+<pre class="file" data-file="Loja2.java">public class Loja2 {
+    private static final System.Logger LOG = System.getLogger("loja");
+
+    public static void main(String[] args) {
+        LOG.log(System.Logger.Level.INFO, "Caixa aberto");
+        LOG.log(System.Logger.Level.WARNING, "Estoque baixo: {0} ({1} unidades)", "café", 2);
+        LOG.log(System.Logger.Level.DEBUG, "Detalhe que não aparece");
+    }
+}
+</pre>
+<pre class="term">$ java Loja2.java
+out. 16, 2026 6:50:14 PM Loja2 main
+INFORMAÇÕES: Caixa aberto
+out. 16, 2026 6:50:14 PM Loja2 main
+ADVERTÊNCIA: Estoque baixo: café (2 unidades)</pre>
+<p>Em projetos profissionais, é comum usar bibliotecas de log de fora do JDK (SLF4J com Logback, Log4j 2), adicionadas pelo <a href="maven.html">Maven</a>; a ideia de níveis é a mesma.</p>
+
+<hr>
+
+<h2>Qual ferramenta usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Ferramenta</th></tr>
+<tr><td>O programa parou com uma exceção</td><td>Leia o <strong>stack trace</strong>: a primeira linha <code>at</code> do seu código</td></tr>
+<tr><td>Resultado errado num programa pequeno</td><td><code>println</code> estratégico, ou o depurador</td></tr>
+<tr><td>Resultado errado num programa grande, ou num laço longo</td><td><strong>Depurador</strong> com breakpoint (condicional)</td></tr>
+<tr><td>"Isto nunca deveria acontecer"</td><td><code>assert</code>, rodando com <code>-ea</code> durante o desenvolvimento</td></tr>
+<tr><td>Saber o que aconteceu ontem, num programa que roda sempre</td><td><strong>Logs</strong></td></tr>
+<tr><td>Garantir que o defeito não volta</td><td>Um <a href="junit.html">teste</a> que reproduz o defeito</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>assert</code> "não funciona"</strong>
+<p><strong>O que aconteceu:</strong> a condição é falsa, mas o programa não para. Os <code>assert</code> estão desligados. <strong>Como resolver:</strong> rode com <code>java -ea …</code>. Nas IDEs, a opção fica nas configurações de execução (<em>VM options</em>: <code>-ea</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>jdb</code> não mostra as variáveis locais</strong>
+<p><strong>O que aconteceu:</strong> a classe foi compilada sem informação de depuração, e os nomes das variáveis locais não estão no <code>.class</code>. O mesmo efeito aparece até nas mensagens de exceção. Sem <code>-g</code>:</p>
+<pre class="term">$ javac Pedido.java &amp;&amp; java Pedido
+Validando pedido...
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "&lt;local1&gt;" is null
+	at Pedido.validar(Pedido.java:18)
+	at Pedido.main(Pedido.java:7)
+$ javac -g Pedido.java &amp;&amp; java Pedido
+Validando pedido...
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "nome" is null
+	at Pedido.validar(Pedido.java:18)
+	at Pedido.main(Pedido.java:7)</pre>
+<p><code>&lt;local1&gt;</code> quer dizer "a variável local número 1", sem nome. <strong>Como resolver:</strong> compile com <code>javac -g</code>. (O Maven e o Gradle já compilam com <code>-g</code>, como mostra o <code>[debug release 25]</code> na saída do Maven.)</p>
+</div>
+
+<div class="cenario">
+<strong>O breakpoint nunca é atingido</strong>
+<p><strong>O que aconteceu:</strong> a linha marcada não é executada (está num <code>if</code> que não entrou, num método que ninguém chama) ou é uma linha sem código (em branco, comentário, só uma <code>}</code>). <strong>Como resolver:</strong> ponha o breakpoint numa linha com instrução, mais cedo no caminho, e avance com <code>next</code>/<code>step</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Arrumei, mas o erro continua igual"</strong>
+<p><strong>O que aconteceu:</strong> você mudou o <code>.java</code> e rodou o <code>.class</code> antigo (esqueceu o <code>javac</code>), ou corrigiu o sintoma num lugar e a causa está em outro. <strong>Como resolver:</strong> recompile (ou use <code>java Arquivo.java</code>, que compila na hora). Volte ao método: ache o <strong>primeiro</strong> ponto em que um valor diverge do esperado.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Item</th><th>O que faz</th></tr>
+<tr><td><code>System.err.println("DEBUG x=" + x)</code></td><td>Print de depuração na saída de erros</td></tr>
+<tr><td><code>javac -g Arquivo.java</code></td><td>Compila com informação de depuração</td></tr>
+<tr><td><code>jdb Classe</code></td><td>Abre o depurador para a classe</td></tr>
+<tr><td><code>stop at Classe:linha</code> / <code>stop in Classe.metodo</code></td><td>Breakpoint numa linha / num método</td></tr>
+<tr><td><code>run</code> / <code>cont</code></td><td>Começa / continua até o próximo breakpoint</td></tr>
+<tr><td><code>next</code> / <code>step</code> / <code>step up</code></td><td>Step over / step into / step out</td></tr>
+<tr><td><code>print expr</code> / <code>locals</code> / <code>where</code></td><td>Mostra uma expressão / as variáveis locais / a pilha</td></tr>
+<tr><td><code>assert condição : "mensagem";</code></td><td>Suposição verificada só com <code>-ea</code></td></tr>
+<tr><td><code>java -ea Classe</code></td><td>Roda com os <code>assert</code> ligados</td></tr>
+<tr><td><code>Logger.getLogger(nome)</code></td><td>Logger do <code>java.util.logging</code></td></tr>
+<tr><td><code>System.getLogger(nome)</code></td><td>Logger da fachada <code>System.Logger</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Ligar os asserts</h3>
+<p>Complete o comando para rodar a classe <code>Turma</code> com os <code>assert</code> ligados:</p>
+<div class="ex-code">java <input data-answer="-ea|-enableassertions" aria-label="opção"> Turma</div>
+</div>
+
+<div class="exercise">
+<h3>2. Breakpoint no jdb</h3>
+<p>Complete para parar na linha 12 da classe <code>Boletim</code>:</p>
+<div class="ex-code"><input data-answer="stop at Boletim:12" aria-label="comando do jdb"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Onde está o erro?</h3>
+<p>Dado o stack trace abaixo, em que linha de <code>Pedido.java</code> a exceção aconteceu?</p>
+<pre class="term">$ java Pedido
+Validando pedido...
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "nome" is null
+	at Pedido.validar(Pedido.java:18)
+	at Pedido.main(Pedido.java:7)</pre>
+<div class="ex-code">Linha <input data-answer="18" aria-label="número da linha"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. No depurador, qual comando executa a linha atual e, se ela chamar um método, <strong>entra</strong> nele?</p>
+<label><input type="radio" name="q4"> <code>next</code> (step over)</label>
+<label><input type="radio" name="q4"> <code>cont</code></label>
+<label><input type="radio" name="q4"> <code>step</code> (step into)</label>
+<label><input type="radio" name="q4"> <code>clear</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Por que o <code>LOG.fine("…")</code> não apareceu na saída?</p>
+<label><input type="radio" name="q5"> Porque tem acento na mensagem.</label>
+<label><input type="radio" name="q5"> Porque, por padrão, só os níveis <code>INFO</code> e acima são mostrados.</label>
+<label><input type="radio" name="q5"> Porque faltou <code>-ea</code>.</label>
+<label><input type="radio" name="q5"> Porque logs só funcionam no Maven.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Para recusar um depósito negativo digitado pelo usuário, o certo é:</p>
+<label><input type="radio" name="q6"> <code>assert valor &gt; 0;</code></label>
+<label><input type="radio" name="q6"> <code>System.out.println("DEBUG valor=" + valor);</code></label>
+<label><input type="radio" name="q6"> <code>LOG.fine("valor negativo");</code></label>
+<label><input type="radio" name="q6"> <code>if (valor &lt;= 0) throw new IllegalArgumentException(…);</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Maior: -2">
+<p class="try-task"><strong>Missão final:</strong> a Ana anotou as temperaturas de uma semana de inverno na serra, todas abaixo de zero. O programa diz que a maior foi <code>0</code>, uma temperatura que nem aparece na lista! Investigue (com prints, se quiser) e corrija para mostrar <code>Maior: -2</code>. Dica: qual é o valor de <code>maior</code> antes da primeira comparação?</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int[] temperaturas = {-5, -2, -8, -3, -6};
+        int maior = 0;
+        for (int t : temperaturas) {
+            if (t &gt; maior) {
+                maior = t;
+            }
+        }
+        System.out.println("Maior: " + maior);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int[] temperaturas = {-5, -2, -8, -3, -6};
+        int maior = temperaturas[0];
+        for (int t : temperaturas) {
+            if (t &gt; maior) {
+                maior = t;
+            }
+        }
+        System.out.println("Maior: " + maior);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Depurar é método: reproduzir, saber o resultado certo, observar até achar o primeiro valor que diverge, corrigir a causa.</li>
+  <li><code>println</code> estratégico: nome e valor, marca <code>DEBUG</code>, apagar depois (ou <code>System.err</code>).</li>
+  <li>Stack trace: tipo e mensagem da exceção; a primeira linha <code>at</code> do seu código é onde aconteceu; as de baixo, quem chamou.</li>
+  <li>Depurador: breakpoint, executar até ele, olhar variáveis, avançar (<code>next</code> = step over, <code>step</code> = step into), continuar. O <code>jdb</code> faz isso no terminal; as IDEs, com cliques e <em>watches</em>.</li>
+  <li><code>assert condição : "msg"</code> só vale com <code>java -ea</code>; serve para erros de programação, não para validar dados.</li>
+  <li>Logs (<code>java.util.logging</code>, <code>System.Logger</code>) registram o que acontece com nível, data e hora; <code>FINE</code>/<code>DEBUG</code> ficam escondidos por padrão.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
