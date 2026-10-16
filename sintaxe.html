@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Sintaxe e Estrutura — regras de escrita, nomes e convenções | Guia Java</title>
+<meta name="description" content="As regras de escrita do Java: estrutura de um programa, instruções e ponto e vírgula, blocos com chaves, maiúsculas e minúsculas, espaços e indentação, identificadores válidos, convenções camelCase, PascalCase e CONSTANTES, e palavras reservadas, com os erros reais do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Sintaxe e Estrutura</span></h1>
+
+<p class="intro">Toda língua tem gramática. No português, uma vírgula fora do lugar raramente impede alguém de entender a frase; no Java, impede o programa de existir. A <strong>sintaxe</strong> é o conjunto de regras de escrita do Java: onde vai cada símbolo, quais nomes valem, o que diferencia maiúscula de minúscula. Nesta aula você aprende as regras que valem para todo programa e as convenções que fazem o seu código parecer escrito por um programador Java.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A estrutura de um programa: classe, métodos e instruções.</li>
+  <li>Onde vai o ponto e vírgula e para que servem as chaves.</li>
+  <li>Por que <code>System</code> e <code>system</code> são coisas diferentes.</li>
+  <li>O que o Java faz com espaços, quebras de linha e recuo.</li>
+  <li>As regras para criar nomes (identificadores) e as convenções camelCase, PascalCase e CONSTANTES.</li>
+  <li>O que são palavras reservadas.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: regras e costumes</h2>
+<p>Na escrita, há dois tipos de regra. As da <strong>gramática</strong> são obrigatórias: "eu vai" está errado. As de <strong>estilo</strong> são costumes: começar uma carta com "Prezada Ana" não é obrigatório, mas todo mundo espera.</p>
+
+<p>O Java é igual:</p>
+<ul>
+  <li><strong>Regras de sintaxe</strong> são obrigatórias. Quebrou uma, o <code>javac</code> recusa o programa com um erro.</li>
+  <li><strong>Convenções</strong> são costumes da comunidade Java: o código compila sem elas, mas fica estranho e difícil de ler para outros programadores.</li>
+</ul>
+<p>Esta aula marca cada item como <strong>regra</strong> ou <strong>convenção</strong>.</p>
+
+<hr>
+
+<h2>A estrutura de um programa</h2>
+<p>Todo programa Java tem a mesma organização, em camadas, como bonecas russas:</p>
+
+<pre class="syntax">arquivo Loja.java
+└── classe Loja                       public class Loja { … }
+    └── método main                   public static void main(String[] args) { … }
+        ├── instrução                 String cliente = "Ana";
+        ├── instrução                 int macas = 3;
+        └── instrução                 System.out.println(…);</pre>
+
+<pre class="file" data-file="Loja.java">public class Loja {
+    public static void main(String[] args) {
+        String cliente = "Ana";
+        int macas = 3;
+        System.out.println("Cliente: " + cliente);
+        System.out.println("Maçãs: " + macas);
+    }
+}
+</pre>
+
+<pre class="term">$ java Loja.java
+Cliente: Ana
+Maçãs: 3</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Camada</th><th>O que é</th><th>Neste programa</th></tr>
+<tr><td><strong>Classe</strong></td><td>O recipiente de tudo. Um arquivo tem pelo menos uma; a pública dá nome ao arquivo.</td><td><code>public class Loja { … }</code></td></tr>
+<tr><td><strong>Método</strong></td><td>Um bloco de instruções com nome. O <code>main</code> é por onde o programa começa.</td><td><code>main</code></td></tr>
+<tr><td><strong>Instrução</strong></td><td>Uma ordem completa, terminada em <code>;</code>. Roda na ordem em que aparece, de cima para baixo.</td><td>as quatro linhas do meio</td></tr>
+<tr><td><strong>Expressão</strong></td><td>Um pedaço de uma instrução que produz um valor.</td><td><code>"Cliente: " + cliente</code>, <code>3</code></td></tr>
+</table>
+</div>
+
+<p>Instruções só podem ficar <strong>dentro de métodos</strong> (regra). Um <code>System.out.println</code> solto dentro da classe, fora do <code>main</code>, não compila. O significado de cada palavra da moldura está em <a href="primeiro-programa.html">Olá, Mundo</a>; variáveis como <code>cliente</code> e <code>macas</code>, em <a href="variaveis.html">Variáveis</a>.</p>
+
+<hr>
+
+<h2>O ponto e vírgula <code>;</code> <small>(regra)</small></h2>
+<p>Toda instrução termina com <code>;</code>. Não importa se ela ocupa meia linha ou três: o Java não olha para o fim da linha, olha para o <code>;</code>.</p>
+
+<p>Por isso, uma instrução comprida pode ser quebrada em várias linhas, e várias instruções podem ficar na mesma linha:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Uma instrução "
+                + "em duas linhas");
+        System.out.println("Oi"); System.out.println("Tudo numa linha");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Uma instrução em duas linhas
+Oi
+Tudo numa linha</pre>
+
+<p>As duas formas compilam. A primeira é útil para linhas muito compridas. A segunda é permitida, mas a <strong>convenção</strong> é uma instrução por linha, para ler fácil.</p>
+
+<p>Sem o <code>;</code>, o <code>javac</code> não sabe onde a instrução termina:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: ';' expected
+        int nota = 8
+                    ^
+1 error</pre>
+
+<p>Repare: o <code>^</code> aponta para logo depois do <code>8</code>, onde o <code>;</code> deveria estar, e a linha citada (3) é a da instrução sem <code>;</code>. O que <strong>não</strong> leva ponto e vírgula: a linha que abre uma classe ou um método (termina em <code>{</code>) e as chaves <code>}</code>.</p>
+
+<hr>
+
+<h2>Blocos e chaves <code>{ }</code> <small>(regra)</small></h2>
+<p>As chaves agrupam código num <strong>bloco</strong>. A classe tem um bloco; cada método, outro; mais tarde, cada <code>if</code> e cada laço terão o seu. Toda <code>{</code> precisa da sua <code>}</code>, e elas se fecham na ordem inversa da abertura: a última aberta é a primeira fechada.</p>
+
+<p>Falta de chave e chave sobrando dão erros diferentes:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Problema</th><th>Mensagem do <code>javac</code></th></tr>
+<tr><td>Faltou uma <code>}</code> no fim</td><td><code>reached end of file while parsing</code> ("o arquivo acabou enquanto eu lia")</td></tr>
+<tr><td>Sobrou uma <code>}</code></td><td><code>class, interface, annotation type, enum, record, method or field expected</code> ("esperava uma classe, interface… aqui")</td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        System.out.println(nome);
+    }
+}}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:6: error: class, interface, annotation type, enum, record, method or field expected
+}}
+ ^
+1 error</pre>
+
+<p>A primeira <code>}</code> da linha 6 fechou a classe. Depois dela, fora de qualquer classe, o Java só aceita começar outra coisa (uma classe, uma interface…), e encontrou mais uma <code>}</code>. A aula <a href="erros-compilacao.html">Lendo Erros do javac</a> mostra o caso da chave faltando.</p>
+
+<hr>
+
+<h2>Maiúsculas e minúsculas importam <small>(regra)</small></h2>
+<p>Para o Java, <code>System</code>, <code>system</code> e <code>SYSTEM</code> são três nomes completamente diferentes, tanto quanto "casa" e "cama". Isso se chama ser <strong>sensível a maiúsculas</strong> (em inglês, <em>case-sensitive</em>). Cada troca dá um erro diferente:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você escreveu</th><th>Certo</th><th>O <code>javac</code> diz</th></tr>
+<tr><td><code>system.out.println("Oi");</code></td><td><code>System</code></td><td><code>error: package system does not exist</code></td></tr>
+<tr><td><code>System.out.Println("Oi");</code></td><td><code>println</code></td><td><code>error: cannot find symbol</code> … <code>symbol: method Println(String)</code></td></tr>
+<tr><td><code>string nome = "Ana";</code></td><td><code>String</code></td><td><code>error: cannot find symbol</code> … <code>symbol: class string</code></td></tr>
+<tr><td><code>Public class Main {</code></td><td><code>public</code></td><td><code>error: class, interface, annotation type, enum, record, method or field expected</code></td></tr>
+<tr><td><code>System.out.println(Idade);</code> (a variável é <code>idade</code>)</td><td><code>idade</code></td><td><code>error: cannot find symbol</code> … <code>symbol: variable Idade</code></td></tr>
+</table>
+</div>
+
+<p>A mensagem do primeiro é curiosa: "o pacote <code>system</code> não existe". Com minúscula, o Java não reconhece a classe <code>System</code> e tenta entender <code>system.out</code> como um <strong>pacote</strong> (uma pasta de classes, veja <a href="pacotes.html">Pacotes e import</a>). Por isso a mensagem fala de pacote, e não de letra errada.</p>
+
+<p>A mesma regra vale para os seus nomes. Duas variáveis que diferem só na maiúscula são duas variáveis diferentes:</p>
+
+<pre class="file" data-file="trecho">int nota = 7;
+int Nota = 9;                              // outra variável!
+System.out.println(nota + " e " + Nota);   // mostra: 7 e 9</pre>
+
+<p>Compila, mas é uma armadilha para quem lê. Não faça isso de propósito.</p>
+
+<div class="tryjava" data-goal="compila,out:Olá\, Ana!,out:Seu pedido: 3 maçãs">
+<p class="try-task"><strong>Missão:</strong> este programa tem três erros de maiúscula/minúscula. Rode, leia a mensagem, conserte um de cada vez até o programa mostrar as duas linhas.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        string nome = "Ana";
+        system.out.println("Olá, " + nome + "!");
+        System.out.Println("Seu pedido: 3 maçãs");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String nome = "Ana";
+        System.out.println("Olá, " + nome + "!");
+        System.out.println("Seu pedido: 3 maçãs");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Espaços, quebras de linha e recuo</h2>
+<p>Fora dos textos entre aspas, o Java trata espaços, tabs e quebras de linha como simples separadores (<small>(regra)</small>): um espaço ou dez dá na mesma. Até isto compila e funciona:</p>
+
+<pre class="file" data-file="trecho">System . out . println ( "espaços em volta do ponto" ) ;</pre>
+
+<p>Mas um espaço <strong>dentro</strong> de um nome quebra o nome em dois:</p>
+
+<pre class="term">$ javac Main.java
+Main.java:3: error: ';' expected
+        Sys tem.out.println("Oi");
+               ^
+1 error</pre>
+
+<p>O Java leu <code>Sys</code> e <code>tem.out.println(...)</code> como duas coisas separadas e esperava um <code>;</code> entre elas. Dentro das aspas, ao contrário, cada espaço conta e aparece na tela.</p>
+
+<h3>Recuo (indentação) <small>(convenção)</small></h3>
+<p>O recuo no começo das linhas não muda nada para o Java, mas muda tudo para quem lê. Compare o mesmo programa, que compila igual:</p>
+
+<pre class="file" data-file="Main.java (sem recuo: difícil)">public class Main { public static void main(String[] args) { System.out.println("Oi"); System.out.println("Tudo numa linha"); } }
+</pre>
+
+<pre class="file" data-file="Main.java (com recuo: a convenção)">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Oi");
+        System.out.println("Tudo numa linha");
+    }
+}
+</pre>
+
+<p>As convenções de formatação do Java:</p>
+<ul>
+  <li><strong>4 espaços</strong> a cada nível de bloco (o <code>main</code> fica 4 espaços para dentro da classe; as instruções, 8).</li>
+  <li>A <code>{</code> fica <strong>no fim da linha</strong> que abre o bloco, não sozinha na linha de baixo.</li>
+  <li>A <code>}</code> fica sozinha, alinhada com o começo da linha que abriu o bloco.</li>
+  <li>Uma instrução por linha.</li>
+  <li>Espaço dos dois lados de <code>=</code> e <code>+</code>: <code>int total = a + b;</code>.</li>
+</ul>
+<p>Editores de código e IDEs fazem o recuo sozinhos (veja <a href="editores-ide.html">Editores e IDEs</a>). Com o recuo certo, uma chave faltando salta aos olhos.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> este programa está todo torto, mas compila. Rode. Depois arrume o recuo seguindo as convenções (4 espaços por nível, uma instrução por linha) e rode de novo: a saída não muda.</p>
+<pre class="script">public class Main {
+public static void main(String[] args) {
+      System.out.println("Loja da Ana");   System.out.println("Aberta das 8h às 18h");
+        System.out.println(   "Volte sempre!"   );
+ }
+        }
+</pre>
+</div>
+
+<hr>
+
+<h2>Identificadores: as regras dos nomes <small>(regra)</small></h2>
+<p>Um <strong>identificador</strong> é qualquer nome que você cria: de classe, de variável, de método. As regras:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Regra</th><th>Vale</th><th>Não vale</th></tr>
+<tr><td>Usa letras, dígitos, <code>_</code> e <code>$</code></td><td><code>nota1</code>, <code>nota_final</code>, <code>valor$</code></td><td><code>nota-final</code>, <code>nota final</code>, <code>nota!</code></td></tr>
+<tr><td>Não começa com dígito</td><td><code>notas2</code>, <code>segundaNota</code></td><td><code>2notas</code></td></tr>
+<tr><td>Não pode ser palavra reservada</td><td><code>classe</code>, <code>minhaClasse</code></td><td><code>class</code>, <code>int</code>, <code>public</code></td></tr>
+<tr><td>Maiúsculas importam</td><td><code>nota</code> e <code>Nota</code> são dois nomes</td><td></td></tr>
+<tr><td>Letras acentuadas são permitidas</td><td><code>preço</code>, <code>média</code> (compilam)</td><td></td></tr>
+</table>
+</div>
+
+<p>Os erros de nome são confusos, porque o <code>javac</code> não diz "nome inválido": ele tenta entender o código de outra forma e reclama do que não fez sentido. Três exemplos reais:</p>
+
+<pre class="term">$ javac Main.java              « int 2notas = 10;
+Main.java:3: error: not a statement
+        int 2notas = 10;
+        ^
+Main.java:3: error: ';' expected
+        int 2notas = 10;
+           ^
+2 errors</pre>
+
+<pre class="term">$ javac Main.java              « int class = 10;
+Main.java:3: error: not a statement
+        int class = 10;
+        ^
+Main.java:3: error: ';' expected
+        int class = 10;
+           ^
+Main.java:3: error: &lt;identifier&gt; expected
+        int class = 10;
+                 ^
+3 errors</pre>
+
+<pre class="term">$ javac Main.java              « int nota-final = 10;
+Main.java:3: error: ';' expected
+        int nota-final = 10;
+                ^
+Main.java:3: error: illegal start of type
+        int nota-final = 10;
+                       ^
+2 errors</pre>
+
+<p>No último, o Java leu <code>nota-final</code> como "nota menos final": o hífen é o sinal de subtração. Quando um erro aparece numa linha que declara um nome, desconfie do nome. A mensagem <code>&lt;identifier&gt; expected</code> ("esperava um identificador") é a pista mais direta.</p>
+
+<div class="tip">
+<strong>Acentos: pode, mas evite</strong>
+<p>O Java aceita <code>preço</code> e <code>média</code> como nomes, e o guia testou: compila e funciona. Mesmo assim, a convenção é usar só letras sem acento nos nomes (<code>preco</code>, <code>media</code>): teclados de outros países, ferramentas antigas e arquivos salvos em outra codificação (veja <a href="editores-ide.html#errado">Editores e IDEs</a>) podem se atrapalhar. Nos textos entre aspas, use acentos à vontade.</p>
+</div>
+
+<div class="tryjava" data-goal="compila,out:Total: 17">
+<p class="try-task"><strong>Missão:</strong> os nomes das variáveis estão inválidos. Troque <code>2notas</code> por <code>duasNotas</code> e <code>nota-extra</code> por <code>notaExtra</code> (nas duas linhas em que cada um aparece) para o programa mostrar <code>Total: 17</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int 2notas = 15;
+        int nota-extra = 2;
+        System.out.println("Total: " + (2notas + nota-extra));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int duasNotas = 15;
+        int notaExtra = 2;
+        System.out.println("Total: " + (duasNotas + notaExtra));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Convenções de nomes <small>(convenção)</small></h2>
+<p>Dentro das regras, você pode escolher qualquer nome. Mas os programadores Java seguem um padrão tão firme que um nome fora dele parece erro. O padrão depende do que está sendo nomeado:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que</th><th>Estilo</th><th>Como é</th><th>Exemplos</th></tr>
+<tr><td>Classes (e records, enums, interfaces)</td><td><strong>PascalCase</strong></td><td>Cada palavra começa com maiúscula, inclusive a primeira</td><td><code>Main</code>, <code>Loja</code>, <code>ContaBancaria</code>, <code>String</code></td></tr>
+<tr><td>Variáveis e métodos</td><td><strong>camelCase</strong></td><td>Primeira palavra minúscula; as seguintes com maiúscula</td><td><code>nome</code>, <code>precoTotal</code>, <code>calcularMedia</code>, <code>println</code></td></tr>
+<tr><td>Constantes (<code>static final</code>)</td><td><strong>MAIÚSCULAS_COM_SUBLINHADO</strong></td><td>Tudo maiúsculo, palavras separadas por <code>_</code></td><td><code>MAX_ALUNOS</code>, <code>TAXA_DE_ENTREGA</code>, <code>Math.PI</code></td></tr>
+<tr><td>Pacotes</td><td>minúsculas</td><td>Tudo minúsculo, separado por pontos</td><td><code>java.util</code>, <code>br.com.lojadaana</code></td></tr>
+</table>
+</div>
+
+<p><em>camelCase</em> vem de <em>camel</em>, "camelo": as maiúsculas no meio parecem corcovas (<code>precoTotalDoPedido</code>). <em>PascalCase</em> homenageia a linguagem Pascal, que popularizou o estilo. Por causa dessas convenções, só de olhar você sabe que <code>String</code> é uma classe, <code>nome</code> é uma variável e <code>MAX_ALUNOS</code> é uma constante (veja <a href="constantes.html">Constantes</a>).</p>
+
+<h3>Bons nomes</h3>
+<ul>
+  <li><strong>Diga o que é:</strong> <code>precoTotal</code> é melhor que <code>pt</code>, <code>x</code> ou <code>valor2</code>.</li>
+  <li><strong>Métodos fazem coisas:</strong> comece com um verbo: <code>calcularMedia</code>, <code>mostrarRecibo</code>.</li>
+  <li><strong>Uma língua só:</strong> o guia nomeia em português (<code>nota</code>, <code>cliente</code>); muitas empresas usam inglês. O importante é não misturar (<code>notaFinal</code> com <code>totalPrice</code>).</li>
+  <li><strong>Evite</strong> <code>_</code> e <code>$</code> em nomes comuns: o <code>$</code> é usado pelo próprio Java em nomes que ele gera, e o <code>_</code> sozinho é palavra reservada.</li>
+</ul>
+
+<hr>
+
+<h2>Palavras reservadas</h2>
+<p>Algumas palavras têm significado fixo no Java e não podem ser usadas como nomes: as <strong>palavras reservadas</strong> (<em>keywords</em>, "palavras-chave"). Você já conhece algumas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para que</th><th>Palavras</th></tr>
+<tr><td>Classes e acesso</td><td><code>class</code>, <code>public</code>, <code>private</code>, <code>protected</code>, <code>static</code>, <code>final</code>, <code>abstract</code>, <code>interface</code>, <code>enum</code>, <code>extends</code>, <code>implements</code>, <code>new</code>, <code>this</code>, <code>super</code>, <code>package</code>, <code>import</code></td></tr>
+<tr><td>Tipos</td><td><code>int</code>, <code>long</code>, <code>short</code>, <code>byte</code>, <code>double</code>, <code>float</code>, <code>char</code>, <code>boolean</code>, <code>void</code></td></tr>
+<tr><td>Decisões e repetições</td><td><code>if</code>, <code>else</code>, <code>switch</code>, <code>case</code>, <code>default</code>, <code>for</code>, <code>while</code>, <code>do</code>, <code>break</code>, <code>continue</code>, <code>return</code></td></tr>
+<tr><td>Erros</td><td><code>try</code>, <code>catch</code>, <code>finally</code>, <code>throw</code>, <code>throws</code></td></tr>
+<tr><td>Valores fixos (literais)</td><td><code>true</code>, <code>false</code>, <code>null</code></td></tr>
+</table>
+</div>
+
+<p>Todas são escritas em minúsculas. Há ainda palavras "reservadas só em certos lugares", como <code>var</code>, <code>record</code> e <code>yield</code>: elas têm significado especial em alguns pontos do código, mas ainda podem ser nomes de variável (o guia testou <code>int var = 3;</code> e <code>int record = 4;</code>: compilam). Não use, para não confundir. A lista completa, com o que cada uma faz, está na <a href="ref-palavras-chave.html">Referência de Palavras-chave</a>.</p>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Item</th><th>Tipo</th><th>Resumo</th></tr>
+<tr><td>Instruções dentro de métodos</td><td>regra</td><td>Nada de <code>println</code> solto na classe.</td></tr>
+<tr><td><code>;</code> no fim de cada instrução</td><td>regra</td><td>Não depois de <code>{</code> nem de <code>}</code>.</td></tr>
+<tr><td>Toda <code>{</code> com a sua <code>}</code></td><td>regra</td><td>Faltou: <code>reached end of file</code>. Sobrou: <code>class, interface… expected</code>.</td></tr>
+<tr><td>Maiúsculas importam</td><td>regra</td><td><code>System</code>, <code>String</code>, <code>println</code>, <code>public</code>.</td></tr>
+<tr><td>Nomes: letras, dígitos, <code>_</code>, <code>$</code>; não começam com dígito; não são palavras reservadas</td><td>regra</td><td><code>nota1</code> sim; <code>1nota</code>, <code>nota-1</code>, <code>class</code> não.</td></tr>
+<tr><td>Recuo de 4 espaços, <code>{</code> no fim da linha</td><td>convenção</td><td>O Java ignora; as pessoas não.</td></tr>
+<tr><td>PascalCase, camelCase, MAIÚSCULAS</td><td>convenção</td><td>Classes, variáveis/métodos, constantes.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Corrija a maiúscula</h3>
+<p>Complete com o nome certo da classe que escreve na tela:</p>
+<div class="ex-code"><input data-answer="System" aria-label="classe">.out.println("Oi");</div>
+</div>
+
+<div class="exercise">
+<h3>2. camelCase</h3>
+<p>Escreva em camelCase o nome de uma variável para "preço total do pedido" (sem acentos):</p>
+<div class="ex-code">double <input data-answer="precoTotalDoPedido" aria-label="nome"> = 42.5;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destes é um nome de variável <strong>válido</strong>?</p>
+<label><input type="radio" name="q3"> <code>2alunos</code></label>
+<label><input type="radio" name="q3"> <code>total-alunos</code></label>
+<label><input type="radio" name="q3"> <code>totalAlunos2</code></label>
+<label><input type="radio" name="q3"> <code>int</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Pela convenção, qual nome é de uma <strong>classe</strong>?</p>
+<label><input type="radio" name="q4"> <code>ContaBancaria</code></label>
+<label><input type="radio" name="q4"> <code>contaBancaria</code></label>
+<label><input type="radio" name="q4"> <code>CONTA_BANCARIA</code></label>
+<label><input type="radio" name="q4"> <code>conta_bancaria</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O <code>javac</code> respondeu <code>error: package system does not exist</code>. Qual é o erro mais provável?</p>
+<label><input type="radio" name="q5"> Falta instalar um pacote do sistema.</label>
+<label><input type="radio" name="q5"> O JDK está quebrado.</label>
+<label><input type="radio" name="q5"> Faltou um <code>;</code>.</label>
+<label><input type="radio" name="q5"> Você escreveu <code>system</code> com minúscula no lugar de <code>System</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. O recuo (os espaços no começo das linhas) é obrigatório no Java?</p>
+<label><input type="radio" name="q6"> Sim: sem 4 espaços, o programa não compila.</label>
+<label><input type="radio" name="q6"> Não: é uma convenção para facilitar a leitura.</label>
+<label><input type="radio" name="q6"> Só dentro do <code>main</code>.</label>
+<label><input type="radio" name="q6"> Só no Windows.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Programa = classe ⊃ métodos ⊃ instruções. Instruções só dentro de métodos e rodam de cima para baixo.</li>
+  <li>Toda instrução termina em <code>;</code>; o fim da linha não importa para o Java.</li>
+  <li>Chaves agrupam blocos e precisam fechar na ordem certa.</li>
+  <li>Maiúsculas importam: <code>System</code> ≠ <code>system</code>, <code>nota</code> ≠ <code>Nota</code>.</li>
+  <li>Espaços e quebras de linha são livres fora das aspas; dentro de um nome, quebram o nome.</li>
+  <li>Nomes: letras, dígitos, <code>_</code> e <code>$</code>, sem começar com dígito, sem palavras reservadas.</li>
+  <li>Convenções: PascalCase para classes, camelCase para variáveis e métodos, MAIÚSCULAS_COM_SUBLINHADO para constantes, recuo de 4 espaços.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
