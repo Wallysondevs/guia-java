@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Argumentos da Linha de Comando — String[] args | Guia Java</title>
+<meta name="description" content="Aula de String[] args em Java para iniciantes: passar argumentos com java Main.java Ana 29, args.length, aspas, converter com Integer.parseInt, os erros reais ArrayIndexOutOfBoundsException e NumberFormatException, a mensagem de uso com System.exit e o curinga * do terminal.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Argumentos da Linha de Comando</span></h1>
+
+<p class="intro">Desde o primeiro programa você escreve <code>public static void main(String[] args)</code>. Agora dá para entender o <code>String[] args</code>: é um <a href="arrays.html">array</a> de textos com as palavras que você escreve <strong>depois do nome do programa</strong> ao rodá-lo, como em <code>java Main.java Ana 29</code>. É outro jeito de dar informações ao programa, sem ele precisar perguntar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o <code>args</code> e como passar argumentos com <code>java Main.java …</code> e com <code>java Main …</code>.</li>
+  <li>Quantos argumentos chegaram: <code>args.length</code>.</li>
+  <li>Argumentos com espaço (aspas) e o curinga <code>*</code> do terminal.</li>
+  <li>Converter textos em números com <code>Integer.parseInt</code> e <code>Double.parseDouble</code>.</li>
+  <li>Os erros reais: <code>ArrayIndexOutOfBoundsException</code> (faltou argumento) e <code>NumberFormatException</code> (não é número).</li>
+  <li>Como escrever uma <strong>mensagem de uso</strong>, como os programas profissionais.</li>
+  <li>Quando usar argumentos e quando usar o <code>Scanner</code>.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25).</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Há dois jeitos de pedir um café. No balcão, a atendente pergunta: "qual tamanho?", "com açúcar?", e você responde uma coisa de cada vez. Esse é o <a href="scanner.html">Scanner</a>: o programa pergunta durante a execução. O outro jeito é entregar um <strong>bilhete</strong> já pronto: "café grande, sem açúcar". Ninguém precisa perguntar nada. Esses são os <strong>argumentos da linha de comando</strong>: você escreve tudo na mesma linha em que manda rodar o programa.</p>
+<p>Você já usa isso o tempo todo no terminal. Em <code>ls -l Documentos</code>, o <code>-l</code> e o <code>Documentos</code> são argumentos do programa <code>ls</code>. Em <code>javac Main.java</code>, o <code>Main.java</code> é argumento do <code>javac</code>. Agora os seus programas também vão recebê-los.</p>
+
+<hr>
+
+<h2>Vendo o que chega no <code>args</code></h2>
+<p>Este programa só mostra quantos argumentos recebeu e quais são:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println("Recebi " + args.length + " argumento(s)");
+        for (int i = 0; i &lt; args.length; i++) {
+            System.out.println("args[" + i + "] = " + args[i]);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java Ana 29
+Recebi 2 argumento(s)
+args[0] = Ana
+args[1] = 29
+$ java Main.java
+Recebi 0 argumento(s)        « sem argumentos, o array existe, mas está vazio</pre>
+
+<dl class="anatomy">
+  <dt>java</dt><dd>O lançador do Java.</dd>
+  <dt>Main.java</dt><dd>O programa a rodar. <strong>Não</strong> é um argumento do seu programa: é o que o <code>java</code> vai executar.</dd>
+  <dt>Ana</dt><dd>O primeiro argumento: vira <code>args[0]</code>.</dd>
+  <dt>29</dt><dd>O segundo: vira <code>args[1]</code>. Repare: é o <strong>texto</strong> <code>"29"</code>, não o número.</dd>
+</dl>
+
+<p>O terminal corta a linha nos espaços e o Java coloca cada pedaço numa posição do array, na ordem. Tudo o que você já sabe de arrays vale aqui: <code>args.length</code> é a quantidade, <code>args[0]</code> é o primeiro, e os índices começam no 0.</p>
+
+<div class="note">
+<strong>Por que <code>args</code>?</strong>
+<p>É a abreviação de <em>arguments</em>, "argumentos". É só um nome de variável: <code>main(String[] parametros)</code> também funciona. Mas <code>args</code> é a tradição, e todo programador Java reconhece.</p>
+</div>
+
+<h3>Com <code>javac</code> e <code>java</code> separados</h3>
+<p>Se você compila antes (veja <a href="compilar-executar.html">javac e java</a>), os argumentos vêm depois do <strong>nome da classe</strong>:</p>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+$ java Main Ana 29
+Recebi 2 argumento(s)
+args[0] = Ana
+args[1] = 29</pre>
+
+<div class="tip">
+<strong>Nas IDEs</strong>
+<p>No IntelliJ, no Eclipse e no VS Code, os argumentos ficam na configuração de execução, num campo chamado "Program arguments" (argumentos do programa). Veja <a href="editores-ide.html">Editores e IDEs</a>. No editor do guia, a caixa de código pode trazer os argumentos prontos, como nas missões abaixo.</p>
+</div>
+
+<h3>Argumentos com espaço: aspas</h3>
+<p>Como o terminal separa nos espaços, um nome completo viraria dois argumentos. As aspas juntam (é a mesma regra do Bash; veja o Guia Bash, aula de aspas):</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java "Ana Souza" 29
+Recebi 2 argumento(s)
+args[0] = Ana Souza          « um argumento só, com o espaço dentro
+args[1] = 29
+$ java Main.java 'R$ 10' 3,5 -v
+Recebi 3 argumento(s)
+args[0] = R$ 10
+args[1] = 3,5
+args[2] = -v</pre>
+
+<p>As aspas não chegam ao programa: elas são uma instrução para o terminal. E qualquer texto pode ser argumento, inclusive coisas como <code>-v</code>, que muitos programas usam como "opções".</p>
+
+<h3>O curinga <code>*</code></h3>
+<p>Antes de rodar o programa, o terminal troca o <code>*</code> pelos nomes dos arquivos da pasta. Na pasta <code>~/java</code>, só existe o <code>Main.java</code>:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java *
+Recebi 1 argumento(s)
+args[0] = Main.java          « o * virou o nome do arquivo
+$ java Main.java 2 * 3
+Recebi 3 argumento(s)
+args[0] = 2
+args[1] = Main.java          « era para ser o sinal de vezes!
+args[2] = 3</pre>
+
+<p>O seu programa nunca vê o <code>*</code>. Para mandar o caractere de verdade, proteja com aspas (<code>'*'</code>) ou barra invertida (<code>\*</code>). Por isso, em calculadoras de linha de comando, é comum usar <code>x</code> para multiplicar.</p>
+
+<hr>
+
+<h2>Usar os argumentos: converter para número</h2>
+<p>Todo argumento é uma <code>String</code>. Para fazer contas, converta com <code>Integer.parseInt</code> ("interpretar como inteiro"):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = args[0];
+        int idade = Integer.parseInt(args[1]);
+        System.out.println("Olá, " + nome + "! Daqui a 10 anos você terá " + (idade + 10) + " anos.");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java Ana 29
+Olá, Ana! Daqui a 10 anos você terá 39 anos.</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>String nome = args[0];</code></td><td>O primeiro argumento já é texto: só copia para uma variável com um nome que explica o que ele é.</td></tr>
+<tr><td><code>int idade = Integer.parseInt(args[1]);</code></td><td>Transforma o texto <code>"29"</code> no número <code>29</code>. Sem isso, <code>args[1] + 10</code> daria <code>"2910"</code> (veja <a href="concatenacao.html">Concatenação</a>).</td></tr>
+<tr><td><code>(idade + 10)</code></td><td>Agora é conta de verdade: 39.</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para obter</th><th>Use</th><th>Aceita</th></tr>
+<tr><td><code>int</code></td><td><code>Integer.parseInt(texto)</code></td><td><code>"29"</code>, <code>"-3"</code></td></tr>
+<tr><td><code>long</code></td><td><code>Long.parseLong(texto)</code></td><td><code>"9000000000"</code></td></tr>
+<tr><td><code>double</code></td><td><code>Double.parseDouble(texto)</code></td><td><code>"7.5"</code>: sempre com <strong>ponto</strong>, qualquer que seja o idioma do computador</td></tr>
+<tr><td><code>boolean</code></td><td><code>Boolean.parseBoolean(texto)</code></td><td><code>"true"</code> (qualquer outra coisa vira <code>false</code>)</td></tr>
+</table>
+</div>
+
+<p>Essas classes (<code>Integer</code>, <code>Double</code>…) são os "wrappers" dos tipos primitivos e têm uma aula própria: <a href="wrappers.html">Wrappers e Autoboxing</a>.</p>
+
+<div class="tryjava" data-goal="out:Olá\, Ana! Você tem 29 anos." data-args="Ana 29">
+<p class="try-task"><strong>Missão:</strong> o programa é rodado com os argumentos <code>Ana 29</code>. Complete as duas linhas para ele mostrar <code>Olá, Ana! Você tem 29 anos.</code>, usando <code>args[0]</code> e convertendo <code>args[1]</code> com <code>Integer.parseInt</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String nome = "?";
+        int idade = 0;
+        System.out.println("Olá, " + nome + "! Você tem " + idade + " anos.");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String nome = args[0];
+        int idade = Integer.parseInt(args[1]);
+        System.out.println("Olá, " + nome + "! Você tem " + idade + " anos.");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando falta argumento: <code>ArrayIndexOutOfBoundsException</code></h2>
+<p>O mesmo programa, rodado sem argumentos, ou com um só:</p>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
+	at Main.main(Main.java:3)
+$ echo $?
+1
+$ java Main.java Ana
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 1 out of bounds for length 1
+	at Main.main(Main.java:4)</pre>
+
+<p>É a mesma exceção da aula de <a href="arrays.html">Arrays</a>. Sem argumentos, o <code>args</code> tem tamanho 0 (<code>length 0</code>), e a linha 3 pediu o índice 0. Com um argumento só, o tamanho é 1, e a linha 4 pediu o índice 1. O código de saída <code>1</code> (que o <code>echo $?</code> mostra) indica que o programa terminou com erro.</p>
+
+<h2>Quando não é número: <code>NumberFormatException</code></h2>
+
+<pre class="term" data-cwd="~/java">$ java Main.java Ana vinte
+Exception in thread "main" java.lang.NumberFormatException: For input string: "vinte"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:4)
+$ java Main.java Ana 29.5
+Exception in thread "main" java.lang.NumberFormatException: For input string: "29.5"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:4)</pre>
+
+<dl class="anatomy">
+  <dt>java.lang.NumberFormatException:</dt><dd>"Exceção de formato de número": o texto não tem o formato de um número daquele tipo.</dd>
+  <dt>For input string: "vinte"</dt><dd>"Para o texto de entrada "vinte"": a mensagem mostra exatamente o que foi recebido, entre aspas. Muito útil para descobrir espaços ou caracteres escondidos.</dd>
+  <dt>at java.base/…</dt><dd>Três linhas de dentro do próprio Java (o <code>parseInt</code> trabalhando).</dd>
+  <dt>at Main.main(Main.java:4)</dt><dd>A linha do <strong>seu</strong> código que chamou o <code>parseInt</code>. Comece sempre por ela.</dd>
+</dl>
+
+<p><code>"29.5"</code> também falha: tem ponto, então não é um <strong>inteiro</strong>. Para decimais, use <code>Double.parseDouble</code>, que espera ponto: com <code>"7,5"</code> ele também lança <code>NumberFormatException: For input string: "7,5"</code> (conferido no laboratório).</p>
+
+<hr>
+
+<h2>A mensagem de uso</h2>
+<p>Programas de linha de comando bem-educados não explodem com uma exceção quando faltam argumentos: eles explicam como devem ser usados. Experimente <code>javac</code> sem nada: ele mostra como usá-lo. Vamos fazer o mesmo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        if (args.length != 2) {
+            System.err.println("Uso: java Main.java NOME IDADE");
+            System.err.println("Exemplo: java Main.java Ana 29");
+            System.exit(1);
+        }
+        String nome = args[0];
+        int idade = Integer.parseInt(args[1]);
+        System.out.println("Olá, " + nome + "! Daqui a 10 anos você terá " + (idade + 10) + " anos.");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Uso: java Main.java NOME IDADE
+Exemplo: java Main.java Ana 29
+$ echo $?
+1                            « 1 = terminou com erro
+$ java Main.java Ana 29
+Olá, Ana! Daqui a 10 anos você terá 39 anos.
+$ echo $?
+0                            « 0 = tudo certo</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>if (args.length != 2)</code></td><td>Confere a quantidade <strong>antes</strong> de usar qualquer <code>args[i]</code>.</td></tr>
+<tr><td><code>System.err.println(…)</code></td><td>Escreve na <strong>saída de erro</strong> (<code>err</code> = <em>error</em>), um canal separado da saída normal. No terminal, as duas aparecem iguais; mas quem redirecionar a saída para um arquivo (<code>&gt; resultado.txt</code>) continua vendo o erro na tela. Veja <a href="saida.html">print e println</a>.</td></tr>
+<tr><td><code>Uso: … NOME IDADE</code></td><td>A convenção: a forma do comando, com as partes que o usuário troca em MAIÚSCULAS. Um exemplo concreto logo abaixo ajuda muito.</td></tr>
+<tr><td><code>System.exit(1);</code></td><td>Encerra o programa <strong>agora</strong>, com o código de saída 1. Por convenção, 0 é sucesso e qualquer outro número é erro. Sem esta linha, o programa continuaria e daria a exceção do mesmo jeito.</td></tr>
+</table>
+</div>
+
+<h3>Argumentos opcionais</h3>
+<p>Nem todo argumento precisa ser obrigatório. Se não vier nada, use um valor padrão:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.out.println("Olá, visitante!");
+        } else {
+            System.out.println("Olá, " + args[0] + "!");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Olá, visitante!
+$ java Main.java Ana
+Olá, Ana!</pre>
+
+<hr>
+
+<h2>Quantos argumentos vierem: o for-each</h2>
+<p>Como <code>args</code> é um array, um <a href="for-each.html">for-each</a> passa por todos, sejam quantos forem:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int soma = 0;
+        for (String arg : args) {
+            soma += Integer.parseInt(arg);
+        }
+        System.out.println("Soma: " + soma);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java 10 20 5
+Soma: 35
+$ java Main.java
+Soma: 0                      « nenhuma volta: a soma ficou no valor inicial</pre>
+
+<h2>Um exemplo completo: a calculadora</h2>
+<p>Três argumentos: número, operação, número. A escolha da operação usa o <a href="switch-expressoes.html">switch com setas</a>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double a = Double.parseDouble(args[0]);
+        String op = args[1];
+        double b = Double.parseDouble(args[2]);
+        double resultado = switch (op) {
+            case "+" -&gt; a + b;
+            case "-" -&gt; a - b;
+            case "x", "*" -&gt; a * b;
+            case "/" -&gt; a / b;
+            default -&gt; {
+                System.err.println("Operação desconhecida: " + op);
+                System.exit(1);
+                yield 0;
+            }
+        };
+        System.out.println(a + " " + op + " " + b + " = " + resultado);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java 7 x 3
+7.0 x 3.0 = 21.0
+$ java Main.java 7.5 / 2
+7.5 / 2.0 = 3.75
+$ java Main.java 7 % 2
+Operação desconhecida: %
+$ echo $?
+1
+$ java Main.java 7 * 3
+Operação desconhecida: Main.java     « o terminal trocou o * pelo nome do arquivo
+$ java Main.java 7 '*' 3
+7.0 * 3.0 = 21.0</pre>
+
+<p>Para uma calculadora completa, com menu e validação, veja o projeto <a href="projeto-calculadora.html">Calculadora</a>.</p>
+
+<hr>
+
+<h2>Argumentos ou <code>Scanner</code>?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Argumentos (<code>args</code>)</th><th><code>Scanner</code></th></tr>
+<tr><td>Quando a informação chega</td><td>Antes de o programa começar, na linha do comando</td><td>Durante a execução, quando o programa pergunta</td></tr>
+<tr><td>Tipo recebido</td><td>Sempre <code>String</code> (converter com <code>parseInt</code>…)</td><td><code>nextInt</code>, <code>nextDouble</code>… já convertem</td></tr>
+<tr><td>Ideal para</td><td>Ferramentas e scripts: rodar várias vezes com dados diferentes, automatizar</td><td>Programas conversando com uma pessoa: menus, jogos, cadastros</td></tr>
+<tr><td>Separador decimal</td><td><code>Double.parseDouble</code>: sempre ponto</td><td><code>nextDouble</code>: o do idioma do computador (vírgula em pt_BR)</td></tr>
+<tr><td>Erros comuns</td><td><code>ArrayIndexOutOfBoundsException</code>, <code>NumberFormatException</code></td><td><code>InputMismatchException</code>, <code>NoSuchElementException</code></td></tr>
+</table>
+</div>
+
+<p>Muitos programas usam os dois: argumentos para as opções e o <code>Scanner</code> para conversar.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0</code></strong>
+<p><strong>O que aconteceu:</strong> o programa usou <code>args[0]</code>, mas foi rodado sem argumentos (<code>length 0</code>). Também acontece quando você roda pela IDE e esquece de preencher "Program arguments".</p>
+<p><strong>Como resolver:</strong> passe os argumentos (<code>java Main.java Ana 29</code>) e, no código, confira <code>args.length</code> antes de usar, mostrando uma mensagem de uso.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NumberFormatException: For input string: "…"</code></strong>
+<p><strong>O que aconteceu:</strong> o texto entre aspas na mensagem não é um número do tipo pedido: letras (<code>"vinte"</code>), decimal num <code>parseInt</code> (<code>"29.5"</code>) ou vírgula num <code>parseDouble</code> (<code>"7,5"</code>). Também acontece quando os argumentos estão na <strong>ordem errada</strong> (<code>java Main.java 29 Ana</code>).</p>
+<p><strong>Como resolver:</strong> confira a ordem e o formato; para pegar o erro sem o programa parar, use <code>try</code>/<code>catch</code> (<a href="try-catch.html">try e catch</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Um argumento virou vários (ou o <code>*</code> virou nome de arquivo)</strong>
+<p><strong>O que aconteceu:</strong> o terminal separa os argumentos nos espaços e expande os curingas (<code>*</code>, <code>?</code>) antes de o Java receber qualquer coisa.</p>
+<p><strong>Como resolver:</strong> use aspas: <code>"Ana Souza"</code>, <code>'*'</code>. Para conferir o que realmente chegou, rode o programa que lista os argumentos, do começo desta aula.</p>
+</div>
+
+<div class="cenario">
+<strong>O argumento foi parar no lugar errado</strong>
+<p>Com <code>javac</code> + <code>java</code>, os argumentos vêm depois do nome da <strong>classe</strong> (<code>java Main Ana</code>, sem <code>.java</code>). No modo arquivo-fonte, depois do <strong>arquivo</strong> (<code>java Main.java Ana</code>). Opções do próprio Java (como <code>-Xmx256m</code>) vêm <strong>antes</strong> do nome; tudo o que vier depois do nome vai para o seu <code>args</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código ou comando</th><th>O que faz</th></tr>
+<tr><td><code>java Main.java a b c</code></td><td>Roda o arquivo-fonte com 3 argumentos</td></tr>
+<tr><td><code>java Main a b c</code></td><td>Roda a classe já compilada com 3 argumentos</td></tr>
+<tr><td><code>args.length</code></td><td>Quantidade de argumentos (0 se nenhum)</td></tr>
+<tr><td><code>args[0]</code></td><td>O primeiro argumento (sempre <code>String</code>)</td></tr>
+<tr><td><code>for (String arg : args)</code></td><td>Passa por todos</td></tr>
+<tr><td><code>Integer.parseInt(args[1])</code></td><td>Converte para <code>int</code> (<code>NumberFormatException</code> se não der)</td></tr>
+<tr><td><code>Double.parseDouble(args[1])</code></td><td>Converte para <code>double</code> (ponto decimal)</td></tr>
+<tr><td><code>System.err.println("Uso: …")</code></td><td>Mensagem de uso na saída de erro</td></tr>
+<tr><td><code>System.exit(1)</code></td><td>Encerra com código de erro</td></tr>
+<tr><td><code>"Ana Souza"</code>, <code>'*'</code></td><td>No terminal: aspas protegem espaços e curingas</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quantos?</h3>
+<p>Complete para mostrar quantos argumentos o programa recebeu:</p>
+<div class="ex-code">System.out.println(<input data-answer="args.length" aria-label="expressão">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Converter</h3>
+<p>Complete para transformar o terceiro argumento num <code>int</code>:</p>
+<div class="ex-code">int quantidade = <input data-answer="Integer.parseInt(args[2]);|Integer.parseInt(args[2])" aria-label="conversão"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Rodar</h3>
+<p>Complete o comando para passar o nome <code>Ana Souza</code> como <strong>um</strong> argumento só:</p>
+<div class="ex-code">java Main.java <input data-answer="&quot;Ana Souza&quot;|'Ana Souza'|Ana\ Souza" aria-label="argumento"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com <code>java Main.java 5 8</code>, quanto vale <code>args[0] + args[1]</code>?</p>
+<label><input type="radio" name="q4"> <code>13</code></label>
+<label><input type="radio" name="q4"> <code>"13"</code></label>
+<label><input type="radio" name="q4"> <code>"58"</code></label>
+<label><input type="radio" name="q4"> Dá erro de compilação.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Rodando <code>java Main.java</code> sem nada, quanto vale <code>args.length</code>?</p>
+<label><input type="radio" name="q5"> 0</label>
+<label><input type="radio" name="q5"> 1, porque o <code>Main.java</code> conta.</label>
+<label><input type="radio" name="q5"> <code>null</code></label>
+<label><input type="radio" name="q5"> Dá <code>NullPointerException</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Qual o papel do <code>System.exit(1)</code> depois da mensagem de uso?</p>
+<label><input type="radio" name="q6"> Reiniciar o programa.</label>
+<label><input type="radio" name="q6"> Encerrar o programa na hora, com o código de saída 1 (erro).</label>
+<label><input type="radio" name="q6"> Pedir os argumentos de novo.</label>
+<label><input type="radio" name="q6"> Apagar a mensagem de uso.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Maior: 42,src:parseInt" data-args="17 42 8 23">
+<p class="try-task"><strong>Missão final:</strong> o programa recebe vários números como argumentos (no teste: <code>17 42 8 23</code>) e deve mostrar o maior deles: <code>Maior: 42</code>. Converta cada argumento com <code>Integer.parseInt</code> e use a receita do maior de <a href="percorrer-arrays.html">Percorrer Arrays</a>. Se quiser ir além, mostre uma mensagem de uso quando não vier nenhum número.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        // encontre o maior argumento aqui
+        int maior = 0;
+        System.out.println("Maior: " + maior);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.err.println("Uso: java Main.java NÚMERO...");
+            System.exit(1);
+        }
+        int maior = Integer.parseInt(args[0]);
+        for (String arg : args) {
+            int numero = Integer.parseInt(arg);
+            if (numero &gt; maior) {
+                maior = numero;
+            }
+        }
+        System.out.println("Maior: " + maior);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>String[] args</code> é um array com as palavras escritas depois do nome do programa: <code>java Main.java Ana 29</code> → <code>args[0] = "Ana"</code>, <code>args[1] = "29"</code>.</li>
+  <li><code>args.length</code> diz quantos vieram; sem argumentos, é 0 (o array existe, vazio).</li>
+  <li>Todo argumento é <code>String</code>: converta com <code>Integer.parseInt</code>, <code>Double.parseDouble</code> (ponto decimal)…</li>
+  <li>Faltou argumento: <code>ArrayIndexOutOfBoundsException</code>. Não é número: <code>NumberFormatException: For input string: "…"</code>.</li>
+  <li>Confira <code>args.length</code> primeiro e mostre uma mensagem de uso com <code>System.err</code> + <code>System.exit(1)</code>.</li>
+  <li>O terminal separa nos espaços e expande o <code>*</code> antes do Java: use aspas.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
