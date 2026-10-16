@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Gradle — gradle init, build.gradle.kts e o wrapper | Guia Java</title>
+<meta name="description" content="Gradle do zero: gradle init sem perguntas, a estrutura do projeto, build.gradle.kts linha por linha, o wrapper ./gradlew, build, run e test com saídas reais, dependências, o daemon e uma tabela Maven × Gradle.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Gradle</span></h1>
+
+<p class="intro">O <strong>Gradle</strong> faz o mesmo trabalho que o <a href="maven.html">Maven</a>: baixa as bibliotecas, compila, roda os testes e empacota. A diferença está na receita: em vez de um XML, você escreve um pequeno <strong>programa</strong> em Kotlin, o <code>build.gradle.kts</code>. É a ferramenta padrão dos aplicativos Android e muito usada em projetos Java novos.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Criar um projeto com <code>gradle init</code>, sem perguntas.</li>
+  <li>O que é cada arquivo gerado, e o <code>build.gradle.kts</code> linha por linha.</li>
+  <li>O que é o <strong>wrapper</strong> (<code>./gradlew</code>) e por que usá-lo.</li>
+  <li><code>./gradlew build</code>, <code>run</code> e <code>test</code>, com as saídas reais (e uma falha).</li>
+  <li>Adicionar uma dependência e o que acontece quando ela não existe.</li>
+  <li>O que é o <strong>daemon</strong> do Gradle.</li>
+  <li>Quando escolher Maven ou Gradle.</li>
+</ul>
+</div>
+
+<p>Esta aula supõe que você já leu a de <a href="maven.html">Maven</a>: as ideias de dependência, repositório e estrutura <code>src/main/java</code> são as mesmas. Os exemplos rodam na máquina fictícia da Ana, com <strong>Gradle 9.8.1</strong> e <strong>JDK 25</strong>.</p>
+
+<hr>
+
+<h2>A ideia: a mesma cozinha, outra receita</h2>
+<p>Se o Maven é uma cozinha padronizada com uma receita em formulário (você preenche os campos do <code>pom.xml</code>), o Gradle é a mesma cozinha, mas a receita é escrita como um <strong>roteiro</strong>: dá para pôr "se", "repita", criar tarefas novas. Para projetos simples, as duas receitas têm quase o mesmo tamanho. Para projetos enormes e cheios de particularidades, o roteiro do Gradle é mais flexível.</p>
+<p>O Gradle trabalha com <strong>tarefas</strong> (<em>tasks</em>): <code>compileJava</code>, <code>test</code>, <code>jar</code>, <code>build</code>… Cada tarefa depende de outras, e o Gradle roda só as que precisam (se nada mudou, ele pula).</p>
+
+<hr>
+
+<h2>1. Conferir a instalação</h2>
+<p>No laboratório, o Gradle já está em <code>/opt/gradle</code> (para instalar no seu computador, baixe o zip de <code>gradle.org</code> e ponha a pasta <code>bin</code> no <code>PATH</code>; ou use o <a href="https://sdkman.io/">SDKMAN!</a>). Na primeira vez, ele dá boas-vindas:</p>
+
+<pre class="term">$ gradle --version
+Welcome to Gradle 9.8.1!
+
+Here are the highlights of this release:
+ - Java 27 support
+ - Maven mirror settings reuse
+ - Linked problem locations in build output
+
+For more details see https://docs.gradle.org/9.8.1/release-notes.html
+
+------------------------------------------------------------
+Gradle 9.8.1
+------------------------------------------------------------
+
+Build time:    2026-10-07 16:57:46 UTC
+Revision:      39daf39feb60a18b1b6ddccde53366522fef516f
+
+Kotlin:        2.4.10
+Groovy:        4.0.33
+Ant:           Apache Ant(TM) version 1.10.17 compiled on April 6 2026
+Launcher JVM:  25.0.4.1 (Eclipse Adoptium 25.0.4.1+1-LTS)
+Daemon JVM:    /opt/jdk-25 (no Daemon JVM specified, using current Java home)
+OS:            Linux 7.0.0-38-generic amd64</pre>
+
+<p>O Gradle é escrito em Java e roda numa JVM (<code>Launcher JVM: 25.0.4.1</code>). As linhas <code>Kotlin</code> e <code>Groovy</code> são as duas linguagens em que se escreve a receita: Kotlin (arquivos <code>.gradle.kts</code>, o padrão atual) ou Groovy (arquivos <code>.gradle</code>, comuns em projetos mais antigos).</p>
+
+<hr>
+
+<h2>2. Criar o projeto: <code>gradle init</code></h2>
+<p>Sem opções, o <code>gradle init</code> faz uma série de perguntas (tipo de projeto, linguagem, pacote…). Dando todas as respostas na linha de comando, ele não pergunta nada:</p>
+
+<pre class="term">$ mkdir mercado &amp;&amp; cd mercado
+$ gradle init --type java-application --dsl kotlin --test-framework junit-jupiter --package br.com.ana.mercado --project-name mercado --java-version 25 --no-split-project --no-incubating
+Starting a Gradle Daemon, 1 stopped Daemon could not be reused, use --status for details
+
+&gt; Task :init
+Learn more about Gradle by exploring our Samples at https://docs.gradle.org/9.8.1/samples/sample_building_java_applications.html
+
+BUILD SUCCESSFUL in 6s
+1 actionable task: 1 executed</pre>
+
+<dl class="anatomy">
+  <dt>--type java-application</dt><dd>Um programa Java com <code>main</code> (a outra opção comum é <code>java-library</code>, uma biblioteca).</dd>
+  <dt>--dsl kotlin</dt><dd>A receita em Kotlin (<code>build.gradle.kts</code>). <em>DSL</em> = <em>domain-specific language</em>, "linguagem para um assunto específico".</dd>
+  <dt>--test-framework junit-jupiter</dt><dd>Testes com o JUnit (veja <a href="junit.html">Testes com JUnit</a>).</dd>
+  <dt>--package br.com.ana.mercado</dt><dd>O pacote das classes.</dd>
+  <dt>--project-name mercado</dt><dd>O nome do projeto.</dd>
+  <dt>--java-version 25</dt><dd>A versão do Java.</dd>
+  <dt>--no-split-project</dt><dd>Um projeto só (e não vários subprojetos).</dd>
+  <dt>--no-incubating</dt><dd>Não usar recursos ainda experimentais do Gradle.</dd>
+</dl>
+
+<p>Se faltar alguma opção, você pode pôr <code>--use-defaults</code> para ele escolher o padrão em vez de perguntar.</p>
+
+<h3>O que foi criado</h3>
+<pre class="term">$ find . -type f | sort
+./app/build.gradle.kts
+./app/src/main/java/br/com/ana/mercado/App.java
+./app/src/test/java/br/com/ana/mercado/AppTest.java
+./.gitattributes
+./.gitignore
+./gradle/libs.versions.toml
+./gradle.properties
+./gradlew
+./gradlew.bat
+./gradle/wrapper/gradle-wrapper.jar
+./gradle/wrapper/gradle-wrapper.properties
+./settings.gradle.kts</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Arquivo</th><th>Para que serve</th></tr>
+<tr><td><code>settings.gradle.kts</code></td><td>O "índice" do projeto: nome e quais subprojetos existem (aqui, um: <code>app</code>)</td></tr>
+<tr><td><code>app/build.gradle.kts</code></td><td>A receita do subprojeto <code>app</code>: plugins, dependências, versão do Java, classe principal</td></tr>
+<tr><td><code>app/src/main/java/…</code>, <code>app/src/test/java/…</code></td><td>Código e testes, na mesma estrutura do Maven</td></tr>
+<tr><td><code>gradle/libs.versions.toml</code></td><td>O <strong>catálogo de versões</strong>: um lugar só para as versões das bibliotecas</td></tr>
+<tr><td><code>gradle.properties</code></td><td>Opções do Gradle (aqui, liga o <em>configuration cache</em>, que deixa os builds seguintes mais rápidos)</td></tr>
+<tr><td><code>gradlew</code>, <code>gradlew.bat</code>, <code>gradle/wrapper/*</code></td><td>O <strong>wrapper</strong> (seção 4)</td></tr>
+<tr><td><code>.gitignore</code>, <code>.gitattributes</code></td><td>Configuração para o Git (ignorar a pasta <code>build</code>, por exemplo)</td></tr>
+</table>
+</div>
+
+<p>Repare na diferença do Maven: o código fica dentro de <code>app/</code>. O Gradle já cria o projeto preparado para ter várias partes (um <code>app</code>, uma <code>biblioteca</code>…), cada uma com o seu <code>build.gradle.kts</code>.</p>
+
+<hr>
+
+<h2>3. A receita: <code>build.gradle.kts</code></h2>
+<p>O arquivo gerado tem comentários em inglês explicando cada bloco. Sem os comentários, e depois de duas mudanças da Ana (ela tirou a biblioteca de exemplo Guava, que o modelo inclui, e acrescentou a Gson, que você vai ver adiante), ficou assim:</p>
+
+<pre class="file" data-file="app/build.gradle.kts">plugins {
+    application
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation("com.google.code.gson:gson:2.13.1")
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+application {
+    mainClass = "br.com.ana.mercado.App"
+}
+
+tasks.named&lt;Test&gt;("test") {
+    useJUnitPlatform()
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>plugins { application }</code></td><td>Liga o plugin <code>application</code>: compilar Java, criar o JAR e, além disso, a tarefa <code>run</code> e scripts para executar o programa.</td></tr>
+<tr><td><code>repositories { mavenCentral() }</code></td><td>Onde buscar bibliotecas: no mesmo Maven Central que o Maven usa.</td></tr>
+<tr><td><code>dependencies { … }</code></td><td>As bibliotecas. A palavra antes dos parênteses diz <strong>para que</strong> serve cada uma:</td></tr>
+<tr><td>&nbsp;&nbsp;<code>implementation("grupo:nome:versão")</code></td><td>Usada pelo programa (como a dependência sem <code>scope</code> do Maven). As coordenadas vão numa linha só, separadas por <code>:</code>.</td></tr>
+<tr><td>&nbsp;&nbsp;<code>testImplementation(libs.junit.jupiter)</code></td><td>Usada só nos testes (como <code>&lt;scope&gt;test&lt;/scope&gt;</code>). <code>libs.junit.jupiter</code> aponta para o catálogo <code>libs.versions.toml</code>, que diz <code>org.junit.jupiter:junit-jupiter</code>, versão <code>6.0.1</code>.</td></tr>
+<tr><td>&nbsp;&nbsp;<code>testRuntimeOnly(…)</code></td><td>Necessária só para <strong>rodar</strong> os testes (o "lançador" do JUnit).</td></tr>
+<tr><td><code>java { toolchain { languageVersion = … 25 } }</code></td><td>Compilar e rodar com um JDK 25. O Gradle procura um JDK 25 instalado (e, se não achar, pode baixar um, graças ao plugin <code>foojay-resolver</code> declarado no <code>settings.gradle.kts</code>).</td></tr>
+<tr><td><code>application { mainClass = "…" }</code></td><td>A classe principal, para o <code>./gradlew run</code>.</td></tr>
+<tr><td><code>tasks.named&lt;Test&gt;("test") { useJUnitPlatform() }</code></td><td>Configura a tarefa <code>test</code> para usar o JUnit 5/6 (a "plataforma JUnit").</td></tr>
+</table>
+</div>
+
+<p>Compare com o <code>pom.xml</code>: a dependência da Gson, que no Maven ocupa 5 linhas de XML, aqui é uma linha. Como o arquivo é código Kotlin, o editor (como o IntelliJ) completa e confere enquanto você digita.</p>
+
+<p>A classe gerada, <code>App.java</code>, tem um método que devolve a saudação, e um teste para ele. A Ana trocou o texto para português:</p>
+
+<pre class="file" data-file="app/src/main/java/br/com/ana/mercado/App.java">package br.com.ana.mercado;
+
+public class App {
+    public String getGreeting() {
+        return "Bem-vinda ao mercado da Ana!";
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new App().getGreeting());
+    }
+}
+</pre>
+
+<div class="tryjava" data-goal="out:PASSED">
+<p class="try-task"><strong>Missão:</strong> o teste do projeto confere se <code>getGreeting()</code> devolve exatamente <code>Bem-vinda ao mercado da Ana!</code>. O <code>main</code> abaixo imita esse teste e mostra <code>PASSED</code> ou <code>FAILED</code>. O método está com um erro de digitação: conserte-o (sem mexer no <code>main</code>) até aparecer <code>PASSED</code>.</p>
+<pre class="script">public class Main {
+    public String getGreeting() {
+        return "Bem-vindo ao mercado da Ana!";
+    }
+
+    public static void main(String[] args) {
+        String esperado = "Bem-vinda ao mercado da Ana!";
+        String obtido = new Main().getGreeting();
+        if (esperado.equals(obtido)) {
+            System.out.println("PASSED");
+        } else {
+            System.out.println("FAILED: expected: &lt;" + esperado + "&gt; but was: &lt;" + obtido + "&gt;");
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public String getGreeting() {
+        return "Bem-vinda ao mercado da Ana!";
+    }
+
+    public static void main(String[] args) {
+        String esperado = "Bem-vinda ao mercado da Ana!";
+        String obtido = new Main().getGreeting();
+        if (esperado.equals(obtido)) {
+            System.out.println("PASSED");
+        } else {
+            System.out.println("FAILED: expected: &lt;" + esperado + "&gt; but was: &lt;" + obtido + "&gt;");
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O wrapper: <code>./gradlew</code></h2>
+<p>O <code>gradle init</code> criou um script chamado <code>gradlew</code> (<em>Gradle wrapper</em>, "embrulho do Gradle"). Ele é um pequeno programa que <strong>baixa a versão certa do Gradle</strong> para este projeto e a usa. A versão está anotada em <code>gradle/wrapper/gradle-wrapper.properties</code>:</p>
+
+<pre class="term">$ cat gradle/wrapper/gradle-wrapper.properties
+distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\://services.gradle.org/distributions/gradle-9.8.1-bin.zip
+networkTimeout=10000
+retries=0
+retryBackOffMs=500
+validateDistributionUrl=true
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists</pre>
+
+<p>A linha que importa é <code>distributionUrl</code>: "este projeto usa o Gradle 9.8.1, baixado deste endereço". Por que isso é bom? Porque o Gradle muda bastante entre versões. Com o wrapper, quem baixar o seu projeto (um colega, o servidor que gera as versões) roda <code>./gradlew build</code> e usa <strong>exatamente</strong> o mesmo Gradle, mesmo sem ter nenhum Gradle instalado. Por isso a regra é: <strong>use sempre <code>./gradlew</code></strong> num projeto que tem wrapper, e guarde os arquivos do wrapper junto com o código (no Git).</p>
+
+<div class="note">
+<strong>Uma observação sobre as saídas desta aula</strong>
+<p>Num terminal de verdade, o Gradle mostra uma <strong>barra de progresso animada</strong> enquanto trabalha e, no fim, deixa na tela só o resultado (<code>BUILD SUCCESSFUL in 8s</code> e mais duas linhas). Para ver a lista das tarefas que rodaram, como nesta aula, acrescente <code>--console=plain</code> ("console simples") ao comando.</p>
+</div>
+
+<h3>O primeiro <code>./gradlew build</code></h3>
+<pre class="term">$ ./gradlew build --console=plain
+Fetching distribution.
+Downloading https://services.gradle.org/distributions/gradle-9.8.1-bin.zip
+..............10%..............20%...............30%..............40%...............50%..............60%...............70%..............80%...............90%..............100%
+Starting a Gradle Daemon, 2 stopped Daemons could not be reused, use --status for details
+Calculating task graph as no cached configuration is available for tasks: build
+&gt; Task :app:processTestResources NO-SOURCE
+&gt; Task :app:processResources NO-SOURCE
+&gt; Task :app:compileJava
+&gt; Task :app:classes
+&gt; Task :app:jar
+&gt; Task :app:compileTestJava
+&gt; Task :app:testClasses
+&gt; Task :app:startScripts
+&gt; Task :app:distZip
+&gt; Task :app:distTar
+&gt; Task :app:assemble
+&gt; Task :app:test
+&gt; Task :app:check
+&gt; Task :app:build
+
+BUILD SUCCESSFUL in 1m 54s
+7 actionable tasks: 7 executed
+Configuration cache entry stored.</pre>
+
+<dl class="anatomy">
+  <dt>Downloading … gradle-9.8.1-bin.zip</dt><dd>Só na primeira vez: o wrapper baixou o Gradle inteiro (ele fica em <code>~/.gradle/wrapper</code>, 165 MB).</dd>
+  <dt>Starting a Gradle Daemon</dt><dd>O Gradle começou um <strong>daemon</strong> (veja abaixo).</dd>
+  <dt>&gt; Task :app:compileJava</dt><dd>Cada linha é uma tarefa do subprojeto <code>app</code>. <code>NO-SOURCE</code> = não havia arquivos para ela (não existe <code>src/main/resources</code>).</dd>
+  <dt>:app:jar</dt><dd>Criou o JAR.</dd>
+  <dt>:app:distZip, :app:distTar</dt><dd>Criaram um <code>.zip</code> e um <code>.tar</code> prontos para distribuir o programa (com scripts e bibliotecas).</dd>
+  <dt>:app:test, :app:check</dt><dd>Rodaram os testes.</dd>
+  <dt>BUILD SUCCESSFUL in 1m 54s</dt><dd>Deu certo. Lento por causa dos downloads.</dd>
+  <dt>7 actionable tasks: 7 executed</dt><dd>Sete tarefas tinham trabalho a fazer, e todas foram executadas.</dd>
+</dl>
+
+<p>Rodando de novo, sem mudar nada:</p>
+<pre class="term">$ ./gradlew build --console=plain
+Reusing configuration cache.
+&gt; Task :app:processResources NO-SOURCE
+&gt; Task :app:processTestResources NO-SOURCE
+&gt; Task :app:compileJava UP-TO-DATE
+&gt; Task :app:classes UP-TO-DATE
+&gt; Task :app:jar UP-TO-DATE
+&gt; Task :app:compileTestJava UP-TO-DATE
+&gt; Task :app:testClasses UP-TO-DATE
+&gt; Task :app:startScripts UP-TO-DATE
+&gt; Task :app:distTar UP-TO-DATE
+&gt; Task :app:distZip UP-TO-DATE
+&gt; Task :app:assemble UP-TO-DATE
+&gt; Task :app:test UP-TO-DATE
+&gt; Task :app:check UP-TO-DATE
+&gt; Task :app:build UP-TO-DATE
+
+BUILD SUCCESSFUL in 1s
+7 actionable tasks: 7 up-to-date
+Configuration cache entry reused.</pre>
+<p><code>UP-TO-DATE</code> = "já está em dia": nada mudou desde a última vez, então o Gradle não refez nada. Um segundo, em vez de dois minutos. Essa é uma das forças do Gradle: ele lembra o que já fez, até os testes.</p>
+
+<h3>A pasta <code>build/</code></h3>
+<p>No Gradle, o que é gerado vai para <code>app/build</code> (no Maven era <code>target</code>):</p>
+<pre class="term">$ ls app/build/libs app/build/distributions
+app/build/distributions:
+app.tar
+app.zip
+
+app/build/libs:
+app.jar</pre>
+<p>Para apagar tudo o que foi gerado: <code>./gradlew clean</code>.</p>
+
+<h3>O daemon</h3>
+<p>Iniciar uma JVM e carregar o Gradle leva vários segundos. Para não pagar isso a cada comando, o Gradle deixa um processo rodando em segundo plano, o <strong>daemon</strong> (palavra antiga da informática para "processo que trabalha nos bastidores"). Os comandos seguintes conversam com ele e ficam bem mais rápidos. Ele se desliga sozinho depois de um tempo parado, ou com:</p>
+<pre class="term">$ ./gradlew --stop
+Stopping Daemon(s)
+1 Daemon stopped</pre>
+<p>A mensagem <code>Starting a Gradle Daemon, 2 stopped Daemons could not be reused</code> só quer dizer que havia daemons parados (a Ana parou o daemon depois de cada exemplo) e um novo foi iniciado. O daemon ocupa memória; num computador modesto, vale parar quando terminar de trabalhar.</p>
+
+<hr>
+
+<h2>5. Rodar: <code>./gradlew run</code></h2>
+<pre class="term">$ ./gradlew run --console=plain
+Calculating task graph as no cached configuration is available for tasks: run
+&gt; Task :app:processResources NO-SOURCE
+&gt; Task :app:compileJava UP-TO-DATE
+&gt; Task :app:classes UP-TO-DATE
+
+&gt; Task :app:run
+Hello World!
+
+BUILD SUCCESSFUL in 18s
+2 actionable tasks: 1 executed, 1 up-to-date
+Configuration cache entry stored.</pre>
+<p>A saída do seu programa aparece logo depois de <code>&gt; Task :app:run</code> (este foi o <code>run</code> antes de a Ana traduzir a saudação). Para passar <a href="args.html">argumentos</a> ao <code>main</code>: <code>./gradlew run --args="Ana 29"</code>.</p>
+
+<hr>
+
+<h2>6. Testar: <code>./gradlew test</code></h2>
+<p>O teste gerado foi adaptado pela Ana para conferir a saudação:</p>
+<pre class="file" data-file="app/src/test/java/br/com/ana/mercado/AppTest.java">package br.com.ana.mercado;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class AppTest {
+    @Test void saudacaoDoMercado() {
+        App app = new App();
+        assertEquals("Bem-vinda ao mercado da Ana!", app.getGreeting());
+    }
+}
+</pre>
+<p>O que cada parte faz (<code>@Test</code>, <code>assertEquals</code>) é o assunto de <a href="junit.html">Testes com JUnit</a>; aqui interessa como o Gradle mostra o resultado. A Ana tinha digitado <code>Bem-vindo</code> (com <strong>o</strong>) no <code>App.java</code>:</p>
+
+<div class="warning"><strong>Este teste falha de propósito</strong></div>
+<pre class="term">$ ./gradlew test --console=plain
+Reusing configuration cache.
+&gt; Task :app:processTestResources NO-SOURCE
+&gt; Task :app:processResources NO-SOURCE
+&gt; Task :app:compileJava
+&gt; Task :app:classes
+&gt; Task :app:compileTestJava
+&gt; Task :app:testClasses
+
+&gt; Task :app:test FAILED
+
+AppTest &gt; saudacaoDoMercado() FAILED
+    org.opentest4j.AssertionFailedError at AppTest.java:9
+
+1 test completed, 1 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:test'.
+&gt; There were failing tests. See the report at: file:///home/ana/mercado/app/build/reports/tests/test/index.html
+
+* Try:
+&gt; Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 8s
+3 actionable tasks: 3 executed
+Configuration cache entry reused.</pre>
+
+<p>O Gradle diz <strong>qual</strong> teste falhou (<code>saudacaoDoMercado()</code>) e em que linha (<code>AppTest.java:9</code>), mas não <strong>por quê</strong>. O detalhe está no relatório em HTML (abra o <code>index.html</code> no navegador). Para ver o motivo direto no terminal, a Ana acrescentou um bloco <code>testLogging</code> à tarefa <code>test</code>:</p>
+
+<pre class="file" data-file="app/build.gradle.kts (trecho)">tasks.named&lt;Test&gt;("test") {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+}
+</pre>
+<dl class="anatomy">
+  <dt>events("passed", "failed")</dt><dd>Mostrar uma linha para cada teste que passou ou falhou.</dd>
+  <dt>exceptionFormat = … FULL</dt><dd>Mostrar a mensagem completa do erro, com o <em>stack trace</em>.</dd>
+</dl>
+
+<pre class="term">$ ./gradlew test --console=plain
+…
+&gt; Task :app:test FAILED
+
+AppTest &gt; saudacaoDoMercado() FAILED
+    org.opentest4j.AssertionFailedError: expected: &lt;Bem-vinda ao mercado da Ana!&gt; but was: &lt;Bem-vindo ao mercado da Ana!&gt;
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:158)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:139)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:201)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:184)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:179)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1188)
+        at app//br.com.ana.mercado.AppTest.saudacaoDoMercado(AppTest.java:9)
+
+1 test completed, 1 failed
+…
+BUILD FAILED in 19s</pre>
+
+<p>Agora está claro: esperava (<code>expected</code>) <code>Bem-vinda</code>, recebeu (<code>but was</code>) <code>Bem-vindo</code>. Depois de corrigir o <code>App.java</code>:</p>
+
+<pre class="term">$ ./gradlew test --console=plain
+Reusing configuration cache.
+&gt; Task :app:processResources NO-SOURCE
+&gt; Task :app:processTestResources NO-SOURCE
+&gt; Task :app:compileJava
+&gt; Task :app:classes
+&gt; Task :app:compileTestJava UP-TO-DATE
+&gt; Task :app:testClasses UP-TO-DATE
+&gt; Task :app:test
+
+AppTest &gt; saudacaoDoMercado() PASSED
+
+BUILD SUCCESSFUL in 2s
+3 actionable tasks: 2 executed, 1 up-to-date
+Configuration cache entry reused.</pre>
+
+<hr>
+
+<h2>7. Uma dependência: a Gson</h2>
+<p>Como na aula de Maven, a Ana quer mostrar a lista de compras em JSON com a Gson. Ela mudou o <code>main</code>:</p>
+
+<pre class="file" data-file="app/src/main/java/br/com/ana/mercado/App.java">package br.com.ana.mercado;
+
+import com.google.gson.Gson;
+import java.util.List;
+
+public class App {
+    record Item(String nome, double preco) {}
+
+    public String getGreeting() {
+        return "Bem-vinda ao mercado da Ana!";
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new App().getGreeting());
+        List&lt;Item&gt; itens = List.of(new Item("arroz", 25.9), new Item("feijão", 8.75));
+        System.out.println(new Gson().toJson(itens));
+    }
+}
+</pre>
+
+<p>Sem a linha <code>implementation("com.google.code.gson:gson:2.13.1")</code> no <code>build.gradle.kts</code>, a compilação falha com a mensagem do <code>javac</code>:</p>
+
+<div class="warning"><strong>Este build falha de propósito</strong></div>
+<pre class="term">$ ./gradlew run --console=plain
+…
+&gt; Task :app:compileJava FAILED
+/home/ana/mercado/app/src/main/java/br/com/ana/mercado/App.java:3: error: package com.google.gson does not exist
+import com.google.gson.Gson;
+                      ^
+/home/ana/mercado/app/src/main/java/br/com/ana/mercado/App.java:16: error: cannot find symbol
+        System.out.println(new Gson().toJson(itens));
+                               ^
+  symbol:   class Gson
+  location: class App
+2 errors
+
+[Incubating] Problems report is available at: file:///home/ana/mercado/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileJava' (registered by plugin class 'org.gradle.api.plugins.JavaBasePlugin').
+&gt; Compilation failed; see the compiler output below.
+…                                                    « os mesmos 2 erros, repetidos
+* Try:
+&gt; Check your code and dependencies to fix the compilation error(s)
+&gt; Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 9s
+1 actionable task: 1 executed</pre>
+
+<p>Com a dependência no lugar:</p>
+<pre class="term">$ ./gradlew run --console=plain
+Calculating task graph as configuration cache cannot be reused because file 'app/build.gradle.kts' has changed.
+&gt; Task :app:processResources NO-SOURCE
+&gt; Task :app:compileJava
+&gt; Task :app:classes
+
+&gt; Task :app:run
+Bem-vinda ao mercado da Ana!
+[{"nome":"arroz","preco":25.9},{"nome":"feijão","preco":8.75}]
+
+BUILD SUCCESSFUL in 4s
+2 actionable tasks: 2 executed
+Configuration cache entry stored.</pre>
+
+<p>Repare: o <code>run</code> do Gradle já põe a Gson (e a dependência dela) no classpath. No Maven, a Ana teve de montar o <code>-cp</code> à mão. As bibliotecas baixadas pelo Gradle ficam em <code>~/.gradle/caches</code> (o Gradle não usa o <code>~/.m2</code> do Maven).</p>
+
+<h3>Entregar o programa com as bibliotecas</h3>
+<p>O <code>app.jar</code> sozinho não tem <code>Main-Class</code> nem a Gson. A tarefa <code>installDist</code> monta uma pasta com tudo, e um script para rodar:</p>
+<pre class="term">$ ./gradlew installDist --console=plain
+…
+&gt; Task :app:jar
+&gt; Task :app:startScripts
+&gt; Task :app:installDist
+
+BUILD SUCCESSFUL in 9s
+4 actionable tasks: 3 executed, 1 up-to-date
+Configuration cache entry stored.
+$ find app/build/install -type f
+app/build/install/app/lib/gson-2.13.1.jar
+app/build/install/app/lib/app.jar
+app/build/install/app/lib/error_prone_annotations-2.38.0.jar
+app/build/install/app/bin/app                « script para Linux e macOS
+app/build/install/app/bin/app.bat            « script para Windows
+$ app/build/install/app/bin/app
+Bem-vinda ao mercado da Ana!
+[{"nome":"arroz","preco":25.9},{"nome":"feijão","preco":8.75}]
+$ java -jar app/build/libs/app.jar
+nenhum atributo de manifesto principal em app/build/libs/app.jar</pre>
+<p>O script <code>bin/app</code> monta o classpath com os três JARs da pasta <code>lib</code> e chama a classe principal. O <code>app.zip</code> que o <code>build</code> gerou é essa mesma pasta, compactada. (Se você quiser mesmo um <code>java -jar</code>, precisa configurar o manifesto da tarefa <code>jar</code>; veja a <a href="jar.html">aula de JAR</a> para entender o porquê.)</p>
+
+<div class="tryjava" data-goal="out:Total: R$ 34\,65,src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> o mercado da Ana precisa do total da compra. Use o <code>record Item</code> e a lista abaixo para somar os preços num laço e mostrar <code>Total: R$ 34,65</code> com <code>printf</code> e <code>%.2f</code>.</p>
+<pre class="script">import java.util.List;
+
+public class Main {
+    record Item(String nome, double preco) {}
+
+    public static void main(String[] args) {
+        List&lt;Item&gt; itens = List.of(new Item("arroz", 25.9), new Item("feijão", 8.75));
+        double total = 0;
+        // some os preços aqui
+
+        System.out.printf("Total: R$ %.2f%n", total);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.List;
+
+public class Main {
+    record Item(String nome, double preco) {}
+
+    public static void main(String[] args) {
+        List&lt;Item&gt; itens = List.of(new Item("arroz", 25.9), new Item("feijão", 8.75));
+        double total = 0;
+        for (Item i : itens) {
+            total += i.preco();
+        }
+        System.out.printf("Total: R$ %.2f%n", total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>8. Maven × Gradle</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Maven</th><th>Gradle</th></tr>
+<tr><td>Receita</td><td><code>pom.xml</code> (XML, declarativo)</td><td><code>build.gradle.kts</code> (código Kotlin) ou <code>build.gradle</code> (Groovy)</td></tr>
+<tr><td>Criar projeto</td><td><code>mvn archetype:generate</code></td><td><code>gradle init</code></td></tr>
+<tr><td>Compilar</td><td><code>mvn compile</code></td><td><code>./gradlew compileJava</code></td></tr>
+<tr><td>Testar</td><td><code>mvn test</code></td><td><code>./gradlew test</code></td></tr>
+<tr><td>Gerar o JAR</td><td><code>mvn package</code></td><td><code>./gradlew build</code> (ou <code>jar</code>)</td></tr>
+<tr><td>Rodar o programa</td><td>plugin extra (<code>exec:java</code>) ou <code>java -cp …</code></td><td><code>./gradlew run</code> (plugin <code>application</code>)</td></tr>
+<tr><td>Apagar o gerado</td><td><code>mvn clean</code> (pasta <code>target/</code>)</td><td><code>./gradlew clean</code> (pasta <code>build/</code>)</td></tr>
+<tr><td>Dependência</td><td>5 linhas de <code>&lt;dependency&gt;</code></td><td><code>implementation("g:a:v")</code></td></tr>
+<tr><td>Bibliotecas baixadas</td><td><code>~/.m2/repository</code></td><td><code>~/.gradle/caches</code></td></tr>
+<tr><td>Versão da ferramenta</td><td>A instalada (existe o <code>mvnw</code>, opcional)</td><td>O wrapper <code>./gradlew</code>, gerado sempre</td></tr>
+<tr><td>Velocidade</td><td>Refaz fases inteiras</td><td>Pula tarefas em dia, daemon, cache</td></tr>
+<tr><td>Saída</td><td>Longa e detalhada</td><td>Curta (barra de progresso)</td></tr>
+<tr><td>Onde aparece mais</td><td>Empresas, sistemas Java tradicionais, Spring</td><td>Android, projetos Kotlin, projetos grandes com muitas partes</td></tr>
+<tr><td>Curva de aprendizado</td><td>Mais fácil: há um jeito de fazer cada coisa</td><td>Mais flexível, e por isso há mais jeitos de errar</td></tr>
+</table>
+</div>
+<p><strong>Qual usar?</strong> Num projeto que já existe, a que ele usa. Num projeto novo seu, qualquer uma serve; se a equipe ou o tutorial que você segue usa uma, fique com ela. As duas usam o mesmo Maven Central, a mesma estrutura <code>src/main/java</code> e o mesmo JUnit, então mudar de uma para outra é tranquilo.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>Could not find com.google.code.gson:gson:2.99.0</code></strong>
+<pre class="term">$ ./gradlew run --console=plain
+…
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Configuration cache state could not be cached: field `classpath` of task `:app:compileJava` of type `org.gradle.api.tasks.compile.JavaCompile`: error writing value of type 'org.gradle.api.internal.artifacts.configurations.DefaultResolvableConfiguration'
+&gt; Could not resolve all files for configuration ':app:compileClasspath'.
+   &gt; Could not find com.google.code.gson:gson:2.99.0.
+     Searched in the following locations:
+       - https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.99.0/gson-2.99.0.pom
+     Required by:
+         project ':app'
+…
+BUILD FAILED in 16s</pre>
+<p><strong>O que aconteceu:</strong> a versão <code>2.99.0</code> não existe. A primeira frase (sobre <em>configuration cache</em>) assusta, mas é consequência; a causa está mais abaixo: <code>Could not find …</code>, com o endereço onde o Gradle procurou. <strong>Como resolver:</strong> corrija as coordenadas (procure em <code>central.sonatype.com</code>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>bash: ./gradlew: Permissão negada</code></strong>
+<pre class="term">$ ./gradlew build
+bash: ./gradlew: Permissão negada</pre>
+<p><strong>O que aconteceu:</strong> o script perdeu a permissão de execução (acontece ao copiar o projeto de um zip ou do Windows). <strong>Como resolver:</strong> <code>chmod +x gradlew</code>. Para rodar uma vez sem mudar a permissão: <code>sh gradlew build</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>Directory '/home/ana' does not contain a Gradle build.</code></strong>
+<pre class="term">$ gradle build
+…
+* What went wrong:
+Directory '/home/ana' does not contain a Gradle build.
+
+A Gradle build's root directory should contain one of the possible settings files: settings.gradle, settings.gradle.kts, settings.gradle.dcl. It may also contain one of the possible build files: build.gradle, build.gradle.kts, build.gradle.dcl.
+
+To create a new Gradle build in this directory run 'gradle init'
+…
+BUILD FAILED in 2s</pre>
+<p><strong>O que aconteceu:</strong> você está fora da pasta do projeto. <strong>Como resolver:</strong> <code>cd</code> para a pasta que tem o <code>settings.gradle.kts</code> (a raiz, não a <code>app</code>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>There were failing tests</code></strong>
+<p><strong>O que aconteceu:</strong> pelo menos um teste falhou, e o Gradle para o build (não gera o JAR). <strong>Como resolver:</strong> veja o motivo no relatório <code>app/build/reports/tests/test/index.html</code> ou ligue o <code>testLogging</code> com <code>exceptionFormat = FULL</code>, como na seção 6. Depois corrija o código (ou o teste, se o teste estiver errado).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>gradle init --type java-application --dsl kotlin … </code></td><td>Cria um projeto (com <code>--use-defaults</code>, não pergunta nada)</td></tr>
+<tr><td><code>./gradlew build</code></td><td>Compila, testa e empacota (JAR, zip, tar)</td></tr>
+<tr><td><code>./gradlew run</code> / <code>run --args="a b"</code></td><td>Roda a <code>mainClass</code> com as dependências no classpath</td></tr>
+<tr><td><code>./gradlew test</code></td><td>Roda os testes</td></tr>
+<tr><td><code>./gradlew clean</code></td><td>Apaga a pasta <code>build</code></td></tr>
+<tr><td><code>./gradlew installDist</code></td><td>Monta <code>build/install/…</code> com <code>bin/</code> e <code>lib/</code></td></tr>
+<tr><td><code>./gradlew tasks</code></td><td>Lista as tarefas disponíveis</td></tr>
+<tr><td><code>./gradlew --stop</code></td><td>Para o daemon</td></tr>
+<tr><td><code>./gradlew --version</code></td><td>Versão do Gradle do wrapper</td></tr>
+<tr><td><code>… --console=plain</code></td><td>Saída em texto simples, uma linha por tarefa</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Rodar o programa</h3>
+<p>Complete o comando que roda o programa usando o wrapper:</p>
+<div class="ex-code"><input data-answer="./gradlew run" aria-label="comando"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Uma dependência</h3>
+<p>Complete a linha do <code>build.gradle.kts</code> que adiciona a biblioteca <code>org.apache.commons:commons-lang3:3.17.0</code> para o programa:</p>
+<div class="ex-code"><input data-answer="implementation" aria-label="configuração">("org.apache.commons:commons-lang3:3.17.0")</div>
+</div>
+
+<div class="exercise">
+<h3>3. Só para os testes</h3>
+<p>E se a biblioteca fosse usada só nos testes?</p>
+<div class="ex-code"><input data-answer="testImplementation" aria-label="configuração">("org.assertj:assertj-core:3.27.3")</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que usar <code>./gradlew</code> em vez de <code>gradle</code>?</p>
+<label><input type="radio" name="q4"> Porque <code>gradle</code> não existe no Linux.</label>
+<label><input type="radio" name="q4"> Porque o wrapper usa a versão do Gradle anotada no projeto, igual para todos.</label>
+<label><input type="radio" name="q4"> Porque o wrapper não precisa de Java.</label>
+<label><input type="radio" name="q4"> Porque é mais curto de digitar.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que quer dizer <code>&gt; Task :app:compileJava UP-TO-DATE</code>?</p>
+<label><input type="radio" name="q5"> O Gradle atualizou o Java.</label>
+<label><input type="radio" name="q5"> A compilação falhou.</label>
+<label><input type="radio" name="q5"> Nada mudou desde a última compilação, então a tarefa foi pulada.</label>
+<label><input type="radio" name="q5"> O código foi enviado para a internet.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Onde ficam o JAR e os relatórios gerados pelo Gradle neste projeto?</p>
+<label><input type="radio" name="q6"> Em <code>app/build/</code></label>
+<label><input type="radio" name="q6"> Em <code>target/</code></label>
+<label><input type="radio" name="q6"> Em <code>~/.m2/repository</code></label>
+<label><input type="radio" name="q6"> Em <code>gradle/wrapper/</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O Gradle faz o mesmo que o Maven (dependências e build), com a receita em código: <code>build.gradle.kts</code>.</li>
+  <li><code>gradle init --type java-application --dsl kotlin …</code> cria o projeto; o código fica em <code>app/src/main/java</code>.</li>
+  <li>Dependências: <code>implementation("grupo:nome:versão")</code>; só para testes: <code>testImplementation(…)</code>.</li>
+  <li>Use sempre o wrapper <code>./gradlew</code>: ele baixa e usa a versão certa do Gradle.</li>
+  <li><code>./gradlew build</code>, <code>run</code>, <code>test</code>, <code>clean</code>; o gerado vai para <code>app/build/</code>.</li>
+  <li><code>UP-TO-DATE</code> = tarefa pulada porque nada mudou. O daemon deixa os comandos seguintes rápidos; <code>--stop</code> o desliga.</li>
+  <li>Num <code>BUILD FAILED</code>, procure a causa em <code>What went wrong</code> e nas linhas do <code>javac</code> ou do teste.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
