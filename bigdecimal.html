@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java BigDecimal — dinheiro sem erro de arredondamento | Guia Java</title>
+<meta name="description" content="Por que double não serve para dinheiro em Java (0.1 + 0.2 = 0.30000000000000004), como usar BigDecimal (new BigDecimal(&quot;0.1&quot;) × new BigDecimal(0.1)), add, subtract, multiply, divide, setScale e RoundingMode, a ArithmeticException da divisão, compareTo × equals e BigInteger para números enormes. Saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">BigDecimal e Dinheiro</span></h1>
+
+<p class="intro">Para o computador, <code>0.1 + 0.2</code> não é <code>0.3</code>. Num jogo, ninguém percebe a diferença; numa loja, num banco ou numa folha de pagamento, um centavo errado é um problema sério. O Java resolve isso com a classe <code>BigDecimal</code>, que faz contas com números decimais <strong>exatos</strong>, e a sua irmã <code>BigInteger</code>, para inteiros de qualquer tamanho.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que o <code>double</code> erra centavos, com exemplos reais.</li>
+  <li>Criar um <code>BigDecimal</code> do jeito certo (<code>new BigDecimal("0.1")</code>) e o jeito errado (<code>new BigDecimal(0.1)</code>).</li>
+  <li>Fazer contas com <code>add</code>, <code>subtract</code>, <code>multiply</code> e <code>divide</code>.</li>
+  <li>Arredondar com <code>setScale</code> e <code>RoundingMode</code>.</li>
+  <li>A <code>ArithmeticException</code> da divisão que não termina, e como evitá-la.</li>
+  <li>Comparar valores com <code>compareTo</code> (e por que <code>equals</code> engana).</li>
+  <li>Calcular o fatorial de 50 com <code>BigInteger</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O problema: <code>double</code> não sabe 0,1</h2>
+<p>Você já viu em <a href="decimais.html">double e float</a> que o <code>double</code> guarda números em <strong>binário</strong> (base 2). Assim como 1/3 não tem representação exata em decimal (0,3333…), o número 0,1 não tem representação exata em binário: o <code>double</code> guarda o valor mais próximo possível, que é um pouquinho diferente. Na maioria das contas, o erro some ao imprimir. Nas contas com dinheiro, ele aparece:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(0.1 + 0.2);
+        System.out.println(0.1 + 0.2 == 0.3);
+        double total = 0;
+        for (int i = 0; i &lt; 10; i++) {
+            total += 0.10;
+        }
+        System.out.println("10 moedas de 10 centavos: " + total);
+        System.out.println(1.10 - 1.00);
+        System.out.println(4.35 * 100);
+        System.out.println((int) (4.35 * 100));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+0.30000000000000004
+false
+10 moedas de 10 centavos: 0.9999999999999999
+0.10000000000000009
+434.99999999999994
+434</pre>
+
+<ul>
+  <li><code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>, e por isso a comparação com <code>0.3</code> é <code>false</code>.</li>
+  <li>Dez moedas de R$ 0,10 não somam R$ 1,00. Some milhares de vendas assim e a diferença cresce.</li>
+  <li>R$ 4,35 em centavos, convertendo para <code>int</code>, vira <strong>434</strong>: o <code>(int)</code> corta as casas decimais (veja <a href="conversao-tipos.html">Conversão de Tipos</a>), e o valor era 434,99999…</li>
+</ul>
+
+<p>Não é defeito do Java: toda linguagem que usa o padrão de ponto flutuante IEEE 754 (JavaScript, Python, C…) tem o mesmo comportamento. A regra dos programadores é antiga e simples: <strong>dinheiro não se guarda em <code>double</code></strong>.</p>
+
+<hr>
+
+<h2><code>BigDecimal</code>: decimais exatos</h2>
+<p>O <code>BigDecimal</code> ("decimal grande", do pacote <code>java.math</code>) guarda o número como nós escrevemos: os dígitos e a posição da vírgula. <code>0.1</code> é exatamente um décimo.</p>
+
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal a = new BigDecimal("0.1");
+        BigDecimal b = new BigDecimal("0.2");
+        System.out.println(a.add(b));
+        System.out.println(new BigDecimal("0.1"));
+        System.out.println(new BigDecimal(0.1));
+        System.out.println(BigDecimal.valueOf(0.1));
+        BigDecimal total = BigDecimal.ZERO;
+        for (int i = 0; i &lt; 10; i++) {
+            total = total.add(new BigDecimal("0.10"));
+        }
+        System.out.println("10 moedas de 10 centavos: " + total);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+0.3
+0.1
+0.1000000000000000055511151231257827021181583404541015625
+0.1
+10 moedas de 10 centavos: 1.00</pre>
+
+<dl class="anatomy">
+  <dt>import java.math.BigDecimal;</dt><dd>A classe fica em <code>java.math</code>, que não é importado automaticamente.</dd>
+  <dt>new BigDecimal("0.1")</dt><dd>Criado a partir de um <strong>texto</strong>: exatamente 0,1. É o jeito certo. O texto usa <strong>ponto</strong>, como o Java.</dd>
+  <dt>a.add(b)</dt><dd>Soma. Não existe <code>+</code> para <code>BigDecimal</code>: as contas são métodos. Resultado: <code>0.3</code>, exato.</dd>
+  <dt>new BigDecimal(0.1)</dt><dd>Criado a partir de um <strong><code>double</code></strong>. O <code>double</code> <code>0.1</code> já chega errado, e o <code>BigDecimal</code> mostra fielmente o valor que o <code>double</code> realmente tinha: <code>0.1000000000000000055511151231257827021181583404541015625</code>. É o erro escondido do <code>double</code>, revelado.</dd>
+  <dt>BigDecimal.valueOf(0.1)</dt><dd>Se o valor já está num <code>double</code>, esta é a forma segura: ela passa pelo texto que o <code>double</code> mostraria (<code>"0.1"</code>) e dá <code>0.1</code>.</dd>
+  <dt>BigDecimal.ZERO</dt><dd>Constante pronta para o zero (também há <code>ONE</code> e <code>TEN</code>).</dd>
+  <dt>total = total.add(…)</dt><dd>Como a <code>String</code>, o <code>BigDecimal</code> é <strong>imutável</strong>: <code>add</code> devolve um <code>BigDecimal</code> novo. É preciso guardar o resultado.</dd>
+</dl>
+
+<div class="warning">
+<strong>Nunca <code>new BigDecimal(0.1)</code></strong>
+<p>Criar a partir de um <code>double</code> traz junto o erro do <code>double</code>. Use <code>new BigDecimal("0.1")</code> (texto) ou <code>BigDecimal.valueOf(0.1)</code>. Números inteiros não têm esse problema: <code>new BigDecimal(3)</code> e <code>BigDecimal.valueOf(3)</code> são exatos.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Total: 1.00,src:BigDecimal,src:add">
+<p class="try-task"><strong>Missão:</strong> a soma das dez moedas dá <code>0.9999999999999999</code>. Reescreva com <code>BigDecimal</code>: comece em <code>BigDecimal.ZERO</code> e, no laço, faça <code>total = total.add(new BigDecimal("0.10"))</code>. A saída deve ser <code>Total: 1.00</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double total = 0;
+        for (int i = 0; i &lt; 10; i++) {
+            total += 0.10;
+        }
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (int i = 0; i &lt; 10; i++) {
+            total = total.add(new BigDecimal("0.10"));
+        }
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>As quatro operações e a escala</h2>
+<p>A Ana vende 3 cadernos de R$ 19,90, dá 15% de desconto e parcela em 4 vezes:</p>
+
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal preco = new BigDecimal("19.90");
+        BigDecimal quantidade = new BigDecimal("3");
+        BigDecimal subtotal = preco.multiply(quantidade);
+        System.out.println("Subtotal: " + subtotal);
+        BigDecimal desconto = subtotal.multiply(new BigDecimal("0.15"));
+        System.out.println("Desconto de 15%: " + desconto);
+        BigDecimal descontoArredondado = desconto.setScale(2, RoundingMode.HALF_UP);
+        System.out.println("Desconto arredondado: " + descontoArredondado);
+        BigDecimal total = subtotal.subtract(descontoArredondado);
+        System.out.println("Total: " + total);
+        BigDecimal parcela = total.divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP);
+        System.out.println("4 parcelas de: " + parcela);
+        System.out.println("Escala do total: " + total.scale());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Subtotal: 59.70
+Desconto de 15%: 8.9550
+Desconto arredondado: 8.96
+Total: 50.74
+4 parcelas de: 12.69
+Escala do total: 2</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operação</th><th>Método</th><th>No exemplo</th></tr>
+<tr><td>Soma</td><td><code>a.add(b)</code></td><td></td></tr>
+<tr><td>Subtração</td><td><code>a.subtract(b)</code></td><td><code>59.70 - 8.96 = 50.74</code></td></tr>
+<tr><td>Multiplicação</td><td><code>a.multiply(b)</code></td><td><code>19.90 × 3 = 59.70</code></td></tr>
+<tr><td>Divisão</td><td><code>a.divide(b, casas, arredondamento)</code></td><td><code>50.74 ÷ 4 = 12.685 → 12.69</code></td></tr>
+<tr><td>Negar, valor absoluto</td><td><code>a.negate()</code>, <code>a.abs()</code></td><td></td></tr>
+<tr><td>Potência</td><td><code>a.pow(n)</code></td><td></td></tr>
+</table>
+</div>
+
+<h3>A escala: quantas casas depois do ponto</h3>
+<p>Todo <code>BigDecimal</code> tem uma <strong>escala</strong> (<em>scale</em>): o número de casas decimais que ele guarda. <code>19.90</code> tem escala 2 (e o zero do fim é mantido: <code>59.70</code>, não <code>59.7</code>). Na multiplicação, as escalas se somam: <code>59.70</code> (2 casas) × <code>0.15</code> (2 casas) = <code>8.9550</code> (4 casas). Por isso, depois de multiplicar por uma porcentagem, arredonde para centavos.</p>
+
+<dl class="anatomy">
+  <dt>setScale(2, RoundingMode.HALF_UP)</dt><dd>"Deixe com 2 casas, arredondando <em>meio para cima</em>": <code>8.9550</code> vira <code>8.96</code>. Também devolve um <code>BigDecimal</code> novo.</dd>
+  <dt>divide(new BigDecimal("4"), 2, RoundingMode.HALF_UP)</dt><dd>Divisão já com o número de casas e a regra de arredondamento: <code>12.685</code> vira <code>12.69</code>.</dd>
+  <dt>scale()</dt><dd>Devolve a escala: <code>2</code>.</dd>
+</dl>
+
+<h3>Os modos de arredondamento (<code>RoundingMode</code>)</h3>
+<p>Arredondar parece simples até alguém perguntar: "e o 5?". O <code>RoundingMode</code> (pacote <code>java.math</code>) tem as regras todas. Cinco valores arredondados para 2 casas, de cinco jeitos:</p>
+
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] valores = {"2.345", "2.355", "-2.345", "2.341", "2.349"};
+        System.out.printf("%-8s %-8s %-9s %-8s %-6s %s%n", "valor", "HALF_UP", "HALF_EVEN", "DOWN", "UP", "FLOOR");
+        for (String v : valores) {
+            BigDecimal b = new BigDecimal(v);
+            System.out.printf("%-8s %-8s %-9s %-8s %-6s %s%n", v,
+                b.setScale(2, RoundingMode.HALF_UP),
+                b.setScale(2, RoundingMode.HALF_EVEN),
+                b.setScale(2, RoundingMode.DOWN),
+                b.setScale(2, RoundingMode.UP),
+                b.setScale(2, RoundingMode.FLOOR));
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+valor    HALF_UP  HALF_EVEN DOWN     UP     FLOOR
+2.345    2.35     2.34      2.34     2.35   2.34
+2.355    2.36     2.36      2.35     2.36   2.35
+-2.345   -2.35    -2.34     -2.34    -2.35  -2.35
+2.341    2.34     2.34      2.34     2.35   2.34
+2.349    2.35     2.35      2.34     2.35   2.34</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Modo</th><th>Regra</th><th>Quando usar</th></tr>
+<tr><td><code>HALF_UP</code></td><td>O 5 sobe (o da escola): 2,345 → 2,35</td><td>O mais comum em preços e notas fiscais</td></tr>
+<tr><td><code>HALF_EVEN</code></td><td>O 5 vai para o vizinho <strong>par</strong>: 2,345 → 2,34; 2,355 → 2,36</td><td>"Arredondamento bancário": em muitas contas, os arredondamentos para cima e para baixo se compensam</td></tr>
+<tr><td><code>DOWN</code></td><td>Corta as casas (em direção ao zero)</td><td>Truncar: "não cobrar fração de centavo"</td></tr>
+<tr><td><code>UP</code></td><td>Sempre se afasta do zero se sobrou algo: 2,341 → 2,35</td><td>Cobrar a fração (taxas mínimas)</td></tr>
+<tr><td><code>FLOOR</code> / <code>CEILING</code></td><td>Sempre para baixo / para cima na reta (diferem do <code>DOWN</code>/<code>UP</code> nos negativos)</td><td>Regras específicas</td></tr>
+</table>
+</div>
+
+<p>Qual usar com dinheiro é uma decisão do negócio (ou da lei), não do programador. Na dúvida, <code>HALF_UP</code> é o que as pessoas esperam.</p>
+
+<hr>
+
+<h2>A divisão que não termina: <code>ArithmeticException</code></h2>
+<p>Dividir R$ 100,00 por 4 dá exatamente 25,00. Mas por 3 dá 33,3333… para sempre. Como o <code>BigDecimal</code> promete ser <strong>exato</strong>, e essa dízima não tem fim, ele se recusa:</p>
+
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal conta = new BigDecimal("100.00");
+        BigDecimal pessoas = new BigDecimal("3");
+        System.out.println(conta.divide(new BigDecimal("4")));
+        System.out.println(conta.divide(pessoas));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+25.00
+Exception in thread "main" java.lang.ArithmeticException: Non-terminating decimal expansion; no exact representable decimal result.
+	at java.base/java.math.BigDecimal.divide(BigDecimal.java:1810)
+	at Main.main(Main.java:8)</pre>
+
+<p>"Expansão decimal sem fim; não há resultado decimal exato representável". O <code>divide</code> com <strong>um</strong> argumento só funciona quando a divisão termina. A solução é sempre dizer <strong>quantas casas</strong> e <strong>como arredondar</strong>: <code>conta.divide(pessoas, 2, RoundingMode.HALF_UP)</code> dá <code>33.33</code>. E aí aparece outra pergunta do mundo real: 3 × 33,33 = 99,99. Quem paga o centavo que sobrou? A missão do fim da aula calcula isso.</p>
+
+<hr>
+
+<h2>Comparar: <code>compareTo</code>, não <code>equals</code></h2>
+
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal a = new BigDecimal("2.0");
+        BigDecimal b = new BigDecimal("2.00");
+        System.out.println("equals: " + a.equals(b));
+        System.out.println("compareTo: " + a.compareTo(b));
+        System.out.println("iguais? " + (a.compareTo(b) == 0));
+        BigDecimal saldo = new BigDecimal("50.00");
+        BigDecimal saque = new BigDecimal("80");
+        if (saque.compareTo(saldo) &gt; 0) {
+            System.out.println("Saque maior que o saldo");
+        }
+        System.out.println("Maior: " + saldo.max(saque));
+        System.out.println("Sem zeros: " + b.stripTrailingZeros());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+equals: false
+compareTo: 0
+iguais? true
+Saque maior que o saldo
+Maior: 80
+Sem zeros: 2</pre>
+
+<p><code>2.0</code> e <code>2.00</code> têm o mesmo <strong>valor</strong>, mas escalas diferentes (1 e 2 casas). O <code>equals</code> do <code>BigDecimal</code> compara valor <strong>e</strong> escala, por isso dá <code>false</code>. O <code>compareTo</code> compara só o valor, e devolve um número:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>a.compareTo(b)</code></th><th>Quer dizer</th><th>Equivale a (com números comuns)</th></tr>
+<tr><td>negativo</td><td><code>a</code> é menor</td><td><code>a &lt; b</code> → <code>a.compareTo(b) &lt; 0</code></td></tr>
+<tr><td><code>0</code></td><td>valores iguais</td><td><code>a == b</code> → <code>a.compareTo(b) == 0</code></td></tr>
+<tr><td>positivo</td><td><code>a</code> é maior</td><td><code>a &gt; b</code> → <code>a.compareTo(b) &gt; 0</code></td></tr>
+</table>
+</div>
+
+<p>Truque para ler: escreva a comparação que você queria (<code>saque &gt; saldo</code>), troque os dois lados por <code>saque.compareTo(saldo)</code> e compare com zero usando o mesmo sinal (<code>&gt; 0</code>). O <code>compareTo</code> é o mesmo método que o Java usa para ordenar (veja <a href="comparable-comparator.html">Comparable e Comparator</a>). E nada de <code>&lt;</code>, <code>&gt;</code> ou <code>==</code> direto entre <code>BigDecimal</code>: são objetos.</p>
+
+<hr>
+
+<h2>Mostrando dinheiro</h2>
+<p>O <code>toString</code> do <code>BigDecimal</code> usa ponto. Para mostrar ao usuário no formato brasileiro, use o <code>NumberFormat</code> da aula <a href="formatacao.html">Formatar Texto</a>, que aceita <code>BigDecimal</code> diretamente:</p>
+
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.Locale;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal total = new BigDecimal("1234.5");
+        NumberFormat real = NumberFormat.getCurrencyInstance(Locale.of("pt", "BR"));
+        System.out.println(real.format(total));
+        System.out.println(total.doubleValue());
+        System.out.println(total.intValue());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+R$&nbsp;1.234,50
+1234.5
+1234</pre>
+
+<p><code>doubleValue()</code> e <code>intValue()</code> convertem de volta para primitivos (o <code>intValue</code> corta as casas). Use-os só na saída, nunca para continuar fazendo contas com dinheiro. O <code>printf("%.2f", total)</code> também aceita <code>BigDecimal</code>.</p>
+
+<hr>
+
+<h2><code>BigInteger</code>: inteiros sem limite</h2>
+<p>O <code>long</code> vai até 9.223.372.036.854.775.807 (veja <a href="inteiros.html">int, long, short, byte</a>). Passou disso, ele "dá a volta" e vira negativo, sem aviso. O fatorial cresce muito rápido (5! = 5 × 4 × 3 × 2 × 1 = 120) e mostra bem o problema. O <code>BigInteger</code>, também de <code>java.math</code>, cresce o quanto for preciso:</p>
+
+<pre class="file" data-file="Main.java">import java.math.BigInteger;
+
+public class Main {
+    public static void main(String[] args) {
+        long fatorialLong = 1;
+        BigInteger fatorial = BigInteger.ONE;
+        for (int i = 1; i &lt;= 50; i++) {
+            fatorialLong *= i;
+            fatorial = fatorial.multiply(BigInteger.valueOf(i));
+            if (i == 20 || i == 21 || i == 50) {
+                System.out.println(i + "! com long:       " + fatorialLong);
+                System.out.println(i + "! com BigInteger: " + fatorial);
+            }
+        }
+        System.out.println("Dígitos de 50!: " + fatorial.toString().length());
+        System.out.println("2 elevado a 100: " + BigInteger.TWO.pow(100));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+20! com long:       2432902008176640000
+20! com BigInteger: 2432902008176640000
+21! com long:       -4249290049419214848
+21! com BigInteger: 51090942171709440000
+50! com long:       -3258495067890909184
+50! com BigInteger: 30414093201713378043612608166064768844377641568960512000000000000
+Dígitos de 50!: 65
+2 elevado a 100: 1267650600228229401496703205376</pre>
+
+<p>Até 20!, os dois concordam. Em 21!, o <code>long</code> estoura (<em>overflow</em>) e mostra um número negativo absurdo; o <code>BigInteger</code> continua certo até 50!, um número de 65 dígitos. Os métodos são os mesmos do <code>BigDecimal</code> (<code>add</code>, <code>subtract</code>, <code>multiply</code>, <code>divide</code>, <code>pow</code>, <code>compareTo</code>), com <code>BigInteger.valueOf(n)</code> para criar a partir de um <code>long</code> e constantes <code>ZERO</code>, <code>ONE</code>, <code>TWO</code>, <code>TEN</code>. Ele é usado em criptografia, em cálculos científicos e em qualquer conta que possa passar do limite do <code>long</code>.</p>
+
+<hr>
+
+<h2>Qual tipo usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Tipo</th></tr>
+<tr><td>Dinheiro, preços, impostos, juros</td><td><strong><code>BigDecimal</code></strong> (criado com texto)</td></tr>
+<tr><td>Medidas físicas, gráficos, estatística, jogos</td><td><code>double</code>: rápido, e o erro minúsculo não importa</td></tr>
+<tr><td>Contagens, quantidades inteiras</td><td><code>int</code> ou <code>long</code></td></tr>
+<tr><td>Inteiros maiores que 9,2 × 10<sup>18</sup></td><td><code>BigInteger</code></td></tr>
+<tr><td>Alternativa simples para dinheiro</td><td><code>long</code> com o valor em <strong>centavos</strong> (1990 = R$ 19,90). Funciona, mas porcentagens e divisões exigem cuidado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"bad operand types for binary operator '*'" e "double cannot be converted to BigDecimal"</strong>
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal preco = new BigDecimal("10.50");
+        BigDecimal total = preco * 2;
+        BigDecimal frete = 5.00;
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Main.java:6: error: bad operand types for binary operator '*'
+        BigDecimal total = preco * 2;
+                                 ^
+  first type:  BigDecimal
+  second type: int
+Main.java:7: error: incompatible types: double cannot be converted to BigDecimal
+        BigDecimal frete = 5.00;
+                           ^
+2 errors
+error: compilation failed</pre>
+<p><strong>O que aconteceu:</strong> os operadores <code>+ - * /</code> só funcionam com primitivos (e o <code>+</code> com <code>String</code>). E não existe "autoboxing" de <code>double</code> para <code>BigDecimal</code>.</p>
+<p><strong>Como resolver:</strong> <code>preco.multiply(new BigDecimal("2"))</code> (ou <code>BigDecimal.valueOf(2)</code>) e <code>new BigDecimal("5.00")</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O saldo não mudou</strong>
+<pre class="file" data-file="Main.java">import java.math.BigDecimal;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal saldo = new BigDecimal("100.00");
+        saldo.add(new BigDecimal("50.00"));
+        System.out.println("Saldo depois do depósito: " + saldo);
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Saldo depois do depósito: 100.00</pre>
+<p><strong>O que aconteceu:</strong> <code>BigDecimal</code> é imutável; o <code>add</code> devolveu <code>150.00</code> e o resultado foi descartado.</p>
+<p><strong>Como resolver:</strong> <code>saldo = saldo.add(new BigDecimal("50.00"));</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Non-terminating decimal expansion"</strong>
+<p><strong>O que aconteceu:</strong> um <code>divide(x)</code> sem escala, numa divisão que dá dízima (por 3, 6, 7…).</p>
+<p><strong>Como resolver:</strong> sempre que dividir dinheiro, informe as casas e o arredondamento: <code>divide(x, 2, RoundingMode.HALF_UP)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Dois valores iguais deram <code>equals</code> falso</strong>
+<p><strong>O que aconteceu:</strong> escalas diferentes (<code>2.0</code> × <code>2.00</code>, ou <code>10</code> × <code>10.00</code>).</p>
+<p><strong>Como resolver:</strong> compare com <code>a.compareTo(b) == 0</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>new BigDecimal("19.90")</code></td><td>Cria a partir de texto (o jeito certo)</td></tr>
+<tr><td><code>BigDecimal.valueOf(d)</code></td><td>Cria a partir de um <code>double</code> ou <code>long</code>, com segurança</td></tr>
+<tr><td><code>BigDecimal.ZERO</code>, <code>ONE</code>, <code>TEN</code></td><td>Constantes</td></tr>
+<tr><td><code>add</code>, <code>subtract</code>, <code>multiply</code></td><td>Soma, subtração, multiplicação (devolvem um novo)</td></tr>
+<tr><td><code>divide(b, 2, RoundingMode.HALF_UP)</code></td><td>Divisão com 2 casas</td></tr>
+<tr><td><code>setScale(2, RoundingMode.HALF_UP)</code></td><td>Arredonda para 2 casas</td></tr>
+<tr><td><code>scale()</code></td><td>Quantas casas decimais</td></tr>
+<tr><td><code>a.compareTo(b)</code></td><td>Negativo, 0 ou positivo</td></tr>
+<tr><td><code>max</code>, <code>min</code>, <code>abs</code>, <code>negate</code></td><td>Maior, menor, absoluto, negativo</td></tr>
+<tr><td><code>stripTrailingZeros()</code></td><td>Tira zeros do fim</td></tr>
+<tr><td><code>doubleValue()</code>, <code>intValue()</code></td><td>Converte para primitivo (só na saída)</td></tr>
+<tr><td><code>BigInteger.valueOf(n)</code>, <code>multiply</code>, <code>pow</code></td><td>Inteiros sem limite</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Criar do jeito certo</h3>
+<p>Complete para criar exatamente 0,1:</p>
+<div class="ex-code">BigDecimal x = new BigDecimal(<input data-answer="&quot;0.1&quot;" aria-label="argumento">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Somar</h3>
+<p>Complete para somar <code>b</code> ao <code>total</code>, guardando o resultado:</p>
+<div class="ex-code">total = total.<input data-answer="add(b)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Arredondar</h3>
+<p>Complete para deixar <code>valor</code> com 2 casas, arredondando o 5 para cima:</p>
+<div class="ex-code">valor.setScale(2, RoundingMode.<input data-answer="HALF_UP" aria-label="modo">)</div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que <code>System.out.println(0.1 + 0.2);</code> mostra?</p>
+<label><input type="radio" name="q4"> <code>0.3</code></label>
+<label><input type="radio" name="q4"> <code>0,3</code></label>
+<label><input type="radio" name="q4"> <code>0.30</code></label>
+<label><input type="radio" name="q4"> <code>0.30000000000000004</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>new BigDecimal("5.0").equals(new BigDecimal("5.00"))</code> dá…</p>
+<label><input type="radio" name="q5"> <code>true</code></label>
+<label><input type="radio" name="q5"> <code>false</code>, porque as escalas são diferentes</label>
+<label><input type="radio" name="q5"> Erro de compilação.</label>
+<label><input type="radio" name="q5"> <code>ArithmeticException</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Que linha lança <code>ArithmeticException</code>?</p>
+<label><input type="radio" name="q6"> <code>new BigDecimal("10").divide(new BigDecimal("4"))</code></label>
+<label><input type="radio" name="q6"> <code>new BigDecimal("10").divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP)</code></label>
+<label><input type="radio" name="q6"> <code>new BigDecimal("10").divide(new BigDecimal("3"))</code></label>
+<label><input type="radio" name="q6"> <code>new BigDecimal("10").multiply(new BigDecimal("3"))</code></label>
+</div>
+
+<div class="tryjshell" data-goal="out:0.3,src:BigDecimal">
+<p class="try-task"><strong>Missão no JShell:</strong> calcule <code>0.1 + 0.2</code> com <code>BigDecimal</code>, criando os dois números a partir de texto, e confira que o resultado é exatamente <code>0.3</code>. (O JShell já importa <code>java.math</code>.) Depois, experimente <code>new BigDecimal(0.1)</code>.</p>
+<pre class="solucao">new BigDecimal("0.1").add(new BigDecimal("0.2"))</pre>
+</div>
+
+<div class="tryjava" data-goal="out:Cada um paga: 33.33,out:Sobra: 0.01,src:RoundingMode">
+<p class="try-task"><strong>Missão final:</strong> a conta de R$ 100,00 será dividida entre 3 amigos. O programa quebra com <code>ArithmeticException</code>. Corrija a divisão para 2 casas com <code>RoundingMode.HALF_UP</code> e calcule a sobra: <code>conta</code> menos <code>cada × pessoas</code>. Saída esperada: <code>Cada um paga: 33.33</code> e <code>Sobra: 0.01</code>.</p>
+<pre class="script">import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal conta = new BigDecimal("100.00");
+        BigDecimal pessoas = new BigDecimal("3");
+        BigDecimal cada = conta.divide(pessoas);
+        System.out.println("Cada um paga: " + cada);
+    }
+}
+</pre>
+<pre class="solucao">import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+public class Main {
+    public static void main(String[] args) {
+        BigDecimal conta = new BigDecimal("100.00");
+        BigDecimal pessoas = new BigDecimal("3");
+        BigDecimal cada = conta.divide(pessoas, 2, RoundingMode.HALF_UP);
+        BigDecimal sobra = conta.subtract(cada.multiply(pessoas));
+        System.out.println("Cada um paga: " + cada);
+        System.out.println("Sobra: " + sobra);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>double</code> guarda decimais em binário e erra frações como 0,1: <code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>. Não use para dinheiro.</li>
+  <li><code>BigDecimal</code> é exato. Crie com texto (<code>new BigDecimal("0.1")</code>) ou <code>BigDecimal.valueOf</code>; nunca com <code>new BigDecimal(0.1)</code>.</li>
+  <li>Contas são métodos (<code>add</code>, <code>subtract</code>, <code>multiply</code>, <code>divide</code>) e devolvem um objeto novo: guarde o resultado.</li>
+  <li><code>setScale(2, RoundingMode.HALF_UP)</code> arredonda para centavos; escolha o <code>RoundingMode</code> de propósito.</li>
+  <li><code>divide</code> sem escala lança <code>ArithmeticException</code> quando o resultado não termina: use <code>divide(x, 2, RoundingMode.HALF_UP)</code>.</li>
+  <li>Compare com <code>compareTo</code> (o <code>equals</code> considera a escala: <code>2.0 ≠ 2.00</code>).</li>
+  <li><code>BigInteger</code> faz contas com inteiros de qualquer tamanho: 50! tem 65 dígitos.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
