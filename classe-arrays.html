@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java A Classe Arrays — sort, toString, fill, copyOf, equals e binarySearch | Guia Java</title>
+<meta name="description" content="Aula da classe java.util.Arrays para iniciantes: ordenar com sort (e a ordem das maiúsculas e acentos), toString, fill, copyOf, copyOfRange, equals × ==, binarySearch, asList e uma primeira olhada em stream, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">A Classe Arrays</span></h1>
+
+<p class="intro">Na aula <a href="percorrer-arrays.html">Percorrer Arrays</a> você escreveu laços para somar, buscar e inverter. Muitas tarefas com arrays são tão comuns que o Java já traz uma <strong>caixa de ferramentas</strong> pronta: a classe <code>Arrays</code>. Com uma linha, ela ordena, copia, preenche, compara e procura. Nesta aula você conhece as ferramentas mais usadas, uma de cada vez.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como usar a classe <code>Arrays</code> (o <code>import</code> e o "<code>Arrays.</code>" na frente).</li>
+  <li><code>sort</code>: ordenar números e textos (e por que "Érica" vai para o fim).</li>
+  <li><code>toString</code> e <code>deepToString</code>: mostrar o conteúdo.</li>
+  <li><code>fill</code>: preencher tudo com um valor.</li>
+  <li><code>copyOf</code> e <code>copyOfRange</code>: copiar o array inteiro ou um pedaço.</li>
+  <li><code>equals</code>: comparar o conteúdo (e por que <code>==</code> não serve).</li>
+  <li><code>binarySearch</code>: a busca rápida, que exige o array ordenado.</li>
+  <li><code>asList</code> e <code>stream</code>: as pontes para as listas e para as streams.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25) com <code>java Main.java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Você poderia cortar madeira com uma faca de cozinha, mas uma serra faz melhor, mais rápido e sem se machucar. A classe <code>Arrays</code> é a caixa de ferramentas dos arrays: cada ferramenta é um <strong>método</strong> (uma ação pronta, com nome; os métodos têm uma aula própria em <a href="metodos.html">Métodos</a>) que você chama assim:</p>
+
+<dl class="anatomy">
+  <dt>Arrays</dt><dd>O nome da classe, a "caixa". Com <code>A</code> maiúsculo e <code>s</code> no fim.</dd>
+  <dt>.</dt><dd>"De dentro de": pega uma ferramenta da caixa.</dd>
+  <dt>sort</dt><dd>O nome do método, a ferramenta: "ordenar".</dd>
+  <dt>(notas)</dt><dd>Entre parênteses, o array em que ela vai trabalhar.</dd>
+</dl>
+
+<p>A classe mora no pacote <code>java.util</code> (veja <a href="pacotes.html">Pacotes e import</a>), então todo arquivo que a usa começa com:</p>
+
+<pre class="file" data-file="trecho">import java.util.Arrays;</pre>
+
+<p>Sem essa linha, o <code>javac</code> não sabe o que é <code>Arrays</code> e mostra <code>error: cannot find symbol</code> com <code>symbol: variable Arrays</code> (veja o exemplo real em <a href="arrays.html">Arrays</a>).</p>
+
+<div class="note">
+<strong><code>Arrays</code> ≠ array</strong>
+<p>"Um array" é o seu armário de valores (<code>int[] notas</code>). "<code>Arrays</code>" (com maiúscula) é a classe com as ferramentas. Você nunca cria um <code>Arrays</code>: só usa os métodos dela, passando o seu array.</p>
+</div>
+
+<hr>
+
+<h2><code>sort</code>: ordenar</h2>
+<p>Ordenar do menor para o maior, com uma linha:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        System.out.println("Antes:  " + Arrays.toString(notas));
+        Arrays.sort(notas);
+        System.out.println("Depois: " + Arrays.toString(notas));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Antes:  [7, 9, 5, 10, 6]
+Depois: [5, 6, 7, 9, 10]</pre>
+
+<p>Repare: o <code>sort</code> não devolve um array novo. Ele <strong>arruma o próprio array</strong>, como quem arruma os livros na mesma prateleira. A ordem original se perde. Se você precisar dela, faça uma cópia antes (com <code>copyOf</code>, logo abaixo).</p>
+
+<div class="tryjava" data-goal="out:Mais barato: 5\, mais caro: 30,src:Arrays\.sort">
+<p class="try-task"><strong>Missão:</strong> ordene os preços com <code>Arrays.sort</code> e mostre <code>Mais barato: 5, mais caro: 30</code> usando o primeiro e o último elemento do array ordenado.</p>
+<pre class="script">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] precos = {30, 12, 5, 8, 21};
+        // ordene aqui
+
+        System.out.println("Mais barato: " + precos[0] + ", mais caro: " + precos[precos.length - 1]);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] precos = {30, 12, 5, 8, 21};
+        Arrays.sort(precos);
+        System.out.println("Mais barato: " + precos[0] + ", mais caro: " + precos[precos.length - 1]);
+    }
+}
+</pre>
+</div>
+
+<h3>Ordenar textos: maiúsculas e acentos</h3>
+<p>Com <code>String</code>, o <code>sort</code> usa a ordem dos <strong>códigos dos caracteres</strong> (a tabela Unicode, veja <a href="char-boolean.html">char e boolean</a>), e não a ordem do dicionário. Isso dá resultados surpreendentes:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] nomes = {"bruno", "Davi", "Érica", "Ana", "carla", "Fábio"};
+        Arrays.sort(nomes);
+        System.out.println(Arrays.toString(nomes));
+        Arrays.sort(nomes, String.CASE_INSENSITIVE_ORDER);
+        System.out.println(Arrays.toString(nomes));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[Ana, Davi, Fábio, bruno, carla, Érica]     « maiúsculas primeiro; Érica no fim
+[Ana, bruno, carla, Davi, Fábio, Érica]     « ignorando maiúsculas; Érica continua no fim</pre>
+
+<ul>
+  <li>Na tabela de códigos, <strong>todas</strong> as maiúsculas (A–Z) vêm antes de <strong>todas</strong> as minúsculas (a–z). Por isso "Fábio" ficou antes de "bruno".</li>
+  <li>Letras acentuadas têm códigos maiores que qualquer letra sem acento. Por isso "Érica" foi para o fim.</li>
+  <li><code>String.CASE_INSENSITIVE_ORDER</code> ("ordem que ignora maiúsculas e minúsculas") é um segundo argumento que muda o critério. Resolveu as maiúsculas, mas não os acentos.</li>
+</ul>
+
+<p>Para a ordem do dicionário em português, o Java tem o <code>Collator</code> ("agrupador"), que segue as regras do idioma do computador (na máquina da Ana, português do Brasil):</p>
+
+<pre class="file" data-file="Main.java">import java.text.Collator;
+import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] nomes = {"bruno", "Davi", "Érica", "Ana", "carla", "Fábio"};
+        Arrays.sort(nomes, Collator.getInstance());
+        System.out.println(Arrays.toString(nomes));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[Ana, bruno, carla, Davi, Érica, Fábio]</pre>
+
+<p>Esses "critérios de ordem" se chamam <strong>comparadores</strong> e têm uma aula no Nível 3: <a href="comparable-comparator.html">Comparable e Comparator</a>. Lá você também aprende a ordenar do maior para o menor.</p>
+
+<hr>
+
+<h2><code>toString</code> e <code>deepToString</code>: mostrar</h2>
+<p>Você já usou bastante: <code>Arrays.toString(notas)</code> devolve o texto <code>[7, 9, 5, 10, 6]</code>. Ele existe porque <code>System.out.println(notas)</code> mostra só o "crachá" do array (<code>[I@1e9e725a</code>), como explicado em <a href="arrays.html#imprimir">Arrays</a>. Para matrizes (<code>int[][]</code>), use <code>Arrays.deepToString</code>, que mostra todos os níveis (veja <a href="arrays-multidimensionais.html">Arrays Multidimensionais</a>).</p>
+
+<hr>
+
+<h2><code>fill</code>: preencher tudo com um valor</h2>
+<p>Um array novo de <code>int</code> vem cheio de zeros. Se você quer outro valor em todas as posições, o <code>fill</code> ("preencher") faz isso sem laço:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] presenca = new int[7];
+        Arrays.fill(presenca, 1);
+        System.out.println(Arrays.toString(presenca));
+        char[] linha = new char[10];
+        Arrays.fill(linha, '-');
+        System.out.println(linha);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[1, 1, 1, 1, 1, 1, 1]
+----------</pre>
+
+<dl class="anatomy">
+  <dt>Arrays.fill</dt><dd>A ferramenta "preencher".</dd>
+  <dt>(presenca,</dt><dd>Primeiro argumento: o array.</dd>
+  <dt>1)</dt><dd>Segundo argumento: o valor que vai em todas as posições. Precisa ser do tipo do array.</dd>
+</dl>
+
+<p>(O <code>println</code> de um <code>char[]</code> é o único que mostra as letras juntas, sem colchetes; daí a linha de tracinhos.)</p>
+
+<hr>
+
+<h2><code>copyOf</code>: copiar</h2>
+<p>Em <a href="arrays.html">Arrays</a> você viu que <code>int[] b = a;</code> não copia: cria outro nome para o mesmo array. O <code>copyOf</code> cria um array <strong>novo</strong>, independente, e ainda deixa escolher o tamanho:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int[] copia = Arrays.copyOf(notas, notas.length);
+        int[] maior = Arrays.copyOf(notas, 8);
+        int[] menor = Arrays.copyOf(notas, 3);
+        copia[0] = 0;
+        System.out.println("notas: " + Arrays.toString(notas));
+        System.out.println("copia: " + Arrays.toString(copia));
+        System.out.println("maior: " + Arrays.toString(maior));
+        System.out.println("menor: " + Arrays.toString(menor));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+notas: [7, 9, 5, 10, 6]      « o original não mudou
+copia: [0, 9, 5, 10, 6]      « só a cópia recebeu o 0
+maior: [7, 9, 5, 10, 6, 0, 0, 0]   « as posições novas vêm com o valor padrão
+menor: [7, 9, 5]             « o que não coube foi cortado</pre>
+
+<dl class="anatomy">
+  <dt>Arrays.copyOf</dt><dd>A ferramenta "cópia de".</dd>
+  <dt>(notas,</dt><dd>O array original.</dd>
+  <dt>notas.length)</dt><dd>O tamanho da cópia. Igual ao original: cópia exata. Maior: completa com o valor padrão. Menor: corta o final.</dd>
+</dl>
+
+<p>Como um array não muda de tamanho, "aumentar um array" no Java é sempre isto: criar um maior com <code>copyOf</code> e passar a usar o novo. Se você precisa disso o tempo todo, o <a href="arraylist.html">ArrayList</a> faz sozinho.</p>
+
+<h3>Ordenar sem perder a ordem original</h3>
+<p>Juntando <code>copyOf</code> e <code>sort</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int[] ordenadas = Arrays.copyOf(notas, notas.length);
+        Arrays.sort(ordenadas);
+        System.out.println("Original:  " + Arrays.toString(notas));
+        System.out.println("Ordenadas: " + Arrays.toString(ordenadas));
+        System.out.println("Menor: " + ordenadas[0] + ", maior: " + ordenadas[ordenadas.length - 1]);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Original:  [7, 9, 5, 10, 6]
+Ordenadas: [5, 6, 7, 9, 10]
+Menor: 5, maior: 10</pre>
+
+<hr>
+
+<h2><code>copyOfRange</code>: copiar um pedaço</h2>
+<p>Para pegar só uma parte, diga onde começa e onde termina:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] semana = {"dom", "seg", "ter", "qua", "qui", "sex", "sáb"};
+        String[] uteis = Arrays.copyOfRange(semana, 1, 6);
+        System.out.println(Arrays.toString(uteis));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[seg, ter, qua, qui, sex]</pre>
+
+<dl class="anatomy">
+  <dt>Arrays.copyOfRange</dt><dd>"Cópia de um intervalo".</dd>
+  <dt>(semana,</dt><dd>O array original.</dd>
+  <dt>1,</dt><dd>O índice onde a cópia <strong>começa</strong> (incluído): <code>"seg"</code>.</dd>
+  <dt>6)</dt><dd>O índice onde ela <strong>para</strong>, <strong>sem incluir</strong>: o 6 é <code>"sáb"</code>, que fica de fora.</dd>
+</dl>
+
+<p>"Começo incluído, fim excluído" é uma regra que se repete em todo o Java (o <code>substring</code> das <a href="metodos-string.html">Strings</a> é igual). A vantagem: o tamanho do pedaço é sempre <code>fim - início</code> (6 - 1 = 5 dias).</p>
+
+<hr>
+
+<h2><code>equals</code>: comparar o conteúdo</h2>
+<p>Dois arrays com os mesmos valores são "iguais"? Depende de como você pergunta:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] a = {7, 9, 5};
+        int[] b = {7, 9, 5};
+        int[] c = a;
+        System.out.println("a == b: " + (a == b));
+        System.out.println("a == c: " + (a == c));
+        System.out.println("Arrays.equals(a, b): " + Arrays.equals(a, b));
+        System.out.println("a.equals(b): " + a.equals(b));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+a == b: false                « dois armários diferentes (com o mesmo conteúdo)
+a == c: true                 « o mesmo armário, com dois nomes
+Arrays.equals(a, b): true    « mesmo tamanho e mesmos valores, na mesma ordem
+a.equals(b): false           « parece certo, mas compara como o ==</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comparação</th><th>Pergunta que ela faz</th><th>Use para</th></tr>
+<tr><td><code>a == b</code></td><td>"São o <strong>mesmo</strong> array?"</td><td>Quase nunca, com arrays.</td></tr>
+<tr><td><code>a.equals(b)</code></td><td>A mesma coisa que <code>==</code>, para arrays</td><td>Nunca, com arrays: é uma armadilha.</td></tr>
+<tr><td><code>Arrays.equals(a, b)</code></td><td>"Têm o mesmo <strong>conteúdo</strong>?"</td><td>Comparar arrays comuns.</td></tr>
+<tr><td><code>Arrays.deepEquals(a, b)</code></td><td>Mesmo conteúdo, em todos os níveis</td><td>Comparar matrizes (<code>int[][]</code>).</td></tr>
+</table>
+</div>
+
+<p>Com matrizes, o <code>Arrays.equals</code> compara as linhas como "crachás" e dá <code>false</code> mesmo com conteúdo igual; use <code>Arrays.deepEquals</code>, que deu <code>true</code> no laboratório para <code>{{1, 2}, {3, 4}}</code> × <code>{{1, 2}, {3, 4}}</code>. A mesma história do <code>==</code> × <code>equals</code> acontece com as Strings (veja <a href="strings.html">Strings</a>) e com objetos em geral (<a href="object.html">A Classe Object</a>).</p>
+
+<hr>
+
+<h2><code>binarySearch</code>: a busca rápida</h2>
+<p>A busca da aula <a href="percorrer-arrays.html">Percorrer Arrays</a> olha um elemento por vez. Num array <strong>ordenado</strong> há um jeito muito mais rápido, o mesmo que você usa num dicionário de papel: abre no meio; se a palavra vem antes, descarta a metade de trás; abre no meio do que sobrou… A cada passo, metade do trabalho some. É a <strong>busca binária</strong> ("binária" porque divide em dois):</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {5, 6, 7, 9, 10};
+        System.out.println("Posição do 9: " + Arrays.binarySearch(notas, 9));
+        System.out.println("Posição do 5: " + Arrays.binarySearch(notas, 5));
+        System.out.println("Posição do 8: " + Arrays.binarySearch(notas, 8));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Posição do 9: 3
+Posição do 5: 0
+Posição do 8: -4             « negativo = não encontrado</pre>
+
+<ul>
+  <li>Se acha, devolve o <strong>índice</strong>.</li>
+  <li>Se não acha, devolve um número <strong>negativo</strong>. Basta testar <code>&lt; 0</code>. (O número exato diz onde o valor deveria entrar: <code>-(posição) - 1</code>. O 8 entraria no índice 3, então <code>-3 - 1 = -4</code>.)</li>
+</ul>
+
+<div class="warning">
+<strong>Só funciona com o array ordenado</strong>
+<p>Num array fora de ordem, o <code>binarySearch</code> não dá erro: dá respostas <strong>erradas</strong>. Com <code>{7, 9, 5, 10, 6}</code>, no laboratório:</p>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Sem ordenar, posição do 9: -4      « o 9 está no índice 1, mas ele "não achou"
+Sem ordenar, posição do 5: 2       « este acertou por sorte</pre>
+<p>Chame <code>Arrays.sort</code> antes, sempre.</p>
+</div>
+
+<hr>
+
+<h2><code>asList</code>: o array visto como lista</h2>
+<p>O Java tem, além dos arrays, as <strong>listas</strong> (<code>List</code>), que têm muitos métodos prontos, como <code>contains</code> ("contém") e <code>indexOf</code> ("posição de"). O <code>Arrays.asList</code> mostra um array <strong>como se fosse</strong> uma lista:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"maçã", "banana", "uva"};
+        List&lt;String&gt; lista = Arrays.asList(frutas);
+        System.out.println(lista);
+        System.out.println("Tem uva? " + lista.contains("uva"));
+        System.out.println("Posição da banana: " + lista.indexOf("banana"));
+        lista.set(0, "pera");
+        System.out.println(lista);
+        System.out.println(Arrays.toString(frutas));
+        lista.add("kiwi");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[maçã, banana, uva]          « uma lista se mostra sozinha, sem toString
+Tem uva? true
+Posição da banana: 1
+[pera, banana, uva]
+[pera, banana, uva]          « mudar a lista mudou o array: é o mesmo armário
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.AbstractList.add(AbstractList.java:155)
+	at java.base/java.util.AbstractList.add(AbstractList.java:113)
+	at Main.main(Main.java:14)</pre>
+
+<p>A lista do <code>asList</code> é uma "janela" sobre o array: dá para ler e trocar elementos (<code>set</code>), mas <strong>não</strong> dá para aumentar ou diminuir, porque o array por trás tem tamanho fixo. O <code>add</code> terminou em <code>UnsupportedOperationException</code> ("operação não suportada"). Para uma lista de verdade, que cresce, faça <code>new ArrayList&lt;&gt;(Arrays.asList(frutas))</code>. As listas são assunto de <a href="arraylist.html">ArrayList</a>, no Nível 3.</p>
+
+<hr>
+
+<h2><code>stream</code>: só a ideia</h2>
+<p>Uma última ferramenta, só para você saber que existe. <code>Arrays.stream(notas)</code> transforma o array numa <strong>stream</strong> ("fluxo"): uma esteira por onde os valores passam e onde você encaixa operações prontas, como somar ou achar o maior:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int soma = Arrays.stream(notas).sum();
+        int maior = Arrays.stream(notas).max().getAsInt();
+        double media = Arrays.stream(notas).average().getAsDouble();
+        System.out.println("Soma: " + soma);
+        System.out.println("Maior: " + maior);
+        System.out.println("Média: " + media);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Soma: 37
+Maior: 10
+Média: 7.4</pre>
+
+<p>O mesmo resultado dos laços da aula <a href="percorrer-arrays.html">Percorrer Arrays</a>, em uma linha cada. O <code>getAsInt()</code> e o <code>getAsDouble()</code> existem porque um array vazio não tem maior nem média; isso é explicado em <a href="optional.html">Optional</a>. Streams são uma das partes mais poderosas do Java moderno e têm aula própria: <a href="streams.html">Streams</a>. Por enquanto, os laços que você aprendeu são o caminho certo para entender o que acontece por dentro.</p>
+
+<hr>
+
+<h2>Laço ou <code>Arrays</code>?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tarefa</th><th>Com laço</th><th>Com <code>Arrays</code></th></tr>
+<tr><td>Mostrar</td><td><code>for</code> + <code>print</code></td><td><code>Arrays.toString(a)</code></td></tr>
+<tr><td>Preencher com um valor</td><td><code>for (…) a[i] = v;</code></td><td><code>Arrays.fill(a, v)</code></td></tr>
+<tr><td>Copiar</td><td>novo array + <code>for</code></td><td><code>Arrays.copyOf(a, n)</code></td></tr>
+<tr><td>Comparar</td><td><code>for</code> comparando um a um</td><td><code>Arrays.equals(a, b)</code></td></tr>
+<tr><td>Ordenar</td><td>difícil (algoritmos de ordenação)</td><td><code>Arrays.sort(a)</code></td></tr>
+<tr><td>Buscar</td><td>busca linear (qualquer array)</td><td><code>Arrays.binarySearch(a, x)</code> (só ordenado)</td></tr>
+<tr><td>Somar, maior, média</td><td>acumulador</td><td><code>Arrays.stream(a).sum()</code> …</td></tr>
+</table>
+</div>
+<p>No dia a dia, prefira as ferramentas prontas: são testadas e rápidas. Escrever os laços continua importante para aprender e para os casos que as ferramentas não cobrem.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"void cannot be converted to int[]"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        int[] ordenadas = Arrays.sort(notas);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:6: error: incompatible types: void cannot be converted to int[]
+        int[] ordenadas = Arrays.sort(notas);
+                                     ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> o <code>sort</code> é <code>void</code> ("vazio"): ele não devolve nada, só arruma o array que recebeu. Não há o que guardar em <code>ordenadas</code>.</p>
+<p><strong>Como consertar:</strong> chame sozinho, <code>Arrays.sort(notas);</code>, e use o próprio <code>notas</code>. Se quiser manter o original, copie antes com <code>copyOf</code> e ordene a cópia.</p>
+</div>
+
+<div class="cenario">
+<strong>"cannot find symbol … variable Arrays"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6};
+        Arrays.sort(notas);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: cannot find symbol
+        Arrays.sort(notas);
+        ^
+  symbol:   variable Arrays
+  location: class Main
+1 error
+error: compilation failed</pre>
+<p><strong>Como consertar:</strong> faltou <code>import java.util.Arrays;</code> no topo do arquivo.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>binarySearch</code> diz que não achou, mas o valor está lá</strong>
+<p>O array não estava ordenado. Chame <code>Arrays.sort</code> antes. Se a ordem original importa, faça a busca numa cópia ordenada, ou use a busca linear com laço.</p>
+</div>
+
+<div class="cenario">
+<strong><code>Arrays.equals</code> deu <code>false</code> com duas matrizes iguais</strong>
+<p>Para <code>int[][]</code>, use <code>Arrays.deepEquals</code>. O <code>equals</code> só compara o primeiro nível, e lá estão os "crachás" das linhas, que são diferentes.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>Arrays.sort(a)</code></td><td>Ordena o próprio array, do menor para o maior</td><td>nada (<code>void</code>)</td></tr>
+<tr><td><code>Arrays.sort(a, critério)</code></td><td>Ordena com outro critério (<code>String.CASE_INSENSITIVE_ORDER</code>, <code>Collator.getInstance()</code>)</td><td>nada</td></tr>
+<tr><td><code>Arrays.toString(a)</code></td><td>Texto <code>[1, 2, 3]</code></td><td><code>String</code></td></tr>
+<tr><td><code>Arrays.deepToString(m)</code></td><td>Texto de uma matriz</td><td><code>String</code></td></tr>
+<tr><td><code>Arrays.fill(a, v)</code></td><td>Põe <code>v</code> em todas as posições</td><td>nada</td></tr>
+<tr><td><code>Arrays.copyOf(a, n)</code></td><td>Array novo com os <code>n</code> primeiros (completa com o padrão)</td><td>array novo</td></tr>
+<tr><td><code>Arrays.copyOfRange(a, de, até)</code></td><td>Array novo com <code>a[de]</code> … <code>a[até - 1]</code></td><td>array novo</td></tr>
+<tr><td><code>Arrays.equals(a, b)</code></td><td>Mesmo tamanho e mesmos valores?</td><td><code>boolean</code></td></tr>
+<tr><td><code>Arrays.deepEquals(m1, m2)</code></td><td>O mesmo, para matrizes</td><td><code>boolean</code></td></tr>
+<tr><td><code>Arrays.binarySearch(a, x)</code></td><td>Índice de <code>x</code> num array <strong>ordenado</strong>; negativo se não achar</td><td><code>int</code></td></tr>
+<tr><td><code>Arrays.asList(a)</code></td><td>Vê o array como lista (sem mudar o tamanho)</td><td><code>List</code></td></tr>
+<tr><td><code>Arrays.stream(a)</code></td><td>Stream dos valores (<code>.sum()</code>, <code>.max()</code>, <code>.average()</code>…)</td><td>stream</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Ordenar</h3>
+<p>Complete para ordenar o array <code>idades</code>:</p>
+<div class="ex-code"><input data-answer="Arrays.sort(idades);" aria-label="instrução"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Preencher</h3>
+<p>Complete para colocar <code>-1</code> em todas as posições de <code>codigos</code>:</p>
+<div class="ex-code">Arrays.fill(<input data-answer="codigos, -1|codigos,-1" aria-label="argumentos">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Um pedaço</h3>
+<p>Complete para copiar os elementos dos índices 2, 3 e 4 de <code>v</code>:</p>
+<div class="ex-code">int[] meio = Arrays.copyOfRange(v, <input data-answer="2, 5|2,5" aria-label="início e fim">);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. <code>int[] a = {1, 2}; int[] b = {1, 2};</code> Qual expressão dá <code>true</code>?</p>
+<label><input type="radio" name="q4"> <code>a == b</code></label>
+<label><input type="radio" name="q4"> <code>a.equals(b)</code></label>
+<label><input type="radio" name="q4"> <code>Arrays.equals(a, b)</code></label>
+<label><input type="radio" name="q4"> Nenhuma.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que <code>Arrays.copyOf(new int[] {4, 5}, 4)</code> devolve?</p>
+<label><input type="radio" name="q5"> <code>[4, 5, 0, 0]</code></label>
+<label><input type="radio" name="q5"> <code>[4, 5]</code></label>
+<label><input type="radio" name="q5"> <code>[4, 5, 4, 5]</code></label>
+<label><input type="radio" name="q5"> Uma exceção, porque 4 é maior que o tamanho.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Antes de usar <code>Arrays.binarySearch</code>, é preciso…</p>
+<label><input type="radio" name="q6"> …converter o array em lista.</label>
+<label><input type="radio" name="q6"> …preencher o array com <code>fill</code>.</label>
+<label><input type="radio" name="q6"> …nada: funciona com qualquer array.</label>
+<label><input type="radio" name="q6"> …que o array esteja ordenado.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Top 3: [8\, 9\, 10],src:copyOfRange">
+<p class="try-task"><strong>Missão final:</strong> mostre as <strong>três maiores notas</strong>, em ordem crescente: <code>Top 3: [8, 9, 10]</code>. Use <code>Arrays.sort</code> e depois <code>Arrays.copyOfRange</code> para pegar os três últimos (sem escrever os números dos índices: use o <code>length</code>).</p>
+<pre class="script">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6, 8};
+        // ordene e copie aqui
+        int[] top3 = notas;
+        System.out.println("Top 3: " + Arrays.toString(top3));
+    }
+}
+</pre>
+<pre class="solucao">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 5, 10, 6, 8};
+        Arrays.sort(notas);
+        int[] top3 = Arrays.copyOfRange(notas, notas.length - 3, notas.length);
+        System.out.println("Top 3: " + Arrays.toString(top3));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>java.util.Arrays</code> é a caixa de ferramentas dos arrays; use com <code>import java.util.Arrays;</code> e <code>Arrays.método(array)</code>.</li>
+  <li><code>sort</code> ordena o próprio array (não devolve nada). Textos seguem os códigos dos caracteres: maiúsculas antes, acentuadas no fim; <code>Collator.getInstance()</code> dá a ordem do dicionário.</li>
+  <li><code>toString</code>/<code>deepToString</code> mostram; <code>fill</code> preenche.</li>
+  <li><code>copyOf</code> e <code>copyOfRange</code> criam arrays <strong>novos</strong> (início incluído, fim excluído).</li>
+  <li>Compare conteúdo com <code>Arrays.equals</code> (matrizes: <code>deepEquals</code>), nunca com <code>==</code> ou <code>a.equals(b)</code>.</li>
+  <li><code>binarySearch</code> é rápido, mas só funciona com o array ordenado; negativo = não achou.</li>
+  <li><code>asList</code> vê o array como lista de tamanho fixo; <code>stream</code> abre a porta para as streams.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
