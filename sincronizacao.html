@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java synchronized e Locks — condição de corrida, AtomicInteger, ReentrantLock | Guia Java</title>
+<meta name="description" content="Sincronização no Java: a condição de corrida de um contador compartilhado (resultados errados reais), synchronized em métodos e blocos, AtomicInteger, ReentrantLock, ConcurrentHashMap e a ideia de deadlock.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">synchronized e Locks</span></h1>
+
+<p class="intro">Quando duas threads <strong>alteram os mesmos dados</strong> ao mesmo tempo, o resultado fica errado, e errado de um jeito diferente a cada execução. Esta aula mostra o problema de verdade (a <strong>condição de corrida</strong>) e as ferramentas do Java para evitá-lo: <code>synchronized</code>, <code>AtomicInteger</code>, <code>ReentrantLock</code> e <code>ConcurrentHashMap</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma condição de corrida, com um contador que perde vendas (saídas reais).</li>
+  <li><code>synchronized</code> em métodos e em blocos: o que é o "cadeado" de um objeto.</li>
+  <li><code>AtomicInteger</code>: contadores seguros sem cadeado.</li>
+  <li><code>ReentrantLock</code>: um cadeado explícito, com <code>lock</code>/<code>unlock</code> e <code>finally</code>.</li>
+  <li><code>ConcurrentHashMap</code> no lugar de <code>HashMap</code> entre threads, e a ideia de <strong>deadlock</strong> (impasse).</li>
+</ul>
+</div>
+
+<p>Esta é a última aula do grupo Concorrência. Leia antes <a href="threads.html">Threads</a> (a seção 6 já mostrou o problema rapidamente). Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>A loja da Ana tem um <strong>quadro de vendas</strong> na parede, com o total do dia escrito a giz. Dois caixas atualizam o quadro. Para registrar uma venda, cada um faz três passos:</p>
+<ol>
+  <li><strong>Lê</strong> o número no quadro: 41.</li>
+  <li><strong>Soma</strong> 1 de cabeça: 42.</li>
+  <li><strong>Apaga e escreve</strong> o novo número: 42.</li>
+</ol>
+<p>Agora imagine os dois caixas vendendo no mesmo instante. Os dois leem 41. Os dois calculam 42. Os dois escrevem 42. Foram <strong>duas</strong> vendas, mas o quadro só aumentou <strong>uma</strong>. Ninguém errou a conta; o problema foi a <strong>ordem</strong> em que os passos se misturaram. Isso é uma <strong>condição de corrida</strong> (<em>race condition</em>): o resultado depende de quem "corre" mais rápido.</p>
+<p>A solução da Ana: um <strong>giz só</strong>, pendurado no quadro. Quem quer atualizar pega o giz, faz os três passos e devolve. Quem chegar enquanto o giz está ocupado espera. Em Java, esse giz se chama <strong>cadeado</strong> (<em>lock</em>, ou <em>monitor</em>).</p>
+
+<hr>
+
+<h2>1. O problema de verdade</h2>
+
+<pre class="file" data-file="Main.java">class Contador {
+    private int valor = 0;
+
+    void incrementar() {
+        valor++;
+    }
+
+    int valor() {
+        return valor;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Contador vendas = new Contador();
+        Runnable caixa = () -&gt; {
+            for (int i = 0; i &lt; 100_000; i++) {
+                vendas.incrementar();
+            }
+        };
+        Thread caixa1 = new Thread(caixa);
+        Thread caixa2 = new Thread(caixa);
+        caixa1.start();
+        caixa2.start();
+        caixa1.join();
+        caixa2.join();
+        System.out.println("Vendas: " + vendas.valor());
+    }
+}
+</pre>
+
+<p>Dois caixas, 100 000 vendas cada um. O certo seria 200 000. A Ana rodou três vezes:</p>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+$ java Main
+Vendas: 103485
+$ java Main
+Vendas: 144417
+$ java Main
+Vendas: 128165</pre>
+
+<p>Errado, e errado de forma diferente a cada vez. O <code>valor++</code> é exatamente o quadro de giz: <strong>ler</strong> <code>valor</code>, <strong>somar</strong> 1, <strong>gravar</strong>. Quando as duas threads se intercalam entre esses passos, vendas se perdem. Pior: num computador mais lento, ou com menos vendas, o erro pode nem aparecer, e o programa passa nos testes. Erros de concorrência são difíceis justamente porque <strong>nem sempre acontecem</strong>.</p>
+
+<div class="warning">
+<strong>No editor do guia, o erro não aparece</strong>
+<p>O simulador do guia roda tudo numa thread só: o <code>start()</code> executa a tarefa inteira na hora, então os caixas nunca se atropelam e o resultado sai sempre 200 000, com ou sem proteção. O <code>synchronized</code> e os locks são aceitos, mas lá não fazem diferença. Por isso as missões desta aula conferem se você <strong>usou</strong> a proteção certa, e as saídas erradas acima são do JDK real.</p>
+</div>
+
+<hr>
+
+<h2>2. <code>synchronized</code>: um cadeado por objeto</h2>
+<p>Em Java, <strong>todo objeto tem um cadeado</strong> embutido. A palavra <code>synchronized</code> ("sincronizado") num método quer dizer: "para rodar este método, pegue o cadeado do objeto; ao terminar, devolva". Só uma thread por vez segura o cadeado; as outras esperam na fila.</p>
+
+<pre class="file" data-file="Main.java">class Contador {
+    private int valor = 0;
+
+    synchronized void incrementar() {
+        valor++;
+    }
+
+    synchronized int valor() {
+        return valor;
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+$ java Main
+Vendas: 200000
+$ java Main
+Vendas: 200000
+$ java Main
+Vendas: 200000</pre>
+
+<dl class="anatomy">
+  <dt>synchronized</dt><dd>Antes de entrar no método, a thread pega o cadeado <strong>deste objeto</strong> (<code>this</code>, o contador). Se outra thread estiver com ele, espera.</dd>
+  <dt>void incrementar()</dt><dd>O método de sempre. Os três passos do <code>valor++</code> agora acontecem sem interrupção de outra thread que também precise do cadeado.</dd>
+</dl>
+
+<p>Por que o <code>valor()</code> também é <code>synchronized</code>, se só lê? Porque o cadeado também garante que uma thread <strong>enxerga</strong> o que a outra gravou. Sem ele, o Java pode deixar uma thread lendo uma cópia antiga do valor (é o problema de <strong>visibilidade</strong>). Regra simples: se um dado é protegido por um cadeado, <strong>toda</strong> leitura e escrita dele passa pelo cadeado.</p>
+
+<div class="tryjava" data-goal="out:Vendas: 200000,src:synchronized">
+<p class="try-task"><strong>Missão:</strong> proteja o <code>Contador</code> com <code>synchronized</code> nos dois métodos. (Lembre-se: no editor do guia o resultado sai certo de qualquer jeito; a missão confere se você usou a proteção.)</p>
+<pre class="script">class Contador {
+    private int valor = 0;
+
+    void incrementar() {
+        valor++;
+    }
+
+    int valor() {
+        return valor;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Contador vendas = new Contador();
+        Runnable caixa = () -&gt; {
+            for (int i = 0; i &lt; 100_000; i++) {
+                vendas.incrementar();
+            }
+        };
+        Thread caixa1 = new Thread(caixa);
+        Thread caixa2 = new Thread(caixa);
+        caixa1.start();
+        caixa2.start();
+        caixa1.join();
+        caixa2.join();
+        System.out.println("Vendas: " + vendas.valor());
+    }
+}
+</pre>
+<pre class="solucao">class Contador {
+    private int valor = 0;
+
+    synchronized void incrementar() {
+        valor++;
+    }
+
+    synchronized int valor() {
+        return valor;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Contador vendas = new Contador();
+        Runnable caixa = () -&gt; {
+            for (int i = 0; i &lt; 100_000; i++) {
+                vendas.incrementar();
+            }
+        };
+        Thread caixa1 = new Thread(caixa);
+        Thread caixa2 = new Thread(caixa);
+        caixa1.start();
+        caixa2.start();
+        caixa1.join();
+        caixa2.join();
+        System.out.println("Vendas: " + vendas.valor());
+    }
+}
+</pre>
+</div>
+
+<h3>Bloco <code>synchronized</code>: proteger só um pedaço</h3>
+<p>Às vezes só uma parte do método mexe no dado compartilhado. O <strong>bloco</strong> <code>synchronized (objeto) { … }</code> pega o cadeado só durante aquele trecho. O resto do método roda livre, em paralelo:</p>
+
+<pre class="file" data-file="Main.java">class Estoque {
+    private int quantidade = 0;
+    private final Object trava = new Object();
+
+    void repor(int n) {
+        System.out.println(Thread.currentThread().getName() + " vai repor " + n);
+        synchronized (trava) {
+            quantidade = quantidade + n;
+        }
+    }
+
+    int quantidade() {
+        synchronized (trava) {
+            return quantidade;
+        }
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Estoque estoque = new Estoque();
+        Runnable repositor = () -&gt; {
+            for (int i = 0; i &lt; 3; i++) {
+                estoque.repor(10);
+            }
+        };
+        Thread a = new Thread(repositor, "Ana");
+        Thread b = new Thread(repositor, "Bruno");
+        a.start();
+        b.start();
+        a.join();
+        b.join();
+        System.out.println("Estoque final: " + estoque.quantidade());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Bruno vai repor 10
+Ana vai repor 10
+Bruno vai repor 10
+Ana vai repor 10
+Bruno vai repor 10
+Ana vai repor 10
+Estoque final: 60</pre>
+
+<dl class="anatomy">
+  <dt>private final Object trava = new Object();</dt><dd>Um objeto que existe só para emprestar o cadeado dele. Ser <code>private</code> garante que nenhum código de fora pega o mesmo cadeado por engano.</dd>
+  <dt>synchronized (trava) {</dt><dd>"Pegue o cadeado de <code>trava</code>." Também dá para escrever <code>synchronized (this)</code>, que é o mesmo cadeado de um método <code>synchronized</code>.</dd>
+  <dt>quantidade = quantidade + n;</dt><dd>Só esta linha fica protegida. O <code>println</code> acima roda sem esperar ninguém.</dd>
+  <dt>}</dt><dd>Fim do bloco: o cadeado é devolvido, mesmo que aconteça uma exceção lá dentro.</dd>
+</dl>
+
+<hr>
+
+<h2>3. <code>AtomicInteger</code>: contador seguro sem cadeado</h2>
+<p>Para o caso mais comum, um número que várias threads aumentam, o pacote <code>java.util.concurrent.atomic</code> tem classes <strong>atômicas</strong>. "Atômico" vem do grego "indivisível": ler, somar e gravar acontecem como <strong>um passo só</strong>, que ninguém consegue interromper no meio. O processador tem instruções especiais para isso, então nem é preciso cadeado.</p>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.atomic.AtomicInteger;
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        AtomicInteger vendas = new AtomicInteger(0);
+        Runnable caixa = () -&gt; {
+            for (int i = 0; i &lt; 100_000; i++) {
+                vendas.incrementAndGet();
+            }
+        };
+        Thread caixa1 = new Thread(caixa);
+        Thread caixa2 = new Thread(caixa);
+        caixa1.start();
+        caixa2.start();
+        caixa1.join();
+        caixa2.join();
+        System.out.println("Vendas: " + vendas.get());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Vendas: 200000</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Equivale a (sem a corrida)</th></tr>
+<tr><td><code>new AtomicInteger(0)</code></td><td><code>int x = 0</code></td></tr>
+<tr><td><code>x.get()</code></td><td>ler <code>x</code></td></tr>
+<tr><td><code>x.set(5)</code></td><td><code>x = 5</code></td></tr>
+<tr><td><code>x.incrementAndGet()</code></td><td><code>++x</code> (soma e devolve o novo valor)</td></tr>
+<tr><td><code>x.getAndIncrement()</code></td><td><code>x++</code> (devolve o valor antigo e soma)</td></tr>
+<tr><td><code>x.addAndGet(10)</code></td><td><code>x += 10</code></td></tr>
+<tr><td><code>x.updateAndGet(v -&gt; v * 2)</code></td><td><code>x = x * 2</code></td></tr>
+</table>
+</div>
+<p>Também existem <code>AtomicLong</code>, <code>AtomicBoolean</code> e <code>AtomicReference</code>. E, para contadores muito disputados, <code>LongAdder</code>.</p>
+
+<hr>
+
+<h2>4. <code>ReentrantLock</code>: o cadeado explícito</h2>
+<p>O pacote <code>java.util.concurrent.locks</code> oferece cadeados como objetos comuns. O mais usado é o <code>ReentrantLock</code> ("cadeado reentrante": a thread que já o segura pode pegá-lo de novo sem travar a si mesma; o <code>synchronized</code> também é assim). Você pega com <code>lock()</code> e devolve com <code>unlock()</code>, <strong>sempre</strong> num <code>finally</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.concurrent.locks.ReentrantLock;
+
+class Caixa {
+    private final ReentrantLock trava = new ReentrantLock();
+    private double saldo = 0;
+
+    void receber(double valor) {
+        trava.lock();
+        try {
+            saldo = saldo + valor;
+        } finally {
+            trava.unlock();
+        }
+    }
+
+    double saldo() {
+        trava.lock();
+        try {
+            return saldo;
+        } finally {
+            trava.unlock();
+        }
+    }
+}
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Caixa caixa = new Caixa();
+        Runnable vendedor = () -&gt; {
+            for (int i = 0; i &lt; 50_000; i++) {
+                caixa.receber(2.0);
+            }
+        };
+        Thread ana = new Thread(vendedor);
+        Thread bruno = new Thread(vendedor);
+        ana.start();
+        bruno.start();
+        ana.join();
+        bruno.join();
+        System.out.println("Saldo: " + caixa.saldo());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Saldo: 200000.0</pre>
+
+<dl class="anatomy">
+  <dt>trava.lock();</dt><dd>Pega o cadeado (ou espera até conseguir).</dd>
+  <dt>try { … }</dt><dd>O trecho protegido.</dd>
+  <dt>finally { trava.unlock(); }</dt><dd>Devolve o cadeado <strong>em qualquer caso</strong>, mesmo com exceção (veja <a href="finally.html">finally</a>). Se o <code>unlock</code> não acontecer, todas as outras threads ficam esperando para sempre.</dd>
+</dl>
+
+<p>Por que usar isso no lugar de <code>synchronized</code>, que devolve o cadeado sozinho? Porque o <code>ReentrantLock</code> sabe fazer coisas que o <code>synchronized</code> não sabe: <code>tryLock()</code> ("tente pegar; se estiver ocupado, desista na hora"), <code>tryLock(2, TimeUnit.SECONDS)</code> ("espere no máximo 2 segundos") e filas justas (<code>new ReentrantLock(true)</code>: quem chegou primeiro pega primeiro).</p>
+
+<hr>
+
+<h2>5. Coleções entre threads: <code>ConcurrentHashMap</code></h2>
+<p>As coleções comuns, como <a href="hashmap.html"><code>HashMap</code></a> e <a href="arraylist.html"><code>ArrayList</code></a>, <strong>não</strong> foram feitas para várias threads alterarem ao mesmo tempo. Quatro repositores contam frutas no mesmo mapa, cada um somando 2 500 maçãs (10 000 no total):</p>
+
+<pre class="file" data-file="Main.java">import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class Main {
+    static void contar(Map&lt;String, Integer&gt; estoque) throws InterruptedException {
+        String[] frutas = { "maçã", "uva", "kiwi", "pera" };
+        Runnable repositor = () -&gt; {
+            for (int i = 0; i &lt; 10_000; i++) {
+                estoque.merge(frutas[i % 4], 1, Integer::sum);
+            }
+        };
+        Thread[] equipe = new Thread[4];
+        for (int i = 0; i &lt; 4; i++) {
+            equipe[i] = new Thread(repositor);
+            equipe[i].start();
+        }
+        for (Thread t : equipe) {
+            t.join();
+        }
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        Map&lt;String, Integer&gt; comum = new HashMap&lt;&gt;();
+        contar(comum);
+        System.out.println("HashMap:           " + comum.get("maçã") + " maçãs (esperado: 10000)");
+
+        Map&lt;String, Integer&gt; segura = new ConcurrentHashMap&lt;&gt;();
+        contar(segura);
+        System.out.println("ConcurrentHashMap: " + segura.get("maçã") + " maçãs (esperado: 10000)");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+$ java Main
+Exception in thread "Thread-3" Exception in thread "Thread-0" java.util.ConcurrentModificationException
+	at java.base/java.util.HashMap.merge(HashMap.java:1394)
+	at Main.lambda$contar$0(Main.java:10)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+java.util.ConcurrentModificationException
+	at java.base/java.util.HashMap.merge(HashMap.java:1394)
+	at Main.lambda$contar$0(Main.java:10)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+HashMap:           4209 maçãs (esperado: 10000)
+ConcurrentHashMap: 10000 maçãs (esperado: 10000)
+$ java Main
+Exception in thread "Thread-1" java.util.ConcurrentModificationException
+	at java.base/java.util.HashMap.merge(HashMap.java:1394)
+	at Main.lambda$contar$0(Main.java:10)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+HashMap:           5932 maçãs (esperado: 10000)
+ConcurrentHashMap: 10000 maçãs (esperado: 10000)</pre>
+
+<p>Com o <code>HashMap</code>, um desastre: algumas threads morreram com <code>ConcurrentModificationException</code> ("exceção de modificação concorrente": o mapa percebeu que estava sendo alterado por duas threads ao mesmo tempo), as duas mensagens de erro até saíram embaralhadas na primeira execução, e a contagem ficou muito abaixo do certo. O <code>ConcurrentHashMap</code> ("mapa de hash concorrente") acertou todas as vezes: ele foi feito para isso, e operações como <code>merge</code>, <code>compute</code> e <code>putIfAbsent</code> nele são atômicas.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Em vez de…</th><th>Entre threads, use</th></tr>
+<tr><td><code>HashMap</code></td><td><code>ConcurrentHashMap</code></td></tr>
+<tr><td><code>ArrayList</code> muito lida e pouco alterada</td><td><code>CopyOnWriteArrayList</code></td></tr>
+<tr><td>Fila entre quem produz e quem consome</td><td><code>LinkedBlockingQueue</code>, <code>ArrayBlockingQueue</code></td></tr>
+<tr><td>Contador <code>int</code></td><td><code>AtomicInteger</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. A ideia de deadlock (impasse)</h2>
+<p>Cadeados resolvem a corrida, mas criam um risco novo. Imagine que, para fechar o caixa, a Ana precisa da <strong>chave do cofre</strong> e da <strong>chave da gaveta</strong>. O Bruno também. A Ana pega a chave do cofre; no mesmo instante, o Bruno pega a da gaveta. Agora a Ana espera a chave da gaveta (que está com o Bruno), e o Bruno espera a do cofre (que está com a Ana). Ninguém solta a que tem. Os dois vão esperar <strong>para sempre</strong>. Isso é um <strong>deadlock</strong> ("trava mortal", impasse).</p>
+
+<div class="warning"><strong>Este código pode travar para sempre. Ele está aqui só para ler.</strong></div>
+<pre class="file" data-file="Impasse.java">Object cofre = new Object();
+Object gaveta = new Object();
+
+Thread ana = new Thread(() -&gt; {
+    synchronized (cofre) {            // Ana pega o cofre…
+        synchronized (gaveta) {       // …e espera a gaveta
+            System.out.println("Ana fechou o caixa");
+        }
+    }
+});
+Thread bruno = new Thread(() -&gt; {
+    synchronized (gaveta) {           // Bruno pega a gaveta…
+        synchronized (cofre) {        // …e espera o cofre
+            System.out.println("Bruno fechou o caixa");
+        }
+    }
+});
+</pre>
+
+<p>Na maior parte das vezes, uma das threads pega as duas chaves antes de a outra começar, e tudo funciona. Mas, se as duas pegarem a primeira chave ao mesmo tempo, o programa congela: não gasta processador nem mostra erro, só fica parado (você teria de encerrá-lo com <kbd>Ctrl</kbd>+<kbd>C</kbd>). É o tipo de defeito que aparece uma vez por mês, no servidor, de madrugada.</p>
+
+<p>Como evitar:</p>
+<ul>
+  <li><strong>Sempre a mesma ordem.</strong> Se todo mundo pega primeiro o cofre e depois a gaveta, o impasse é impossível: quem não pegou o cofre nem tenta a gaveta.</li>
+  <li><strong>Segure o cadeado o menor tempo possível</strong> e evite pegar um segundo cadeado enquanto segura o primeiro.</li>
+  <li><strong>Desista depois de um tempo:</strong> com <code>ReentrantLock.tryLock(tempo, unidade)</code>, quem não consegue a segunda chave devolve a primeira e tenta de novo depois.</li>
+  <li><strong>Prefira as ferramentas prontas</strong> (<code>AtomicInteger</code>, <code>ConcurrentHashMap</code>, <a href="executors.html">executores</a>), que já cuidam disso por dentro.</li>
+</ul>
+
+<hr>
+
+<h2>Qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Ferramenta</th></tr>
+<tr><td>Um contador ou um número compartilhado</td><td><code>AtomicInteger</code> / <code>AtomicLong</code></td></tr>
+<tr><td>Um mapa compartilhado</td><td><code>ConcurrentHashMap</code></td></tr>
+<tr><td>Vários campos que precisam mudar juntos (saldo e extrato)</td><td><code>synchronized</code> (método ou bloco)</td></tr>
+<tr><td>Precisa de <code>tryLock</code>, tempo limite ou fila justa</td><td><code>ReentrantLock</code></td></tr>
+<tr><td>Dados que ninguém altera depois de criados</td><td>Nada! Objetos imutáveis (como <a href="records.html">records</a> e <code>String</code>) são seguros entre threads</td></tr>
+<tr><td>Cada thread com os próprios dados, juntando no fim</td><td>Nada durante o trabalho; junte os resultados com <code>Future</code> (veja <a href="executors.html">ExecutorService</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3>O número muda a cada execução</h3>
+<p>Sintoma clássico de condição de corrida: um dado alterado por várias threads sem proteção (seção 1). <strong>Conserto:</strong> <code>AtomicInteger</code>, <code>synchronized</code> ou um lock, em <strong>todos</strong> os acessos ao dado.</p>
+</div>
+
+<div class="cenario">
+<h3><code>ConcurrentModificationException</code> com threads</h3>
+<p>Uma coleção comum foi alterada por várias threads (seção 5). <strong>Conserto:</strong> troque por <code>ConcurrentHashMap</code> (ou outra coleção do pacote <code>java.util.concurrent</code>). Essa mesma exceção também aparece numa thread só, quando você altera uma lista enquanto a percorre com <code>for-each</code>; veja <a href="iterator.html">Iterator</a>.</p>
+</div>
+
+<div class="cenario">
+<h3>Protegeu a escrita, esqueceu a leitura</h3>
+<p>Um método <code>synchronized</code> para alterar e um sem <code>synchronized</code> para ler: a leitura pode ver um valor velho ou "pela metade". <strong>Conserto:</strong> o mesmo cadeado em todos os acessos.</p>
+</div>
+
+<div class="cenario">
+<h3>Cadeados diferentes não se protegem</h3>
+<p>Duas threads com <code>synchronized (new Object())</code>, ou cada uma com o seu próprio <code>Contador</code>, não esperam uma pela outra: cada uma pega um cadeado diferente. <strong>Conserto:</strong> as threads precisam disputar o <strong>mesmo</strong> objeto de cadeado, guardado num campo <code>private final</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>O programa congela sem erro</h3>
+<p>Pode ser um deadlock (seção 6) ou um <code>lock()</code> sem o <code>unlock()</code> correspondente. <strong>Conserto:</strong> <code>unlock()</code> sempre num <code>finally</code>; pegar cadeados sempre na mesma ordem. Para investigar um programa travado, o comando <code>jstack</code> do JDK mostra o que cada thread está esperando (veja <a href="depuracao.html">Depurar</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>synchronized void m() { … }</code></td><td>Método com o cadeado de <code>this</code></td></tr>
+<tr><td><code>static synchronized void m()</code></td><td>Método com o cadeado da classe</td></tr>
+<tr><td><code>synchronized (obj) { … }</code></td><td>Bloco com o cadeado de <code>obj</code></td></tr>
+<tr><td><code>new AtomicInteger(0)</code>, <code>incrementAndGet()</code>, <code>get()</code></td><td>Contador atômico</td></tr>
+<tr><td><code>new ReentrantLock()</code>, <code>lock()</code>, <code>unlock()</code></td><td>Cadeado explícito (<code>unlock</code> no <code>finally</code>)</td></tr>
+<tr><td><code>lock.tryLock()</code> / <code>tryLock(t, unidade)</code></td><td>Tenta pegar sem esperar / com tempo limite</td></tr>
+<tr><td><code>new ConcurrentHashMap&lt;&gt;()</code></td><td>Mapa seguro entre threads</td></tr>
+<tr><td><code>mapa.merge(chave, 1, Integer::sum)</code></td><td>Soma atômica num <code>ConcurrentHashMap</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete para que só uma thread por vez execute o método:</p>
+<div class="ex-code"><input data-answer="synchronized"> void incrementar() { valor++; }</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete com o método atômico que soma 1 e devolve o novo valor:</p>
+<div class="ex-code">vendas.<input data-answer="incrementAndGet()">;</div>
+</div>
+
+<div class="exercise">
+<p>3. Complete o lugar onde o <code>unlock</code> deve ficar:</p>
+<div class="ex-code">trava.lock();<br>try { saldo += valor; } <input data-answer="finally"> { trava.unlock(); }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que <code>valor++</code> perde somas com duas threads?</p>
+<label><input type="radio" name="q4"> Porque <code>int</code> não aceita números grandes.</label>
+<label><input type="radio" name="q4"> Porque são três passos (ler, somar, gravar), e as threads podem se intercalar no meio.</label>
+<label><input type="radio" name="q4"> Porque faltou <code>join</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Várias threads atualizam um mapa de estoque. Qual a melhor escolha?</p>
+<label><input type="radio" name="q5"> <code>HashMap</code>, com cuidado.</label>
+<label><input type="radio" name="q5"> <code>TreeMap</code>.</label>
+<label><input type="radio" name="q5"> <code>ConcurrentHashMap</code>.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Qual regra impede o deadlock do cofre e da gaveta?</p>
+<label><input type="radio" name="q6"> Todas as threads pegam os cadeados sempre na mesma ordem.</label>
+<label><input type="radio" name="q6"> Usar mais threads.</label>
+<label><input type="radio" name="q6"> Tirar o <code>join</code>.</label>
+</div>
+
+<div class="tryjava" data-goal="out:Vendas: 200000,src:AtomicInteger,src:incrementAndGet\(\)">
+<p class="try-task"><strong>Missão final:</strong> troque o <code>int</code> do contador por um <code>AtomicInteger</code>: crie-o com <code>new AtomicInteger(0)</code>, some com <code>incrementAndGet()</code> e leia com <code>get()</code>. O <code>import</code> já está pronto.</p>
+<pre class="script">import java.util.concurrent.atomic.AtomicInteger;
+
+public class Main {
+    static int vendas = 0;
+
+    public static void main(String[] args) throws InterruptedException {
+        Runnable caixa = () -&gt; {
+            for (int i = 0; i &lt; 100_000; i++) {
+                vendas++;
+            }
+        };
+        Thread caixa1 = new Thread(caixa);
+        Thread caixa2 = new Thread(caixa);
+        caixa1.start();
+        caixa2.start();
+        caixa1.join();
+        caixa2.join();
+        System.out.println("Vendas: " + vendas);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.concurrent.atomic.AtomicInteger;
+
+public class Main {
+    static AtomicInteger vendas = new AtomicInteger(0);
+
+    public static void main(String[] args) throws InterruptedException {
+        Runnable caixa = () -&gt; {
+            for (int i = 0; i &lt; 100_000; i++) {
+                vendas.incrementAndGet();
+            }
+        };
+        Thread caixa1 = new Thread(caixa);
+        Thread caixa2 = new Thread(caixa);
+        caixa1.start();
+        caixa2.start();
+        caixa1.join();
+        caixa2.join();
+        System.out.println("Vendas: " + vendas.get());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Threads que alteram o mesmo dado sem proteção causam <strong>condição de corrida</strong>: resultados errados e diferentes a cada execução (103 485, 144 417, 128 165 em vez de 200 000).</li>
+  <li><code>synchronized</code> (método ou bloco) usa o cadeado de um objeto: uma thread por vez. Proteja leituras e escritas.</li>
+  <li><code>AtomicInteger</code> resolve contadores sem cadeado; <code>ReentrantLock</code> é o cadeado explícito (<code>unlock</code> no <code>finally</code>, <code>tryLock</code>).</li>
+  <li>Entre threads, use coleções concorrentes: <code>ConcurrentHashMap</code> em vez de <code>HashMap</code>.</li>
+  <li>Deadlock: duas threads esperando, cada uma, o cadeado da outra. Evite pegando cadeados sempre na mesma ordem.</li>
+  <li>No editor do guia tudo roda numa thread só: a corrida não aparece lá, só no JDK real.</li>
+</ul>
+
+<p>Próxima aula: <a href="jar.html">Empacotar em JAR</a>, no grupo Ferramentas.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
