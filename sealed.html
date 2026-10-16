@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Classes Seladas — sealed, permits, final e non-sealed | Guia Java</title>
+<meta name="description" content="Classes e interfaces seladas no Java 17: sealed, permits, final e non-sealed, hierarquias fechadas como Forma = Circulo | Retangulo, switch exaustivo sem default e os erros reais do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Classes Seladas</span></h1>
+
+<p class="intro">Normalmente, qualquer classe pode herdar de qualquer outra que não seja <code>final</code>. Uma classe <strong>selada</strong> (<code>sealed</code>, em inglês "lacrada") muda isso: ela escreve uma <strong>lista fechada</strong> de quem pode herdar dela, e o compilador recusa qualquer outra. Isso parece uma restrição boba, mas é o que permite ao Java ter certeza de que um <code>switch</code> tratou todos os casos.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma hierarquia fechada e por que ela é útil.</li>
+  <li>As palavras <code>sealed</code> e <code>permits</code> <span class="versao">Java 17+</span>.</li>
+  <li>As três escolhas de cada filha: <code>final</code>, <code>sealed</code> ou <code>non-sealed</code>.</li>
+  <li>Interfaces seladas com records, e quando dá para omitir o <code>permits</code>.</li>
+  <li>O <code>switch</code> exaustivo, sem <code>default</code>, e os erros reais do <code>javac</code> (<code>class is not allowed to extend sealed class</code> e outros).</li>
+</ul>
+</div>
+
+<p>Para acompanhar, você precisa conhecer <a href="heranca.html">herança</a>, <a href="abstratas.html">classes abstratas</a>, <a href="interfaces.html">interfaces</a>, <a href="final.html">final</a> e <a href="records.html">records</a>. Os exemplos rodaram no JDK 25 da máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense numa festa com <strong>lista de convidados</strong>. Na porta, o segurança só deixa entrar quem está na lista. Não importa se a pessoa é simpática: se o nome não está lá, ela fica de fora. E o dono da festa sabe exatamente quem pode estar lá dentro.</p>
+<p>Uma classe comum é uma festa de portas abertas: qualquer um, em qualquer arquivo, pode escrever <code>extends</code> e entrar na família. Uma classe <code>final</code> é a festa cancelada: <strong>ninguém</strong> entra. A classe <code>sealed</code> é o meio-termo: a festa com lista. A lista se chama <code>permits</code> ("permite").</p>
+
+<p>O exemplo clássico é uma <code>Forma</code> geométrica que, no seu programa, só pode ser <strong>um círculo ou um retângulo</strong>. Em linguagem de matemático: <code>Forma = Circulo | Retangulo</code> (a barra quer dizer "ou"). Nada mais.</p>
+
+<hr>
+
+<h2>1. Selando uma classe</h2>
+
+<pre class="file" data-file="Main.java">sealed abstract class Forma permits Circulo, Retangulo {
+    abstract double area();
+}
+
+final class Circulo extends Forma {
+    double raio;
+    Circulo(double raio) { this.raio = raio; }
+    double area() { return Math.PI * raio * raio; }
+}
+
+final class Retangulo extends Forma {
+    double largura, altura;
+    Retangulo(double largura, double altura) { this.largura = largura; this.altura = altura; }
+    double area() { return largura * altura; }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Forma[] formas = { new Circulo(2), new Retangulo(3, 5) };
+        for (Forma f : formas) {
+            System.out.println(f.getClass().getSimpleName() + ": " + f.area());
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+Circulo: 12.566370614359172
+Retangulo: 15.0</pre>
+
+<dl class="anatomy">
+  <dt>sealed</dt><dd>"Selada": só as classes da lista podem herdar desta.</dd>
+  <dt>abstract class Forma</dt><dd>Uma <a href="abstratas.html">classe abstrata</a> comum: ninguém cria uma "forma genérica" com <code>new Forma()</code>.</dd>
+  <dt>permits</dt><dd>"Permite": começa a lista de convidados.</dd>
+  <dt>Circulo, Retangulo</dt><dd>As únicas subclasses permitidas, separadas por vírgula.</dd>
+</dl>
+
+<p>E nas filhas:</p>
+<dl class="anatomy">
+  <dt>final</dt><dd>Obrigatório (ou uma das alternativas da seção 2): diz que <code>Circulo</code> não terá filhas.</dd>
+  <dt>class Circulo</dt><dd>A classe que está na lista.</dd>
+  <dt>extends Forma</dt><dd>Herda de <code>Forma</code>, como sempre.</dd>
+</dl>
+
+<p>O programa roda igual a qualquer herança: cada forma calcula a própria área (é <a href="polimorfismo.html">polimorfismo</a>). O método <code>getClass().getSimpleName()</code> devolve o nome da classe do objeto; você vai vê-lo de novo na aula de <a href="reflexao.html">reflexão</a>. A diferença está no que <strong>não</strong> dá para fazer, como você vai ver em "Quando dá errado".</p>
+
+<hr>
+
+<h2>2. As três escolhas de cada filha</h2>
+<p>O Java exige que cada classe da lista diga, de forma explícita, o que acontece com <strong>a família dela</strong>. Há três opções:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Modificador</th><th>Tradução</th><th>Quem pode herdar da filha</th></tr>
+<tr><td><code>final</code></td><td>final, "última"</td><td>Ninguém. A família termina aqui. É o caso mais comum.</td></tr>
+<tr><td><code>sealed … permits …</code></td><td>selada</td><td>Só quem estiver na lista <strong>dela</strong>. A hierarquia continua fechada, um nível abaixo.</td></tr>
+<tr><td><code>non-sealed</code></td><td>"não selada"</td><td>Qualquer um. A filha reabre a porta para a família dela.</td></tr>
+</table>
+</div>
+
+<p>Se você esquecer de escolher, o <code>javac</code> recusa: <code>sealed, non-sealed or final modifiers expected</code> (veja "Quando dá errado"). <code>non-sealed</code> é a única palavra-chave do Java com hífen.</p>
+
+<h3><code>non-sealed</code>: reabrindo um galho</h3>
+<p>Suponha que você queira deixar outros programadores criarem tipos especiais de retângulo, como um <code>Quadrado</code>. Marque <code>Retangulo</code> como <code>non-sealed</code>:</p>
+
+<pre class="file" data-file="Main.java">sealed abstract class Forma permits Circulo, Retangulo {
+    abstract double area();
+}
+
+final class Circulo extends Forma {
+    double raio;
+    Circulo(double raio) { this.raio = raio; }
+    double area() { return Math.PI * raio * raio; }
+}
+
+non-sealed class Retangulo extends Forma {
+    double largura, altura;
+    Retangulo(double largura, double altura) { this.largura = largura; this.altura = altura; }
+    double area() { return largura * altura; }
+}
+
+class Quadrado extends Retangulo {
+    Quadrado(double lado) { super(lado, lado); }
+}
+
+public class Main {
+    static String nome(Forma f) {
+        return switch (f) {
+            case Circulo c -&gt; "círculo de raio " + c.raio;
+            case Retangulo r -&gt; "retângulo " + r.largura + " x " + r.altura;
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(nome(new Circulo(1)));
+        System.out.println(nome(new Retangulo(2, 3)));
+        System.out.println(nome(new Quadrado(4)));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+círculo de raio 1.0
+retângulo 2.0 x 3.0
+retângulo 4.0 x 4.0</pre>
+
+<p><code>Quadrado</code> não está na lista de <code>Forma</code>, e mesmo assim compilou: ele não herda <strong>diretamente</strong> de <code>Forma</code>, e sim de <code>Retangulo</code>, que abriu a porta. Repare que o <code>switch</code> continua sem <code>default</code>: todo <code>Quadrado</code> <strong>é</strong> um <code>Retangulo</code>, então o caso <code>case Retangulo r</code> também o cobre (por isso apareceu "retângulo 4.0 x 4.0"). A família de primeiro nível continua fechada: uma <code>Forma</code> é sempre um <code>Circulo</code> ou um <code>Retangulo</code> (de qualquer tipo).</p>
+
+<hr>
+
+<h2>3. Interfaces seladas e records</h2>
+<p>Uma <a href="interfaces.html">interface</a> também pode ser selada. Combinada com <a href="records.html">records</a>, é a forma mais curta e mais usada no Java moderno: o record descreve os <strong>dados</strong> de cada variante, e a interface selada diz quais variantes existem.</p>
+
+<pre class="file" data-file="Main.java">sealed interface Forma permits Circulo, Retangulo {}
+record Circulo(double raio) implements Forma {}
+record Retangulo(double largura, double altura) implements Forma {}
+
+public class Main {
+    static double area(Forma f) {
+        return switch (f) {
+            case Circulo c -&gt; Math.PI * c.raio() * c.raio();
+            case Retangulo r -&gt; r.largura() * r.altura();
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(area(new Circulo(1)));
+        System.out.println(area(new Retangulo(3, 4)));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+3.141592653589793
+12.0</pre>
+
+<p>Os records não precisaram de <code>final</code>: <strong>todo record já é <code>final</code></strong> automaticamente (ninguém pode herdar de um record). Para classes comuns que implementam a interface, a regra das três escolhas continua valendo.</p>
+
+<div class="tryjava" data-goal="compila,out:Círculo pronto,out:Retângulo pronto">
+<p class="try-task"><strong>Missão:</strong> este código <strong>não compila</strong>. Clique em Rodar, leia o erro do <code>javac</code> e acrescente o modificador que falta na classe <code>Circulo</code> para que ela não tenha filhas.</p>
+<pre class="script">sealed abstract class Forma permits Circulo, Retangulo {
+    abstract String nome();
+}
+
+class Circulo extends Forma {
+    String nome() { return "Círculo"; }
+}
+
+final class Retangulo extends Forma {
+    String nome() { return "Retângulo"; }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Forma[] formas = { new Circulo(), new Retangulo() };
+        for (Forma f : formas) {
+            System.out.println(f.nome() + " pronto");
+        }
+    }
+}
+</pre>
+<pre class="solucao">sealed abstract class Forma permits Circulo, Retangulo {
+    abstract String nome();
+}
+
+final class Circulo extends Forma {
+    String nome() { return "Círculo"; }
+}
+
+final class Retangulo extends Forma {
+    String nome() { return "Retângulo"; }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Forma[] formas = { new Circulo(), new Retangulo() };
+        for (Forma f : formas) {
+            System.out.println(f.nome() + " pronto");
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Onde as filhas podem morar</h2>
+
+<h3>No mesmo arquivo: o <code>permits</code> é opcional</h3>
+<p>Quando a classe selada e todas as filhas estão <strong>no mesmo arquivo</strong>, você pode omitir o <code>permits</code>: o compilador monta a lista sozinho com as filhas que encontrar ali.</p>
+
+<pre class="file" data-file="Main.java">sealed interface Forma {}
+record Circulo(double raio) implements Forma {}
+record Retangulo(double largura, double altura) implements Forma {}
+
+public class Main {
+    public static void main(String[] args) {
+        Forma f = new Circulo(2);
+        String r = switch (f) {
+            case Circulo c -&gt; "círculo";
+            case Retangulo q -&gt; "retângulo";
+        };
+        System.out.println(r);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java &amp;&amp; java Main
+círculo</pre>
+
+<p>Mesmo assim, muita gente escreve o <code>permits</code>: ele serve de documentação, deixando a lista à vista logo na primeira linha.</p>
+
+<h3>Em arquivos separados</h3>
+<p>Num projeto de verdade, cada tipo público fica no seu arquivo. Aí o <code>permits</code> é obrigatório, e as filhas precisam estar no <strong>mesmo pacote</strong> da classe selada (ou no mesmo <a href="modulos.html">módulo</a>, se o projeto usar módulos). Aqui, todos estão na mesma pasta, sem <code>package</code>, então estão no mesmo pacote "sem nome":</p>
+
+<pre class="file" data-file="Forma.java">public sealed interface Forma permits Circulo, Retangulo {
+    double area();
+}
+</pre>
+<pre class="file" data-file="Circulo.java">public record Circulo(double raio) implements Forma {
+    public double area() { return Math.PI * raio * raio; }
+}
+</pre>
+<pre class="file" data-file="Retangulo.java">public record Retangulo(double largura, double altura) implements Forma {
+    public double area() { return largura * altura; }
+}
+</pre>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Forma f = new Retangulo(2, 3);
+        System.out.println(f.area());
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java/formas">$ ls
+Circulo.java
+Forma.java
+Main.java
+Retangulo.java
+$ javac *.java
+$ java Main
+6.0</pre>
+
+<p>O <code>javac *.java</code> compila os quatro arquivos de uma vez (o <code>*</code> é o curinga do terminal: "todos os arquivos terminados em <code>.java</code>"). Veja mais em <a href="compilar-executar.html">javac e java</a>.</p>
+
+<hr>
+
+<h2>5. Por que selar: o <code>switch</code> sabe que acabou</h2>
+<p>Você já viu nos exemplos acima: um <code>switch</code> sobre <code>Forma</code> com um <code>case</code> para <code>Circulo</code> e outro para <code>Retangulo</code> compila <strong>sem <code>default</code></strong>. O compilador leu a lista do <code>permits</code> e conferiu que todas as possibilidades foram tratadas. Isso se chama <strong>exaustividade</strong>, e foi apresentado na aula de <a href="pattern-matching.html">Pattern Matching</a>.</p>
+
+<p>O ganho aparece no dia em que a família cresce. A Ana acrescenta <code>Triangulo</code> à lista, mas esquece de mudar o método <code>area</code>:</p>
+
+<pre class="file" data-file="Main.java">sealed interface Forma permits Circulo, Retangulo, Triangulo {}
+record Circulo(double raio) implements Forma {}
+record Retangulo(double largura, double altura) implements Forma {}
+record Triangulo(double base, double altura) implements Forma {}
+
+public class Main {
+    static double area(Forma f) {
+        return switch (f) {
+            case Circulo(double r) -&gt; Math.PI * r * r;
+            case Retangulo(double l, double a) -&gt; l * a;
+        };
+    }
+
+    public static void main(String[] args) {
+        System.out.println(area(new Circulo(1)));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:8: error: the switch expression does not cover all possible input values
+        return switch (f) {
+               ^
+1 error</pre>
+
+<p>O compilador encontrou o esquecimento <strong>antes</strong> de o programa rodar. Num sistema com dezenas de <code>switch</code> espalhados, essa lista de erros vira a lista de tarefas: cada linha apontada é um lugar que precisa aprender a lidar com triângulos.</p>
+
+<div class="warning">
+<strong>O <code>default</code> desliga esse aviso</strong>
+<p>Um <code>switch</code> sobre uma interface selada <strong>pode</strong> ter <code>default</code> (o <code>javac</code> aceita). Mas aí o <code>Triangulo</code> novo cairia nele em silêncio, e o erro só apareceria com o programa rodando, talvez como uma área zero. Com hierarquias seladas, prefira listar todos os casos e deixar o <code>default</code> de fora.</p>
+</div>
+
+<h3>Selada × <code>enum</code></h3>
+<p>Um <a href="enums.html">enum</a> também é uma lista fechada, mas de <strong>valores</strong>: <code>PEQUENO, MEDIO, GRANDE</code>, todos com os mesmos campos. Uma hierarquia selada é uma lista fechada de <strong>tipos</strong>, e cada um tem os seus próprios dados: um círculo tem raio; um retângulo tem largura e altura. Se as variantes guardam informações diferentes, use <code>sealed</code>; se são só nomes (ou têm todas os mesmos campos), use <code>enum</code>.</p>
+
+<hr>
+
+<h2>Formas diferentes de controlar a herança</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th><th>Exemplo</th></tr>
+<tr><td>Que qualquer um possa herdar</td><td>Classe comum (nada)</td><td><code>class Animal</code></td></tr>
+<tr><td>Que ninguém herde</td><td><code>final</code></td><td><code>final class Cpf</code></td></tr>
+<tr><td>Uma lista fechada de subtipos com dados diferentes</td><td><code>sealed interface</code> + records</td><td><code>sealed interface Forma permits Circulo, Retangulo</code></td></tr>
+<tr><td>Lista fechada, mas com código comum na mãe</td><td><code>sealed abstract class</code></td><td><code>sealed abstract class Conta permits Corrente, Poupanca</code></td></tr>
+<tr><td>Fechar o primeiro nível e abrir um galho</td><td><code>non-sealed</code> numa filha</td><td><code>non-sealed class Retangulo</code></td></tr>
+<tr><td>Uma lista fechada de valores simples</td><td><code>enum</code></td><td><code>enum Tamanho { P, M, G }</code></td></tr>
+<tr><td>Rodar num Java anterior ao 17</td><td>Classe abstrata com construtor sem <code>public</code> e <code>default</code> no switch</td><td>(o compilador não confere a lista)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<h3>Uma classe fora da lista tenta herdar</h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">sealed abstract class Forma permits Circulo, Retangulo {
+    abstract double area();
+}
+
+final class Circulo extends Forma {
+    double area() { return 3.14; }
+}
+
+final class Retangulo extends Forma {
+    double area() { return 15; }
+}
+
+class Triangulo extends Forma {
+    double area() { return 6; }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:13: error: class is not allowed to extend sealed class: Forma (as it is not listed in its 'permits' clause)
+class Triangulo extends Forma {
+^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "a classe não tem permissão para estender a classe selada <code>Forma</code> (porque não está listada na cláusula <code>permits</code>)". É o segurança barrando quem não está na lista. Com interfaces a mensagem é a mesma (um <code>record Triangulo(…) implements Forma</code> fora da lista recebe exatamente este texto). <strong>Como consertar:</strong> se o triângulo deve mesmo fazer parte da família, acrescente-o ao <code>permits</code> (e marque-o como <code>final</code>, <code>sealed</code> ou <code>non-sealed</code>). Se não deve, ele não pode herdar de <code>Forma</code>.</p>
+</div>
+
+<div class="cenario">
+<h3>A filha não disse <code>final</code>, <code>sealed</code> nem <code>non-sealed</code></h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">sealed abstract class Forma permits Circulo, Retangulo {
+    abstract double area();
+}
+
+class Circulo extends Forma {
+    double area() { return 3.14; }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:5: error: sealed, non-sealed or final modifiers expected
+class Circulo extends Forma {
+^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "esperava os modificadores <code>sealed</code>, <code>non-sealed</code> ou <code>final</code>". <strong>Como consertar:</strong> escolha um dos três (na dúvida, <code>final</code>).</p>
+</div>
+
+<div class="cenario">
+<h3>Listar no <code>permits</code> quem não herda</h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">sealed interface Forma permits Circulo, Retangulo {}
+record Circulo(double raio) implements Forma {}
+record Retangulo(double largura, double altura) {}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:1: error: invalid permits clause
+sealed interface Forma permits Circulo, Retangulo {}
+                                        ^
+  (record Retangulo must extend sealed interface)
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "cláusula <code>permits</code> inválida: o record <code>Retangulo</code> precisa estender a interface selada". A lista convidou o retângulo, mas ele esqueceu o <code>implements Forma</code>. <strong>Como consertar:</strong> acrescente <code>implements Forma</code> ao <code>Retangulo</code> (ou tire-o da lista).</p>
+</div>
+
+<div class="cenario">
+<h3>Herdar de uma filha <code>final</code></h3>
+<div class="warning"><strong>Este código tem um erro de propósito.</strong></div>
+<pre class="file" data-file="Main.java">sealed abstract class Forma permits Circulo, Retangulo {}
+final class Circulo extends Forma {}
+final class Retangulo extends Forma {}
+class CirculoColorido extends Circulo {}
+</pre>
+<pre class="term" data-cwd="~/java">$ javac Main.java
+Main.java:4: error: cannot inherit from final Circulo
+class CirculoColorido extends Circulo {}
+                              ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> "não é possível herdar da classe final <code>Circulo</code>". É o mesmo erro da aula de <a href="final.html">final</a>. <strong>Como consertar:</strong> se <code>Circulo</code> deve ter filhas, troque <code>final</code> por <code>non-sealed</code> (porta aberta) ou por <code>sealed permits CirculoColorido</code> (outra lista).</p>
+</div>
+
+<div class="tryjava" data-goal="erro-javac:is not allowed to extend sealed class">
+<p class="try-task"><strong>Missão:</strong> provoque o erro de propósito. Rode o código uma vez (ele funciona). Depois acrescente a linha <code>record Triangulo(double base, double altura) implements Forma {}</code> logo abaixo do <code>Retangulo</code>, <strong>sem</strong> mexer no <code>permits</code>, e rode de novo para ver o <code>javac</code> barrar o triângulo.</p>
+<pre class="script">sealed interface Forma permits Circulo, Retangulo {}
+record Circulo(double raio) implements Forma {}
+record Retangulo(double largura, double altura) implements Forma {}
+
+public class Main {
+    public static void main(String[] args) {
+        Forma f = new Circulo(2);
+        System.out.println(f);
+    }
+}
+</pre>
+<pre class="solucao">sealed interface Forma permits Circulo, Retangulo {}
+record Circulo(double raio) implements Forma {}
+record Retangulo(double largura, double altura) implements Forma {}
+record Triangulo(double base, double altura) implements Forma {}
+
+public class Main {
+    public static void main(String[] args) {
+        Forma f = new Circulo(2);
+        System.out.println(f);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintaxe</th><th>Significado</th></tr>
+<tr><td><code>sealed class X permits A, B</code></td><td>Só <code>A</code> e <code>B</code> podem estender <code>X</code></td></tr>
+<tr><td><code>sealed interface X permits A, B</code></td><td>Só <code>A</code> e <code>B</code> podem implementar <code>X</code></td></tr>
+<tr><td><code>sealed interface X { }</code> (sem <code>permits</code>)</td><td>As filhas são as do mesmo arquivo</td></tr>
+<tr><td><code>final class A extends X</code></td><td>Filha sem filhas</td></tr>
+<tr><td><code>sealed class B extends X permits C</code></td><td>Filha com a sua própria lista</td></tr>
+<tr><td><code>non-sealed class B extends X</code></td><td>Filha aberta a qualquer herdeira</td></tr>
+<tr><td><code>record A(…) implements X</code></td><td>Records já são <code>final</code></td></tr>
+<tr><td><code>switch (x) { case A a -&gt; …; case B b -&gt; …; }</code></td><td>Exaustivo sem <code>default</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem do <code>javac</code></th><th>Causa</th></tr>
+<tr><td><code>class is not allowed to extend sealed class: X (as it is not listed in its 'permits' clause)</code></td><td>Classe fora da lista</td></tr>
+<tr><td><code>sealed, non-sealed or final modifiers expected</code></td><td>Filha sem uma das três escolhas</td></tr>
+<tr><td><code>invalid permits clause</code></td><td>Classe da lista que não herda da selada</td></tr>
+<tr><td><code>the switch expression does not cover all possible input values</code></td><td>Falta um <code>case</code> para uma filha</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<p>1. Complete para que só <code>Pix</code> e <code>Boleto</code> possam implementar a interface:</p>
+<div class="ex-code"><input data-answer="sealed"> interface Pagamento <input data-answer="permits"> Pix, Boleto {}</div>
+</div>
+
+<div class="exercise">
+<p>2. Complete com o modificador que deixa <strong>qualquer</strong> classe herdar de <code>Boleto</code>:</p>
+<div class="ex-code"><input data-answer="non-sealed"> class Boleto implements Pagamento {}</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Por que <code>record Pix(double valor) implements Pagamento {}</code> não precisa de <code>final</code>?</p>
+<label><input type="radio" name="q3"> Porque interfaces seladas não aceitam <code>final</code>.</label>
+<label><input type="radio" name="q3"> Porque todo record já é <code>final</code> automaticamente.</label>
+<label><input type="radio" name="q3"> Porque records não podem implementar interfaces.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual a principal vantagem de um <code>switch</code> sem <code>default</code> sobre uma interface selada?</p>
+<label><input type="radio" name="q4"> Ele roda mais rápido.</label>
+<label><input type="radio" name="q4"> Ele aceita <code>null</code> sem exceção.</label>
+<label><input type="radio" name="q4"> Se alguém acrescentar um tipo à lista, o <code>javac</code> aponta cada <code>switch</code> que ficou incompleto.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. A partir de qual versão as classes seladas são um recurso final do Java?</p>
+<label><input type="radio" name="q5"> Java 17</label>
+<label><input type="radio" name="q5"> Java 8</label>
+<label><input type="radio" name="q5"> Java 25</label>
+</div>
+
+<div class="tryjava" data-goal="out:Total: 39.0,src:^(?![\s\S]*\bdefault\b)">
+<p class="try-task"><strong>Missão final:</strong> o pedágio da estrada cobra 10.0 de carro, 5.0 de moto e 8.0 <strong>por eixo</strong> de caminhão. Escreva o <code>switch</code> do método <code>pedagio</code> <strong>sem <code>default</code></strong> (a interface é selada) e faça o programa mostrar <code>Total: 39.0</code>.</p>
+<pre class="script">sealed interface Veiculo permits Carro, Moto, Caminhao {}
+record Carro(String placa) implements Veiculo {}
+record Moto(String placa) implements Veiculo {}
+record Caminhao(String placa, int eixos) implements Veiculo {}
+
+public class Main {
+    static double pedagio(Veiculo v) {
+        return switch (v) {
+            case Carro c -&gt; 10.0;
+            // falta a moto e o caminhão
+        };
+    }
+
+    public static void main(String[] args) {
+        Veiculo[] fila = { new Carro("ABC1D23"), new Moto("XYZ9K88"), new Caminhao("CAM0A01", 3) };
+        double total = 0;
+        for (Veiculo v : fila) {
+            System.out.println(v + " paga " + pedagio(v));
+            total = total + pedagio(v);
+        }
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+<pre class="solucao">sealed interface Veiculo permits Carro, Moto, Caminhao {}
+record Carro(String placa) implements Veiculo {}
+record Moto(String placa) implements Veiculo {}
+record Caminhao(String placa, int eixos) implements Veiculo {}
+
+public class Main {
+    static double pedagio(Veiculo v) {
+        return switch (v) {
+            case Carro c -&gt; 10.0;
+            case Moto m -&gt; 5.0;
+            case Caminhao c -&gt; c.eixos() * 8.0;
+        };
+    }
+
+    public static void main(String[] args) {
+        Veiculo[] fila = { new Carro("ABC1D23"), new Moto("XYZ9K88"), new Caminhao("CAM0A01", 3) };
+        double total = 0;
+        for (Veiculo v : fila) {
+            System.out.println(v + " paga " + pedagio(v));
+            total = total + pedagio(v);
+        }
+        System.out.println("Total: " + total);
+    }
+}
+</pre>
+</div>
+
+<p>Saída real da solução:</p>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Carro[placa=ABC1D23] paga 10.0
+Moto[placa=XYZ9K88] paga 5.0
+Caminhao[placa=CAM0A01, eixos=3] paga 24.0
+Total: 39.0</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>sealed</code> + <code>permits</code> <span class="versao">Java 17+</span> criam uma hierarquia <strong>fechada</strong>: só as classes da lista podem herdar.</li>
+  <li>Cada filha escolhe: <code>final</code> (fim da linha), <code>sealed</code> (outra lista) ou <code>non-sealed</code> (porta aberta). Records já são <code>final</code>.</li>
+  <li>No mesmo arquivo, o <code>permits</code> pode ser omitido; em arquivos separados, as filhas ficam no mesmo pacote.</li>
+  <li>O grande ganho: o <code>switch</code> sobre um tipo selado pode dispensar o <code>default</code>, e o <code>javac</code> avisa quando um caso novo não foi tratado.</li>
+  <li>Erros típicos: <code>class is not allowed to extend sealed class</code>, <code>sealed, non-sealed or final modifiers expected</code>, <code>invalid permits clause</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="regex.html">Expressões Regulares</a>.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
