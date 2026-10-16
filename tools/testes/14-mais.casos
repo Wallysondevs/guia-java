@@ -1,0 +1,616 @@
+### ordem-inicializacao-heranca
+public class Main {
+    static class Base {
+        Base() { System.out.println("Base: " + descricao()); }
+        String descricao() { return "base"; }
+    }
+    static class Filha extends Base {
+        private String nome = "filha";
+        private int n = 5;
+        Filha() { System.out.println("Filha: " + descricao()); }
+        @Override String descricao() { return nome + " " + n; }
+    }
+    public static void main(String[] args) { new Filha(); }
+}
+### interface-privado-estatico
+public class Main {
+    interface Calc {
+        int calcular(int x);
+        default int dobro(int x) { return ajuda(calcular(x)) * 2; }
+        private int ajuda(int x) { return x + 0; }
+        static Calc quadrado() { return x -> x * x; }
+    }
+    public static void main(String[] args) {
+        Calc c = Calc.quadrado();
+        System.out.println(c.calcular(4) + " " + c.dobro(3));
+    }
+}
+### interna-acessa-externa
+public class Main {
+    private String nome = "Ana";
+    private static int total = 0;
+    class Interna {
+        String nome = "interna";
+        String mostrar() { total++; return nome + " / " + Main.this.nome + " / " + total; }
+    }
+    static class Estatica { String oi() { return "total=" + total; } }
+    public static void main(String[] args) {
+        Main m = new Main();
+        Interna i = m.new Interna();
+        System.out.println(i.mostrar());
+        System.out.println(i.mostrar());
+        System.out.println(new Estatica().oi());
+    }
+}
+### contador-estatico
+public class Main {
+    static class Produto {
+        static int criados = 0;
+        final int id;
+        String nome;
+        Produto(String nome) { this.nome = nome; criados++; id = criados; }
+    }
+    public static void main(String[] args) {
+        Produto a = new Produto("café"), b = new Produto("leite");
+        System.out.println(a.id + " " + b.id + " " + Produto.criados + " " + a.criados);
+    }
+}
+### varargs-casos
+public class Main {
+    static int soma(int... n) { int s = 0; for (int x : n) s += x; return s; }
+    static String juntar(String sep, String... partes) { return String.join(sep, partes); }
+    static void info(Object... o) { System.out.println(o == null ? "null" : o.length + " argumentos"); }
+    public static void main(String[] args) {
+        System.out.println(soma() + " " + soma(1) + " " + soma(1, 2, 3) + " " + soma(new int[]{4, 5}));
+        System.out.println(juntar("-", "a", "b", "c") + " " + juntar(","));
+        info(); info(1, "a"); info((Object[]) null); info((Object) null); info(new String[]{"x", "y"});
+    }
+}
+### array-objetos
+public class Main {
+    record Aluno(String nome, double nota) {}
+    public static void main(String[] args) {
+        Aluno[] turma = new Aluno[3];
+        turma[0] = new Aluno("Ana", 9);
+        turma[2] = new Aluno("Bruno", 7);
+        double soma = 0; int n = 0;
+        for (Aluno a : turma) if (a != null) { soma += a.nota(); n++; }
+        System.out.println(soma / n + " " + java.util.Arrays.toString(turma));
+        int[][] tab = new int[3][4];
+        for (int i = 0; i < 3; i++) for (int j = 0; j < 4; j++) tab[i][j] = i * j;
+        for (int[] linha : tab) { for (int v : linha) System.out.print(v + "\t"); System.out.println(); }
+        char[][] velha = {{'X', 'O', ' '}, {' ', 'X', 'O'}, {'O', ' ', 'X'}};
+        for (char[] l : velha) System.out.println(new String(l).replace(' ', '_'));
+    }
+}
+### matriz-soma
+public class Main {
+    public static void main(String[] args) {
+        int[][] a = {{1, 2}, {3, 4}}, b = {{5, 6}, {7, 8}};
+        int[][] c = new int[2][2];
+        for (int i = 0; i < 2; i++) for (int j = 0; j < 2; j++) for (int k = 0; k < 2; k++) c[i][j] += a[i][k] * b[k][j];
+        System.out.println(java.util.Arrays.deepToString(c));
+        int maior = Integer.MIN_VALUE;
+        for (int[] l : c) for (int v : l) maior = Math.max(maior, v);
+        System.out.println(maior);
+    }
+}
+### busca-ordenacao
+public class Main {
+    static void bolha(int[] v) {
+        for (int i = 0; i < v.length - 1; i++)
+            for (int j = 0; j < v.length - 1 - i; j++)
+                if (v[j] > v[j + 1]) { int t = v[j]; v[j] = v[j + 1]; v[j + 1] = t; }
+    }
+    static int binaria(int[] v, int x) {
+        int lo = 0, hi = v.length - 1;
+        while (lo <= hi) { int m = (lo + hi) / 2; if (v[m] == x) return m; if (v[m] < x) lo = m + 1; else hi = m - 1; }
+        return -1;
+    }
+    public static void main(String[] args) {
+        int[] v = {9, 4, 7, 1, 8, 2};
+        bolha(v);
+        System.out.println(java.util.Arrays.toString(v) + " " + binaria(v, 7) + " " + binaria(v, 5));
+    }
+}
+### primos-fizzbuzz
+public class Main {
+    static boolean primo(int n) { if (n < 2) return false; for (int i = 2; i * i <= n; i++) if (n % i == 0) return false; return true; }
+    public static void main(String[] args) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= 30; i++) if (primo(i)) sb.append(i).append(' ');
+        System.out.println(sb.toString().trim());
+        for (int i = 1; i <= 15; i++) System.out.print(i % 15 == 0 ? "FizzBuzz " : i % 3 == 0 ? "Fizz " : i % 5 == 0 ? "Buzz " : i + " ");
+        System.out.println();
+        long soma = 0;
+        for (int i = 1; i <= 1000000; i++) soma += i;
+        System.out.println(soma);
+    }
+}
+### string-palindromo
+public class Main {
+    static boolean palindromo(String s) {
+        String limpo = s.toLowerCase().replaceAll("[^a-z]", "");
+        return new StringBuilder(limpo).reverse().toString().equals(limpo);
+    }
+    public static void main(String[] args) {
+        for (String s : new String[]{"Arara", "A man, a plan, a canal: Panama", "Java"}) System.out.println(s + " -> " + palindromo(s));
+        String frase = "a vida é bela";
+        String[] palavras = frase.split(" ");
+        StringBuilder inv = new StringBuilder();
+        for (int i = palavras.length - 1; i >= 0; i--) inv.append(palavras[i]).append(i > 0 ? " " : "");
+        System.out.println(inv);
+        int vogais = 0;
+        for (char c : frase.toCharArray()) if ("aeiouáéíóú".indexOf(c) >= 0) vogais++;
+        System.out.println(vogais);
+    }
+}
+### string-format-tabela
+public class Main {
+    public static void main(String[] args) {
+        String[][] dados = {{"Café", "12.5", "3"}, {"Pão de queijo", "8", "10"}, {"Suco", "6.75", "2"}};
+        System.out.println(String.format("%-15s %8s %5s %10s", "Produto", "Preço", "Qtd", "Total"));
+        double geral = 0;
+        for (String[] d : dados) {
+            double p = Double.parseDouble(d[1]); int q = Integer.parseInt(d[2]);
+            geral += p * q;
+            System.out.println(String.format("%-15s %8.2f %5d %10.2f", d[0], p, q, p * q));
+        }
+        System.out.println(String.format("%-15s %25.2f", "TOTAL", geral));
+        System.out.println(String.format("|%10s|%-10s|%.3s|", "dir", "esq", "corte"));
+    }
+}
+### excecao-aninhada
+public class Main {
+    public static void main(String[] args) {
+        try {
+            try {
+                Object o = "x";
+                Integer i = (Integer) o;
+            } catch (ClassCastException e) {
+                System.out.println("interno: " + e.getClass().getSimpleName());
+                throw new IllegalStateException("convertido", e);
+            } finally {
+                System.out.println("finally interno");
+            }
+        } catch (IllegalStateException e) {
+            System.out.println("externo: " + e.getMessage() + " causa=" + e.getCause().getClass().getName());
+        }
+        try {
+            throw new UnsupportedOperationException();
+        } catch (RuntimeException e) {
+            System.out.println(e + " msg=" + e.getMessage());
+        }
+    }
+}
+### excecao-cast-usuario
+public class Main {
+    static class Animal {}
+    static class Gato extends Animal {}
+    static class Cao extends Animal {}
+    public static void main(String[] args) {
+        Animal a = new Gato();
+        Cao c = (Cao) a;
+    }
+}
+### excecao-trace-profunda
+public class Main {
+    static void validar(int idade) {
+        if (idade < 0) throw new IllegalArgumentException("idade negativa: " + idade);
+    }
+    static void cadastrar(String nome, int idade) {
+        validar(idade);
+        System.out.println(nome + " cadastrado");
+    }
+    public static void main(String[] args) {
+        cadastrar("Ana", 29);
+        cadastrar("Bruno", -1);
+        System.out.println("fim");
+    }
+}
+### excecao-checked-propagada
+import java.io.IOException;
+public class Main {
+    static void abrir(String n) throws IOException {
+        if (!n.endsWith(".txt")) throw new IOException("formato inválido: " + n);
+        System.out.println("abriu " + n);
+    }
+    public static void main(String[] args) throws IOException {
+        abrir("a.txt");
+        abrir("b.pdf");
+    }
+}
+### excecao-modulo-zero
+public class Main {
+    public static void main(String[] args) {
+        int a = 10, b = 0;
+        System.out.println(10.0 / b + " " + 10 % 3);
+        System.out.println(a % b);
+    }
+}
+### exception-get-stack
+public class Main {
+    static void f() { throw new RuntimeException("x"); }
+    public static void main(String[] args) {
+        try { f(); } catch (RuntimeException e) {
+            StackTraceElement[] st = e.getStackTrace();
+            System.out.println(st.length + " " + st[0].getMethodName() + " " + st[0].getLineNumber() + " " + st[1].getMethodName());
+        }
+    }
+}
+### enum-interface-switch
+public class Main {
+    interface Descrito { String descricao(); }
+    enum Tamanho implements Descrito {
+        P("pequeno"), M("médio"), G("grande");
+        private final String d;
+        Tamanho(String d) { this.d = d; }
+        public String descricao() { return d; }
+        Tamanho proximo() { return values()[(ordinal() + 1) % values().length]; }
+    }
+    public static void main(String[] args) {
+        for (Tamanho t : Tamanho.values()) {
+            switch (t) {
+                case P: System.out.print("P:"); break;
+                case M: System.out.print("M:"); break;
+                default: System.out.print("?:");
+            }
+            System.out.println(t.descricao() + " -> " + t.proximo());
+        }
+        System.out.println(Tamanho.valueOf("G").compareTo(Tamanho.P) + " " + Tamanho.M.equals(Tamanho.valueOf("M")) + " " + (Tamanho.M == Tamanho.valueOf("M")));
+    }
+}
+### record-comparable
+import java.util.*;
+public class Main {
+    record Versao(int maior, int menor) implements Comparable<Versao> {
+        static final Versao ZERO = new Versao(0, 0);
+        public int compareTo(Versao o) { return maior != o.maior ? Integer.compare(maior, o.maior) : Integer.compare(menor, o.menor); }
+        @Override public String toString() { return maior + "." + menor; }
+    }
+    public static void main(String[] args) {
+        List<Versao> vs = new ArrayList<>(List.of(new Versao(1, 10), new Versao(1, 2), new Versao(0, 9), Versao.ZERO));
+        Collections.sort(vs);
+        System.out.println(vs + " " + Collections.max(vs) + " " + new TreeSet<>(vs).first());
+    }
+}
+### generics-pilha
+import java.util.*;
+public class Main {
+    static class Pilha<T> implements Iterable<T> {
+        private final List<T> itens = new ArrayList<>();
+        void empilhar(T t) { itens.add(t); }
+        T desempilhar() { if (itens.isEmpty()) throw new RuntimeException("pilha vazia"); return itens.remove(itens.size() - 1); }
+        boolean vazia() { return itens.isEmpty(); }
+        public Iterator<T> iterator() { return itens.iterator(); }
+        static <E> Pilha<E> de(E... es) { Pilha<E> p = new Pilha<>(); for (E e : es) p.empilhar(e); return p; }
+    }
+    public static void main(String[] args) {
+        Pilha<String> p = Pilha.de("a", "b", "c");
+        for (String s : p) System.out.print(s);
+        System.out.println();
+        while (!p.vazia()) System.out.print(p.desempilhar());
+        System.out.println();
+        p.desempilhar();
+    }
+}
+### generics-bounded
+import java.util.*;
+public class Main {
+    static <T extends Number> double media(List<T> l) { double s = 0; for (T x : l) s += x.doubleValue(); return l.isEmpty() ? 0 : s / l.size(); }
+    static <K, V extends Comparable<V>> K maiorChave(Map<K, V> m) {
+        K melhor = null; V mv = null;
+        for (Map.Entry<K, V> e : m.entrySet()) if (mv == null || e.getValue().compareTo(mv) > 0) { mv = e.getValue(); melhor = e.getKey(); }
+        return melhor;
+    }
+    public static void main(String[] args) {
+        System.out.println(media(List.of(1, 2, 3, 4)) + " " + media(List.of(2.5, 3.5)) + " " + media(new ArrayList<Long>()));
+        Map<String, Integer> pontos = new TreeMap<>(Map.of("Ana", 30, "Bruno", 45, "Carla", 12));
+        System.out.println(maiorChave(pontos));
+    }
+}
+### hashmap-inteiros-grandes
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        Map<Integer, String> m = new HashMap<>();
+        int[] ks = {100, 33, 17, 65, 1, 129, 1024, 48, 2000, 77, 5, 300, 64, 12, 999};
+        for (int k : ks) m.put(k, "v" + k);
+        System.out.println(m);
+        m.remove(65); m.remove(1024);
+        System.out.println(m.keySet());
+        Set<Character> cs = new HashSet<>();
+        for (char c : "programação em java".toCharArray()) cs.add(c);
+        System.out.println(cs);
+        Set<Double> ds = new HashSet<>(List.of(1.5, 2.0, -0.5, 100.25, 3.14));
+        System.out.println(ds);
+        Set<Long> ls = new HashSet<>(List.of(10L, 5000000000L, -1L));
+        System.out.println(ls);
+        Set<Boolean> bs = new HashSet<>(List.of(true, false));
+        System.out.println(bs);
+    }
+}
+### hashmap-strings-acentos
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        Map<String, Double> precos = new HashMap<>();
+        precos.put("açúcar", 4.5); precos.put("café", 18.9); precos.put("feijão", 8.0); precos.put("arroz", 25.0);
+        precos.put("pão", 0.8); precos.put("leite", 5.49); precos.put("manteiga", 12.0); precos.put("óleo", 7.3);
+        System.out.println(precos);
+        Map<String, Integer> idades = new HashMap<>();
+        idades.put("Ana", 29); idades.put("Bruno", 34); idades.put("Carla", 22); idades.put("Diego", 41); idades.put("Elisa", 30);
+        System.out.println(idades);
+        Map<String, Integer> copia = new HashMap<>(idades);
+        copia.put("Fábio", 25);
+        System.out.println(copia);
+    }
+}
+### treemap-contagem
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        String texto = "Java é uma linguagem; Java roda na JVM, e a JVM roda Java.";
+        Map<String, Integer> cont = new TreeMap<>();
+        for (String p : texto.toLowerCase().split("[^\\p{L}]+")) if (!p.isEmpty()) cont.merge(p, 1, Integer::sum);
+        System.out.println(cont);
+        Map<Integer, List<String>> porTamanho = new TreeMap<>(Comparator.reverseOrder());
+        for (String p : cont.keySet()) porTamanho.computeIfAbsent(p.length(), k -> new ArrayList<>()).add(p);
+        System.out.println(porTamanho);
+    }
+}
+### streams-numeros
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    public static void main(String[] args) {
+        System.out.println(IntStream.rangeClosed(1, 10).filter(i -> i % 2 == 1).sum());
+        System.out.println(IntStream.rangeClosed(1, 5).map(i -> i * i).boxed().collect(Collectors.toList()));
+        System.out.println(IntStream.of(5, 2, 8).max().getAsInt() + " " + IntStream.empty().max().isPresent() + " " + IntStream.range(0, 0).average());
+        System.out.println(Stream.of(1, 2, 3, 4).mapToDouble(i -> i / 2.0).boxed().toList());
+        double[] notas = {7.5, 8.0, 9.25};
+        System.out.println(Arrays.stream(notas).average().orElse(0) + " " + Arrays.stream(notas).map(n -> n + 0.5).max().getAsDouble());
+        List<Integer> l = Stream.of(3, 1, 2).sorted().collect(Collectors.toList());
+        l.add(4);
+        System.out.println(l + " " + l.stream().mapToInt(Integer::intValue).summaryStatistics().getAverage());
+        System.out.println(Stream.of("a", "b", "c").reduce("", String::concat) + " " + Stream.of(1, 2, 3).map(String::valueOf).reduce((a, b) -> a + "," + b).get());
+        System.out.println(IntStream.iterate(1, i -> i * 3).limit(5).mapToObj(Integer::toString).collect(Collectors.joining(" < ")));
+    }
+}
+### streams-objetos
+import java.util.*;
+import java.util.stream.*;
+public class Main {
+    record Pessoa(String nome, int idade, String cidade) {}
+    public static void main(String[] args) {
+        List<Pessoa> ps = List.of(new Pessoa("Ana", 29, "Recife"), new Pessoa("Bruno", 34, "Natal"), new Pessoa("Carla", 22, "Recife"), new Pessoa("Diego", 41, "Olinda"), new Pessoa("Elisa", 30, "Natal"));
+        System.out.println(ps.stream().filter(p -> p.idade() >= 30).map(Pessoa::nome).toList());
+        System.out.println(ps.stream().mapToInt(Pessoa::idade).average().getAsDouble());
+        System.out.println(ps.stream().max(Comparator.comparingInt(Pessoa::idade)).map(Pessoa::nome).orElse("?"));
+        Map<String, Long> porCidade = ps.stream().collect(Collectors.groupingBy(Pessoa::cidade, TreeMap::new, Collectors.counting()));
+        System.out.println(porCidade);
+        Map<String, List<String>> nomesPorCidade = ps.stream().collect(Collectors.groupingBy(Pessoa::cidade, Collectors.mapping(Pessoa::nome, Collectors.toList())));
+        System.out.println(nomesPorCidade);
+        Map<Boolean, List<String>> adultos30 = ps.stream().collect(Collectors.partitioningBy(p -> p.idade() < 30, Collectors.mapping(Pessoa::nome, Collectors.toList())));
+        System.out.println(adultos30);
+        String nomes = ps.stream().sorted(Comparator.comparing(Pessoa::cidade).thenComparing(Pessoa::idade, Comparator.reverseOrder())).map(p -> p.nome() + "/" + p.cidade()).collect(Collectors.joining(", "));
+        System.out.println(nomes);
+        System.out.println(ps.stream().anyMatch(p -> p.cidade().equals("Olinda")) + " " + ps.stream().map(Pessoa::cidade).distinct().count());
+        Optional<Pessoa> primeiro = ps.stream().filter(p -> p.nome().startsWith("C")).findFirst();
+        System.out.println(primeiro.map(Pessoa::idade).orElse(-1));
+    }
+}
+### lambda-comparator-sort-estavel
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>(List.of("pera", "uva", "kiwi", "maçã", "figo", "lima", "abacate"));
+        l.sort(Comparator.comparingInt(String::length));
+        System.out.println(l);
+        String[] arr = {"bb", "a", "cc", "d", "eee"};
+        Arrays.sort(arr, (x, y) -> x.length() - y.length());
+        System.out.println(Arrays.toString(arr));
+    }
+}
+### ternario-numerico
+public class Main {
+    public static void main(String[] args) {
+        boolean b = true;
+        System.out.println(b ? 1 : 2.0);
+        System.out.println(b ? 'x' : 0);
+        System.out.println(b ? 'x' : 100000);
+        Integer i = null;
+        Object o = b ? "texto" : 5;
+        System.out.println(o);
+        char c = 'A';
+        int k = 1;
+        System.out.println(false ? c : k);
+        System.out.println(true ? null : 0);
+    }
+}
+### compound-char-byte
+public class Main {
+    public static void main(String[] args) {
+        byte b = 120;
+        b += 10;
+        short s = 1;
+        s *= 1000;
+        s *= 100;
+        char c = 'a';
+        c *= 2;
+        int i = 7;
+        i /= 2.0;
+        long l = 1;
+        l <<= 40;
+        int sh = 1 << 33;
+        System.out.println(b + " " + s + " " + (int) c + " " + i + " " + l + " " + sh + " " + (-1 >>> 1) + " " + (-1L >>> 1));
+        Integer w = 5;
+        w++;
+        w += 10;
+        System.out.println(w);
+    }
+}
+### string-switch-yield
+public class Main {
+    static int pontos(String jogada) {
+        return switch (jogada.toLowerCase()) {
+            case "pedra" -> 1;
+            case "papel" -> 2;
+            case "tesoura" -> {
+                int base = 3;
+                yield base;
+            }
+            default -> throw new IllegalArgumentException("jogada inválida: " + jogada);
+        };
+    }
+    public static void main(String[] args) {
+        System.out.println(pontos("Pedra") + pontos("PAPEL") + pontos("tesoura"));
+        System.out.println(pontos("lagarto"));
+    }
+}
+### do-while-menu [stdin="2\n5\n1\n0\n"]
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int op, total = 0;
+        do {
+            System.out.println("1-Somar 2-Dobrar 0-Sair (total=" + total + ")");
+            op = sc.nextInt();
+            switch (op) {
+                case 1 -> total++;
+                case 2 -> total = total * 2 + 1;
+                case 0 -> System.out.println("tchau");
+                default -> System.out.println("opção inválida");
+            }
+        } while (op != 0);
+        System.out.println(total);
+    }
+}
+### media-scanner [stdin="4\n7,5\n8\n9,25\n6\n"]
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Quantas notas? ");
+        int n = sc.nextInt();
+        double soma = 0;
+        for (int i = 1; i <= n; i++) { System.out.print("Nota " + i + ": "); soma += sc.nextDouble(); }
+        System.out.printf("%nMédia: %.2f%n", soma / n);
+        System.out.println(soma / n >= 7 ? "Aprovado" : "Reprovado");
+    }
+}
+### e-new-classe-minuscula
+public class Main {
+    public static void main(String[] args) {
+        scanner sc = new scanner(System.in);
+    }
+}
+### e-sem-tipo-retorno
+public class Main {
+    static calcular(int x) { return x * 2; }
+    public static void main(String[] args) { }
+}
+### e-chamada-metodo-instancia-estatico
+public class Main {
+    static class Conta { double saldo; void depositar(double v) { saldo += v; } }
+    public static void main(String[] args) {
+        Conta.depositar(10);
+    }
+}
+### e-argumento-errado-construtor
+public class Main {
+    record Produto(String nome, double preco) {}
+    public static void main(String[] args) {
+        Produto p = new Produto(10.0, "café");
+    }
+}
+### e-retorno-tipo-errado
+public class Main {
+    static boolean par(int x) { return x % 2; }
+    static String nome() { return null; }
+    static int[] vetor() { return {1, 2}; }
+    public static void main(String[] args) { }
+}
+### e-atribuicao-em-condicao-string
+public class Main {
+    public static void main(String[] args) {
+        String s = "a";
+        if (s = "b") { }
+    }
+}
+### e-comparar-string-int
+public class Main {
+    public static void main(String[] args) {
+        String idade = "29";
+        if (idade > 18) System.out.println("maior");
+        int x = idade + 1;
+    }
+}
+### e-interface-instancia
+public class Main {
+    interface Forma { double area(); }
+    public static void main(String[] args) {
+        Forma f = new Forma();
+    }
+}
+### e-metodo-abstrato-classe-concreta
+public class Main {
+    static class Animal { abstract void som(); }
+    public static void main(String[] args) { }
+}
+### e-super-depois
+public class Main {
+    static class A { A(int x) {} }
+    static class B extends A {
+        int y;
+        B() { y = 1; super(2); }
+    }
+    public static void main(String[] args) { }
+}
+### e-this-no-prologo
+public class Main {
+    static class A { A(int x) {} }
+    static class B extends A {
+        int y = 5;
+        B() { super(y); }
+    }
+    public static void main(String[] args) { }
+}
+### e-lista-generica-errada
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<Integer> l = new ArrayList<String>();
+        ArrayList<Object> o = new ArrayList<String>();
+        List<String> s = Arrays.asList(1, 2);
+    }
+}
+### e-foreach-tipo-errado
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> nomes = List.of("a");
+        for (int n : nomes) { }
+        int[] v = {1};
+        for (String s : v) { }
+        for (String s : 5) { }
+    }
+}
+### e-scanner-sem-import
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        List<String> l = new ArrayList<>();
+    }
+}
+### e-string-metodo-inexistente
+public class Main {
+    public static void main(String[] args) {
+        String s = "abc";
+        System.out.println(s.size());
+        System.out.println(s.lenght());
+        System.out.println(s.charAt());
+        System.out.println(s.substring("a"));
+    }
+}

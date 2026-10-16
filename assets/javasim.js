@@ -2265,6 +2265,10 @@
       ms.varargs = m.params.length > 0 && m.params[m.params.length - 1].varargs;
     }
     ms.ret = m.isCtor ? T["void"] : this.resolveType(m.ret, menv);
+    if (ms.varargs) {
+      var vp = ms.params[ms.params.length - 1];
+      if (vp && vp.k === "array" && !isReifiable(vp.elem) && !m.mods.annos.some(function (a) { return /SafeVarargs$/.test(a.name); })) this.unchecked();
+    }
     ms.throws = m.throws.map(function (t) { return self.resolveType(t, menv); });
     ms.key = methodKey(ms.name, ms.params);
     if (m.isCtor) {
@@ -2528,6 +2532,7 @@
   };
   function isRawOk(s, t) { return false; }
   CK.unchecked = function () { this.prog.notes.unchecked = true; };
+  CK.warn = function (env, pos, msg) { (this.prog.warnings = this.prog.warnings || []).push(new CompileError(env.file, pos, msg, "warning")); };
 
   // texto "where T is a type-variable:" (como o javac)
   CK.whereFor = function (types) {
@@ -2547,7 +2552,7 @@
       var decl;
       if (v.owner instanceof MethodSym) {
         var m = v.owner;
-        decl = (m.name === "<init>" ? "constructor " : "method ") + "<" + m.tparams.map(function (x) { return x.name; }).join(",") + ">" + (m.name === "<init>" ? m.owner.name : m.name) + "(" + m.params.map(typeStr).join(",") + ")";
+        decl = (m.name === "<init>" ? "constructor " : "method ") + "<" + m.tparams.map(function (x) { return x.name; }).join(",") + ">" + (m.name === "<init>" ? m.owner.name : m.name) + "(" + paramsStr(m) + ")";
       } else decl = (v.owner ? v.owner.kindName() + " " + v.owner.name : "class ?");
       r += "\n    " + v.name + " extends " + b + " declared in " + decl;
     });
@@ -3261,7 +3266,7 @@
     return true;
   }
   CK.attribAssign = function (e, env) {
-    var tt = this.attribExpr(e.target, env, null);
+    var tt = this.attribExpr(e.target, env.ctorPrologue && e.target.k === "Ident" ? env.dup({ prologueAssign: true }) : env, null);
     if (!isErr(tt) && !this.isVariable(e.target)) {
       this.err(env, e.target.pos, "unexpected type\n  required: variable\n  found:    value");
       this.attribExpr(e.value, env, null);
@@ -4106,11 +4111,14 @@
     this.reportInapplicable(cands, argInfos, env, errInfo);
     return null;
   };
-  function methodDesc(m) {
-    if (m.name === "<init>") return "constructor " + m.owner.name + "(" + m.params.map(typeStr).join(",") + ")";
-    return "method " + (m.tparams.length ? "<" + m.tparams.map(function (t) { return t.name; }).join(",") + ">" : "") + m.name + "(" + m.params.map(typeStr).join(",") + ")";
+  function paramsStr(m) {
+    return m.params.map(function (p, i) { return m.varargs && i === m.params.length - 1 && p.k === "array" ? typeStr(p.elem) + "..." : typeStr(p); }).join(",");
   }
-  function sigStr(m) { return (m.name === "<init>" ? m.owner.name : m.name) + "(" + m.params.map(typeStr).join(",") + ")"; }
+  function methodDesc(m) {
+    if (m.name === "<init>") return "constructor " + m.owner.name + "(" + paramsStr(m) + ")";
+    return "method " + (m.tparams.length ? "<" + m.tparams.map(function (t) { return t.name; }).join(",") + ">" : "") + m.name + "(" + paramsStr(m) + ")";
+  }
+  function sigStr(m) { return (m.name === "<init>" ? m.owner.name : m.name) + "(" + paramsStr(m) + ")"; }
   CK.reportInapplicable = function (cands, argInfos, env, info) {
     var self = this;
     // motivo de cada candidato (fase 2 ou 3)
@@ -4333,6 +4341,12 @@
     }
     e.msym = m;
     if (m.deprecated) this.prog.notes.deprecation = true;
+    if (m.varargs && res.phase < 3 && args.length === m.params.length) {
+      var lastA = args[args.length - 1], lastF = formals[formals.length - 1];
+      if (lastA && !lastA.poly && lastA.type && lastA.type.k === "array" && lastF.k === "array" && !sameType(lastA.type, lastF) && lastF.elem.k !== "prim" && isSubtype(lastA.type, lastF.elem)) {
+        this.warn(env, lastA.node.pos, "non-varargs call of varargs method with inexact argument type for last parameter;\n  cast to " + typeStr(lastF.elem) + " for a varargs call\n  cast to " + typeStr(lastF) + " for a non-varargs call and to suppress this warning");
+      }
+    }
     e.formals = formals;
     e.varargsCall = res.phase === 3;
     e.callSite = head.site;
@@ -5658,10 +5672,11 @@
   function formatDiagnostics(prog) {
     var out = "";
     var errs = prog.errors.filter(function (e) { return e.kind === "error"; });
-    errs.slice(0, 100).forEach(function (e) {
+    var warns = errs.length ? [] : (prog.warnings || []);
+    errs.slice(0, 100).concat(warns).forEach(function (e) {
       var f = e.file, line = f.lineOf(Math.min(e.pos, f.src.length)), col = f.colOf(Math.min(e.pos, f.src.length));
       var lines = e.msg.split("\n");
-      out += f.name + ":" + line + ": error: " + lines[0] + "\n";
+      out += f.name + ":" + line + ": " + (e.kind === "warning" ? "warning" : "error") + ": " + lines[0] + "\n";
       var text = f.lineText(line);
       out += text + "\n";
       var caret = "";
@@ -5675,6 +5690,7 @@
     }
     if (prog.simplified && errs.length) out += "Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output\n";
     if (errs.length) out += errs.length + (errs.length === 1 ? " error\n" : " errors\n");
+    if (warns.length) out += warns.length + (warns.length === 1 ? " warning\n" : " warnings\n");
     return out;
   }
   JavaSim.compileProgram = compileProgram;
@@ -6677,7 +6693,7 @@
     if (v instanceof JBox) return boxHash(v);
     return vcall(v, "hashCode()", []) | 0;
   }
-  function jcompare(a, b) {
+  function jcompare(a, b, frames) {
     // Comparable natural
     if (a === null || b === null) npe();
     if (isStr(a)) { if (!isStr(b)) castFail(b, L("java.lang.String").rawType()); return compareStrings(S(a), S(b)); }
@@ -6690,7 +6706,8 @@
       return x < y ? -1 : x > y ? 1 : 0;
     }
     if (!isSubClass(classOf(a), L("java.lang.Comparable"))) {
-      throwJ("java.lang.ClassCastException", "class " + classOf(a).bin + " cannot be cast to class java.lang.Comparable (" + classOf(a).bin + " is in unnamed module of loader 'app'; java.lang.Comparable is in module java.base of loader 'bootstrap')");
+      var ca = classOf(a);
+      throwJ("java.lang.ClassCastException", "class " + ca.bin + " cannot be cast to class java.lang.Comparable (" + (ca.isLib ? ca.bin + " and java.lang.Comparable are in module java.base of loader 'bootstrap')" : ca.bin + " is in unnamed module of loader 'app'; java.lang.Comparable is in module java.base of loader 'bootstrap')"), frames || undefined);
     }
     return vcall(a, "compareTo(java.lang.Object)", [b]);
   }
@@ -6845,7 +6862,7 @@
         if (n === null) npe("Name is null");
         var vs = RT.enumVals[sym.id];
         for (var i = 0; i < vs.length; i++) if (vs[i].$name === S(n)) return vs[i];
-        throwJ("java.lang.IllegalArgumentException", "No enum constant " + canonicalName(sym) + "." + S(n));
+        throwJ("java.lang.IllegalArgumentException", "No enum constant " + canonicalName(sym) + "." + S(n), ["java.base/java.lang.Enum.valueOf(Enum.java:293)", sym.bin + ".valueOf(" + sym.file.name + ":" + sym.file.lineOf(sym.decl.pos) + ")"]);
       };
     });
     // records: equals/hashCode/toString implícitos
@@ -8364,7 +8381,7 @@
         var top = [];
         if (nm === "java.util.IllegalFormatConversionException") top = ["java.base/java.util.Formatter$FormatSpecifier.failConversion(Formatter.java:4662)", "java.base/java.util.Formatter$FormatSpecifier.printInteger(Formatter.java:3200)", "java.base/java.util.Formatter$FormatSpecifier.print(Formatter.java:3155)", "java.base/java.util.Formatter.format(Formatter.java:2761)"];
         else if (nm === "java.util.MissingFormatArgumentException") top = ["java.base/java.util.Formatter.format(Formatter.java:2760)"];
-        else if (nm === "java.util.UnknownFormatConversionException") top = ["java.base/java.util.Formatter.parse(Formatter.java:2869)", "java.base/java.util.Formatter.format(Formatter.java:2705)"];
+        else if (nm === "java.util.UnknownFormatConversionException") top = ["java.base/java.util.Formatter$FormatSpecifier.conversion(Formatter.java:3069)", "java.base/java.util.Formatter$FormatSpecifier.<init>(Formatter.java:3125)", "java.base/java.util.Formatter$FormatSpecifierParser.parse(Formatter.java:2915)", "java.base/java.util.Formatter.parse(Formatter.java:2814)", "java.base/java.util.Formatter.format(Formatter.java:2744)"];
         ex.stack = top.concat(FMT_CALLER[caller] || []).concat(ex.stack || []);
         if (emit && partial.s) emit(partial.s);
       }
@@ -8549,7 +8566,8 @@
   function checkIdx(i, n, kind) {
     if (i < 0 || i >= n) throwJ("java.lang.StringIndexOutOfBoundsException", kind === "charAt" ? "Index " + i + " out of bounds for length " + n : "index " + i + ", length " + n);
   }
-  function subRangeFail(b, e, n) { throwJ("java.lang.StringIndexOutOfBoundsException", "Range [" + b + ", " + e + ") out of bounds for length " + n); }
+  var PRECOND = ["java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:55)", "java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:52)", "java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:213)", "java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:210)", "java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:98)"];
+  function subRangeFail(b, e, n, one) { throwJ("java.lang.StringIndexOutOfBoundsException", "Range [" + b + ", " + e + ") out of bounds for length " + n, PRECOND.concat(["java.base/jdk.internal.util.Preconditions.outOfBoundsCheckFromToIndex(Preconditions.java:112)", "java.base/jdk.internal.util.Preconditions.checkFromToIndex(Preconditions.java:349)", "java.base/java.lang.String.checkBoundsBeginEnd(String.java:4937)", "java.base/java.lang.String.substring(String.java:2899)"]).concat(one ? ["java.base/java.lang.String.substring(String.java:2872)"] : [])); }
   function isWs(c) { return c === 32 || (c >= 9 && c <= 13) || (c >= 28 && c <= 31) || c === 0x1680 || (c >= 0x2000 && c <= 0x2006) || (c >= 0x2008 && c <= 0x200a) || c === 0x2028 || c === 0x2029 || c === 0x205f || c === 0x3000; }
   function jtrim(s) { var a = 0, b = s.length; while (a < b && s.charCodeAt(a) <= 32) a++; while (b > a && s.charCodeAt(b - 1) <= 32) b--; return s.slice(a, b); }
   function jstrip(s) { var a = 0, b = s.length; while (a < b && isWs(s.charCodeAt(a))) a++; while (b > a && isWs(s.charCodeAt(b - 1))) b--; return s.slice(a, b); }
@@ -8632,10 +8650,10 @@
     defLib("java.lang.String", { flags: "public final", impl: ["CharSequence", "Comparable<String>", "java.io.Serializable"], m: {
       "<init>()": null, "<init>(String)": null, "<init>(char[])": null, "<init>(char[],int,int)": null, "<init>(StringBuilder)": null,
       "int length()": function () { return S(this).length; },
-      "char charAt(int)": function (i) { var s = S(this); if (i < 0 || i >= s.length) throwJ("java.lang.StringIndexOutOfBoundsException", "Index " + i + " out of bounds for length " + s.length, ["java.base/java.lang.StringLatin1.charAt(StringLatin1.java:48)", "java.base/java.lang.String.charAt(String.java:1582)"]); return s.charCodeAt(i); },
+      "char charAt(int)": function (i) { var s = S(this); if (i < 0 || i >= s.length) throwJ("java.lang.StringIndexOutOfBoundsException", "Index " + i + " out of bounds for length " + s.length, PRECOND.concat(["java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)", "java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)", "java.base/java.lang.String.checkIndex(String.java:4904)", "java.base/java.lang.StringLatin1.charAt(StringLatin1.java:45)", "java.base/java.lang.String.charAt(String.java:1624)"])); return s.charCodeAt(i); },
       "boolean isEmpty()": function () { return S(this).length === 0; },
       "boolean isBlank()": function () { return jstrip(S(this)).length === 0; },
-      "String substring(int)": function (b) { var s = S(this); if (b < 0 || b > s.length) subRangeFail(b, s.length, s.length); return b === 0 ? this : jstr(s.slice(b)); },
+      "String substring(int)": function (b) { var s = S(this); if (b < 0 || b > s.length) subRangeFail(b, s.length, s.length, true); return b === 0 ? this : jstr(s.slice(b)); },
       "String substring(int,int)": function (b, e) { var s = S(this); if (b < 0 || e > s.length || b > e) subRangeFail(b, e, s.length); return (b === 0 && e === s.length) ? this : jstr(s.slice(b, e)); },
       "CharSequence subSequence(int,int)": function (b, e) { var s = S(this); if (b < 0 || e > s.length || b > e) subRangeFail(b, e, s.length); return jstr(s.slice(b, e)); },
       "int indexOf(String)": function (x) { return S(this).indexOf(strArg(x)); },
@@ -8673,7 +8691,7 @@
       "String[] split(String,int)": function (rx, n) { return strArray(jsplit(S(this), S(rx), n)); },
       "char[] toCharArray()": function () { var s = S(this), a = newArray(T["char"], s.length); for (var i = 0; i < s.length; i++) a.a[i] = s.charCodeAt(i); return a; },
       "String concat(String)": function (o) { var x = strArg(o); return x.length ? jstr(S(this) + x) : this; },
-      "String repeat(int)": function (n) { if (n < 0) throwJ("java.lang.IllegalArgumentException", "count is negative: " + n); return jstr(repeat(S(this), n)); },
+      "String repeat(int)": function (n) { if (n < 0) throwJ("java.lang.IllegalArgumentException", "count is negative: " + n, ["java.base/java.lang.String.repeat(String.java:4733)"]); return jstr(repeat(S(this), n)); },
       "String intern()": function () { return S(this); },
       "IntStream chars()": function () { var s = S(this), r = []; for (var i = 0; i < s.length; i++) r.push(s.charCodeAt(i)); return JavaSim.mkIntStream ? JavaSim.mkIntStream(r) : null; },
       "java.util.stream.Stream<String> lines()": function () { var parts = S(this).split(/\r?\n/); if (parts[parts.length - 1] === "") parts.pop(); return JavaSim.mkStream(parts.map(jstr)); },
@@ -8782,14 +8800,14 @@
       "static long floorDiv(long,long)": function (a, b) { if (b === 0n) throwJ("java.lang.ArithmeticException", "/ by zero"); var q = a / b; if ((a % b !== 0n) && ((a < 0n) !== (b < 0n))) q -= 1n; return q; },
       "static int floorMod(int,int)": function (a, b) { if (b === 0) throwJ("java.lang.ArithmeticException", "/ by zero"); return ((a % b) + b) % b; },
       "static long floorMod(long,long)": function (a, b) { if (b === 0n) throwJ("java.lang.ArithmeticException", "/ by zero"); return ((a % b) + b) % b; },
-      "static int addExact(int,int)": function (a, b) { var r = a + b; if (r > 2147483647 || r < -2147483648) throwJ("java.lang.ArithmeticException", "integer overflow"); return r; },
+      "static int addExact(int,int)": function (a, b) { var r = a + b; if (r > 2147483647 || r < -2147483648) throwJ("java.lang.ArithmeticException", "integer overflow", ["java.base/java.lang.Math.addExact(Math.java:915)"]); return r; },
       "static long addExact(long,long)": function (a, b) { var r = a + b; if (BigInt.asIntN(64, r) !== r) throwJ("java.lang.ArithmeticException", "long overflow"); return r; },
-      "static int subtractExact(int,int)": function (a, b) { var r = a - b; if (r > 2147483647 || r < -2147483648) throwJ("java.lang.ArithmeticException", "integer overflow"); return r; },
-      "static int multiplyExact(int,int)": function (a, b) { var r = a * b; if (r > 2147483647 || r < -2147483648) throwJ("java.lang.ArithmeticException", "integer overflow"); return r; },
+      "static int subtractExact(int,int)": function (a, b) { var r = a - b; if (r > 2147483647 || r < -2147483648) throwJ("java.lang.ArithmeticException", "integer overflow", ["java.base/java.lang.Math.subtractExact(Math.java:956)"]); return r; },
+      "static int multiplyExact(int,int)": function (a, b) { var r = a * b; if (r > 2147483647 || r < -2147483648) throwJ("java.lang.ArithmeticException", "integer overflow", ["java.base/java.lang.Math.multiplyExact(Math.java:996)"]); return r; },
       "static long multiplyExact(long,long)": function (a, b) { var r = a * b; if (BigInt.asIntN(64, r) !== r) throwJ("java.lang.ArithmeticException", "long overflow"); return r; },
       "static int incrementExact(int)": function (a) { if (a === 2147483647) throwJ("java.lang.ArithmeticException", "integer overflow"); return a + 1; },
       "static int negateExact(int)": function (a) { if (a === -2147483648) throwJ("java.lang.ArithmeticException", "integer overflow"); return -a; },
-      "static int toIntExact(long)": function (a) { if (a > 2147483647n || a < -2147483648n) throwJ("java.lang.ArithmeticException", "integer overflow"); return Number(a); },
+      "static int toIntExact(long)": function (a) { if (a > 2147483647n || a < -2147483648n) throwJ("java.lang.ArithmeticException", "integer overflow", ["java.base/java.lang.Math.toIntExact(Math.java:1375)"]); return Number(a); },
       "static int absExact(int)": function (a) { if (a === -2147483648) throwJ("java.lang.ArithmeticException", "Overflow to represent absolute value of Integer.MIN_VALUE"); return iabs(a); },
       "static int clamp(long,int,int)": function (v, lo, hi) { if (lo > hi) throwJ("java.lang.IllegalArgumentException", lo + " > " + hi); v = Number(v); return Math.min(hi, Math.max(lo, v)); },
       "static long clamp(long,long,long)": function (v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; },
@@ -8828,21 +8846,23 @@
       return defLib("java.lang." + name, { flags: "public final", ext: prim === "boolean" || prim === "char" ? null : "Number", impl: ["Comparable<" + name + ">", "java.io.Serializable"], m: m, noCtor: false, deprecated: dep });
     }
     function nfe(s, frames) { throwJ("java.lang.NumberFormatException", s === null ? "Cannot parse null string: null" : "For input string: \"" + S(s) + "\"" + (frames && frames.radix ? " under radix " + frames.radix : ""), frames && frames.f); }
-    function parseIntJ(s, radix, isLong) {
-      if (s === null) throwJ("java.lang.NumberFormatException", "Cannot parse null string: null", isLong ? ["java.base/java.lang.Long.parseLong(Long.java:" + "671)", "java.base/java.lang.Long.parseLong(Long.java:836)"] : ["java.base/java.lang.Integer.parseInt(Integer.java:614)", "java.base/java.lang.Integer.parseInt(Integer.java:662)"]);
+    function parseIntJ(s, radix, isLong, viaValueOf) {
+      var fis = "java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)";
+      var tail = isLong ? ["java.base/java.lang.Long.parseLong(Long.java:698)"] : viaValueOf ? ["java.base/java.lang.Integer.valueOf(Integer.java:912)"] : ["java.base/java.lang.Integer.parseInt(Integer.java:662)"];
+      if (s === null) throwJ("java.lang.NumberFormatException", "Cannot parse null string", (isLong ? ["java.base/java.lang.Long.parseLong(Long.java:" + "577)"] : ["java.base/java.lang.Integer.parseInt(Integer.java:527)"]).concat(tail));
       var str = S(s);
       radix = radix || 10;
-      var frames = isLong ? ["java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)", "java.base/java.lang.Long.parseLong(Long.java:709)", "java.base/java.lang.Long.parseLong(Long.java:836)"]
-        : ["java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)", "java.base/java.lang.Integer.parseInt(Integer.java:565)", "java.base/java.lang.Integer.parseInt(Integer.java:662)"];
-      if (str === "") throwJ("java.lang.NumberFormatException", "For input string: \"\"" + (radix !== 10 ? " under radix " + radix : ""), isLong ? ["java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)", "java.base/java.lang.Long.parseLong(Long.java:" + "721)", "java.base/java.lang.Long.parseLong(Long.java:836)"] : ["java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)", "java.base/java.lang.Integer.parseInt(Integer.java:" + "559)", "java.base/java.lang.Integer.parseInt(Integer.java:662)"]);
+      var bad = [fis, isLong ? "java.base/java.lang.Long.parseLong(Long.java:594)" : "java.base/java.lang.Integer.parseInt(Integer.java:565)"].concat(tail);
+      var msg = "For input string: \"" + str + "\"" + (radix !== 10 ? " under radix " + radix : "");
+      if (str === "") throwJ("java.lang.NumberFormatException", msg, [fis, isLong ? "java.base/java.lang.Long.parseLong(Long.java:" + "571)" : "java.base/java.lang.Integer.parseInt(Integer.java:542)"].concat(tail));
       var re = radix === 10 ? /^[+-]?\d+$/ : radix === 16 ? /^[+-]?[0-9a-fA-F]+$/ : radix === 2 ? /^[+-]?[01]+$/ : radix === 8 ? /^[+-]?[0-7]+$/ : /^[+-]?[0-9a-zA-Z]+$/;
-      if (!re.test(str)) throwJ("java.lang.NumberFormatException", "For input string: \"" + str + "\"" + (radix !== 10 ? " under radix " + radix : ""), frames);
+      if (!re.test(str)) throwJ("java.lang.NumberFormatException", msg, bad);
       var neg = str[0] === "-", body = str.replace(/^[+-]/, "");
       var v = 0n;
       for (var i = 0; i < body.length; i++) v = v * BigInt(radix) + BigInt(parseInt(body[i], 36));
       if (neg) v = -v;
       var lo = isLong ? -9223372036854775808n : -2147483648n, hi = isLong ? 9223372036854775807n : 2147483647n;
-      if (v < lo || v > hi) throwJ("java.lang.NumberFormatException", "For input string: \"" + str + "\"" + (radix !== 10 ? " under radix " + radix : ""), isLong ? frames : ["java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)", "java.base/java.lang.Integer.parseInt(Integer.java:" + "588)", "java.base/java.lang.Integer.parseInt(Integer.java:662)"]);
+      if (v < lo || v > hi) throwJ("java.lang.NumberFormatException", msg, bad);
       return isLong ? v : Number(v);
     }
     function parseDoubleJ(s) {
@@ -8850,7 +8870,7 @@
       var str = jtrim(S(s));
       if (/^[+-]?(NaN|Infinity)$/.test(str)) return str.indexOf("NaN") >= 0 ? NaN : (str[0] === "-" ? -Infinity : Infinity);
       if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?[fFdD]?$/.test(str) && !/^[+-]?0[xX]/.test(str)) {
-        throwJ("java.lang.NumberFormatException", str === "" ? "empty String" : "For input string: \"" + S(s) + "\"", str === "" ? ["java.base/jdk.internal.math.FloatingDecimal.readJavaFormatString(FloatingDecimal.java:1890)", "java.base/jdk.internal.math.FloatingDecimal.parseDouble(FloatingDecimal.java:110)", "java.base/java.lang.Double.parseDouble(Double.java:854)"] : ["java.base/jdk.internal.math.FloatingDecimal.readJavaFormatString(FloatingDecimal.java:2054)", "java.base/jdk.internal.math.FloatingDecimal.parseDouble(FloatingDecimal.java:110)", "java.base/java.lang.Double.parseDouble(Double.java:854)"]);
+        throwJ("java.lang.NumberFormatException", str === "" ? "empty String" : "For input string: \"" + S(s) + "\"", str === "" ? ["java.base/jdk.internal.math.FloatingDecimal.readJavaFormatString(FloatingDecimal.java:1953)", "java.base/jdk.internal.math.FloatingDecimal.parseDouble(FloatingDecimal.java:110)", "java.base/java.lang.Double.parseDouble(Double.java:971)"] : ["java.base/jdk.internal.math.FloatingDecimal.check(FloatingDecimal.java:2324)", "java.base/jdk.internal.math.FloatingDecimal.readJavaFormatString(FloatingDecimal.java:1969)", "java.base/jdk.internal.math.FloatingDecimal.parseDouble(FloatingDecimal.java:110)", "java.base/java.lang.Double.parseDouble(Double.java:971)"]);
       }
       return parseFloat(str.replace(/[fFdD]$/, ""));
     }
@@ -8862,7 +8882,7 @@
       "static int parseInt(String)": function (s) { return parseIntJ(s, 10); },
       "static int parseInt(String,int)": function (s, r) { return parseIntJ(s, r); },
       "static Integer valueOf(int)": function (v) { return box("int", v); },
-      "static Integer valueOf(String)": function (s) { return box("int", parseIntJ(s, 10)); },
+      "static Integer valueOf(String)": function (s) { return box("int", parseIntJ(s, 10, false, true)); },
       "static Integer valueOf(String,int)": function (s, r) { return box("int", parseIntJ(s, r)); },
       "static String toString(int)": function (v) { return jstr(String(v)); },
       "static String toString(int,int)": function (v, r) { return jstr(v.toString(r)); },
@@ -9089,7 +9109,7 @@
         if (sp < 0 || dp < 0 || n < 0 || sp + n > src.a.length || dp + n > dst.a.length) {
           var msg = sp + n > src.a.length ? "arraycopy: last source index " + (sp + n) + " out of bounds for " + arrTypeName(src) + "[" + src.a.length + "]" : "arraycopy: last destination index " + (dp + n) + " out of bounds for " + arrTypeName(dst) + "[" + dst.a.length + "]";
           if (n < 0) msg = "arraycopy: length " + n + " is negative";
-          throwJ("java.lang.ArrayIndexOutOfBoundsException", msg);
+          throwJ("java.lang.ArrayIndexOutOfBoundsException", msg, ["java.base/java.lang.System.arraycopy(Native Method)"]);
         }
         var tmp = Array.prototype.slice.call(src.a, sp, sp + n);
         for (var i = 0; i < n; i++) dst.a[dp + i] = tmp[i];
@@ -9290,7 +9310,7 @@
     throwFor: "java.base/java.util.Scanner.throwFor(Scanner.java:977)",
     throwForEof: "java.base/java.util.Scanner.throwFor(Scanner.java:975)",
     next: "java.base/java.util.Scanner.next(Scanner.java:1632)",
-    nextBare: "java.base/java.util.Scanner.next(Scanner.java:1505)",
+    nextBare: "java.base/java.util.Scanner.next(Scanner.java:1516)",
     nextInt1: "java.base/java.util.Scanner.nextInt(Scanner.java:2297)",
     nextInt2: "java.base/java.util.Scanner.nextInt(Scanner.java:2251)",
     nextLong1: "java.base/java.util.Scanner.nextLong(Scanner.java:2448)",
@@ -9546,7 +9566,7 @@
         } catch (e) {
           if (e instanceof ExitSignal) status = e.code;
           else if (e instanceof NeedInput) needInput = true;
-          else if (e instanceof LimitSignal) { rt.write("err", "\n" + e.msg + "\n"); status = 137; limitMsg = e.msg; }
+          else if (e instanceof LimitSignal) { rt.write("err", "\n" + e.msg + "\n"); status = 130; limitMsg = e.msg; }
           else if (e instanceof StopSignal) { status = 130; }
           else {
             var ex = toJava(e);
@@ -9817,7 +9837,7 @@
     function executar(s) {
       var res;
       try {
-        res = runMain(s.prep, { principal: s.principal, args: s.args, stdin: s.digitados.map(function (d) { return d + "\n"; }).join(""), eof: s.eof || s.fixo, seed: s.seed, limite: 5000000 });
+        res = runMain(s.prep, { principal: s.principal, args: s.args, stdin: s.digitados.map(function (d) { return d + "\n"; }).join(""), eof: s.eof || s.fixo, seed: s.seed, limite: 10000000 });
       } catch (e) {
         res = { chunks: [{ s: "err", t: "(simulador) erro interno: " + (e && e.message || e) + "\n" }], status: 1 };
         if (typeof console !== "undefined") console.error(e);
@@ -9885,7 +9905,7 @@
         btn.textContent = "■ Parar";
         if (fixo) {
           var r;
-          try { r = runMain(prep, { principal: principal, args: args, stdin: decodificarAttr(stdinAttr), eof: true, seed: sessao.seed, limite: 5000000 }); }
+          try { r = runMain(prep, { principal: principal, args: args, stdin: decodificarAttr(stdinAttr), eof: true, seed: sessao.seed, limite: 10000000 }); }
           catch (e) { r = { chunks: [{ s: "err", t: "(simulador) erro interno: " + (e && e.message || e) + "\n" }], status: 1 }; }
           r.out = ""; r.err = "";
           r.chunks.forEach(function (c) { if (c.s === "err") r.err += c.t; else r.out += c.t; });

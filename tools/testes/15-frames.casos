@@ -1,0 +1,276 @@
+### fr-charat
+public class Main {
+    public static void main(String[] args) {
+        String s = "abc"; s.charAt(5);
+    }
+}
+### fr-substring
+public class Main {
+    public static void main(String[] args) {
+        String s = "abc"; s.substring(2, 1);
+    }
+}
+### fr-substring1
+public class Main {
+    public static void main(String[] args) {
+        String s = "abc"; s.substring(4);
+    }
+}
+### fr-addexact
+public class Main {
+    public static void main(String[] args) {
+        Math.addExact(Integer.MAX_VALUE, 1);
+    }
+}
+### fr-multexact
+public class Main {
+    public static void main(String[] args) {
+        Math.multiplyExact(50000, 50000);
+    }
+}
+### fr-subexact
+public class Main {
+    public static void main(String[] args) {
+        Math.subtractExact(Integer.MIN_VALUE, 1);
+    }
+}
+### fr-tointexact
+public class Main {
+    public static void main(String[] args) {
+        Math.toIntExact(5000000000L);
+    }
+}
+### fr-parse-vazio
+public class Main {
+    public static void main(String[] args) {
+        Integer.parseInt("");
+    }
+}
+### fr-parse-grande
+public class Main {
+    public static void main(String[] args) {
+        Integer.parseInt("99999999999");
+    }
+}
+### fr-parse-null
+public class Main {
+    public static void main(String[] args) {
+        Integer.parseInt(null);
+    }
+}
+### fr-parselong
+public class Main {
+    public static void main(String[] args) {
+        Long.parseLong("12x");
+    }
+}
+### fr-parsedouble
+public class Main {
+    public static void main(String[] args) {
+        Double.parseDouble("1,5");
+    }
+}
+### fr-valueof
+public class Main {
+    public static void main(String[] args) {
+        Integer.valueOf("x");
+    }
+}
+### fr-linkedlist-get
+public class Main {
+    public static void main(String[] args) {
+        new java.util.LinkedList<Integer>().get(0);
+    }
+}
+### fr-arraylist-set
+public class Main {
+    public static void main(String[] args) {
+        new java.util.ArrayList<Integer>().set(1, 2);
+    }
+}
+### fr-arraylist-remove
+public class Main {
+    public static void main(String[] args) {
+        new java.util.ArrayList<Integer>(java.util.List.of(1)).remove(3);
+    }
+}
+### fr-arraylist-add
+public class Main {
+    public static void main(String[] args) {
+        new java.util.ArrayList<Integer>().add(2, 9);
+    }
+}
+### fr-iterator-vazio
+public class Main {
+    public static void main(String[] args) {
+        new java.util.ArrayList<Integer>().iterator().next();
+    }
+}
+### fr-optional-get
+public class Main {
+    public static void main(String[] args) {
+        java.util.Optional.empty().get();
+    }
+}
+### fr-repeat
+public class Main {
+    public static void main(String[] args) {
+        "a".repeat(-1);
+    }
+}
+### fr-require
+public class Main {
+    public static void main(String[] args) {
+        java.util.Objects.requireNonNull(null);
+    }
+}
+### fr-require-msg
+public class Main {
+    public static void main(String[] args) {
+        java.util.Objects.requireNonNull(null, "nome");
+    }
+}
+### fr-max-vazio
+public class Main {
+    public static void main(String[] args) {
+        java.util.Collections.max(new java.util.ArrayList<Integer>());
+    }
+}
+### fr-getfirst-vazio
+public class Main {
+    public static void main(String[] args) {
+        new java.util.LinkedList<Integer>().getFirst();
+    }
+}
+### fr-pop-vazio
+public class Main {
+    public static void main(String[] args) {
+        new java.util.ArrayDeque<Integer>().pop();
+    }
+}
+### fr-firstkey
+public class Main {
+    public static void main(String[] args) {
+        new java.util.TreeMap<Integer,Integer>().firstKey();
+    }
+}
+### fr-listof-null
+public class Main {
+    public static void main(String[] args) {
+        java.util.List.of("a", null);
+    }
+}
+### fr-mapof-dup
+public class Main {
+    public static void main(String[] args) {
+        java.util.Map.of("a", 1, "a", 2);
+    }
+}
+### fr-listof-remove
+public class Main {
+    public static void main(String[] args) {
+        java.util.List.of(1).remove(0);
+    }
+}
+### fr-listof-set
+public class Main {
+    public static void main(String[] args) {
+        java.util.List.of(1).set(0, 1);
+    }
+}
+### fr-aslist-add
+public class Main {
+    public static void main(String[] args) {
+        java.util.Arrays.asList(1, 2).add(3);
+    }
+}
+### fr-mapof-put
+public class Main {
+    public static void main(String[] args) {
+        java.util.Map.of("a", 1).put("b", 2);
+    }
+}
+### fr-hashmap-cme
+public class Main {
+    public static void main(String[] args) {
+        java.util.Map<String,Integer> m = new java.util.HashMap<>(java.util.Map.of("a",1,"b",2)); for (String k : m.keySet()) m.put(k + "x", 1);
+    }
+}
+### fr-arraycopy
+public class Main {
+    public static void main(String[] args) {
+        System.arraycopy(new int[2], 0, new int[1], 0, 2);
+    }
+}
+### fr-stack-pop
+public class Main {
+    public static void main(String[] args) {
+        new java.util.Stack<Integer>().pop();
+    }
+}
+### fr-scanner-next
+public class Main {
+    public static void main(String[] args) {
+        new java.util.Scanner(System.in).next();
+    }
+}
+### fr-scanner-nextdouble
+public class Main {
+    public static void main(String[] args) {
+        new java.util.Scanner("x").nextDouble();
+    }
+}
+### fr-stream-reuse
+public class Main {
+    public static void main(String[] args) {
+        java.util.stream.Stream<Integer> s = java.util.stream.Stream.of(1); s.count(); s.count();
+    }
+}
+### fr-tomap-dup
+public class Main {
+    public static void main(String[] args) {
+        java.util.stream.Stream.of("a", "a").collect(java.util.stream.Collectors.toMap(x -> x, x -> 1));
+    }
+}
+### fr-iterator-remove
+public class Main {
+    public static void main(String[] args) {
+        java.util.Iterator<Integer> it = new java.util.ArrayList<>(java.util.List.of(1)).iterator(); it.remove();
+    }
+}
+### fr-pq-null
+public class Main {
+    public static void main(String[] args) {
+        new java.util.PriorityQueue<Integer>().add(null);
+    }
+}
+### fr-treeset-cce
+public class Main {
+    public static void main(String[] args) {
+        java.util.Set<Object> s = new java.util.TreeSet<>(); s.add(new Object());
+    }
+}
+### fr-bigdecimal-div
+public class Main {
+    public static void main(String[] args) {
+        new java.math.BigDecimal("1").divide(new java.math.BigDecimal("0"));
+    }
+}
+### fr-localdate
+public class Main {
+    public static void main(String[] args) {
+        java.time.LocalDate.of(2026, 13, 1);
+    }
+}
+### fr-format-dupla
+public class Main {
+    public static void main(String[] args) {
+        System.out.printf("%d", 1.5);
+    }
+}
+### fr-string-format-x
+public class Main {
+    public static void main(String[] args) {
+        String.format("%q", 1);
+    }
+}

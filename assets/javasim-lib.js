@@ -50,14 +50,14 @@
       "boolean hasPrevious()": null, "E previous()": null, "void set(E)": null, "void add(E)": null, "int nextIndex()": null, "int previousIndex()": null
     } });
     var CME_FRAMES = { "java.util.ArrayList": ["java.base/java.util.ArrayList$Itr.checkForComodification(ArrayList.java:1096)", "java.base/java.util.ArrayList$Itr.next(ArrayList.java:1050)"],
-      "java.util.HashMap": ["java.base/java.util.HashMap$HashIterator.nextNode(HashMap.java:1605)", "java.base/java.util.HashMap$KeyIterator.next(HashMap.java:1628)"],
+      "java.util.HashMap": ["java.base/java.util.HashMap$HashIterator.nextNode(HashMap.java:1606)", "java.base/java.util.HashMap$KeyIterator.next(HashMap.java:1629)"],
       "java.util.LinkedList": ["java.base/java.util.LinkedList$ListItr.checkForComodification(LinkedList.java:977)", "java.base/java.util.LinkedList$ListItr.next(LinkedList.java:899)"] };
     defLib("java.util.ArrayIteratorImpl", { impl: ["ListIterator<Object>"], bin: "java.util.ArrayList$Itr", m: {
       "boolean hasNext()": function () { return this.i < this.getArr().length; },
       "Object next()": function () {
         if (this.owner && this.owner.mod !== this.mod) throwJ("java.util.ConcurrentModificationException", null, this.frames || CME_FRAMES["java.util.ArrayList"]);
         var a = this.getArr();
-        if (this.i >= a.length) throwJ("java.util.NoSuchElementException", null);
+        if (this.i >= a.length) throwJ("java.util.NoSuchElementException", null, ["java.base/java.util.ArrayList$Itr.next(ArrayList.java:1053)"]);
         this.last = this.i;
         return a[this.i++];
       },
@@ -66,7 +66,7 @@
       "int nextIndex()": function () { return this.i; },
       "int previousIndex()": function () { return this.i - 1; },
       "void remove()": function () {
-        if (this.last < 0) throwJ("java.lang.IllegalStateException", null);
+        if (this.last < 0) throwJ("java.lang.IllegalStateException", null, ["java.base/java.util.ArrayList$Itr.remove(ArrayList.java:1063)"]);
         if (!this.removeFn) throwJ("java.lang.UnsupportedOperationException", "remove");
         if (this.owner && this.owner.mod !== this.mod) throwJ("java.util.ConcurrentModificationException", null);
         this.removeFn(this.last);
@@ -110,11 +110,15 @@
 
     // ---------- List ----------
     var IMM = ["java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)"];
+    function immListFail(meth) { throwJ("java.lang.UnsupportedOperationException", null, IMM.concat(["java.base/java.util.ImmutableCollections$AbstractImmutableList." + meth + "(ImmutableCollections.java:" + ({ remove: 277, set: 281, add: 270, sort: 285, replaceAll: 285 }[meth] || 277) + ")"])); }
     function immFail(meth) { throwJ("java.lang.UnsupportedOperationException", null, IMM.concat(["java.base/java.util.ImmutableCollections$AbstractImmutableCollection." + meth + "(ImmutableCollections.java:" + ({ add: 164, remove: 167, clear: 165, addAll: 165, removeIf: 168, set: 164 }[meth] || 164) + ")"])); }
-    function idxFail(i, n) { throwJ("java.lang.IndexOutOfBoundsException", "Index " + i + " out of bounds for length " + n, ["java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)", "java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)", "java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)", "java.base/java.util.Objects.checkIndex(Objects.java:365)", "java.base/java.util.ArrayList.get(ArrayList.java:428)"]); }
+    function idxFail(i, n, self, op) {
+      if (self && self.$c.full === "java.util.LinkedList") throwJ("java.lang.IndexOutOfBoundsException", "Index: " + i + ", Size: " + n, ["java.base/java.util.LinkedList.checkElementIndex(LinkedList.java:567)", "java.base/java.util.LinkedList." + (op || "get") + "(LinkedList.java:" + ({ get: 488, set: 505, remove: 566 }[op || "get"] || 488) + ")"]);
+      throwJ("java.lang.IndexOutOfBoundsException", "Index " + i + " out of bounds for length " + n, ["java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)", "java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)", "java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)", "java.base/java.util.Objects.checkIndex(Objects.java:365)", "java.base/java.util.ArrayList." + (op || "get") + "(ArrayList.java:" + ({ get: 428, set: 471, remove: 552 }[op || "get"]) + ")"]);
+    }
     function mut(self, op) {
       if (self.imm) immFail(op);
-      if (self.fixed && (op === "add" || op === "remove" || op === "clear" || op === "addAll" || op === "removeIf")) throwJ("java.lang.UnsupportedOperationException", null, ["java.base/java.util.AbstractList." + op + "(AbstractList.java:" + (op === "add" ? 155 : 169) + ")"]);
+      if (self.fixed && (op === "add" || op === "remove" || op === "clear" || op === "addAll" || op === "removeIf")) throwJ("java.lang.UnsupportedOperationException", null, op === "add" ? ["java.base/java.util.AbstractList.add(AbstractList.java:155)", "java.base/java.util.AbstractList.add(AbstractList.java:113)"] : ["java.base/java.util.AbstractList.remove(AbstractList.java:169)"]);
     }
     function mkList(arr, cls, opts) {
       var o = { $c: L(cls || "java.util.ArrayList"), a: arr, mod: 0 };
@@ -126,11 +130,11 @@
     var LIST_M = {
       "int size()": function () { return this.a.length; },
       "boolean isEmpty()": function () { return this.a.length === 0; },
-      "E get(int)": function (i) { if (i < 0 || i >= this.a.length) idxFail(i, this.a.length); return this.a[i]; },
-      "E set(int,E)": function (i, v) { if (this.imm) immFail("set"); if (i < 0 || i >= this.a.length) idxFail(i, this.a.length); var o = this.a[i]; this.a[i] = v; return o; },
+      "E get(int)": function (i) { if (i < 0 || i >= this.a.length) idxFail(i, this.a.length, this, "get"); return this.a[i]; },
+      "E set(int,E)": function (i, v) { if (this.imm) immListFail("set"); if (i < 0 || i >= this.a.length) idxFail(i, this.a.length, this, "set"); var o = this.a[i]; this.a[i] = v; return o; },
       "boolean add(E)": function (v) { mut(this, "add"); this.a.push(v); this.mod++; return true; },
-      "void add(int,E)": function (i, v) { mut(this, "add"); if (i < 0 || i > this.a.length) throwJ("java.lang.IndexOutOfBoundsException", "Index: " + i + ", Size: " + this.a.length); this.a.splice(i, 0, v); this.mod++; },
-      "E remove(int)": function (i) { mut(this, "remove"); if (i < 0 || i >= this.a.length) idxFail(i, this.a.length); this.mod++; return this.a.splice(i, 1)[0]; },
+      "void add(int,E)": function (i, v) { mut(this, "add"); if (i < 0 || i > this.a.length) throwJ("java.lang.IndexOutOfBoundsException", "Index: " + i + ", Size: " + this.a.length, ["java.base/java.util.ArrayList.rangeCheckForAdd(ArrayList.java:839)", "java.base/java.util.ArrayList.add(ArrayList.java:511)"]); this.a.splice(i, 0, v); this.mod++; },
+      "E remove(int)": function (i) { if (this.imm) immListFail("remove"); mut(this, "remove"); if (i < 0 || i >= this.a.length) idxFail(i, this.a.length, this, "remove"); this.mod++; return this.a.splice(i, 1)[0]; },
       "boolean remove(Object)": function (o) { mut(this, "remove"); for (var i = 0; i < this.a.length; i++) if (o === null ? this.a[i] === null : jequals(o, this.a[i])) { this.a.splice(i, 1); this.mod++; return true; } return false; },
       "boolean addAll(Collection<? extends E>)": function (c) { mut(this, "addAll"); var x = toArr(c); for (var i = 0; i < x.length; i++) this.a.push(x[i]); this.mod++; return x.length > 0; },
       "boolean addAll(int,Collection<? extends E>)": function (i, c) { mut(this, "addAll"); var x = toArr(c); Array.prototype.splice.apply(this.a, [i, 0].concat(x)); this.mod++; return x.length > 0; },
@@ -145,8 +149,8 @@
       "void forEach(java.util.function.Consumer<? super E>)": function (c) { var m0 = this.mod; for (var i = 0; i < this.a.length; i++) { accept(c, this.a[i]); if (this.mod !== m0) throwJ("java.util.ConcurrentModificationException", null, ["java.base/java.util.ArrayList.forEach(ArrayList.java:1605)"]); } },
       "boolean removeIf(java.util.function.Predicate<? super E>)": function (p) { mut(this, "removeIf"); var n0 = this.a.length; this.a = this.a.filter(function (x) { return !test(p, x); }); if (this.a.length !== n0) this.mod++; return this.a.length !== n0; },
       "void replaceAll(java.util.function.UnaryOperator<E>)": function (f) { if (this.imm) immFail("replaceAll"); for (var i = 0; i < this.a.length; i++) this.a[i] = apply(f, this.a[i]); },
-      "E getFirst()": function () { if (!this.a.length) throwJ("java.util.NoSuchElementException", null); return this.a[0]; },
-      "E getLast()": function () { if (!this.a.length) throwJ("java.util.NoSuchElementException", null); return this.a[this.a.length - 1]; },
+      "E getFirst()": function () { if (!this.a.length) throwJ("java.util.NoSuchElementException", null, this.$c.full === "java.util.LinkedList" ? ["java.base/java.util.LinkedList.getFirst(LinkedList.java:256)"] : null); return this.a[0]; },
+      "E getLast()": function () { if (!this.a.length) throwJ("java.util.NoSuchElementException", null, this.$c.full === "java.util.LinkedList" ? ["java.base/java.util.LinkedList.getLast(LinkedList.java:269)"] : null); return this.a[this.a.length - 1]; },
       "void addFirst(E)": function (v) { mut(this, "add"); this.a.unshift(v); this.mod++; },
       "void addLast(E)": function (v) { mut(this, "add"); this.a.push(v); this.mod++; },
       "E removeFirst()": function () { mut(this, "remove"); if (!this.a.length) throwJ("java.util.NoSuchElementException", null); this.mod++; return this.a.shift(); },
@@ -166,7 +170,7 @@
       "List<E> reversed()": function () { return mkList(toArr(this).reverse(), "java.util.ArrayList"); },
       "static <E> List<E> of()": function () { return mkList([], "java.util.ImmutableList", { imm: true }); },
       "static <E> List<E> of(E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
-      "static <E> List<E> of(E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
+      "static <E> List<E> of(E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) throwJ("java.lang.NullPointerException", null, ["java.base/java.util.Objects.requireNonNull(Objects.java:220)", "java.base/java.util.ImmutableCollections$List12.<init>(ImmutableCollections.java:591)", "java.base/java.util.List.of(List.java:952)"]); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
       "static <E> List<E> of(E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
       "static <E> List<E> of(E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
       "static <E> List<E> of(E,E,E,E,E)": function () { var a = Array.from(arguments); a.forEach(function (x) { if (x === null) npe(); }); return mkList(a, "java.util.ImmutableList", { imm: true }); },
@@ -206,7 +210,7 @@
       "boolean offerLast(E)": function (v) { if (v === null && this.noNull) npe(); this.a.push(v); this.mod++; return true; },
       "boolean offerFirst(E)": function (v) { if (v === null && this.noNull) npe(); this.a.unshift(v); this.mod++; return true; },
       "void push(E)": function (v) { if (v === null && this.noNull) npe(); this.a.unshift(v); this.mod++; },
-      "E pop()": function () { if (!this.a.length) throwJ("java.util.NoSuchElementException", null); this.mod++; return this.a.shift(); },
+      "E pop()": function () { if (!this.a.length) throwJ("java.util.NoSuchElementException", null, this.$c.full === "java.util.ArrayDeque" ? ["java.base/java.util.ArrayDeque.removeFirst(ArrayDeque.java:360)", "java.base/java.util.ArrayDeque.pop(ArrayDeque.java:591)"] : ["java.base/java.util.LinkedList.removeFirst(LinkedList.java:281)", "java.base/java.util.LinkedList.pop(LinkedList.java:812)"]); this.mod++; return this.a.shift(); },
       "E poll()": function () { if (!this.a.length) return null; this.mod++; return this.a.shift(); },
       "E pollFirst()": function () { if (!this.a.length) return null; this.mod++; return this.a.shift(); },
       "E pollLast()": function () { if (!this.a.length) return null; this.mod++; return this.a.pop(); },
@@ -238,8 +242,8 @@
       var st = {}; Object.keys(LIST_M).forEach(function (k) { st[k] = LIST_M[k]; });
       st["<init>()"] = function () { this.a = []; this.mod = 0; };
       st["E push(E)"] = function (v) { this.a.push(v); this.mod++; return v; };
-      st["E pop()"] = function () { if (!this.a.length) throwJ("java.util.EmptyStackException", null); this.mod++; return this.a.pop(); };
-      st["E peek()"] = function () { if (!this.a.length) throwJ("java.util.EmptyStackException", null); return this.a[this.a.length - 1]; };
+      st["E pop()"] = function () { if (!this.a.length) throwJ("java.util.EmptyStackException", null, ["java.base/java.util.Stack.peek(Stack.java:103)", "java.base/java.util.Stack.pop(Stack.java:85)"]); this.mod++; return this.a.pop(); };
+      st["E peek()"] = function () { if (!this.a.length) throwJ("java.util.EmptyStackException", null, ["java.base/java.util.Stack.peek(Stack.java:103)"]); return this.a[this.a.length - 1]; };
       st["boolean empty()"] = function () { return this.a.length === 0; };
       st["int search(Object)"] = function (o) { for (var i = this.a.length - 1; i >= 0; i--) if (jequals(o, this.a[i])) return this.a.length - i; return -1; };
       defLib("java.util.Vector", { tp: "E", impl: ["List<E>", "java.util.RandomAccess"], m: { "<init>()": function () { this.a = []; this.mod = 0; } } });
@@ -259,8 +263,8 @@
       "<init>(Comparator<? super E>)": function (c) { this.a = []; this.cmp = c; this.mod = 0; },
       "<init>(int,Comparator<? super E>)": function (n, c) { this.a = []; this.cmp = c; this.mod = 0; },
       "<init>(Collection<? extends E>)": function (c) { var self = this; this.a = []; this.cmp = null; this.mod = 0; toArr(c).forEach(function (x) { self.a.push(x); pqUp(self, self.a.length - 1, x); }); },
-      "boolean add(E)": function (v) { if (v === null) npe(); this.a.push(v); pqUp(this, this.a.length - 1, v); this.mod++; return true; },
-      "boolean offer(E)": function (v) { if (v === null) npe(); this.a.push(v); pqUp(this, this.a.length - 1, v); this.mod++; return true; },
+      "boolean add(E)": function (v) { if (v === null) throwJ("java.lang.NullPointerException", null, ["java.base/java.util.PriorityQueue.offer(PriorityQueue.java:325)", "java.base/java.util.PriorityQueue.add(PriorityQueue.java:311)"]); this.a.push(v); pqUp(this, this.a.length - 1, v); this.mod++; return true; },
+      "boolean offer(E)": function (v) { if (v === null) throwJ("java.lang.NullPointerException", null, ["java.base/java.util.PriorityQueue.offer(PriorityQueue.java:325)"]); this.a.push(v); pqUp(this, this.a.length - 1, v); this.mod++; return true; },
       "E poll()": function () { return pqPoll(this); },
       "E remove()": function () { if (!this.a.length) throwJ("java.util.NoSuchElementException", null); return pqPoll(this); },
       "E peek()": function () { return this.a.length ? this.a[0] : null; },
@@ -529,7 +533,7 @@
       hmInit(m, 0); m.linked = false; m.imm = true;
       for (var i = 0; i < kv.length; i += 2) {
         if (kv[i] === null || kv[i + 1] === null) npe();
-        if (hmFind(m, kv[i])) throwJ("java.lang.IllegalArgumentException", "duplicate key: " + toStr(kv[i]));
+        if (hmFind(m, kv[i])) throwJ("java.lang.IllegalArgumentException", "duplicate key: " + toStr(kv[i]), ["java.base/java.util.ImmutableCollections$MapN.<init>(ImmutableCollections.java:1440)", "java.base/java.util.Map.of(Map.java:1384)"]);
         hmPut(m, kv[i], kv[i + 1]);
       }
       return m;
@@ -537,7 +541,7 @@
     var IMMM = {};
     Object.keys(HM).forEach(function (k) { IMMM[k] = HM[k]; });
     ["V put(K,V)", "V remove(Object)", "void clear()", "void putAll(Map<? extends K,? extends V>)", "V merge(K,V,java.util.function.BiFunction<? super V,? super V,? extends V>)", "V computeIfAbsent(K,java.util.function.Function<? super K,? extends V>)", "V putIfAbsent(K,V)", "V compute(K,java.util.function.BiFunction<? super K,? super V,? extends V>)"].forEach(function (k) {
-      IMMM[k] = function () { throwJ("java.lang.UnsupportedOperationException", null, IMM.concat(["java.base/java.util.ImmutableCollections$AbstractImmutableMap." + k.replace(/^\S+ (\w+)\(.*$/, "$1") + "(ImmutableCollections.java:" + 1095 + ")"])); };
+      IMMM[k] = function () { var nm = k.replace(/^\S+ (\w+)\(.*$/, "$1"); throwJ("java.lang.UnsupportedOperationException", null, IMM.concat(["java.base/java.util.ImmutableCollections$AbstractImmutableMap." + nm + "(ImmutableCollections.java:" + ({ put: 1318, remove: 1321, clear: 1312, putAll: 1319, merge: 1315, computeIfAbsent: 1311, putIfAbsent: 1320, compute: 1309 }[nm] || 1318) + ")"])); };
     });
     defLib("java.util.ImmutableMap", { tp: "K,V", impl: ["Map<K,V>"], bin: "java.util.ImmutableCollections$MapN", m: IMMM });
     // EnumMap: ordem dos ordinais
@@ -552,8 +556,8 @@
       while (lo <= hi) { var mid = (lo + hi) >> 1, c = cmp(m.cmp, a[mid].key, k); if (c === 0) return { i: mid, found: true }; if (c < 0) lo = mid + 1; else hi = mid - 1; }
       return { i: lo, found: false };
     }
-    function tmPut(m, k, v) {
-      if (!m.tm.length) cmp(m.cmp, k, k);
+    function tmPut(m, k, v, viaSet) {
+      if (!m.tm.length) { if (m.cmp) cmp(m.cmp, k, k); else jcompare(k, k, ["java.base/java.util.TreeMap.compare(TreeMap.java:1605)", "java.base/java.util.TreeMap.addEntryToEmptyMap(TreeMap.java:810)", "java.base/java.util.TreeMap.put(TreeMap.java:819)", "java.base/java.util.TreeMap.put(TreeMap.java:568)"].concat(viaSet ? ["java.base/java.util.TreeSet.add(TreeSet.java:261)"] : [])); }
       var r = tmFind(m, k);
       if (r.found) { var o = m.tm[r.i].value; m.tm[r.i].value = v; return o; }
       m.tm.splice(r.i, 0, { key: k, value: v }); m.mod++;
@@ -595,8 +599,8 @@
       "NavigableSet<K> navigableKeySet()": function () { return viewOf(this, "keys"); },
       "Collection<V> values()": function () { return viewOf(this, "values"); },
       "Set<Map.Entry<K,V>> entrySet()": function () { return viewOf(this, "entries"); },
-      "K firstKey()": function () { if (!this.tm.length) throwJ("java.util.NoSuchElementException", null); return this.tm[0].key; },
-      "K lastKey()": function () { if (!this.tm.length) throwJ("java.util.NoSuchElementException", null); return this.tm[this.tm.length - 1].key; },
+      "K firstKey()": function () { if (!this.tm.length) throwJ("java.util.NoSuchElementException", null, ["java.base/java.util.TreeMap.key(TreeMap.java:1638)", "java.base/java.util.TreeMap.firstKey(TreeMap.java:303)"]); return this.tm[0].key; },
+      "K lastKey()": function () { if (!this.tm.length) throwJ("java.util.NoSuchElementException", null, ["java.base/java.util.TreeMap.key(TreeMap.java:1638)", "java.base/java.util.TreeMap.lastKey(TreeMap.java:314)"]); return this.tm[this.tm.length - 1].key; },
       "Map.Entry<K,V> firstEntry()": function () { return tmEntry(this.tm[0]); },
       "Map.Entry<K,V> lastEntry()": function () { return tmEntry(this.tm[this.tm.length - 1]); },
       "Map.Entry<K,V> pollFirstEntry()": function () { this.mod++; return tmEntry(this.tm.shift()); },
@@ -690,7 +694,7 @@
       "<init>(Collection<? extends E>)": function (c) { var self = this; this.t = { tm: [], cmp: null }; this.mod = 0; toArr(c).forEach(function (x) { tmPut(self.t, x, true); }); },
       "int size()": function () { return this.t.tm.length; },
       "boolean isEmpty()": function () { return !this.t.tm.length; },
-      "boolean add(E)": function (x) { var had = this.t.tm.length && tmFind(this.t, x).found; if (had) return false; tmPut(this.t, x, true); this.mod++; return true; },
+      "boolean add(E)": function (x) { var had = this.t.tm.length && tmFind(this.t, x).found; if (had) return false; tmPut(this.t, x, true, true); this.mod++; return true; },
       "boolean contains(Object)": function (x) { return tmFind(this.t, x).found; },
       "boolean remove(Object)": function (x) { var r = tmFind(this.t, x); if (!r.found) return false; this.t.tm.splice(r.i, 1); this.mod++; return true; },
       "void clear()": function () { this.t.tm = []; this.mod++; },
@@ -878,8 +882,8 @@
     function mkStream(a) { return mkS("Stream", arrSrc(a)); }
     J.mkStream = mkStream;
     J.mkIntStream = function (a) { return mkS("IntStream", arrSrc(a)); };
-    function pull(s) {
-      if (s.used) throwJ("java.lang.IllegalStateException", "stream has already been operated upon or closed");
+    function pull(s, op) {
+      if (s.used) throwJ("java.lang.IllegalStateException", "stream has already been operated upon or closed", ["java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:260)", "java.base/java.util.stream.ReferencePipeline." + (op || "forEach") + "(ReferencePipeline.java:" + ({ count: 750, collect: 723, forEach: 636, toList: 741, reduce: 711 }[op || "forEach"] || 636) + ")"]);
       s.used = true;
       return s.src();
     }
@@ -931,7 +935,7 @@
       "List<T> toList()": function () { return mkList(drain(this), "java.util.ImmutableList", { imm: true }); },
       "Optional<T> min(java.util.Comparator<? super T>)": function (c) { var best, has = false; forEach(this, function (x) { if (!has || cmp(c, x, best) < 0) { best = x; has = true; } }); return mkOpt(has ? best : null); },
       "Optional<T> max(java.util.Comparator<? super T>)": function (c) { var best, has = false; forEach(this, function (x) { if (!has || cmp(c, x, best) > 0) { best = x; has = true; } }); return mkOpt(has ? best : null); },
-      "long count()": function () { return BigInt(drain(this).length); },
+      "long count()": function () { var it = pull(this, "count"), n = 0; while (it()) n++; return BigInt(n); },
       "boolean anyMatch(java.util.function.Predicate<? super T>)": function (p) { return anyMatch(this, function (x) { return test(p, x); }); },
       "boolean allMatch(java.util.function.Predicate<? super T>)": function (p) { return allMatch(this, function (x) { return test(p, x); }); },
       "boolean noneMatch(java.util.function.Predicate<? super T>)": function (p) { return !anyMatch(this, function (x) { return test(p, x); }); },
@@ -1103,7 +1107,7 @@
         return mkCol(function () { return newMap(null); }, function (m, x) {
           var k = apply(kf, x), v = apply(vf, x);
           if (v === null) npe();
-          if (jcall(m, "containsKey", [k])) throwJ("java.lang.IllegalStateException", "Duplicate key " + toStr(k) + " (attempted merging values " + toStr(jcall(m, "get", [k])) + " and " + toStr(v) + ")");
+          if (jcall(m, "containsKey", [k])) throwJ("java.lang.IllegalStateException", "Duplicate key " + toStr(k) + " (attempted merging values " + toStr(jcall(m, "get", [k])) + " and " + toStr(v) + ")", ["java.base/java.util.stream.Collectors.duplicateKeyException(Collectors.java:135)", "java.base/java.util.stream.Collectors.lambda$uniqKeysMapAccumulator$0(Collectors.java:182)", "java.base/java.util.stream.ReduceOps$3ReducingSink.accept(ReduceOps.java:169)", "java.base/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)", "java.base/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:570)", "java.base/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:560)", "java.base/java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:921)", "java.base/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:265)", "java.base/java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:723)"]);
           jcall(m, "put", [k, v]);
         });
       },
@@ -1132,8 +1136,8 @@
       "static void shuffle(List<?>)": function (l) { shuffle(l, new I.JRandom(RT().nextSeed())); },
       "static void shuffle(List<?>,Random)": function (l, r) { shuffle(l, r.r); },
       "static void swap(List<?>,int,int)": function (l, i, j) { var a = listArr(l); if (i < 0 || i >= a.length || j < 0 || j >= a.length) throwJ("java.lang.IndexOutOfBoundsException", "Index " + (i < 0 || i >= a.length ? i : j) + " out of bounds for length " + a.length); var t = a[i]; a[i] = a[j]; a[j] = t; },
-      "static <T extends Object & Comparable<? super T>> T max(Collection<? extends T>)": function (c) { var a = toArr(c); if (!a.length) throwJ("java.util.NoSuchElementException", null); var b = a[0]; a.forEach(function (x) { if (jcompare(x, b) > 0) b = x; }); return b; },
-      "static <T extends Object & Comparable<? super T>> T min(Collection<? extends T>)": function (c) { var a = toArr(c); if (!a.length) throwJ("java.util.NoSuchElementException", null); var b = a[0]; a.forEach(function (x) { if (jcompare(x, b) < 0) b = x; }); return b; },
+      "static <T extends Object & Comparable<? super T>> T max(Collection<? extends T>)": function (c) { var a = toArr(c); if (!a.length) throwJ("java.util.NoSuchElementException", null, ["java.base/java.util.ArrayList$Itr.next(ArrayList.java:1053)", "java.base/java.util.Collections.max(Collections.java:698)"]); var b = a[0]; a.forEach(function (x) { if (jcompare(x, b) > 0) b = x; }); return b; },
+      "static <T extends Object & Comparable<? super T>> T min(Collection<? extends T>)": function (c) { var a = toArr(c); if (!a.length) throwJ("java.util.NoSuchElementException", null, ["java.base/java.util.ArrayList$Itr.next(ArrayList.java:1053)", "java.base/java.util.Collections.min(Collections.java:600)"]); var b = a[0]; a.forEach(function (x) { if (jcompare(x, b) < 0) b = x; }); return b; },
       "static <T> T max(Collection<? extends T>,java.util.Comparator<? super T>)": function (c, k) { var a = toArr(c); if (!a.length) throwJ("java.util.NoSuchElementException", null); var b = a[0]; a.forEach(function (x) { if (cmp(k, x, b) > 0) b = x; }); return b; },
       "static <T> T min(Collection<? extends T>,java.util.Comparator<? super T>)": function (c, k) { var a = toArr(c); if (!a.length) throwJ("java.util.NoSuchElementException", null); var b = a[0]; a.forEach(function (x) { if (cmp(k, x, b) < 0) b = x; }); return b; },
       "static int frequency(Collection<?>,Object)": function (c, o) { return toArr(c).filter(function (x) { return keyEq(x, o); }).length; },
@@ -1366,7 +1370,7 @@
       return r;
     }
     function bdDivide(a, b, sc, mode, mc) {
-      if (b.big === 0n) throwJ("java.lang.ArithmeticException", a.big === 0n ? "Division undefined" : "Division by zero");
+      if (b.big === 0n) throwJ("java.lang.ArithmeticException", a.big === 0n ? "Division undefined" : "Division by zero", ["java.base/java.math.BigDecimal.divide(BigDecimal.java:1785)"]);
       if (sc !== undefined) {
         // a/b com escala sc: (a.big * 10^(sc - a.scale + b.scale)) / b.big
         var e = sc - a.scale + b.scale;
@@ -1516,7 +1520,7 @@
     function ldEpoch(x) { return fixYear(x.y, x.m, x.d); }
     function ldFromEpoch(n) { var dt = new Date(n * 86400000); return ld(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()); }
     function checkDate(y, m, d) {
-      if (m < 1 || m > 12) throwJ("java.time.DateTimeException", "Invalid value for MonthOfYear (valid values 1 - 12): " + m);
+      if (m < 1 || m > 12) throwJ("java.time.DateTimeException", "Invalid value for MonthOfYear (valid values 1 - 12): " + m, ["java.base/java.time.temporal.ValueRange.checkValidValue(ValueRange.java:319)", "java.base/java.time.temporal.ChronoField.checkValidValue(ChronoField.java:721)", "java.base/java.time.LocalDate.of(LocalDate.java:275)"]);
       if (d < 1 || d > 31) throwJ("java.time.DateTimeException", "Invalid value for DayOfMonth (valid values 1 - 28/31): " + d);
       if (d > monthLen(y, m)) throwJ("java.time.DateTimeException", d === 29 ? "Invalid date 'February 29' as '" + y + "' is not a leap year" : "Invalid date '" + MESES[m - 1] + " " + d + "'");
     }
