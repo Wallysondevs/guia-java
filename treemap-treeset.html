@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java TreeMap e TreeSet — coleções sempre ordenadas | Guia Java</title>
+<meta name="description" content="TreeMap e TreeSet em Java: mapas e conjuntos sempre em ordem, firstKey, lastKey, headMap, tailMap, ceilingKey, floorKey, floorEntry, first, last, descendingSet, ordem natural e Comparator, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+<div class="pager"></div>
+
+<h1>Java <span class="hl">TreeMap e TreeSet</span></h1>
+
+<p class="intro">O <a href="hashmap.html">HashMap</a> e o <a href="hashset.html">HashSet</a> são rápidos, mas embaralham os elementos. Quando você quer as coisas <strong>sempre em ordem</strong> (os alunos de A a Z, as pontuações da menor para a maior) e ainda perguntar "qual é a primeira?", "quem vem logo depois da Bia?", use o <code>TreeMap</code> e o <code>TreeSet</code>. Eles se reorganizam sozinhos a cada elemento que entra.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>TreeMap</code> mantém as chaves ordenadas.</li>
+  <li>Os métodos de "navegação": <code>firstKey</code>, <code>lastKey</code>, <code>headMap</code>, <code>tailMap</code>, <code>subMap</code>.</li>
+  <li>Buscar o vizinho: <code>ceilingKey</code>, <code>floorKey</code>, <code>higherKey</code>, <code>lowerKey</code> e o útil <code>floorEntry</code>.</li>
+  <li>O <code>TreeSet</code>: <code>first</code>, <code>last</code>, <code>headSet</code>, <code>ceiling</code>, <code>descendingSet</code>.</li>
+  <li>Ordem natural × ordem definida por um <code>Comparator</code> (e a armadilha de comparar por tamanho).</li>
+  <li>Os erros: <code>ClassCastException</code>, <code>NullPointerException</code> e <code>NoSuchElementException</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: um fichário em ordem alfabética</h2>
+<p>A secretaria da escola guarda uma ficha por aluno num fichário. Toda ficha nova é encaixada <strong>no lugar certo</strong>, em ordem alfabética. Assim, ninguém precisa reordenar nada depois, e é fácil responder "qual é a primeira ficha?" ou "qual vem logo depois de 'Bia'?".</p>
+
+<p>Por dentro, essas coleções usam uma estrutura chamada <strong>árvore</strong> (<em>tree</em>, em inglês; mais precisamente, uma "árvore rubro-negra"), que mantém os elementos ordenados e permite achar qualquer um com poucos passos. Daí o nome: <em>Tree</em> + <em>Map</em>, <em>Tree</em> + <em>Set</em>. Elas são um pouco mais lentas que as versões <code>Hash</code>, mas a diferença só aparece com quantidades muito grandes.</p>
+
+<hr>
+
+<h2>TreeMap: um mapa com chaves ordenadas</h2>
+<p>O <code>TreeMap</code> é um <code>Map</code> como qualquer outro: <code>put</code>, <code>get</code>, <code>remove</code>, <code>containsKey</code>… tudo igual ao <a href="hashmap.html">HashMap</a>. A diferença é a ordem e os métodos extras de navegação:</p>
+
+<pre class="file" data-file="Main.java">import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        TreeMap&lt;String, Double&gt; notas = new TreeMap&lt;&gt;();
+        notas.put("Carla", 8.25);
+        notas.put("Ana", 9.5);
+        notas.put("Edu", 6.0);
+        notas.put("Bruno", 7.0);
+        notas.put("Duda", 10.0);
+        System.out.println(notas);
+
+        System.out.println("firstKey(): " + notas.firstKey());
+        System.out.println("lastKey():  " + notas.lastKey());
+        System.out.println("firstEntry(): " + notas.firstEntry());
+
+        System.out.println("headMap(\"Carla\"): " + notas.headMap("Carla"));
+        System.out.println("tailMap(\"Carla\"): " + notas.tailMap("Carla"));
+        System.out.println("subMap(\"B\", \"D\"): " + notas.subMap("B", "D"));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+{Ana=9.5, Bruno=7.0, Carla=8.25, Duda=10.0, Edu=6.0}      « em ordem, embora inseridos fora de ordem
+firstKey(): Ana
+lastKey():  Edu
+firstEntry(): Ana=9.5
+headMap("Carla"): {Ana=9.5, Bruno=7.0}                     « antes de Carla (sem ela)
+tailMap("Carla"): {Carla=8.25, Duda=10.0, Edu=6.0}         « de Carla em diante (com ela)
+subMap("B", "D"): {Bruno=7.0, Carla=8.25}                  « de "B" (incluso) até "D" (excluso)</pre>
+
+<dl class="anatomy">
+  <dt>TreeMap&lt;String, Double&gt; notas</dt><dd>Aqui a variável é <code>TreeMap</code>, e não <code>Map</code>, porque os métodos de navegação (<code>firstKey</code>, <code>headMap</code>…) só existem nos mapas ordenados. Se você só precisa da ordem ao imprimir, <code>Map&lt;…&gt; notas = new TreeMap&lt;&gt;()</code> basta.</dd>
+  <dt>firstKey() / lastKey()</dt><dd>A menor / a maior chave.</dd>
+  <dt>firstEntry() / lastEntry()</dt><dd>O par inteiro (chave=valor) da ponta.</dd>
+  <dt>headMap(k)</dt><dd>"A cabeça": os pares com chave <strong>menor</strong> que <code>k</code>. O <code>k</code> fica de fora.</dd>
+  <dt>tailMap(k)</dt><dd>"A cauda": os pares com chave <strong>maior ou igual</strong> a <code>k</code>.</dd>
+  <dt>subMap(de, ate)</dt><dd>Uma "fatia": de <code>de</code> (incluso) até <code>ate</code> (excluso). <code>subMap("B", "D")</code> pega todo nome que começa com B ou C.</dd>
+</dl>
+
+<p>A regra "começo incluso, fim excluso" é a mesma do <code>substring</code> (veja <a href="metodos-string.html">Métodos de String</a>). Ela tem uma vantagem: <code>headMap("Carla")</code> e <code>tailMap("Carla")</code> dividem o mapa em duas partes sem repetir ninguém.</p>
+
+<h3>Buscar o vizinho: ceiling, floor, higher, lower</h3>
+<p>Às vezes a chave que você procura não está no mapa, e você quer a mais próxima. Pense num <strong>elevador</strong>: <em>ceiling</em> = teto (para cima), <em>floor</em> = chão (para baixo).</p>
+
+<pre class="file" data-file="Main.java">        System.out.println("ceilingKey(\"Bia\"):  " + notas.ceilingKey("Bia"));
+        System.out.println("ceilingKey(\"Carla\"): " + notas.ceilingKey("Carla"));
+        System.out.println("higherKey(\"Carla\"):  " + notas.higherKey("Carla"));
+        System.out.println("floorKey(\"Bia\"):    " + notas.floorKey("Bia"));
+        System.out.println("lowerKey(\"Ana\"):    " + notas.lowerKey("Ana"));
+        System.out.println("ceilingKey(\"Zeca\"): " + notas.ceilingKey("Zeca"));
+</pre>
+
+<p>Com o mapa <code>{Ana, Bruno, Carla, Edu}</code>:</p>
+
+<pre class="term">$ java Main
+ceilingKey("Bia"):  Bruno           « a menor chave &gt;= "Bia"
+ceilingKey("Carla"): Carla          « Carla existe: ela mesma
+higherKey("Carla"):  Edu            « estritamente maior: pula a própria Carla
+floorKey("Bia"):    Ana             « a maior chave &lt;= "Bia"
+lowerKey("Ana"):    null            « não há ninguém antes da Ana
+ceilingKey("Zeca"): null            « não há ninguém depois do Zeca</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve a chave…</th><th>Imagem</th></tr>
+<tr><td><code>ceilingKey(k)</code></td><td>menor que seja <strong>&gt;=</strong> <code>k</code></td><td>"o teto": <code>k</code> ou o próximo acima</td></tr>
+<tr><td><code>higherKey(k)</code></td><td>menor que seja <strong>&gt;</strong> <code>k</code></td><td>"o próximo", nunca o próprio <code>k</code></td></tr>
+<tr><td><code>floorKey(k)</code></td><td>maior que seja <strong>&lt;=</strong> <code>k</code></td><td>"o chão": <code>k</code> ou o anterior</td></tr>
+<tr><td><code>lowerKey(k)</code></td><td>maior que seja <strong>&lt;</strong> <code>k</code></td><td>"o anterior", nunca o próprio <code>k</code></td></tr>
+</table>
+</div>
+<p>Todos devolvem <code>null</code> quando não existe vizinho naquela direção. E cada um tem uma versão <code>…Entry</code> (<code>ceilingEntry</code>, <code>floorEntry</code>…) que devolve o par inteiro.</p>
+
+<h3>Um uso real: faixas de nota</h3>
+<p>A escola da Ana converte notas em conceitos: de 9 para cima é A, de 7 a 9 é B, de 5 a 7 é C, abaixo de 5 é E. Com um <code>TreeMap</code> cujas chaves são o <strong>início</strong> de cada faixa, o <code>floorEntry</code> acha a faixa de qualquer nota, sem nenhum <code>if</code>:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Map;
+import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        TreeMap&lt;Double, String&gt; conceitos = new TreeMap&lt;&gt;();
+        conceitos.put(0.0, "E");
+        conceitos.put(5.0, "C");
+        conceitos.put(7.0, "B");
+        conceitos.put(9.0, "A");
+
+        double[] notas = {9.5, 6.5, 7.0, 3.0};
+        for (double n : notas) {
+            Map.Entry&lt;Double, String&gt; faixa = conceitos.floorEntry(n);
+            System.out.println(n + " -&gt; faixa a partir de " + faixa.getKey() + " = " + faixa.getValue());
+        }
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+9.5 -&gt; faixa a partir de 9.0 = A
+6.5 -&gt; faixa a partir de 5.0 = C       « o "chão" de 6.5 é 5.0
+7.0 -&gt; faixa a partir de 7.0 = B       « 7.0 existe: é ele mesmo
+3.0 -&gt; faixa a partir de 0.0 = E</pre>
+
+<p>Para mudar as faixas, você muda os dados do mapa, não o código. A mesma ideia serve para faixas de imposto, de frete por peso, de desconto por quantidade…</p>
+
+<div class="tryjava" data-goal="out:Conceito: B,src:floor">
+<p class="try-task"><strong>Missão:</strong> complete o programa para mostrar o conceito da nota <code>8.0</code> usando <code>floorEntry</code> (ou <code>floorKey</code> + <code>get</code>). A saída deve ser <code>Conceito: B</code>. Depois experimente outras notas.</p>
+<pre class="script">import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        TreeMap&lt;Double, String&gt; conceitos = new TreeMap&lt;&gt;();
+        conceitos.put(0.0, "E");
+        conceitos.put(5.0, "C");
+        conceitos.put(7.0, "B");
+        conceitos.put(9.0, "A");
+
+        double nota = 8.0;
+        System.out.println("Conceito: " + conceitos.get(nota));
+    }
+}
+</pre>
+<pre class="solucao">import java.util.TreeMap;
+
+public class Main {
+    public static void main(String[] args) {
+        TreeMap&lt;Double, String&gt; conceitos = new TreeMap&lt;&gt;();
+        conceitos.put(0.0, "E");
+        conceitos.put(5.0, "C");
+        conceitos.put(7.0, "B");
+        conceitos.put(9.0, "A");
+
+        double nota = 8.0;
+        System.out.println("Conceito: " + conceitos.floorEntry(nota).getValue());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>TreeSet: um conjunto sempre ordenado</h2>
+<p>O <code>TreeSet</code> é para o <code>TreeMap</code> o que o <code>HashSet</code> é para o <code>HashMap</code>: só as chaves. É um <a href="hashset.html">conjunto</a> (sem repetidos) que mantém os elementos em ordem, com os mesmos métodos de navegação, sem o "Key" no nome:</p>
+
+<pre class="file" data-file="Main.java">import java.util.TreeSet;
+
+public class Main {
+    public static void main(String[] args) {
+        TreeSet&lt;Integer&gt; pontos = new TreeSet&lt;&gt;();
+        pontos.add(70);
+        pontos.add(15);
+        pontos.add(42);
+        pontos.add(99);
+        pontos.add(42);
+        pontos.add(8);
+        System.out.println(pontos);
+
+        System.out.println("first(): " + pontos.first() + "  last(): " + pontos.last());
+        System.out.println("headSet(42): " + pontos.headSet(42));
+        System.out.println("tailSet(42): " + pontos.tailSet(42));
+        System.out.println("ceiling(50): " + pontos.ceiling(50) + "  floor(50): " + pontos.floor(50));
+        System.out.println("higher(99): " + pontos.higher(99));
+        System.out.println("descendingSet(): " + pontos.descendingSet());
+        System.out.println("pollFirst(): " + pontos.pollFirst() + " -&gt; " + pontos);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+$ java Main
+[8, 15, 42, 70, 99]                       « ordenado e sem o 42 repetido
+first(): 8  last(): 99
+headSet(42): [8, 15]
+tailSet(42): [42, 70, 99]
+ceiling(50): 70  floor(50): 42
+higher(99): null
+descendingSet(): [99, 70, 42, 15, 8]      « a mesma coisa, de trás para a frente
+pollFirst(): 8 -&gt; [15, 42, 70, 99]        « tira e devolve o menor</pre>
+
+<p><code>descendingSet()</code> não cria uma cópia: é uma "visão" ao contrário do mesmo conjunto. <code>pollFirst()</code>/<code>pollLast()</code> tiram o menor/o maior, o que transforma o <code>TreeSet</code> numa fila de prioridade simples.</p>
+
+<hr>
+
+<h2>Ordem natural × Comparator</h2>
+<p>Como o <code>TreeSet</code> sabe que 8 vem antes de 15 e "Ana" antes de "Bruno"? Pela <strong>ordem natural</strong> do tipo: números do menor para o maior; textos pelos códigos dos caracteres (maiúsculas antes das minúsculas; veja a <a href="arraylist.html">aula de ArrayList</a>). Os tipos que têm ordem natural implementam a interface <code>Comparable</code>.</p>
+
+<p>Quando a ordem natural não serve, você passa ao construtor um <strong><code>Comparator</code></strong> (comparador): um objeto que diz como comparar dois elementos. Veja as mesmas frutas com quatro critérios:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Comparator;
+import java.util.TreeSet;
+
+public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"uva", "Banana", "kiwi", "abacaxi", "pera", "Caju"};
+
+        TreeSet&lt;String&gt; natural = new TreeSet&lt;&gt;();
+        TreeSet&lt;String&gt; semCaixa = new TreeSet&lt;&gt;(String.CASE_INSENSITIVE_ORDER);
+        TreeSet&lt;String&gt; inversa = new TreeSet&lt;&gt;(Comparator.reverseOrder());
+        TreeSet&lt;String&gt; porTamanho = new TreeSet&lt;&gt;(Comparator.comparing(String::length));
+        for (String f : frutas) {
+            natural.add(f);
+            semCaixa.add(f);
+            inversa.add(f);
+            porTamanho.add(f);
+        }
+        System.out.println("natural:     " + natural);
+        System.out.println("sem caixa:   " + semCaixa);
+        System.out.println("inversa:     " + inversa);
+        System.out.println("por tamanho: " + porTamanho);
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>new TreeSet&lt;&gt;()</dt><dd>Sem argumento: ordem natural.</dd>
+  <dt>String.CASE_INSENSITIVE_ORDER</dt><dd>Um comparador pronto que ignora maiúsculas/minúsculas.</dd>
+  <dt>Comparator.reverseOrder()</dt><dd>A ordem natural ao contrário.</dd>
+  <dt>Comparator.comparing(String::length)</dt><dd>"Compare pelo tamanho" (<code>length</code>). O <code>::</code> é uma <a href="method-references.html">referência de método</a>.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+$ java Main
+natural:     [Banana, Caju, abacaxi, kiwi, pera, uva]      « maiúsculas primeiro
+sem caixa:   [abacaxi, Banana, Caju, kiwi, pera, uva]      « como num dicionário
+inversa:     [uva, pera, kiwi, abacaxi, Caju, Banana]
+por tamanho: [uva, kiwi, Banana, abacaxi]                  « sumiram "pera" e "Caju"!</pre>
+
+<div class="warning" id="armadilha">
+<strong>A armadilha: para o TreeSet, "comparar igual" é "ser igual"</strong>
+<p>Na última linha, <code>pera</code> e <code>Caju</code> sumiram. Elas têm 4 letras, como <code>kiwi</code>. Para o comparador por tamanho, as três são "iguais" (a comparação dá 0), e um conjunto não aceita repetidos: só a primeira que chegou (<code>kiwi</code>) ficou. Um <code>TreeSet</code> (e as chaves de um <code>TreeMap</code>) <strong>não usa <code>equals</code></strong>: usa só o comparador. Para não perder ninguém, desempate: <code>Comparator.comparing(String::length).thenComparing(Comparator.naturalOrder())</code>. Como montar comparadores assim é o assunto da aula <a href="comparable-comparator.html">Comparable e Comparator</a>.</p>
+</div>
+
+<hr>
+
+<h2>Quando usar cada um</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você precisa…</th><th>Use</th></tr>
+<tr><td>de chave → valor, buscando só pela chave</td><td><code>HashMap</code></td></tr>
+<tr><td>de chave → valor, listado em ordem de chave</td><td><code>TreeMap</code></td></tr>
+<tr><td>de "a primeira chave depois de X", faixas, intervalos</td><td><code>TreeMap</code> (<code>ceilingKey</code>, <code>floorEntry</code>, <code>subMap</code>)</td></tr>
+<tr><td>de um conjunto, só perguntando "tem?"</td><td><code>HashSet</code></td></tr>
+<tr><td>de um conjunto sempre ordenado, menor/maior, ranking</td><td><code>TreeSet</code></td></tr>
+<tr><td>de ordenar uma vez só, uma lista com repetidos</td><td><code>ArrayList</code> + <code>sort</code> (veja <a href="arraylist.html">ArrayList</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>ClassCastException: … cannot be cast to class java.lang.Comparable</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">import java.util.TreeSet;
+
+class Aluno {
+    String nome;
+    Aluno(String nome) { this.nome = nome; }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        TreeSet&lt;Aluno&gt; turma = new TreeSet&lt;&gt;();
+        turma.add(new Aluno("Ana"));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+$ java Main
+Exception in thread "main" java.lang.ClassCastException: class Aluno cannot be cast to class java.lang.Comparable (Aluno is in unnamed module of loader 'app'; java.lang.Comparable is in module java.base of loader 'bootstrap')
+	at java.base/java.util.TreeMap.compare(TreeMap.java:1605)
+	at java.base/java.util.TreeMap.addEntryToEmptyMap(TreeMap.java:810)
+	at java.base/java.util.TreeMap.put(TreeMap.java:819)
+	at java.base/java.util.TreeMap.put(TreeMap.java:568)
+	at java.base/java.util.TreeSet.add(TreeSet.java:261)
+	at Main.main(Main.java:11)</pre>
+<p><strong>O que quer dizer:</strong> "a classe Aluno não pode ser convertida para Comparable". O <code>TreeSet</code> precisa comparar os elementos para ordená-los e, sem comparador, tenta usar a ordem natural, que <code>Aluno</code> não tem. O texto entre parênteses só diz onde cada classe foi carregada; pode ignorar. Repare também na pilha: o <code>TreeSet</code> usa um <code>TreeMap</code> por dentro. O erro aparece já no <strong>primeiro</strong> <code>add</code>, e só na hora de rodar: o compilador não reclama.</p>
+<p><strong>Como consertar:</strong> faça <code>Aluno</code> implementar <code>Comparable&lt;Aluno&gt;</code>, ou passe um comparador: <code>new TreeSet&lt;&gt;(Comparator.comparing(a -&gt; a.nome))</code>. Os dois caminhos estão em <a href="comparable-comparator.html">Comparable e Comparator</a>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NullPointerException</code> ao colocar uma chave <code>null</code></strong>
+<pre class="term">$ java Main
+Exception in thread "main" java.lang.NullPointerException
+	at java.base/java.util.Objects.requireNonNull(Objects.java:220)
+	at java.base/java.util.TreeMap.put(TreeMap.java:843)
+	at java.base/java.util.TreeMap.put(TreeMap.java:568)
+	at Main.main(Main.java:7)</pre>
+<p><strong>O que quer dizer:</strong> a linha 7 fez <code>m.put(null, 2)</code>. O <code>HashMap</code> aceita uma chave <code>null</code>; o <code>TreeMap</code>, não, porque não dá para comparar <code>null</code> com "Ana" (o mesmo vale para o <code>TreeSet</code>).</p>
+<p><strong>Como consertar:</strong> não use <code>null</code> como chave; confira o valor antes do <code>put</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>NoSuchElementException</code> no <code>firstKey</code> de um mapa vazio</strong>
+<pre class="term">$ java Main
+Exception in thread "main" java.util.NoSuchElementException
+	at java.base/java.util.TreeMap.key(TreeMap.java:1638)
+	at java.base/java.util.TreeMap.firstKey(TreeMap.java:303)
+	at Main.main(Main.java:6)</pre>
+<p><strong>O que quer dizer:</strong> um <code>TreeMap</code> vazio não tem primeira chave. O mesmo acontece com <code>lastKey</code>, e com <code>first</code>/<code>last</code> num <code>TreeSet</code> vazio.</p>
+<p><strong>Como consertar:</strong> confira <code>isEmpty()</code> antes, ou use <code>firstEntry()</code> / <code>pollFirst()</code>, que devolvem <code>null</code> em vez de lançar exceção.</p>
+</div>
+
+<div class="cenario">
+<strong>Elementos "sumiram" do TreeSet</strong>
+<p><strong>O que aconteceu:</strong> o comparador considerou dois elementos iguais (devolveu 0), e o conjunto guardou só um. Veja <a href="#armadilha">a armadilha</a> acima.</p>
+<p><strong>Como consertar:</strong> desempate com <code>thenComparing</code>, ou use uma lista com <code>sort</code> se repetidos são permitidos.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>TreeMap</th><th>TreeSet</th><th>O que faz</th><th>Se não existir</th></tr>
+<tr><td><code>firstKey()</code> / <code>lastKey()</code></td><td><code>first()</code> / <code>last()</code></td><td>Menor / maior</td><td><code>NoSuchElementException</code></td></tr>
+<tr><td><code>firstEntry()</code> / <code>lastEntry()</code></td><td>—</td><td>Par da ponta</td><td><code>null</code></td></tr>
+<tr><td><code>pollFirstEntry()</code> / <code>pollLastEntry()</code></td><td><code>pollFirst()</code> / <code>pollLast()</code></td><td>Tira e devolve a ponta</td><td><code>null</code></td></tr>
+<tr><td><code>headMap(k)</code></td><td><code>headSet(x)</code></td><td>Menores que <code>k</code></td><td>vazio</td></tr>
+<tr><td><code>tailMap(k)</code></td><td><code>tailSet(x)</code></td><td>Maiores ou iguais a <code>k</code></td><td>vazio</td></tr>
+<tr><td><code>subMap(de, ate)</code></td><td><code>subSet(de, ate)</code></td><td>Fatia [de, ate)</td><td>vazio</td></tr>
+<tr><td><code>ceilingKey(k)</code> / <code>floorKey(k)</code></td><td><code>ceiling(x)</code> / <code>floor(x)</code></td><td>&gt;= / &lt;=</td><td><code>null</code></td></tr>
+<tr><td><code>higherKey(k)</code> / <code>lowerKey(k)</code></td><td><code>higher(x)</code> / <code>lower(x)</code></td><td>&gt; / &lt;</td><td><code>null</code></td></tr>
+<tr><td><code>floorEntry(k)</code>, <code>ceilingEntry(k)</code></td><td>—</td><td>O par vizinho</td><td><code>null</code></td></tr>
+<tr><td><code>descendingMap()</code></td><td><code>descendingSet()</code></td><td>Visão ao contrário</td><td>—</td></tr>
+<tr><td><code>new TreeMap&lt;&gt;(comparador)</code></td><td><code>new TreeSet&lt;&gt;(comparador)</code></td><td>Ordem personalizada</td><td>—</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A menor chave</h3>
+<p>Complete para pegar a primeira chave (a menor) do <code>TreeMap</code> chamado <code>agenda</code>:</p>
+<div class="ex-code">String primeira = agenda.<input data-answer="firstKey()" aria-label="método">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O próximo, ou ele mesmo</h3>
+<p>Complete para achar, no <code>TreeSet&lt;Integer&gt; pontos</code>, o menor valor que seja maior <strong>ou igual</strong> a 50:</p>
+<div class="ex-code">Integer x = pontos.<input data-answer="ceiling(50)" aria-label="método">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O <code>TreeSet</code> tem <code>[10, 20, 30]</code>. O que <code>headSet(20)</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>[10, 20]</code></label>
+<label><input type="radio" name="q3"> <code>[10]</code></label>
+<label><input type="radio" name="q3"> <code>[20, 30]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Um <code>TreeSet&lt;String&gt;</code> com comparador por tamanho recebe "sol", "mar" e "lua". Quantos elementos ele terá?</p>
+<label><input type="radio" name="q4"> 1</label>
+<label><input type="radio" name="q4"> 3</label>
+<label><input type="radio" name="q4"> 0, porque dá erro</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que acontece ao colocar objetos de uma classe sem <code>Comparable</code> num <code>TreeSet</code> sem comparador?</p>
+<label><input type="radio" name="q5"> Erro de compilação.</label>
+<label><input type="radio" name="q5"> Eles ficam na ordem de inserção.</label>
+<label><input type="radio" name="q5"> <code>ClassCastException</code> ao rodar.</label>
+</div>
+
+<div class="tryjava" data-goal="out:[Abacaxi\, banana\, Caju\, uva],out:Primeira: Abacaxi,src:CASE_INSENSITIVE_ORDER|compareToIgnoreCase">
+<p class="try-task"><strong>Missão final:</strong> rode e veja que <code>banana</code> e <code>uva</code> vão para o fim, por serem minúsculas. Passe um comparador ao <code>TreeSet</code> para ordenar ignorando maiúsculas/minúsculas. A saída deve ser <code>[Abacaxi, banana, Caju, uva]</code> e <code>Primeira: Abacaxi</code>.</p>
+<pre class="script">import java.util.TreeSet;
+
+public class Main {
+    public static void main(String[] args) {
+        TreeSet&lt;String&gt; frutas = new TreeSet&lt;&gt;();
+        frutas.add("banana");
+        frutas.add("Abacaxi");
+        frutas.add("uva");
+        frutas.add("Caju");
+        System.out.println(frutas);
+        System.out.println("Primeira: " + frutas.first());
+    }
+}
+</pre>
+<pre class="solucao">import java.util.TreeSet;
+
+public class Main {
+    public static void main(String[] args) {
+        TreeSet&lt;String&gt; frutas = new TreeSet&lt;&gt;(String.CASE_INSENSITIVE_ORDER);
+        frutas.add("banana");
+        frutas.add("Abacaxi");
+        frutas.add("uva");
+        frutas.add("Caju");
+        System.out.println(frutas);
+        System.out.println("Primeira: " + frutas.first());
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>TreeMap</code> = mapa com chaves sempre ordenadas; <code>TreeSet</code> = conjunto sempre ordenado.</li>
+  <li>Pontas: <code>firstKey</code>/<code>lastKey</code> (mapa), <code>first</code>/<code>last</code> (conjunto).</li>
+  <li>Fatias: <code>headMap</code>/<code>headSet</code> (antes, sem incluir), <code>tailMap</code>/<code>tailSet</code> (dali em diante), <code>subMap</code>/<code>subSet</code>.</li>
+  <li>Vizinhos: <code>ceiling</code> (&gt;=), <code>higher</code> (&gt;), <code>floor</code> (&lt;=), <code>lower</code> (&lt;); <code>null</code> se não existir. <code>floorEntry</code> resolve faixas.</li>
+  <li>Sem argumento, usam a ordem natural (<code>Comparable</code>); com um <code>Comparator</code>, a ordem que você quiser.</li>
+  <li>Elementos que o comparador acha "iguais" viram um só. Não aceitam <code>null</code>. Classe sem ordem natural: <code>ClassCastException</code>.</li>
+</ul>
+
+<p>Próxima aula: <a href="iterator.html">Iterator</a>, o "cursor" que percorre qualquer coleção, e como remover elementos durante o percurso.</p>
+
+<div class="pager"></div>
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
