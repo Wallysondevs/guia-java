@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Operador Ternário — condição ? a : b | Guia Java</title>
+<meta name="description" content="O operador ternário do Java (condição ? valor1 : valor2): como funciona, quando usar no lugar do if/else, plural e valores padrão, por que evitar ternários aninhados, os tipos dos dois lados (1 vira 1.0) e os erros reais do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Operador Ternário</span></h1>
+
+<p class="intro">Muitas vezes um <code>if/else</code> existe só para escolher entre <strong>dois valores</strong>: "aprovada" ou "reprovada", "item" ou "itens", "bom dia" ou "boa tarde". Para esses casos, o Java tem um atalho que cabe numa linha: o <strong>operador ternário</strong>, escrito <code>condição ? valor1 : valor2</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como ler e escrever <code>condição ? a : b</code>.</li>
+  <li>Quando o ternário deixa o código mais claro, e quando o <code>if/else</code> é melhor.</li>
+  <li>Usos típicos: plural, maior de dois números, valor padrão quando algo é <code>null</code>.</li>
+  <li>Ternários aninhados, e por que evitá-los.</li>
+  <li>O que acontece com os <strong>tipos</strong> dos dois lados (por que <code>true ? 1 : 2.5</code> dá <code>1.0</code>).</li>
+  <li>Os erros reais: <code>not a statement</code>, <code>: expected</code>, <code>bad type in conditional expression</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma pergunta com duas respostas prontas</h2>
+<p>Pense no garçom que pergunta "com açúcar ou sem?". Antes de você responder, as duas opções já estão prontas; a sua resposta só escolhe <strong>qual</strong> vai para a mesa. O ternário é isso: uma pergunta (<code>true</code> ou <code>false</code>) e duas respostas prontas. O resultado é um <strong>valor</strong>, que você guarda, imprime ou usa numa conta.</p>
+
+<p>O nome "ternário" vem de <strong>três</strong>: é o único operador do Java com três partes (o <code>+</code> tem duas, o <code>!</code> tem uma). O nome oficial é <em>operador condicional</em>.</p>
+
+<hr>
+
+<h2>Do <code>if/else</code> ao ternário</h2>
+<p>Os dois trechos abaixo fazem exatamente a mesma coisa:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.5;
+
+        String situacao1;
+        if (nota &gt;= 7.0) {
+            situacao1 = "aprovada";
+        } else {
+            situacao1 = "reprovada";
+        }
+
+        String situacao2 = nota &gt;= 7.0 ? "aprovada" : "reprovada";
+
+        System.out.println(situacao1);
+        System.out.println(situacao2);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+aprovada
+aprovada</pre>
+
+<dl class="anatomy">
+  <dt>nota &gt;= 7.0</dt><dd>A condição: uma <a href="booleanos.html">expressão booleana</a>. Não precisa de parênteses (mas pode ter, se ajudar a ler).</dd>
+  <dt>?</dt><dd>Lê-se "<strong>então</strong>". Separa a pergunta das respostas.</dd>
+  <dt>"aprovada"</dt><dd>O valor do resultado quando a condição é <code>true</code>.</dd>
+  <dt>:</dt><dd>Lê-se "<strong>senão</strong>".</dd>
+  <dt>"reprovada"</dt><dd>O valor quando a condição é <code>false</code>.</dd>
+</dl>
+
+<p>Leia em voz alta: "situação recebe: nota maior ou igual a 7? <strong>então</strong> 'aprovada', <strong>senão</strong> 'reprovada'". Seis linhas viraram uma, e a variável já nasce com o valor (não fica "sem valor" nem por um instante).</p>
+
+<div class="tryjava" data-goal="out:Período: manhã,src:\?">
+<p class="try-task"><strong>Missão:</strong> use o ternário para que <code>periodo</code> seja <code>"manhã"</code> quando a hora for menor que 12, e <code>"tarde"</code> caso contrário. Com <code>hora = 9</code>, a saída deve ser <code>Período: manhã</code>. Depois teste com 15.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int hora = 9;
+        String periodo = ""; // troque "" pelo ternário
+        System.out.println("Período: " + periodo);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int hora = 9;
+        String periodo = hora &lt; 12 ? "manhã" : "tarde";
+        System.out.println("Período: " + periodo);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Onde o ternário brilha</h2>
+<p>Como o ternário é uma <strong>expressão</strong> (produz um valor), ele cabe em lugares onde um <code>if</code> não cabe: no meio de uma conta, de uma concatenação, de um <code>println</code>.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int itens = 1;
+        System.out.println("Você tem " + itens + (itens == 1 ? " item" : " itens") + " no carrinho.");
+        itens = 3;
+        System.out.println("Você tem " + itens + (itens == 1 ? " item" : " itens") + " no carrinho.");
+
+        int a = 7, b = 12;
+        int maior = a &gt; b ? a : b;
+        System.out.println("Maior: " + maior);
+
+        String apelido = null;
+        String nome = "Ana Souza";
+        String exibido = apelido != null ? apelido : nome;
+        System.out.println("Olá, " + exibido);
+
+        int hora = 14;
+        System.out.println(hora &lt; 12 ? "Bom dia" : "Boa tarde");
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Você tem 1 item no carrinho.      « singular
+Você tem 3 itens no carrinho.     « plural
+Maior: 12
+Olá, Ana Souza                    « sem apelido, usa o nome
+Boa tarde</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Uso</th><th>Exemplo</th></tr>
+<tr><td>Singular / plural</td><td><code>n == 1 ? "item" : "itens"</code></td></tr>
+<tr><td>Maior / menor de dois</td><td><code>a &gt; b ? a : b</code> (o mesmo que <code>Math.max(a, b)</code>, veja <a href="math.html">Math</a>)</td></tr>
+<tr><td>Valor padrão quando algo é <code>null</code></td><td><code>apelido != null ? apelido : nome</code></td></tr>
+<tr><td>Mensagem conforme a situação</td><td><code>hora &lt; 12 ? "Bom dia" : "Boa tarde"</code></td></tr>
+<tr><td>Escolher um número</td><td><code>compra &gt;= 100 ? 0 : 15</code> (frete)</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Parênteses quando o ternário está no meio de um <code>+</code></strong>
+<p>Repare em <code>"Você tem " + itens + (itens == 1 ? " item" : " itens")</code>. O ternário tem uma das prioridades <strong>mais baixas</strong> de todos os operadores (veja <a href="precedencia.html">Precedência</a>). Sem os parênteses, o Java faria primeiro as concatenações e só depois a comparação, e o resultado não compila (veja "Quando dá errado").</p>
+</div>
+
+<h3>Ternário comprido? Quebre em linhas</h3>
+<p>Quando os valores são longos, alinhe o <code>?</code> e o <code>:</code> em linhas separadas. Continua sendo uma expressão só:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.0;
+        System.out.println(nota &gt;= 7 ? "Aprovada" : "Reprovada");
+        String msg = nota &gt;= 7
+                ? "Parabéns, você passou!"
+                : "Não desanime, estude mais.";
+        System.out.println(msg);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Aprovada
+Parabéns, você passou!</pre>
+
+<hr>
+
+<h2>Quando <strong>não</strong> usar</h2>
+<p>O ternário escolhe um <strong>valor</strong>. Ele não serve para escolher entre duas <strong>ações</strong> (mostrar uma coisa ou outra, gravar um arquivo ou não). Para isso, use <code>if/else</code>. Tentar fazer uma ação com ternário nem compila:</p>
+
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.0;
+        nota &gt;= 7 ? System.out.println("Aprovada") : System.out.println("Reprovada");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:4: error: not a statement
+        nota &gt;= 7 ? System.out.println("Aprovada") : System.out.println("Reprovada");
+                  ^
+1 error</pre>
+
+<p>"Não é uma instrução": um ternário sozinho numa linha é um valor que ninguém usa, como escrever só <code>5;</code>. Além disso, <code>println</code> não devolve valor nenhum (é <code>void</code>), então não pode ser uma das respostas. Escolha o <strong>texto</strong> com o ternário e chame o <code>println</code> uma vez só: <code>System.out.println(nota &gt;= 7 ? "Aprovada" : "Reprovada");</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Use o ternário quando…</th><th>Use <code>if/else</code> quando…</th></tr>
+<tr><td>Escolhe entre <strong>dois valores</strong></td><td>Escolhe entre <strong>ações</strong> (várias linhas, chamadas de métodos)</td></tr>
+<tr><td>Cabe numa linha e se lê fácil</td><td>A condição ou os valores são compridos</td></tr>
+<tr><td>Vai guardar, imprimir ou usar o valor numa conta</td><td>Há mais de duas opções (prefira <code>else if</code> ou <a href="switch-expressoes.html">switch</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Ternário dentro de ternário</h2>
+<p>As respostas de um ternário podem ser outro ternário. Isso permite escolher entre três ou mais valores:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 7.8;
+        String conceito = nota &gt;= 9 ? "A" : nota &gt;= 7 ? "B" : nota &gt;= 5 ? "C" : "D";
+        System.out.println(conceito);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+B</pre>
+
+<p>Funciona: o Java lê como uma escada de <code>else if</code> (a parte depois de cada <code>:</code> é o "senão"). Mas compare com a versão da aula <a href="if-else.html">if, else if, else</a>: qual você entende mais rápido? Num ternário aninhado é fácil errar a ordem e difícil achar o erro. Por isso a maioria dos guias de estilo recomenda <strong>evitar</strong> ternários aninhados. Se precisar de um, use parênteses e quebras de linha para deixar a estrutura visível:</p>
+
+<pre class="file" data-file="Main.java">        String t = idade &gt;= 18 ? "adulto"
+                 : (idade &gt;= 12 ? "adolescente" : "criança");
+</pre>
+
+<p>Para várias opções, o <a href="switch-expressoes.html">switch com setas</a> costuma ser a escolha mais clara.</p>
+
+<hr>
+
+<h2>Os tipos dos dois lados</h2>
+<p>O resultado do ternário tem <strong>um tipo só</strong>, decidido na hora de compilar, antes de saber qual lado vai ganhar. Se os dois lados têm tipos diferentes, o Java tenta achar um tipo que sirva para os dois. Isso dá algumas surpresas:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        boolean inteiro = true;
+        System.out.println(inteiro ? 1 : 2.5);
+        var x = inteiro ? 1 : 2.5;
+        System.out.println(x);
+        System.out.println(inteiro ? "um" : 2);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+1.0     « o lado escolhido foi o 1 (int)… mas virou double!
+1.0     « o tipo de x é double
+um</pre>
+
+<dl class="anatomy">
+  <dt>inteiro ? 1 : 2.5</dt><dd>Um lado é <code>int</code>, o outro <code>double</code>. O tipo comum é <code>double</code> (a mesma regra de <code>1 + 2.5</code>, veja <a href="conversao-tipos.html">Conversão de Tipos</a>). Então, mesmo escolhendo o <code>1</code>, o resultado é <code>1.0</code>.</dd>
+  <dt>inteiro ? "um" : 2</dt><dd>String com <code>int</code> não têm tipo numérico comum; o resultado vira um "objeto qualquer" (<code>Object</code>). O <code>println</code> aceita qualquer objeto, por isso funcionou. Mas guardar isso numa variável <code>String</code> não compila (veja abaixo).</dd>
+</dl>
+
+<p>Regra prática: <strong>faça os dois lados do mesmo tipo</strong>. Dois textos, dois <code>int</code>, dois <code>double</code>.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: incompatible types: bad type in conditional expression</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        boolean ativo = true;
+        String texto = ativo ? "ligado" : 0;
+        System.out.println(texto);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: incompatible types: bad type in conditional expression
+        String texto = ativo ? "ligado" : 0;
+                                          ^
+    int cannot be converted to String
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "tipo inválido na expressão condicional". O resultado vai para uma <code>String</code>, e um dos lados é o <code>int</code> <code>0</code>, que não vira String sozinho (a linha de baixo explica: <code>int cannot be converted to String</code>). O <code>^</code> aponta o lado culpado.</p>
+<p><strong>Como resolver:</strong> os dois lados do mesmo tipo: <code>ativo ? "ligado" : "desligado"</code> (ou <code>"0"</code>, entre aspas).</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: not a statement</code></strong>
+<p><strong>O que aconteceu:</strong> o ternário foi usado sozinho numa linha, para escolher entre duas ações (veja "Quando não usar").</p>
+<p><strong>Como resolver:</strong> use <code>if/else</code>, ou use o ternário para escolher o <strong>valor</strong> e faça a ação uma vez: <code>System.out.println(cond ? "a" : "b");</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: : expected</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double nota = 8.0;
+        String s = nota &gt;= 7 ? "aprovada";
+        System.out.println(s);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: : expected
+        String s = nota &gt;= 7 ? "aprovada";
+                                         ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "esperava <code>:</code>". O ternário <strong>sempre</strong> tem as duas respostas; não existe "ternário sem senão", porque a variável precisa receber algum valor nos dois casos.</p>
+<p><strong>Como resolver:</strong> acrescente <code>: "reprovada"</code>. Se no outro caso você não quer fazer nada, o que você quer é um <code>if</code> sem <code>else</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: bad operand types for binary operator '=='</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int itens = 3;
+        System.out.println("Itens: " + itens == 1 ? "um" : "vários");
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:4: error: bad operand types for binary operator '=='
+        System.out.println("Itens: " + itens == 1 ? "um" : "vários");
+                                             ^
+  first type:  String
+  second type: int
+1 error</pre>
+<p><strong>O que aconteceu:</strong> sem parênteses, o <code>+</code> vem primeiro: <code>"Itens: " + itens</code> virou o texto <code>"Itens: 3"</code>, e o Java tentou comparar esse texto com o número <code>1</code> (<code>first type: String</code>, <code>second type: int</code>).</p>
+<p><strong>Como resolver:</strong> parênteses em volta do ternário: <code>"Itens: " + (itens == 1 ? "um" : "vários")</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Resultado</th></tr>
+<tr><td><code>cond ? a : b</code></td><td><code>a</code> se <code>cond</code> for <code>true</code>; <code>b</code> se for <code>false</code></td></tr>
+<tr><td><code>tipo x = cond ? a : b;</code></td><td>Guarda o valor escolhido</td></tr>
+<tr><td><code>"…" + (cond ? a : b) + "…"</code></td><td>No meio de uma concatenação (com parênteses)</td></tr>
+<tr><td><code>c1 ? a : c2 ? b : c</code></td><td>Aninhado (evite; prefira <code>else if</code> ou <code>switch</code>)</td></tr>
+<tr><td><code>cond ? 1 : 2.5</code></td><td>Tipo <code>double</code>: o <code>1</code> vira <code>1.0</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Turma com 5 alunos,out:Frete: 15,src:\?">
+<p class="try-task"><strong>Missão final:</strong> usando <strong>ternários</strong> (sem <code>if</code>), mostre <code>Turma com 5 alunos</code> (no singular se fosse 1: <code>Turma com 1 aluno</code>) e calcule o frete: <code>0</code> para compras de 100 ou mais, <code>15</code> para as outras. Com <code>compra = 80</code>, a segunda linha deve ser <code>Frete: 15</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int alunos = 5;
+        double compra = 80.0;
+        // mostre a turma e o frete
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int alunos = 5;
+        double compra = 80.0;
+        System.out.println("Turma com " + alunos + (alunos == 1 ? " aluno" : " alunos"));
+        int frete = compra &gt;= 100 ? 0 : 15;
+        System.out.println("Frete: " + frete);
+    }
+}
+</pre>
+</div>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para que <code>sinal</code> seja <code>"negativo"</code> quando <code>n &lt; 0</code> e <code>"positivo"</code> caso contrário:</p>
+<div class="ex-code">String sinal = n &lt; 0 <input data-answer="? &quot;negativo&quot; : &quot;positivo&quot;|?&quot;negativo&quot;:&quot;positivo&quot;" aria-label="ternário">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O resultado</h3>
+<p>Com <code>int x = 4;</code>, quanto vale <code>x % 2 == 0 ? x / 2 : x * 3 + 1</code>?</p>
+<div class="ex-code"><input data-answer="2" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O tipo</h3>
+<p>O que <code>System.out.println(false ? 10 : 3.5);</code> mostra?</p>
+<div class="ex-code"><input data-answer="3.5" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. E <code>System.out.println(true ? 10 : 3.5);</code>?</p>
+<label><input type="radio" name="q4"> <code>10</code></label>
+<label><input type="radio" name="q4"> <code>10.0</code></label>
+<label><input type="radio" name="q4"> <code>3.5</code></label>
+<label><input type="radio" name="q4"> Não compila</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Em qual situação o <code>if/else</code> é melhor que o ternário?</p>
+<label><input type="radio" name="q5"> Escolher entre "item" e "itens".</label>
+<label><input type="radio" name="q5"> Guardar o maior de dois números.</label>
+<label><input type="radio" name="q5"> Escolher um texto para o <code>println</code>.</label>
+<label><input type="radio" name="q5"> Gravar um arquivo e mostrar uma mensagem se o usuário confirmar, ou mostrar outra mensagem se não confirmar.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>condição ? a : b</code>: "condição? então <code>a</code>, senão <code>b</code>". O resultado é um <strong>valor</strong>.</li>
+  <li>Use para escolher entre dois valores (plural, maior, valor padrão, mensagem); use <code>if/else</code> para escolher entre ações.</li>
+  <li>Sempre tem as duas partes (<code>?</code> e <code>:</code>); sozinho numa linha dá <code>not a statement</code>.</li>
+  <li>No meio de uma concatenação, coloque-o entre parênteses.</li>
+  <li>Evite ternários aninhados; para várias opções, <code>else if</code> ou <code>switch</code>.</li>
+  <li>Os dois lados devem ser do mesmo tipo: <code>cond ? 1 : 2.5</code> é <code>double</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
