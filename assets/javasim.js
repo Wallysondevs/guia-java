@@ -766,6 +766,7 @@
     return { k: "ArrayInit", pos: p, elems: el };
   };
   PP.parExpr = function () {
+    this.lastParPos = this.t.pos;
     if (this.is("(")) this.next();
     else if (this.t.k !== "eof") { this.errSoft(this.prev().end, "'(' expected"); this.recovered = true; }
     else this.accept("(");
@@ -945,6 +946,7 @@
   PP.switchBody = function (isExpr) {
     var p = this.next().pos;
     var sel = this.parExpr();
+    var selPos = this.lastParPos;
     var lb = this.accept("{").pos;
     var cases = [], arrow = null;
     while (!this.is("}")) {
@@ -990,7 +992,7 @@
     }
     var endPos = this.t.pos;
     this.next();
-    return { k: isExpr ? "SwitchExpr" : "Switch", pos: p, selector: sel, cases: cases, arrow: !!arrow, endPos: endPos };
+    return { k: isExpr ? "SwitchExpr" : "Switch", pos: p, selector: sel, selPos: selPos, cases: cases, arrow: !!arrow, endPos: endPos };
   };
   PP.caseLabel = function () {
     // padrão de tipo, padrão de record, null, ou constante
@@ -2638,6 +2640,7 @@
       case "ClassLit": {
         var ct = this.resolveType(e.type, env);
         if (isErr(ct)) return T_ERR;
+        e.litType = ct;
         var arg = ct.k === "prim" ? (ct.n === "void" ? L("java.lang.Void").rawType() : boxedType(ct)) : erasure(ct);
         return new ClassType(L("java.lang.Class"), [arg]);
       }
@@ -4795,8 +4798,8 @@
     else if (isString(st)) selKind = "string";
     else if (st.k === "class" && st.sym.isEnum()) selKind = "enum";
     else if (u && /^(long|float|double|boolean)$/.test(u.n) && st.k === "prim") {
-      this.err(env, e.selector.pos, "constant label of type " + u.n + " is not compatible with switch selector type " + u.n);
-      selKind = "err";
+      this.err(env, e.selPos !== undefined ? e.selPos : e.selector.pos, "primitive patterns are a preview feature and are disabled by default.\n  (use --enable-preview to enable primitive patterns)");
+      selKind = "primPreview";
     } else selKind = "pattern";
     e.selKind = selKind; e.selType = st;
     if (selKind === "string" && env.slotInfo) { e.strTmp = env.slotInfo.alloc(T["int"]); env.slotInfo.alloc(T["int"]); }
@@ -4828,6 +4831,10 @@
           }
           var lt = self.attribExpr(x, cenv, null);
           if (isErr(lt) || selKind === "err") return;
+          if (selKind === "primPreview") {
+            if (!(lt.k === "prim" && lt.n === u.n)) self.err(env, x.pos, "constant label of type " + typeStr(lt) + " is not compatible with switch selector type " + typeStr(st));
+            return;
+          }
           if (selKind === "enum" || (selKind === "pattern" && x.ref && x.ref.sym && x.ref.sym.flags && x.ref.sym.flags.enumConst)) {
             if (x.ref && x.ref.sym && x.ref.sym.flags.enumConst) {
               l.enumConst = x.ref.sym;
@@ -4896,7 +4903,7 @@
     e.hasDefault = hasDefault; e.hasPattern = hasPattern; e.hasNull = hasNull;
     // exaustividade
     var needExhaustive = isExpr || hasPattern || hasNull;
-    if (needExhaustive && !hasDefault && selKind !== "err") {
+    if (needExhaustive && !hasDefault && selKind !== "err" && selKind !== "primPreview") {
       var covered = false;
       if (selKind === "enum") {
         completeAny(this, st.sym);
@@ -5501,9 +5508,9 @@
         var post = self.attribStat(s, senv);
         if (post && post.length) post.forEach(function (v) { self.declareVar(v, benv, true); });
       });
-      // CtorCall depois de outros comandos fora do prólogo
+      // segunda chamada this(...)/super(...)
       stats.forEach(function (s, k) {
-        if (k > idx && s.k === "ExprStmt" && s.expr.k === "CtorCall") self.err(env, s.expr.kwPos, "explicit constructor invocation may only appear within a constructor body");
+        if (k > idx && s.k === "ExprStmt" && s.expr.k === "CtorCall") self.err(env, s.expr.pos, "redundant explicit constructor invocation");
       });
     } else {
       this.attribBlock(d.body, menv);
@@ -7705,6 +7712,7 @@
     throw new Error("expr: " + e.k);
   };
   GN.resolveClassLit = function (e) {
+    if (e.litType) return e.litType;
     var t = e.type && e.type.k === "class" && e.type.args ? e.type.args[0] : null;
     return t || OBJ();
   };
@@ -9176,7 +9184,7 @@
     } });
     defLib("java.lang.Class", { tp: "T", flags: "public final", noCtor: true, m: {
       "String getName()": function () { return jstr(classObjName(this)); },
-      "String getSimpleName()": function () { var t = this.t; if (t.k === "prim") return jstr(t.n); if (t.k === "array") return jstr(typeStr(t)); var s = this.sym || t.sym; return jstr(s.anon ? "" : s.name); },
+      "String getSimpleName()": function () { var t = this.t; if (t.k === "prim") return jstr(t.n); if (t.k === "array") return jstr(typeStr(t)); var s = this.sym || t.sym; if (s.anon || s.isLambda) return jstr(s.isLambda ? s.bin.replace(/^.*\./, "") : ""); return jstr(s.isLib ? s.bin.replace(/^.*[.$]/, "") : s.name); },
       "String toString()": function () { var t = this.t; return jstr((t.k === "prim" ? "" : (t.k === "class" && t.sym.isInterface() ? "interface " : "class ")) + classObjName(this)); },
       "boolean isInstance(Object)": function (o) { return instOf(o, this.t); },
       "Class<? super T> getSuperclass()": function () { var s = this.sym || this.t.sym; return s && s.superT ? classObject(s.superT) : null; },

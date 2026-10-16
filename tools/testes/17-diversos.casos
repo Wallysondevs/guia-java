@@ -1,0 +1,170 @@
+### switch-double
+public class Main {
+    public static void main(String[] args) {
+        double d = 1.5;
+        switch (d) {
+            case 1.5 -> System.out.println("x");
+            default -> System.out.println("y");
+        }
+    }
+}
+### switch-boolean
+public class Main {
+    public static void main(String[] args) {
+        boolean b = true;
+        String s = switch (b) { case true -> "s"; case false -> "n"; };
+    }
+}
+### switch-long
+public class Main {
+    public static void main(String[] args) {
+        long l = 5;
+        switch (l) { case 5: break; }
+    }
+}
+### reflexao-basica
+import java.util.*;
+public class Main {
+    static class Animal {}
+    static class Cao extends Animal {}
+    public static void main(String[] args) {
+        Animal a = new Cao();
+        System.out.println(a.getClass().getSimpleName() + " " + Cao.class.getSuperclass().getSimpleName() + " " + a.getClass().getName() + " " + Animal.class.getSuperclass().getName());
+        System.out.println(new ArrayList<String>().getClass().getSimpleName() + " " + "x".getClass() + " " + int.class + " " + String[].class.getSimpleName() + " " + Integer.valueOf(1).getClass().getName());
+        System.out.println(a instanceof Cao c ? c.getClass().getSimpleName() : "-");
+        Object o = List.of(1);
+        System.out.println(o.getClass().getSimpleName().startsWith("List"));
+    }
+}
+### construtor-redundante
+public class Main {
+    static class A {
+        int x;
+        A() { this(1); }
+        A(int x) { this.x = x; }
+    }
+    static class B extends A {
+        B() { super(); super(); }
+    }
+    public static void main(String[] args) { }
+}
+### this-chamada-depois
+public class Main {
+    static class A {
+        A() { System.out.println("a"); this(2); }
+        A(int x) { }
+    }
+    public static void main(String[] args) { }
+}
+### thread-nome
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        Runnable tarefa = () -> System.out.println("rodando em " + Thread.currentThread().getName());
+        Thread t = new Thread(tarefa, "ajudante");
+        t.start();
+        t.join();
+        Thread t2 = new Thread(tarefa);
+        t2.start();
+        t2.join();
+        tarefa.run();
+        System.out.println(Thread.currentThread().getName());
+    }
+}
+### executor-invokeall
+import java.util.*;
+import java.util.concurrent.*;
+public class Main {
+    public static void main(String[] args) throws Exception {
+        ExecutorService ex = Executors.newFixedThreadPool(3);
+        List<Callable<Integer>> tarefas = List.of(() -> 10, () -> 20, () -> 30);
+        int total = 0;
+        for (Future<Integer> f : ex.invokeAll(tarefas)) total += f.get();
+        ex.shutdown();
+        System.out.println(total + " " + ex.isShutdown());
+        try (ExecutorService ex2 = Executors.newSingleThreadExecutor()) {
+            Future<String> f = ex2.submit(() -> "pronto");
+            System.out.println(f.get() + " " + f.isDone());
+        }
+        CompletableFuture<Double> preco = CompletableFuture.supplyAsync(() -> 50.0).thenApply(p -> p * 0.9);
+        System.out.println("Preço final: " + preco.join());
+        CompletableFuture<Void> todas = CompletableFuture.allOf(CompletableFuture.runAsync(() -> {}), CompletableFuture.runAsync(() -> {}));
+        todas.join();
+        System.out.println("todas ok");
+    }
+}
+### sequenced
+import java.util.*;
+public class Main {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList<>(List.of("a", "b", "c"));
+        l.addFirst("z"); l.addLast("y");
+        System.out.println(l + " " + l.getFirst() + " " + l.getLast() + " " + l.reversed() + " " + l.removeFirst() + " " + l.removeLast() + " " + l);
+        Deque<Integer> d = new ArrayDeque<>(List.of(1, 2, 3));
+        System.out.println(d.getFirst() + " " + d.getLast() + " " + d.reversed());
+        LinkedHashMap<String, Integer> m = new LinkedHashMap<>();
+        m.put("x", 1); m.put("y", 2);
+        System.out.println(m.firstEntry() + " " + m.lastEntry());
+        LinkedHashSet<Integer> s = new LinkedHashSet<>(List.of(3, 1, 2));
+        System.out.println(s.getFirst() + " " + s.getLast() + " " + s.reversed());
+    }
+}
+### regex-matcher-grupos
+import java.util.regex.*;
+public class Main {
+    public static void main(String[] args) {
+        Pattern p = Pattern.compile("([A-Z]{3})(\\d)([A-Z])(\\d{2})");
+        for (String placa : new String[]{"ABC1D23", "abc1234", "XYZ9K88"}) {
+            Matcher m = p.matcher(placa);
+            System.out.println(placa + " -> " + m.matches() + (m.matches() ? " " + m.group(1) + "-" + m.group(4) : ""));
+        }
+        Matcher precos = Pattern.compile("R\\$ (\\d+),(\\d{2})").matcher("pão R$ 4,50, leite R$ 12,00 e café R$ 1,25");
+        int centavos = 0;
+        while (precos.find()) { System.out.println("Preço: " + precos.group()); centavos += Integer.parseInt(precos.group(1)) * 100 + Integer.parseInt(precos.group(2)); }
+        System.out.println("Total em centavos: " + centavos);
+    }
+}
+### string-null-concat
+public class Main {
+    public static void main(String[] args) {
+        String s = null;
+        Object o = null;
+        System.out.println("valor: " + s + " " + o);
+        StringBuilder sb = new StringBuilder();
+        sb.append(s).append(o).append((String) null);
+        System.out.println(sb + " " + sb.length());
+        System.out.println(String.valueOf((Object) null) + Objects.toString(null, "padrão"));
+    }
+    static class Objects { static String toString(Object o, String d) { return o == null ? d : o.toString(); } }
+}
+### interface-generica-funcional
+public class Main {
+    @FunctionalInterface
+    interface Conversor<A, B> { B converter(A a); default <C> Conversor<A, C> depois(Conversor<B, C> o) { return a -> o.converter(converter(a)); } }
+    public static void main(String[] args) {
+        Conversor<String, Integer> tamanho = String::length;
+        Conversor<Integer, String> estrelas = n -> "*".repeat(n);
+        System.out.println(tamanho.depois(estrelas).converter("Java"));
+        Conversor<Double, Long> arredonda = Math::round;
+        System.out.println(arredonda.converter(2.5));
+    }
+}
+### heranca-toString-super
+public class Main {
+    static class Pessoa {
+        protected String nome;
+        Pessoa(String n) { nome = n; }
+        public String toString() { return "Pessoa(" + nome + ")"; }
+    }
+    static class Aluno extends Pessoa {
+        double nota;
+        Aluno(String n, double t) { super(n); nota = t; }
+        @Override public String toString() { return super.toString() + " nota " + nota; }
+        @Override public boolean equals(Object o) { return o instanceof Aluno a && a.nome.equals(nome); }
+        @Override public int hashCode() { return nome.hashCode(); }
+    }
+    public static void main(String[] args) {
+        Pessoa[] ps = {new Pessoa("Ana"), new Aluno("Bia", 9.5)};
+        for (Pessoa p : ps) System.out.println(p);
+        System.out.println(new Aluno("Bia", 1).equals(ps[1]) + " " + ps[0].equals(ps[1]) + " " + String.format("%s|%10s|", ps[0], "x"));
+    }
+}
