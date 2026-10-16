@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Exceções — o que são e como ler o stack trace | Guia Java</title>
+<meta name="description" content="O que é uma exceção em Java, o que acontece quando o programa quebra, como ler um stack trace linha por linha, a hierarquia Throwable, Exception, Error e RuntimeException e as exceções mais comuns, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Exceções</span></h1>
+
+<p class="intro">Até aqui, quando algo dava errado num programa seu, ele simplesmente parava e despejava na tela umas linhas assustadoras em inglês. Essas linhas têm nome: é uma <strong>exceção</strong> com o seu <strong>stack trace</strong>. Nesta aula você vai entender o que é uma exceção, ler cada pedaço daquela mensagem e conhecer a "árvore genealógica" das exceções do Java. Nas próximas aulas, você aprende a tratá-las.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma exceção e qual a diferença para um erro de compilação.</li>
+  <li>O que acontece com o programa quando uma exceção não é tratada.</li>
+  <li>Como ler um <em>stack trace</em> linha por linha: o tipo, a mensagem e cada <code>at Classe.metodo(Arquivo.java:linha)</code>.</li>
+  <li>Como achar a linha do <strong>seu</strong> código no meio de um stack trace comprido.</li>
+  <li>A hierarquia: <code>Throwable</code>, <code>Error</code>, <code>Exception</code> e <code>RuntimeException</code>.</li>
+  <li>As exceções que você mais vai encontrar e o que cada uma quer dizer.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula foram rodados na máquina da Ana, com o JDK 25, usando o comando <code>java Main.java</code>, que compila e executa de uma vez (veja <a href="compilar-executar.html">javac e java</a>).</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Imagine a Ana no caixa de uma padaria. O normal é: o cliente pede, ela cobra, entrega o pão. Mas às vezes acontece algo <strong>fora do normal</strong>: a máquina de cartão recusa, acabou o troco, o cliente pede um pão que não existe. A Ana não pode simplesmente "continuar" como se nada tivesse acontecido. Ela para o atendimento e <strong>avisa</strong>: "não tenho troco". Alguém (ela mesma, a gerente) decide o que fazer.</p>
+<p>No Java é igual. Uma <strong>exceção</strong> (do latim <em>exceptio</em>, "o que fica fora da regra"; em inglês, <em>exception</em>) é um aviso de que aconteceu algo fora do normal <strong>enquanto o programa rodava</strong>: dividir por zero, pegar a posição 10 de um array de 5, transformar <code>"abc"</code> em número. O Java interrompe o que estava fazendo e "lança" o aviso. Se ninguém tratar o aviso, o programa termina ali.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Erro de compilação</th><th>Exceção</th></tr>
+<tr><td>Quem encontra</td><td>O <code>javac</code>, antes de rodar</td><td>A JVM, durante a execução</td></tr>
+<tr><td>O programa chega a rodar?</td><td>Não: nenhuma linha é executada</td><td>Sim: roda até o ponto do problema</td></tr>
+<tr><td>Causa típica</td><td>Código escrito errado (falta <code>;</code>, tipo errado)</td><td>Código certo, mas um <strong>valor</strong> inesperado (zero, <code>null</code>, texto no lugar de número)</td></tr>
+<tr><td>Como aparece</td><td><code>Main.java:5: error: …</code></td><td><code>Exception in thread "main" …</code></td></tr>
+<tr><td>Aula</td><td><a href="erros-compilacao.html">Lendo Erros do javac</a></td><td>esta</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>O programa "quebrando"</h2>
+<p>A Ana guardou as notas de cinco provas num <a href="arrays.html">array</a>. As posições de um array começam em <code>0</code>, então as cinco notas estão nas posições 0, 1, 2, 3 e 4. Veja o que acontece quando o programa pede a posição 5:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 6, 10, 8};
+        System.out.println("Primeira nota: " + notas[0]);
+        System.out.println("Sexta nota: " + notas[5]);
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+
+<p>O código está escrito corretamente: o <code>javac</code> não reclama de nada. O problema só aparece quando ele roda:</p>
+
+<pre class="term">$ java Main.java
+Primeira nota: 7
+Exception in thread "main" java.lang.ArrayIndexOutOfBoundsException: Index 5 out of bounds for length 5
+	at Main.main(Main.java:5)
+$ echo $?
+1</pre>
+
+<p>Repare em três coisas:</p>
+<ol>
+  <li><strong>A linha 4 rodou</strong>: <code>Primeira nota: 7</code> apareceu. O programa funcionou normalmente até o problema.</li>
+  <li><strong>A linha 5 lançou a exceção</strong> e o programa parou ali. Nem a própria linha 5 terminou (o <code>println</code> não mostrou nada).</li>
+  <li><strong>A linha 6 nunca rodou</strong>: <code>Fim do programa</code> não aparece. E o código de saída (o número que o programa devolve ao terminar, mostrado com <code>echo $?</code>) foi <code>1</code>, que significa "terminou com erro". Um programa que termina bem devolve <code>0</code>.</li>
+</ol>
+
+<p>É isso que chamamos de exceção <strong>não tratada</strong> (ou "não capturada"): ninguém cuidou do aviso, então o Java mostra o relatório do problema e encerra o programa. Na aula <a href="try-catch.html">try e catch</a>, você vai aprender a cuidar do aviso e deixar o programa continuar.</p>
+
+<div class="tryjava" data-goal="excecao:ArrayIndexOutOfBoundsException,out:Quinta nota: 8">
+<p class="try-task"><strong>Missão:</strong> o programa abaixo mostra a primeira nota. Faça-o mostrar a <strong>quinta</strong> nota (<code>8</code>, na posição 4) e, na linha seguinte, tentar mostrar uma nota que não existe. Rode e leia a exceção.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 6, 10, 8};
+        System.out.println("Primeira nota: " + notas[0]);
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int[] notas = {7, 9, 6, 10, 8};
+        System.out.println("Quinta nota: " + notas[4]);
+        System.out.println("Nota inexistente: " + notas[5]);
+        System.out.println("Fim do programa");
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Lendo o stack trace, linha por linha</h2>
+<p>O "relatório" que o Java mostra se chama <strong>stack trace</strong> (em inglês, "rastro da pilha"). Parece assustador, mas ele tem sempre as mesmas partes. Vamos usar um programa com três <a href="metodos.html">métodos</a>, um chamando o outro, para ver o rastro completo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static int dividir(int a, int b) {
+        return a / b;
+    }
+    static double media(int soma, int qtd) {
+        return dividir(soma, qtd);
+    }
+    public static void main(String[] args) {
+        System.out.println("Começando");
+        System.out.println(media(30, 0));
+        System.out.println("Fim");
+    }
+}
+</pre>
+
+<p>O <code>main</code> chama <code>media(30, 0)</code>, que chama <code>dividir(30, 0)</code>, que tenta fazer <code>30 / 0</code>. Divisão de inteiro por zero não existe:</p>
+
+<pre class="term">$ java Main.java
+Começando
+Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.dividir(Main.java:3)
+	at Main.media(Main.java:6)
+	at Main.main(Main.java:10)</pre>
+
+<p>Agora, pedaço por pedaço da primeira linha:</p>
+
+<dl class="anatomy">
+  <dt>Exception in thread "main"</dt><dd>"Exceção na <em>thread</em> main". Uma <em>thread</em> ("linha de execução") é um caminho que o programa está percorrendo; o seu programa começa na thread chamada <code>main</code>, a mesma do método <code>main</code>. Você vai conhecer outras threads em <a href="threads.html">Threads</a>.</dd>
+  <dt>java.lang.ArithmeticException</dt><dd>O <strong>tipo</strong> da exceção, com o nome completo: <code>java.lang</code> é o <a href="pacotes.html">pacote</a> e <code>ArithmeticException</code> ("exceção aritmética") é a classe. O nome já diz muito: algo deu errado numa conta.</dd>
+  <dt>: / by zero</dt><dd>A <strong>mensagem</strong>, depois dos dois-pontos: "dividido por zero". Nem toda exceção tem mensagem; quando tem, ela costuma dizer o valor que causou o problema.</dd>
+</dl>
+
+<p>E cada linha que começa com <code>at</code> ("em") é uma <strong>moldura</strong> (<em>frame</em>) da pilha de chamadas:</p>
+
+<dl class="anatomy">
+  <dt>at Main.dividir(Main.java:3)</dt><dd>Onde a exceção <strong>nasceu</strong>: no método <code>dividir</code> da classe <code>Main</code>, na <strong>linha 3</strong> do arquivo <code>Main.java</code> (<code>return a / b;</code>).</dd>
+  <dt>at Main.media(Main.java:6)</dt><dd>Quem chamou o <code>dividir</code>: o método <code>media</code>, na linha 6 (<code>return dividir(soma, qtd);</code>).</dd>
+  <dt>at Main.main(Main.java:10)</dt><dd>Quem chamou o <code>media</code>: o <code>main</code>, na linha 10. É o fundo da pilha, onde tudo começou.</dd>
+</dl>
+
+<h3>Por que "pilha"?</h3>
+<p>Pense numa pilha de pratos. Quando o <code>main</code> chama o <code>media</code>, o Java coloca um prato "media" em cima do prato "main". Quando o <code>media</code> chama o <code>dividir</code>, outro prato vai para o topo. O stack trace é uma foto da pilha <strong>no momento da exceção</strong>, de cima para baixo:</p>
+
+<pre>  ┌───────────────────────────┐
+  │ dividir   (linha 3)  ← a exceção nasceu aqui (topo)
+  ├───────────────────────────┤
+  │ media     (linha 6)  ← chamou o dividir
+  ├───────────────────────────┤
+  │ main      (linha 10) ← chamou o media (fundo)
+  └───────────────────────────┘</pre>
+
+<p>Por isso a regra de leitura é: <strong>a primeira linha <code>at</code> diz onde aconteceu; as de baixo dizem o caminho que levou até lá.</strong> Às vezes o erro "de verdade" não está na linha de cima: aqui, o <code>dividir</code> faz exatamente o que deveria; quem passou o zero foi o <code>main</code>, na linha 10. O stack trace mostra o caminho todo para você decidir onde consertar.</p>
+
+<div class="tip">
+<strong>Uma receita para qualquer stack trace</strong>
+<ol>
+  <li>Leia o <strong>tipo</strong> (o nome que termina em <code>Exception</code> ou <code>Error</code>).</li>
+  <li>Leia a <strong>mensagem</strong> depois dos dois-pontos.</li>
+  <li>Desça pelas linhas <code>at</code> até a primeira que cita um arquivo <strong>seu</strong> (<code>Main.java</code>, <code>Conta.java</code>…) e abra essa linha.</li>
+  <li>Se a linha estiver certa, desça mais um nível: quem chamou e com que valores?</li>
+</ol>
+</div>
+
+<div class="tryjava" data-goal="out:15.0,src:media\(30\s*\,\s*2\)">
+<p class="try-task"><strong>Missão:</strong> rode o programa e leia o stack trace. Depois conserte a chamada no <code>main</code> para calcular a média de <code>30</code> pontos em <code>2</code> provas. A saída deve ser <code>15.0</code>.</p>
+<pre class="script">public class Main {
+    static int dividir(int a, int b) {
+        return a / b;
+    }
+    static double media(int soma, int qtd) {
+        return dividir(soma, qtd);
+    }
+    public static void main(String[] args) {
+        System.out.println("Começando");
+        System.out.println(media(30, 0));
+        System.out.println("Fim");
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static int dividir(int a, int b) {
+        return a / b;
+    }
+    static double media(int soma, int qtd) {
+        return dividir(soma, qtd);
+    }
+    public static void main(String[] args) {
+        System.out.println("Começando");
+        System.out.println(media(30, 2));
+        System.out.println("Fim");
+    }
+}
+</pre>
+</div>
+
+<h3>Stack traces compridos: procure o seu arquivo</h3>
+<p>Quando a exceção nasce <strong>dentro</strong> da biblioteca do Java, o rastro mostra também os métodos do próprio Java. A Ana tentou transformar um texto em número com <code>Integer.parseInt</code> (veja <a href="wrappers.html">Wrappers</a>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String idade = "29 anos";
+        int numero = Integer.parseInt(idade);
+        System.out.println(numero + 1);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.NumberFormatException: For input string: "29 anos"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:4)</pre>
+
+<p>As três primeiras linhas <code>at</code> começam com <code>java.base/</code>: são métodos do <strong>módulo</strong> <code>java.base</code>, o coração da biblioteca padrão. Você não vai abrir o <code>Integer.java</code> para consertar o Java; o problema está no valor que <strong>você</strong> passou. A primeira linha sua é <code>at Main.main(Main.java:4)</code>: a chamada <code>Integer.parseInt(idade)</code>. E a mensagem conta o motivo: <code>For input string: "29 anos"</code>, "para o texto de entrada "29 anos"". O texto tem letras, então não vira número.</p>
+
+<p>Às vezes o rastro do Java é bem mais comprido. Este é o <code>charAt</code> pedindo a décima letra de <code>"uva"</code>:</p>
+
+<pre class="term">$ java Main.java
+Primeira letra: u
+Exception in thread "main" java.lang.StringIndexOutOfBoundsException: Index 9 out of bounds for length 3
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:55)
+	at java.base/jdk.internal.util.Preconditions$1.apply(Preconditions.java:52)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:213)
+	at java.base/jdk.internal.util.Preconditions$4.apply(Preconditions.java:210)
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:98)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+	at java.base/java.lang.String.checkIndex(String.java:4904)
+	at java.base/java.lang.StringLatin1.charAt(StringLatin1.java:45)
+	at java.base/java.lang.String.charAt(String.java:1624)
+	at Main.main(Main.java:5)</pre>
+
+<p>Dez linhas do Java e, lá no fim, uma sua. Não se assuste: pule tudo o que começa com <code>java.base/</code> e vá direto para <code>Main.java:5</code>. A mensagem <code>Index 9 out of bounds for length 3</code> ("índice 9 fora dos limites para o tamanho 3") já explica tudo: <code>"uva"</code> tem 3 letras, nas posições 0, 1 e 2.</p>
+
+<hr>
+
+<h2>Exceções são objetos</h2>
+<p>Uma exceção não é só uma mensagem na tela: é um <strong>objeto</strong> de verdade, criado a partir de uma <strong>classe</strong>, como os objetos que você criou em <a href="classes-objetos.html">Classes e Objetos</a>. <code>ArithmeticException</code>, <code>NumberFormatException</code> e todas as outras são classes. Quando o problema acontece, o Java cria um objeto dessa classe (com a mensagem e o stack trace guardados dentro) e o "lança".</p>
+<p>E, como toda classe, elas formam uma família por <a href="heranca.html">herança</a>. Dá para ver a família no JShell, perguntando a cada classe quem é a "mãe" dela (a superclasse) com <code>.class.getSuperclass()</code>:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell> ArithmeticException.class.getSuperclass()
+$1 ==> class java.lang.RuntimeException
+
+jshell> RuntimeException.class.getSuperclass()
+$2 ==> class java.lang.Exception
+
+jshell> Exception.class.getSuperclass()
+$3 ==> class java.lang.Throwable
+
+jshell> Throwable.class.getSuperclass()
+$4 ==> class java.lang.Object
+
+jshell> NumberFormatException.class.getSuperclass()
+$5 ==> class java.lang.IllegalArgumentException
+
+jshell> java.io.IOException.class.getSuperclass()
+$6 ==> class java.lang.Exception
+
+jshell> StackOverflowError.class.getSuperclass()
+$7 ==> class java.lang.VirtualMachineError
+
+jshell> VirtualMachineError.class.getSuperclass()
+$8 ==> class java.lang.Error
+
+jshell> /exit
+|  Goodbye</pre>
+
+<p>Seguindo as respostas, dá para montar a árvore inteira.</p>
+
+<h2>A hierarquia das exceções</h2>
+
+<pre>Object
+ └─ Throwable ................ tudo o que pode ser lançado
+     ├─ Error ................ problema grave da JVM: não se trata
+     │   └─ VirtualMachineError
+     │       ├─ OutOfMemoryError
+     │       └─ StackOverflowError
+     └─ Exception ............ problema que o programa pode tratar
+         ├─ IOException ...... (checked) entrada e saída: arquivos, rede
+         │   └─ FileNotFoundException
+         └─ RuntimeException . (unchecked) quase sempre, erro de lógica
+             ├─ ArithmeticException
+             ├─ NullPointerException
+             ├─ ClassCastException
+             ├─ IllegalArgumentException
+             │   └─ NumberFormatException
+             ├─ IndexOutOfBoundsException
+             │   ├─ ArrayIndexOutOfBoundsException
+             │   └─ StringIndexOutOfBoundsException
+             └─ NoSuchElementException
+                 └─ InputMismatchException</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Classe</th><th>Nome em português</th><th>O que representa</th></tr>
+<tr><td><code>Throwable</code></td><td>"lançável"</td><td>A raiz. Só objetos dessa família podem ser lançados com <code>throw</code> e capturados com <code>catch</code>.</td></tr>
+<tr><td><code>Error</code></td><td>erro</td><td>Problemas sérios do ambiente: a memória acabou, a pilha de chamadas estourou. O programa normalmente não tem como se recuperar, e você <strong>não</strong> deve tentar tratá-los.</td></tr>
+<tr><td><code>Exception</code></td><td>exceção</td><td>Situações que um programa bem feito pode prever e tratar: arquivo que não existe, texto que não é número.</td></tr>
+<tr><td><code>RuntimeException</code></td><td>exceção "de tempo de execução"</td><td>Um ramo de <code>Exception</code> que quase sempre indica um <strong>erro de lógica</strong> no programa: índice errado, <code>null</code> esquecido, divisão por zero. O compilador não obriga você a tratá-las.</td></tr>
+</table>
+</div>
+
+<p>Essa divisão importa por um motivo que você vai ver em <a href="checked-unchecked.html">Checked × Unchecked</a>: para as exceções do ramo <code>IOException</code> (e outras que herdam de <code>Exception</code> sem passar por <code>RuntimeException</code>), o <code>javac</code> <strong>obriga</strong> você a tratar ou declarar. Para as do ramo <code>RuntimeException</code>, não.</p>
+
+<div class="note">
+<strong>"Exceção" e "erro" no dia a dia</strong>
+<p>Na conversa, todo mundo diz "deu erro". No Java, os nomes são técnicos: <code>Error</code> é só o ramo grave da árvore; o resto são <code>Exception</code>. Nesta e nas próximas aulas, "exceção" quer dizer "qualquer coisa da família <code>Throwable</code>", como é comum nos livros.</p>
+</div>
+
+<hr>
+
+<h2>As exceções mais comuns</h2>
+<p>Estas são as exceções que quem está começando mais encontra. Todas foram provocadas de verdade no JDK 25; a mensagem é exatamente a que aparece. A lista completa, para consulta, está em <a href="ref-excecoes.html">Exceções Comuns</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção</th><th>Exemplo que provoca</th><th>Mensagem real</th></tr>
+<tr><td><code>ArithmeticException</code></td><td><code>10 / 0</code> (com <code>int</code>)</td><td><code>/ by zero</code></td></tr>
+<tr><td><code>ArrayIndexOutOfBoundsException</code></td><td><code>notas[5]</code> num array de 5</td><td><code>Index 5 out of bounds for length 5</code></td></tr>
+<tr><td><code>StringIndexOutOfBoundsException</code></td><td><code>"Ana".charAt(5)</code></td><td><code>Index 5 out of bounds for length 3</code></td></tr>
+<tr><td><code>NullPointerException</code></td><td><code>nome.length()</code> com <code>nome = null</code></td><td><code>Cannot invoke "String.length()" because "&lt;local1&gt;" is null</code></td></tr>
+<tr><td><code>NumberFormatException</code></td><td><code>Integer.parseInt("29 anos")</code></td><td><code>For input string: "29 anos"</code></td></tr>
+<tr><td><code>InputMismatchException</code></td><td><code>teclado.nextInt()</code> e a pessoa digita <code>vinte</code></td><td>(sem mensagem)</td></tr>
+<tr><td><code>ClassCastException</code></td><td><code>(Integer) coisa</code>, com <code>coisa</code> sendo uma <code>String</code></td><td><code>class java.lang.String cannot be cast to class java.lang.Integer (…)</code></td></tr>
+</table>
+</div>
+
+<h3>NullPointerException: a mais famosa</h3>
+<p><code>null</code> quer dizer "nenhum objeto". Uma variável <code>String</code> com <code>null</code> não guarda texto nenhum, nem vazio. Chamar um método nela é pedir algo a ninguém:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String nome = null;
+        System.out.println(nome.length());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "&lt;local1&gt;" is null
+	at Main.main(Main.java:4)</pre>
+
+<p>A mensagem diz: "não dá para chamar <code>String.length()</code> porque <code>&lt;local1&gt;</code> é nulo". O <code>&lt;local1&gt;</code> é a forma de o Java dizer "a variável local número 1" (a 0 é o <code>args</code>), porque, por padrão, o compilador não guarda os nomes das variáveis no programa compilado. Se você compilar com a opção <code>-g</code> (de <em>debug</em>, depuração), o nome aparece:</p>
+
+<pre class="term">$ javac -g Main.java &amp;&amp; java Main
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "String.length()" because "nome" is null
+	at Main.main(Main.java:4)</pre>
+
+<h3>InputMismatchException: o usuário digitou outra coisa</h3>
+<p>Com o <a href="scanner.html">Scanner</a>, o programa pede um número e a pessoa digita texto:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner teclado = new Scanner(System.in);
+        System.out.print("Sua idade: ");
+        int idade = teclado.nextInt();
+        System.out.println("Ano que vem: " + (idade + 1));
+    }
+}
+</pre>
+
+<pre class="term">$ echo "vinte" | java Main.java
+Sua idade: Exception in thread "main" java.util.InputMismatchException
+	at java.base/java.util.Scanner.throwFor(Scanner.java:977)
+	at java.base/java.util.Scanner.next(Scanner.java:1632)
+	at java.base/java.util.Scanner.nextInt(Scanner.java:2297)
+	at java.base/java.util.Scanner.nextInt(Scanner.java:2251)
+	at Main.main(Main.java:7)</pre>
+
+<p>O <code>echo "vinte" |</code> faz o papel da pessoa digitando <code>vinte</code>. Esta exceção não tem mensagem (nada depois do nome), e o nome basta: "entrada não combina" com o que foi pedido. Repare que o <code>Sua idade: </code> e a exceção ficaram na mesma linha: o <code>print</code> não pula linha, e a exceção foi escrita logo depois.</p>
+
+<h3>ClassCastException: conversão de objeto impossível</h3>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        Object coisa = "banana";
+        Integer numero = (Integer) coisa;
+    }
+}
+</pre>
+<pre class="term">$ java Main.java
+Exception in thread "main" java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Integer (java.lang.String and java.lang.Integer are in module java.base of loader 'bootstrap')
+	at Main.main(Main.java:4)</pre>
+<p>"A classe <code>String</code> não pode ser convertida na classe <code>Integer</code>". A parte entre parênteses é um detalhe técnico (de onde cada classe foi carregada) que você pode ignorar. Você vai entender bem esse caso em <a href="polimorfismo.html">Polimorfismo</a>.</p>
+
+<div class="tryjava" data-goal="excecao:StringIndexOutOfBoundsException,src:charAt">
+<p class="try-task"><strong>Missão:</strong> provoque uma <code>StringIndexOutOfBoundsException</code> de propósito: depois de mostrar a primeira letra de <code>fruta</code>, peça com <code>charAt</code> uma letra que não existe. Leia o stack trace e ache a linha do seu código.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String fruta = "uva";
+        System.out.println("Primeira letra: " + fruta.charAt(0));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String fruta = "uva";
+        System.out.println("Primeira letra: " + fruta.charAt(0));
+        System.out.println("Décima letra: " + fruta.charAt(9));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"Mas a linha que o stack trace aponta está certa!"</strong>
+<pre class="term">Exception in thread "main" java.lang.ArithmeticException: / by zero
+	at Main.dividir(Main.java:3)
+	at Main.media(Main.java:6)
+	at Main.main(Main.java:10)</pre>
+<p><strong>O que aconteceu:</strong> a linha de cima mostra onde o problema <strong>apareceu</strong>, não necessariamente onde ele foi <strong>criado</strong>. <code>return a / b;</code> está certo; o zero veio de longe.</p>
+<p><strong>Como resolver:</strong> desça pelas linhas <code>at</code>. Em cada uma, pergunte: "que valores este método recebeu?". Aqui, a linha 10 passa <code>0</code> como quantidade de provas. Conserte o valor na origem (ou valide o parâmetro, como você vai aprender em <a href="throw-throws.html">throw e throws</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>O stack trace só mostra arquivos do Java</strong>
+<p><strong>O que aconteceu:</strong> o rastro é longo e as primeiras linhas são todas <code>java.base/…</code>. Isso não quer dizer que o Java está com defeito: quase sempre é um valor errado que o seu código entregou para a biblioteca.</p>
+<p><strong>Como resolver:</strong> procure a primeira linha <code>at</code> que cita um arquivo seu (<code>Main.java:5</code>). É ali que você chamou a biblioteca com o valor problemático.</p>
+</div>
+
+<div class="cenario">
+<strong>Divisão por zero que não dá exceção</strong>
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell> 10 / 0
+|  Exception java.lang.ArithmeticException: / by zero
+|        at (#1:1)
+
+jshell> 10.0 / 0
+$2 ==> Infinity
+
+jshell> /exit
+|  Goodbye</pre>
+<p><strong>O que aconteceu:</strong> só a divisão de <strong>inteiros</strong> (<code>int</code>, <code>long</code>) por zero lança <code>ArithmeticException</code>. Com <code>double</code>, o resultado é o valor especial <code>Infinity</code> ("infinito"), sem exceção nenhuma (veja <a href="decimais.html">double e float</a>). Repare também que o JShell mostra exceções num formato um pouco diferente (<code>|  Exception</code>, <code>at (#1:1)</code> = "no trecho 1, linha 1").</p>
+<p><strong>Como resolver:</strong> se o divisor pode ser zero, verifique antes com um <code>if</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo</th><th>O que é</th></tr>
+<tr><td>Exceção</td><td>Objeto que representa algo fora do normal durante a execução</td></tr>
+<tr><td>Lançar (<em>throw</em>)</td><td>Interromper o código e "enviar" a exceção para quem chamou</td></tr>
+<tr><td>Capturar / tratar (<em>catch</em>)</td><td>Receber a exceção e decidir o que fazer (<a href="try-catch.html">try e catch</a>)</td></tr>
+<tr><td>Exceção não tratada</td><td>Ninguém capturou: o Java mostra o stack trace e encerra com código de saída 1</td></tr>
+<tr><td>Stack trace</td><td>O relatório: <code>tipo: mensagem</code> + uma linha <code>at</code> por método na pilha</td></tr>
+<tr><td><code>at Classe.metodo(Arquivo.java:N)</code></td><td>Uma moldura da pilha: método e linha. A de cima é onde a exceção nasceu</td></tr>
+<tr><td><code>java.base/…</code></td><td>Moldura dentro da biblioteca padrão do Java</td></tr>
+<tr><td><code>Throwable</code></td><td>Raiz de todas as exceções</td></tr>
+<tr><td><code>Error</code></td><td>Problema grave da JVM; não trate</td></tr>
+<tr><td><code>Exception</code></td><td>Problema que o programa pode tratar</td></tr>
+<tr><td><code>RuntimeException</code></td><td>Exceções de lógica; o compilador não obriga a tratar</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O tipo da exceção</h3>
+<p>No stack trace abaixo, qual é o <strong>nome da classe</strong> da exceção (sem o pacote)?</p>
+<pre class="term">Exception in thread "main" java.lang.NumberFormatException: For input string: "dez"
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)
+	at java.base/java.lang.Integer.parseInt(Integer.java:565)
+	at java.base/java.lang.Integer.parseInt(Integer.java:662)
+	at Main.main(Main.java:6)</pre>
+<div class="ex-code"><input data-answer="NumberFormatException" aria-label="nome da exceção"></div>
+</div>
+
+<div class="exercise">
+<h3>2. A linha do seu código</h3>
+<p>No mesmo stack trace, em que <strong>linha</strong> do <code>Main.java</code> está a chamada que deu problema?</p>
+<div class="ex-code">linha <input data-answer="6" aria-label="número da linha"></div>
+</div>
+
+<div class="exercise">
+<h3>3. A mãe de todas</h3>
+<p>Complete: a classe que está no topo da hierarquia de exceções (abaixo de <code>Object</code>) é <code>…</code></p>
+<div class="ex-code"><input data-answer="Throwable" aria-label="classe raiz"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um programa mostrou <code>Começando</code> e depois um stack trace de <code>ArithmeticException</code>. O que aconteceu com as linhas que vinham depois da linha do problema?</p>
+<label><input type="radio" name="q4"> Rodaram normalmente, só aquela linha foi pulada.</label>
+<label><input type="radio" name="q4"> Não rodaram: a exceção não tratada encerrou o programa.</label>
+<label><input type="radio" name="q4"> O <code>javac</code> não deixou o programa ser compilado.</label>
+<label><input type="radio" name="q4"> Rodaram, mas com o resultado zero.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Num stack trace com várias linhas <code>at</code>, qual indica o lugar exato onde a exceção nasceu?</p>
+<label><input type="radio" name="q5"> A última.</label>
+<label><input type="radio" name="q5"> A que cita o método <code>main</code>.</label>
+<label><input type="radio" name="q5"> A primeira.</label>
+<label><input type="radio" name="q5"> Nenhuma: o stack trace não mostra isso.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. <code>NumberFormatException</code> é filha de <code>IllegalArgumentException</code>, que é filha de…</p>
+<label><input type="radio" name="q6"> <code>Error</code></label>
+<label><input type="radio" name="q6"> <code>IOException</code></label>
+<label><input type="radio" name="q6"> <code>Throwable</code>, diretamente</label>
+<label><input type="radio" name="q6"> <code>RuntimeException</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Qual destas linhas lança uma exceção?</p>
+<label><input type="radio" name="q7"> <code>int x = 7 / 0;</code></label>
+<label><input type="radio" name="q7"> <code>double x = 7.0 / 0;</code></label>
+<label><input type="radio" name="q7"> <code>String s = null;</code></label>
+<label><input type="radio" name="q7"> <code>int[] a = new int[0];</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>exceção</strong> é um aviso de que algo fora do normal aconteceu <strong>durante a execução</strong>. Erros de compilação acontecem antes, no <code>javac</code>.</li>
+  <li>Exceção não tratada: o programa para na linha do problema, mostra o stack trace e termina com código de saída <code>1</code>.</li>
+  <li>O stack trace tem o <strong>tipo</strong>, a <strong>mensagem</strong> e uma linha <code>at Classe.metodo(Arquivo.java:linha)</code> para cada método da pilha. A primeira <code>at</code> é onde nasceu; as de baixo, o caminho até lá.</li>
+  <li>Em rastros longos, pule as linhas <code>java.base/…</code> e procure o seu arquivo.</li>
+  <li>Exceções são objetos de classes da família <code>Throwable</code>: <code>Error</code> (grave, não trate) e <code>Exception</code>, que inclui o ramo <code>RuntimeException</code> (erros de lógica).</li>
+  <li>As mais comuns: <code>ArithmeticException</code>, <code>ArrayIndexOutOfBoundsException</code>, <code>NullPointerException</code>, <code>NumberFormatException</code>, <code>InputMismatchException</code>. Próximo passo: tratá-las com <a href="try-catch.html">try e catch</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
