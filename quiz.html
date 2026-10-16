@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Quiz — 54 perguntas com código, do básico ao avançado | Guia Java</title>
+<meta name="description" content="Quiz do Guia Java: 54 perguntas sobre Java 25 nos três níveis, a maioria do tipo &quot;o que este código imprime?&quot;, com correção na hora, explicação e link para revisar. Todas as respostas foram conferidas num JDK 25 real.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Quiz</span></h1>
+
+<p class="intro">Cinquenta e quatro perguntas sobre o que você estudou no guia, divididas nos três níveis. A maioria mostra um trecho de código e pergunta <strong>o que ele imprime</strong>: tente responder de cabeça, sem rodar. Cada resposta foi conferida num JDK 25 de verdade. A correção é na hora; abra "Explicação" para entender o porquê, e o link "Revise" leva à aula do assunto.</p>
+
+<p>Acertos: <strong id="placar">0 de 54</strong></p>
+
+<div class="note">
+<strong>Como os trechos funcionam</strong>
+<p>Para economizar espaço, os trechos mostram só o essencial: imagine-os dentro de um <code>main</code>, com os <code>import</code> necessários (<code>java.util.*</code>, <code>java.util.stream.*</code>, <code>java.util.function.*</code>, <code>java.math.BigDecimal</code>, <code>java.time.LocalDate</code>). Classes, records e enums dos exemplos ficam fora do <code>main</code>, como em qualquer programa.</p>
+</div>
+
+<p>Ir para: <a href="#nivel1">Nível 1</a> · <a href="#nivel2">Nível 2</a> · <a href="#nivel3">Nível 3</a></p>
+
+<h2 id="nivel1">Nível 1 · Iniciante</h2>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">1. O que este código imprime?</p>
+<pre class="file">System.out.println(10 / 3);</pre>
+<label><input type="radio" name="q1"> 3.33</label>
+<label><input type="radio" name="q1"> 3.0</label>
+<label><input type="radio" name="q1"> 4</label>
+<label><input type="radio" name="q1"> 3</label>
+<details><summary>Explicação</summary><p>Entre dois <code>int</code>, a divisão é inteira: a parte decimal é descartada (não arredonda).</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="operadores-aritmeticos.html">Operadores Aritméticos</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. O que este código imprime?</p>
+<pre class="file">System.out.println(10 % 3);</pre>
+<label><input type="radio" name="q2"> 3</label>
+<label><input type="radio" name="q2"> 1</label>
+<label><input type="radio" name="q2"> 0</label>
+<label><input type="radio" name="q2"> 3.33</label>
+<details><summary>Explicação</summary><p><code>%</code> é o resto da divisão: 10 = 3 × 3 + <strong>1</strong>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="operadores-aritmeticos.html">Operadores Aritméticos</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que este código imprime?</p>
+<pre class="file">System.out.println(1 + 2 + "3" + 4 + 5);</pre>
+<label><input type="radio" name="q3"> 15</label>
+<label><input type="radio" name="q3"> 12345</label>
+<label><input type="radio" name="q3"> 3345</label>
+<label><input type="radio" name="q3"> 339</label>
+<details><summary>Explicação</summary><p>Da esquerda para a direita: <code>1 + 2</code> = 3 (números); <code>3 + "3"</code> = <code>"33"</code> (vira texto); daí em diante tudo é concatenação: <code>"3345"</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="concatenacao.html">Concatenação</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que este código imprime?</p>
+<pre class="file">int x = 5;
+x += 3 * 2;
+System.out.println(x);</pre>
+<label><input type="radio" name="q4"> 16</label>
+<label><input type="radio" name="q4"> 11</label>
+<label><input type="radio" name="q4"> 13</label>
+<label><input type="radio" name="q4"> 6</label>
+<details><summary>Explicação</summary><p><code>x += 3 * 2</code> é <code>x = x + (3 * 2)</code>: a multiplicação vem primeiro. 5 + 6 = 11.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="operadores-atribuicao.html">Operadores de Atribuição</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O que este código imprime?</p>
+<pre class="file">char c = 'A';
+c++;
+System.out.println(c);</pre>
+<label><input type="radio" name="q5"> A1</label>
+<label><input type="radio" name="q5"> B</label>
+<label><input type="radio" name="q5"> 66</label>
+<label><input type="radio" name="q5"> Erro de compilação</label>
+<details><summary>Explicação</summary><p>Um <code>char</code> é um número (o código Unicode). <code>'A'</code> é 65; mais 1 dá 66, que é <code>'B'</code>. Como a variável é <code>char</code>, imprime a letra.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="char-boolean.html">char e boolean</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. O que este código imprime?</p>
+<pre class="file">System.out.println(0.1 + 0.2);</pre>
+<label><input type="radio" name="q6"> 0.3</label>
+<label><input type="radio" name="q6"> 0.30</label>
+<label><input type="radio" name="q6"> 0,3</label>
+<label><input type="radio" name="q6"> 0.30000000000000004</label>
+<details><summary>Explicação</summary><p>O <code>double</code> guarda os números em binário, e 0,1 e 0,2 não têm representação exata. Para dinheiro, use <code>BigDecimal</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="decimais.html">double e float</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">7. O que este código imprime?</p>
+<pre class="file">int i = Integer.MAX_VALUE;
+i++;
+System.out.println(i);</pre>
+<label><input type="radio" name="q7"> 2147483648</label>
+<label><input type="radio" name="q7"> -2147483648</label>
+<label><input type="radio" name="q7"> Lança ArithmeticException</label>
+<label><input type="radio" name="q7"> 0</label>
+<details><summary>Explicação</summary><p>Overflow: passar do maior <code>int</code> "dá a volta" para o menor, sem erro nenhum.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="inteiros.html">int, long, short, byte</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">8. O que este código imprime?</p>
+<pre class="file">for (int i = 0; i &lt; 3; i++) {
+    System.out.print(i + " ");
+}</pre>
+<label><input type="radio" name="q8"> 1 2 3 </label>
+<label><input type="radio" name="q8"> 0 1 2 3 </label>
+<label><input type="radio" name="q8"> 0 1 </label>
+<label><input type="radio" name="q8"> 0 1 2 </label>
+<details><summary>Explicação</summary><p>Começa em 0 e repete enquanto <code>i &lt; 3</code>: 0, 1 e 2.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="for.html">for</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">9. O que este código imprime?</p>
+<pre class="file">String s = "Java";
+System.out.println(s.length() + s.charAt(0));</pre>
+<label><input type="radio" name="q9"> 78</label>
+<label><input type="radio" name="q9"> Java4</label>
+<label><input type="radio" name="q9"> 4J</label>
+<label><input type="radio" name="q9"> Erro de compilação</label>
+<details><summary>Explicação</summary><p>Pegadinha: <code>length()</code> é <code>int</code> e <code>charAt(0)</code> é <code>char</code>. <code>int + char</code> é uma <strong>conta</strong>: 4 + 74 (o código de <code>'J'</code>) = 78. Para juntar como texto, comece com uma String: <code>"" + 4 + 'J'</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="char-boolean.html">char e boolean</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">10. O que este código imprime?</p>
+<pre class="file">int dia = 7;
+String t = switch (dia) {
+    case 1, 7 -&gt; "fim de semana";
+    default -&gt; "dia útil";
+};
+System.out.println(t);</pre>
+<label><input type="radio" name="q10"> fim de semana</label>
+<label><input type="radio" name="q10"> dia útil</label>
+<label><input type="radio" name="q10"> 7</label>
+<label><input type="radio" name="q10"> Erro: falta break</label>
+<details><summary>Explicação</summary><p><code>case 1, 7</code> junta dois valores. Com setas, não existe "cair" no próximo caso, então não precisa de <code>break</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="switch-expressoes.html">switch com Setas</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">11. Quanto vale <code>b</code>?</p>
+<pre class="file">boolean b = 5 &gt; 3 &amp;&amp; 2 &gt; 4 || true;</pre>
+<label><input type="radio" name="q11"> null</label>
+<label><input type="radio" name="q11"> false</label>
+<label><input type="radio" name="q11"> Erro de compilação</label>
+<label><input type="radio" name="q11"> true</label>
+<details><summary>Explicação</summary><p><code>&amp;&amp;</code> é feito antes de <code>||</code>: <code>(true &amp;&amp; false) || true</code> = <code>false || true</code> = <code>true</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="precedencia.html">Precedência</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">12. O que este código imprime?</p>
+<pre class="file">double d = 7 / 2;
+System.out.println(d);</pre>
+<label><input type="radio" name="q12"> 3.0</label>
+<label><input type="radio" name="q12"> 3</label>
+<label><input type="radio" name="q12"> 3.5</label>
+<label><input type="radio" name="q12"> 4.0</label>
+<details><summary>Explicação</summary><p><code>7 / 2</code> é calculado entre dois <code>int</code> (dá 3) <strong>antes</strong> de ir para o <code>double</code>, que só acrescenta o <code>.0</code>. Para 3.5: <code>7.0 / 2</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="conversao-tipos.html">Conversão de Tipos</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">13. Na máquina da Ana (sistema em português do Brasil), o que isto imprime?</p>
+<pre class="file">System.out.printf("%.2f%n", 3.14159);</pre>
+<label><input type="radio" name="q13"> 3.14</label>
+<label><input type="radio" name="q13"> 3,1</label>
+<label><input type="radio" name="q13"> 3.14159</label>
+<label><input type="radio" name="q13"> 3,14</label>
+<details><summary>Explicação</summary><p><code>printf</code> e <code>String.format</code> usam o idioma do sistema: em pt_BR, vírgula decimal. Já o <code>println</code> de um <code>double</code> sempre usa ponto.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="formatacao.html">Formatar Texto</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">14. O que este código imprime?</p>
+<pre class="file">int[] v = {4, 8, 15};
+int soma = 0;
+for (int x : v) soma += x;
+System.out.println(soma / v.length);</pre>
+<label><input type="radio" name="q14"> 3</label>
+<label><input type="radio" name="q14"> 9.0</label>
+<label><input type="radio" name="q14"> 27</label>
+<label><input type="radio" name="q14"> 9</label>
+<details><summary>Explicação</summary><p>A soma é 27 e <code>v.length</code> é 3. 27 / 3 = 9, divisão inteira.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="for-each.html">for-each</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">15. O que este código imprime?</p>
+<pre class="file">int i = 0;
+while (i &lt; 10) {
+    i += 4;
+}
+System.out.println(i);</pre>
+<label><input type="radio" name="q15"> 12</label>
+<label><input type="radio" name="q15"> 8</label>
+<label><input type="radio" name="q15"> 10</label>
+<label><input type="radio" name="q15"> Laço infinito</label>
+<details><summary>Explicação</summary><p>i vale 0, 4, 8 e 12. Com 12 a condição <code>i &lt; 10</code> fica falsa e o laço para.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="while.html">while e do-while</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">16. O que o <code>javac</code> produz a partir de <code>Ola.java</code>?</p>
+<label><input type="radio" name="q16"> Um executável <code>Ola.exe</code></label>
+<label><input type="radio" name="q16"> Código de máquina do processador</label>
+<label><input type="radio" name="q16"> O arquivo <code>Ola.class</code>, com bytecode para a JVM</label>
+<label><input type="radio" name="q16"> Um JAR</label>
+<details><summary>Explicação</summary><p>O compilador gera bytecode, que roda em qualquer sistema com uma JVM.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="compilar-executar.html">javac e java</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">17. Qual destas versões do Java é LTS (suporte longo) e é a ensinada neste guia?</p>
+<label><input type="radio" name="q17"> 22</label>
+<label><input type="radio" name="q17"> 23</label>
+<label><input type="radio" name="q17"> 24</label>
+<label><input type="radio" name="q17"> 25</label>
+<details><summary>Explicação</summary><p>As LTS recentes são 8, 11, 17, 21 e 25.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="versoes.html">Versões e LTS</a></p>
+</div>
+
+<h2 id="nivel2">Nível 2 · Intermediário</h2>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">18. O que este código imprime?</p>
+<pre class="file">String a = "oi";
+String b = new String("oi");
+System.out.println(a == b);
+System.out.println(a.equals(b));</pre>
+<label><input type="radio" name="q18"> true / true</label>
+<label><input type="radio" name="q18"> false / true</label>
+<label><input type="radio" name="q18"> true / false</label>
+<label><input type="radio" name="q18"> false / false</label>
+<details><summary>Explicação</summary><p><code>==</code> compara se é o <strong>mesmo objeto</strong>; <code>equals</code> compara o conteúdo. <code>new String</code> cria outro objeto.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="strings.html">Strings</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">19. O que <code>f(5)</code> imprime?</p>
+<pre class="file">static void f(int x)    { System.out.println("int"); }
+static void f(double x) { System.out.println("double"); }</pre>
+<label><input type="radio" name="q19"> Erro: chamada ambígua</label>
+<label><input type="radio" name="q19"> double</label>
+<label><input type="radio" name="q19"> int</label>
+<label><input type="radio" name="q19"> int e double</label>
+<details><summary>Explicação</summary><p>Sobrecarga: o Java escolhe a versão que combina exatamente com o argumento. <code>5</code> é <code>int</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="sobrecarga.html">Sobrecarga</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">20. O que este código imprime?</p>
+<pre class="file">class Animal { String som() { return "..."; } }
+class Gato extends Animal {
+    @Override String som() { return "Miau"; }
+}
+
+Animal a = new Gato();
+System.out.println(a.som());</pre>
+<label><input type="radio" name="q20"> ...</label>
+<label><input type="radio" name="q20"> Miau</label>
+<label><input type="radio" name="q20"> Erro de compilação</label>
+<label><input type="radio" name="q20"> Animal</label>
+<details><summary>Explicação</summary><p>Polimorfismo: a variável é do tipo <code>Animal</code>, mas o objeto é um <code>Gato</code>, e é o método do objeto que roda.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="polimorfismo.html">Polimorfismo</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">21. O que imprime depois de três <code>new Contador()</code>?</p>
+<pre class="file">class Contador {
+    static int total = 0;
+    Contador() { total++; }
+}
+
+new Contador(); new Contador(); new Contador();
+System.out.println(Contador.total);</pre>
+<label><input type="radio" name="q21"> 1</label>
+<label><input type="radio" name="q21"> 0</label>
+<label><input type="radio" name="q21"> 3</label>
+<label><input type="radio" name="q21"> Erro: total não é de objeto</label>
+<details><summary>Explicação</summary><p>Um atributo <code>static</code> é um só para a classe inteira: os três objetos somam no mesmo <code>total</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="static.html">static</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">22. O que este código imprime?</p>
+<pre class="file">try {
+    System.out.println("A");
+    int x = 1 / 0;
+    System.out.println("B");
+} catch (ArithmeticException e) {
+    System.out.println("C");
+} finally {
+    System.out.println("D");
+}</pre>
+<label><input type="radio" name="q22"> A B C D</label>
+<label><input type="radio" name="q22"> A D</label>
+<label><input type="radio" name="q22"> A C D</label>
+<label><input type="radio" name="q22"> A C</label>
+<details><summary>Explicação</summary><p>A divisão por zero pula o resto do <code>try</code> (o B não aparece), vai para o <code>catch</code> e, no fim, o <code>finally</code> roda sempre.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="finally.html">finally</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">23. O que este código imprime?</p>
+<pre class="file">record Ponto(int x, int y) { }
+System.out.println(new Ponto(1, 2));</pre>
+<label><input type="radio" name="q23"> Ponto[x=1, y=2]</label>
+<label><input type="radio" name="q23"> Ponto@1b6d3586</label>
+<label><input type="radio" name="q23"> (1, 2)</label>
+<label><input type="radio" name="q23"> Ponto(1, 2)</label>
+<details><summary>Explicação</summary><p>Records ganham um <code>toString</code> pronto, no formato <code>Nome[componente=valor, …]</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="records.html">Records</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">24. Com o mesmo record, quanto vale <code>new Ponto(1, 2).equals(new Ponto(1, 2))</code>?</p>
+<label><input type="radio" name="q24"> Depende da memória</label>
+<label><input type="radio" name="q24"> false</label>
+<label><input type="radio" name="q24"> Erro de compilação</label>
+<label><input type="radio" name="q24"> true</label>
+<details><summary>Explicação</summary><p>Records comparam pelo conteúdo: mesmos componentes, objetos iguais.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="records.html">Records</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">25. O que imprime?</p>
+<pre class="file">enum Dia { SEG, TER, QUA }
+System.out.println(Dia.TER.ordinal());</pre>
+<label><input type="radio" name="q25"> 2</label>
+<label><input type="radio" name="q25"> 1</label>
+<label><input type="radio" name="q25"> TER</label>
+<label><input type="radio" name="q25"> 0</label>
+<details><summary>Explicação</summary><p><code>ordinal()</code> é a posição da constante, começando em 0: SEG é 0, TER é 1.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="enums.html">Enums</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">26. O que imprime?</p>
+<pre class="file">StringBuilder sb = new StringBuilder("abc");
+sb.reverse();
+sb.append("!");
+System.out.println(sb);</pre>
+<label><input type="radio" name="q26"> abc!</label>
+<label><input type="radio" name="q26"> abc</label>
+<label><input type="radio" name="q26"> !cba</label>
+<label><input type="radio" name="q26"> cba!</label>
+<details><summary>Explicação</summary><p>Ao contrário da <code>String</code>, o <code>StringBuilder</code> muda: <code>reverse</code> inverte o próprio texto e <code>append</code> acrescenta no fim.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="stringbuilder.html">StringBuilder</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">27. O que imprime?</p>
+<pre class="file">Integer a = 127, b = 127;
+System.out.println(a == b);
+Integer c = 128, d = 128;
+System.out.println(c == d);</pre>
+<label><input type="radio" name="q27"> true / false</label>
+<label><input type="radio" name="q27"> false / false</label>
+<label><input type="radio" name="q27"> true / true</label>
+<label><input type="radio" name="q27"> false / true</label>
+<details><summary>Explicação</summary><p>O Java reaproveita os objetos <code>Integer</code> de -128 a 127, então <code>a</code> e <code>b</code> são o mesmo objeto; 128 cria objetos diferentes. Moral: compare wrappers com <code>equals</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="wrappers.html">Wrappers e Autoboxing</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">28. O que <code>new B()</code> imprime?</p>
+<pre class="file">class A { A() { System.out.print("A"); } }
+class B extends A { B() { System.out.print("B"); } }</pre>
+<label><input type="radio" name="q28"> AB</label>
+<label><input type="radio" name="q28"> BA</label>
+<label><input type="radio" name="q28"> B</label>
+<label><input type="radio" name="q28"> A</label>
+<details><summary>Explicação</summary><p>Todo construtor começa chamando o da mãe (um <code>super()</code> invisível). Primeiro roda o de <code>A</code>, depois o de <code>B</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="super.html">super</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">29. Quanto vale <code>fat(5)</code>?</p>
+<pre class="file">static int fat(int n) { return n &lt;= 1 ? 1 : n * fat(n - 1); }</pre>
+<label><input type="radio" name="q29"> 5</label>
+<label><input type="radio" name="q29"> 15</label>
+<label><input type="radio" name="q29"> 120</label>
+<label><input type="radio" name="q29"> StackOverflowError</label>
+<details><summary>Explicação</summary><p>Recursão com caso base (<code>n &lt;= 1</code>): 5 × 4 × 3 × 2 × 1 = 120.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="recursao.html">Recursão</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">30. O que imprime?</p>
+<pre class="file">System.out.println(new BigDecimal("0.1").add(new BigDecimal("0.2")));</pre>
+<label><input type="radio" name="q30"> 0.30000000000000004</label>
+<label><input type="radio" name="q30"> 0,3</label>
+<label><input type="radio" name="q30"> 0.3</label>
+<label><input type="radio" name="q30"> 0.30</label>
+<details><summary>Explicação</summary><p><code>BigDecimal</code> criado a partir de texto faz contas decimais exatas.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="bigdecimal.html">BigDecimal e Dinheiro</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">31. O que imprime?</p>
+<pre class="file">System.out.println(LocalDate.of(2026, 10, 16).plusDays(20));</pre>
+<label><input type="radio" name="q31"> 2026-10-36</label>
+<label><input type="radio" name="q31"> 2026-11-05</label>
+<label><input type="radio" name="q31"> 05/11/2026</label>
+<label><input type="radio" name="q31"> 2026-11-06</label>
+<details><summary>Explicação</summary><p><code>plusDays</code> sabe que outubro tem 31 dias: 16 + 20 = 5 de novembro. O <code>toString</code> de <code>LocalDate</code> usa o formato ISO, ano-mês-dia.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="datas.html">Datas e Horas</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">32. O que imprime?</p>
+<pre class="file">String nome = "Ana";
+nome.toUpperCase();
+System.out.println(nome);</pre>
+<label><input type="radio" name="q32"> ANA</label>
+<label><input type="radio" name="q32"> ana</label>
+<label><input type="radio" name="q32"> Ana</label>
+<label><input type="radio" name="q32"> Erro de compilação</label>
+<details><summary>Explicação</summary><p><code>String</code> é imutável: <code>toUpperCase()</code> devolve uma String nova, que foi jogada fora. Seria preciso <code>nome = nome.toUpperCase();</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="strings.html">Strings</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">33. Qual destas exceções o compilador <strong>obriga</strong> a tratar ou declarar?</p>
+<label><input type="radio" name="q33"> <code>IOException</code></label>
+<label><input type="radio" name="q33"> <code>ArithmeticException</code></label>
+<label><input type="radio" name="q33"> <code>NullPointerException</code></label>
+<label><input type="radio" name="q33"> <code>IllegalArgumentException</code></label>
+<details><summary>Explicação</summary><p><code>IOException</code> é <em>checked</em>; as outras são filhas de <code>RuntimeException</code> (unchecked).</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="checked-unchecked.html">Checked × Unchecked</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">34. Qual modificador deixa um atributo visível <strong>só</strong> dentro da própria classe?</p>
+<label><input type="radio" name="q34"> <code>private</code></label>
+<label><input type="radio" name="q34"> <code>protected</code></label>
+<label><input type="radio" name="q34"> nenhum</label>
+<label><input type="radio" name="q34"> <code>public</code></label>
+<details><summary>Explicação</summary><p>É a base do encapsulamento: dados <code>private</code>, acesso por métodos.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="modificadores.html">Modificadores de Acesso</a></p>
+</div>
+
+<h2 id="nivel3">Nível 3 · Avançado</h2>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">35. O que imprime?</p>
+<pre class="file">System.out.println(new HashSet&lt;&gt;(List.of("a", "b", "a")).size());</pre>
+<label><input type="radio" name="q35"> 3</label>
+<label><input type="radio" name="q35"> 1</label>
+<label><input type="radio" name="q35"> 2</label>
+<label><input type="radio" name="q35"> Lança exceção</label>
+<details><summary>Explicação</summary><p>Um <code>Set</code> não guarda repetidos: sobram "a" e "b".</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="hashset.html">HashSet</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">36. O que imprime?</p>
+<pre class="file">System.out.println(new TreeMap&lt;&gt;(Map.of("b", 2, "a", 1, "c", 3)));</pre>
+<label><input type="radio" name="q36"> {b=2, a=1, c=3}</label>
+<label><input type="radio" name="q36"> {c=3, b=2, a=1}</label>
+<label><input type="radio" name="q36"> {a=1, b=2, c=3}</label>
+<label><input type="radio" name="q36"> A ordem muda a cada execução</label>
+<details><summary>Explicação</summary><p>O <code>TreeMap</code> mantém as chaves em ordem.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="treemap-treeset.html">TreeMap e TreeSet</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">37. O que imprime?</p>
+<pre class="file">System.out.println(List.of(1, 2, 3, 4, 5).stream()
+        .filter(n -&gt; n % 2 == 1)
+        .map(n -&gt; n * n)
+        .toList());</pre>
+<label><input type="radio" name="q37"> [1, 4, 9, 16, 25]</label>
+<label><input type="radio" name="q37"> [2, 4]</label>
+<label><input type="radio" name="q37"> [1, 3, 5]</label>
+<label><input type="radio" name="q37"> [1, 9, 25]</label>
+<details><summary>Explicação</summary><p><code>filter</code> deixa os ímpares (1, 3, 5) e <code>map</code> eleva ao quadrado.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="streams.html">Streams</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">38. O que imprime?</p>
+<pre class="file">System.out.println(IntStream.rangeClosed(1, 4).sum());</pre>
+<label><input type="radio" name="q38"> 6</label>
+<label><input type="radio" name="q38"> 10</label>
+<label><input type="radio" name="q38"> 4</label>
+<label><input type="radio" name="q38"> 15</label>
+<details><summary>Explicação</summary><p><code>rangeClosed(1, 4)</code> inclui o 4: 1 + 2 + 3 + 4 = 10. (<code>range(1, 4)</code> pararia no 3.)</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="streams.html">Streams</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">39. O que imprime?</p>
+<pre class="file">System.out.println(Stream.of("ana", "bia", "caio").collect(Collectors.groupingBy(String::length)));</pre>
+<label><input type="radio" name="q39"> {3=[ana, bia], 4=[caio]}</label>
+<label><input type="radio" name="q39"> {ana=3, bia=3, caio=4}</label>
+<label><input type="radio" name="q39"> [3, 3, 4]</label>
+<label><input type="radio" name="q39"> {3=2, 4=1}</label>
+<details><summary>Explicação</summary><p><code>groupingBy</code> monta um <code>Map</code> da chave (o tamanho) para a lista dos itens com aquela chave.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="collectors.html">Collectors</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">40. O que imprime?</p>
+<pre class="file">System.out.println(Optional.empty().orElse("nada"));</pre>
+<label><input type="radio" name="q40"> null</label>
+<label><input type="radio" name="q40"> Optional.empty</label>
+<label><input type="radio" name="q40"> Lança NoSuchElementException</label>
+<label><input type="radio" name="q40"> nada</label>
+<details><summary>Explicação</summary><p><code>orElse</code> dá o valor padrão quando o Optional está vazio. Quem lança exceção é o <code>get()</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="optional.html">Optional</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">41. O que imprime?</p>
+<pre class="file">Function&lt;Integer, Integer&gt; dobro = x -&gt; x * 2;
+System.out.println(dobro.andThen(x -&gt; x + 1).apply(5));</pre>
+<label><input type="radio" name="q41"> 12</label>
+<label><input type="radio" name="q41"> 11</label>
+<label><input type="radio" name="q41"> 10</label>
+<label><input type="radio" name="q41"> 6</label>
+<details><summary>Explicação</summary><p><code>andThen</code> aplica primeiro o <code>dobro</code> (5 × 2 = 10) e depois a segunda função (10 + 1).</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="interfaces-funcionais.html">Interfaces Funcionais</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">42. O que imprime?</p>
+<pre class="file">System.out.println(Stream.of("b", "a", "c")
+        .sorted()
+        .map(String::toUpperCase)
+        .collect(Collectors.joining(",")));</pre>
+<label><input type="radio" name="q42"> B,A,C</label>
+<label><input type="radio" name="q42"> A,B,C</label>
+<label><input type="radio" name="q42"> [A, B, C]</label>
+<label><input type="radio" name="q42"> abc</label>
+<details><summary>Explicação</summary><p><code>sorted</code> ordena, <code>String::toUpperCase</code> é uma referência de método e <code>joining(",")</code> junta com vírgulas.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="method-references.html">Referências de Métodos</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">43. O que <code>descreve(new Circulo(20))</code> devolve?</p>
+<pre class="file">sealed interface Forma permits Circulo, Quadrado { }
+record Circulo(double r) implements Forma { }
+record Quadrado(double l) implements Forma { }
+
+static String descreve(Forma f) {
+    return switch (f) {
+        case Circulo c when c.r() &gt; 10 -&gt; "círculo grande";
+        case Circulo c -&gt; "círculo";
+        case Quadrado q -&gt; "quadrado " + q.l();
+    };
+}</pre>
+<label><input type="radio" name="q43"> círculo</label>
+<label><input type="radio" name="q43"> Erro: falta default</label>
+<label><input type="radio" name="q43"> quadrado 20.0</label>
+<label><input type="radio" name="q43"> círculo grande</label>
+<details><summary>Explicação</summary><p>O primeiro <code>case</code> que casa ganha; a guarda <code>when</code> exige raio maior que 10. E não precisa de <code>default</code>: a interface é selada, e o compilador sabe que os dois tipos foram cobertos.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="pattern-matching.html">Pattern Matching</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">44. Como fica a lista depois deste <code>sort</code>?</p>
+<pre class="file">List&lt;String&gt; l = new ArrayList&lt;&gt;(List.of("kiwi", "uva", "banana", "caju"));
+l.sort(Comparator.comparing(String::length)
+        .thenComparing(Comparator.naturalOrder()));</pre>
+<label><input type="radio" name="q44"> [banana, caju, kiwi, uva]</label>
+<label><input type="radio" name="q44"> [uva, kiwi, caju, banana]</label>
+<label><input type="radio" name="q44"> [uva, caju, kiwi, banana]</label>
+<label><input type="radio" name="q44"> [kiwi, uva, banana, caju]</label>
+<details><summary>Explicação</summary><p>Primeiro pelo tamanho (uva tem 3, caju e kiwi têm 4, banana 6); no empate, ordem alfabética: caju antes de kiwi.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="comparable-comparator.html">Comparable e Comparator</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">45. O que imprime?</p>
+<pre class="file">System.out.println("a1b22c333".replaceAll("[0-9]+", "#"));</pre>
+<label><input type="radio" name="q45"> a#b#c#</label>
+<label><input type="radio" name="q45"> a#b##c###</label>
+<label><input type="radio" name="q45"> abc</label>
+<label><input type="radio" name="q45"> #</label>
+<details><summary>Explicação</summary><p><code>[0-9]+</code> casa com "um ou mais dígitos seguidos", então cada grupo de dígitos vira um único <code>#</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="regex.html">Expressões Regulares</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">46. O que imprime?</p>
+<pre class="file">Map&lt;String, Integer&gt; m = new HashMap&lt;&gt;();
+for (String p : "o rato roeu o rato".split(" ")) {
+    m.merge(p, 1, Integer::sum);
+}
+System.out.println(new TreeMap&lt;&gt;(m));</pre>
+<label><input type="radio" name="q46"> {o=1, rato=1, roeu=1}</label>
+<label><input type="radio" name="q46"> {rato=2, o=2, roeu=1}</label>
+<label><input type="radio" name="q46"> {o=2, rato=2, roeu=1}</label>
+<label><input type="radio" name="q46"> [o, rato, roeu]</label>
+<details><summary>Explicação</summary><p><code>merge</code> põe 1 na primeira vez e soma 1 nas seguintes: a contagem de palavras clássica. O <code>TreeMap</code> mostra em ordem.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="hashmap.html">HashMap</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">47. O que imprime?</p>
+<pre class="file">List&lt;Integer&gt; l = new ArrayList&lt;&gt;(List.of(1, 2, 3, 4));
+l.removeIf(n -&gt; n % 2 == 0);
+System.out.println(l);</pre>
+<label><input type="radio" name="q47"> [2, 4]</label>
+<label><input type="radio" name="q47"> [1, 2, 3, 4]</label>
+<label><input type="radio" name="q47"> ConcurrentModificationException</label>
+<label><input type="radio" name="q47"> [1, 3]</label>
+<details><summary>Explicação</summary><p><code>removeIf</code> remove com segurança todos que cumprem a condição (os pares). Remover dentro de um for-each é que daria <code>ConcurrentModificationException</code>.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="arraylist.html">ArrayList</a></p>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">48. O que imprime?</p>
+<pre class="file">Deque&lt;Integer&gt; p = new ArrayDeque&lt;&gt;();
+p.push(1); p.push(2); p.push(3);
+System.out.println(p.pop() + " " + p.peek());</pre>
+<label><input type="radio" name="q48"> 1 2</label>
+<label><input type="radio" name="q48"> 3 3</label>
+<label><input type="radio" name="q48"> 1 1</label>
+<label><input type="radio" name="q48"> 3 2</label>
+<details><summary>Explicação</summary><p>Pilha: o último que entrou sai primeiro. <code>pop</code> tira o 3; <code>peek</code> olha o novo topo, 2.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="ref-colecoes.html#deque">Cola de Coleções</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">49. O que imprime?</p>
+<pre class="file">Object o = 42;
+if (o instanceof Integer n &amp;&amp; n &gt; 40) {
+    System.out.println("grande: " + (n + 1));
+}</pre>
+<label><input type="radio" name="q49"> Nada</label>
+<label><input type="radio" name="q49"> grande: 421</label>
+<label><input type="radio" name="q49"> grande: 43</label>
+<label><input type="radio" name="q49"> Erro: n não existe</label>
+<details><summary>Explicação</summary><p>O <code>instanceof</code> com padrão testa o tipo e já cria a variável <code>n</code>, que pode ser usada no resto da condição.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="pattern-matching.html">Pattern Matching</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">50. O que imprime?</p>
+<pre class="file">System.out.println(Stream.iterate(1, x -&gt; x * 3).limit(4).map(String::valueOf).collect(Collectors.joining(" ")));</pre>
+<label><input type="radio" name="q50"> 1 3 6 9</label>
+<label><input type="radio" name="q50"> 3 9 27 81</label>
+<label><input type="radio" name="q50"> 1 3 9 27</label>
+<label><input type="radio" name="q50"> Laço infinito</label>
+<details><summary>Explicação</summary><p><code>iterate</code> gera 1, 3, 9, 27… sem fim; <code>limit(4)</code> corta nos quatro primeiros.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="streams.html">Streams</a></p>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">51. Qual comando do Maven compila e roda os testes do projeto?</p>
+<label><input type="radio" name="q51"> <code>mvn run</code></label>
+<label><input type="radio" name="q51"> <code>mvn junit</code></label>
+<label><input type="radio" name="q51"> <code>mvn test</code></label>
+<label><input type="radio" name="q51"> <code>mvn check</code></label>
+<details><summary>Explicação</summary><p><code>mvn test</code> passa por <code>compile</code>, <code>test-compile</code> e <code>test</code>; <code>mvn package</code> faz isso e ainda gera o JAR.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="maven.html">Maven</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">52. Em <code>assertEquals(a, b)</code> do JUnit, qual é a ordem certa?</p>
+<label><input type="radio" name="q52"> (obtido, esperado)</label>
+<label><input type="radio" name="q52"> (esperado, obtido)</label>
+<label><input type="radio" name="q52"> Tanto faz, o relatório é o mesmo</label>
+<label><input type="radio" name="q52"> (mensagem, valor)</label>
+<details><summary>Explicação</summary><p>Primeiro o esperado. Invertido, o teste ainda funciona, mas o relatório de falha (<code>expected: … but was: …</code>) mostra os valores trocados.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="junit.html">Testes com JUnit</a></p>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">53. Por que <code>List&lt;int&gt;</code> não compila?</p>
+<label><input type="radio" name="q53"> Porque falta o <code>import</code>.</label>
+<label><input type="radio" name="q53"> Generics só aceitam tipos de referência; use <code>List&lt;Integer&gt;</code>.</label>
+<label><input type="radio" name="q53"> Porque listas só guardam <code>String</code>.</label>
+<label><input type="radio" name="q53"> Compila, sim.</label>
+<details><summary>Explicação</summary><p>O javac responde <code>unexpected type, required: reference, found: int</code>. O autoboxing converte entre <code>int</code> e <code>Integer</code> sozinho.</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="ref-erros-javac.html#generic-primitivo">Erros do Compilador</a></p>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">54. Desde qual versão as <strong>threads virtuais</strong> fazem parte do Java (sem flag de preview)?</p>
+<label><input type="radio" name="q54"> Java 21</label>
+<label><input type="radio" name="q54"> Java 17</label>
+<label><input type="radio" name="q54"> Java 8</label>
+<label><input type="radio" name="q54"> Java 25</label>
+<details><summary>Explicação</summary><p>Threads virtuais chegaram no Java 21 (LTS).</p></details>
+<p class="mc-q" style="font-weight:400;font-size:14px">Revise: <a href="virtual-threads.html">Threads Virtuais</a></p>
+</div>
+<hr>
+
+<h2>Duvidou de uma resposta? Rode!</h2>
+<p>Não acredite em ninguém, nem neste quiz: rode o código. Cole um trecho dentro do <code>main</code> abaixo, ou use o JShell.</p>
+
+<div class="tryjava">
+<p class="try-task"><strong>Caixa livre:</strong> já está aqui a pergunta do <code>s.length() + s.charAt(0)</code>. Troque por <code>"" + s.length() + s.charAt(0)</code> e veja a diferença.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String s = "Java";
+        System.out.println(s.length() + s.charAt(0));
+    }
+}
+</pre>
+</div>
+
+<div class="tryjshell" data-goal="out:true,out:false">
+<p class="try-task"><strong>No JShell:</strong> confira a pergunta dos <code>Integer</code>: digite <code>Integer a = 127, b = 127</code>, depois <code>a == b</code>; e <code>Integer c = 128, d = 128</code>, depois <code>c == d</code>.</p>
+<pre class="solucao">Integer a = 127, b = 127
+a == b
+Integer c = 128, d = 128
+c == d</pre>
+</div>
+
+<div class="tip">
+<strong>Terminou?</strong>
+<p>Role até o topo para ver o placar. Errou alguma? A explicação e o link "Revise" levam direto ao assunto. Para consultar rápido, use a <a href="ref-palavras-chave.html">Referência</a> e o <a href="glossario.html">Glossário</a>.</p>
+</div>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
