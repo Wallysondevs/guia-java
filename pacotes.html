@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Pacotes e import — package, pastas, javac -d e -cp | Guia Java</title>
+<meta name="description" content="O que é um pacote em Java, como declarar package, organizar as pastas, compilar com javac -d out e rodar com java -cp out br.com.ana.Main. Como funcionam import, import *, import static, conflitos de nome e por que java.lang não precisa de import. Sessões reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Pacotes e import</span></h1>
+
+<p class="intro">Um programa de verdade não cabe num arquivo só: ele tem dezenas, centenas de classes. Para não virar bagunça, o Java agrupa classes em <strong>pacotes</strong>, que são como pastas com nome. Nesta aula você vai criar um pequeno projeto com dois pacotes, compilar e rodar no terminal, e entender de uma vez o que são aquelas linhas <code>import java.util.Scanner;</code> que você copia desde o Nível 1.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um pacote e o "nome completo" de uma classe (<code>java.util.ArrayList</code>).</li>
+  <li>Como declarar um pacote com <code>package</code> e como as pastas precisam acompanhar o nome.</li>
+  <li>Como compilar com <code>javac -d out …</code> e rodar com <code>java -cp out br.com.ana.Main</code>.</li>
+  <li>As formas de <code>import</code>: uma classe, <code>*</code>, <code>import static</code> e <code>import module</code>.</li>
+  <li>O que fazer quando duas classes têm o mesmo nome (<code>reference to Date is ambiguous</code>).</li>
+  <li>Por que <code>String</code>, <code>Math</code> e <code>System</code> nunca precisaram de <code>import</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula usa o terminal. Se <code>javac</code> e <code>java</code> ainda são novidade, reveja <a href="compilar-executar.html">javac e java</a>. As sessões acontecem na máquina da Ana, na pasta <code>~/java</code>.</p>
+
+<hr>
+
+<h2>A ideia: sobrenomes para classes</h2>
+<p>Na escola da Ana há duas alunas chamadas Maria. Para não confundir, a chamada usa o nome completo: Maria <strong>Silva</strong> e Maria <strong>Souza</strong>. Com classes acontece o mesmo. A biblioteca do Java tem duas classes chamadas <code>Date</code>: uma para datas em geral e outra para bancos de dados. Elas vivem em pacotes diferentes, e o nome do pacote funciona como sobrenome:</p>
+
+<ul>
+  <li><code>java.util.Date</code>: a classe <code>Date</code> do pacote <code>java.util</code>.</li>
+  <li><code>java.sql.Date</code>: a classe <code>Date</code> do pacote <code>java.sql</code>.</li>
+</ul>
+
+<p>Um <strong>pacote</strong> (em inglês, <em>package</em>) é um grupo de classes relacionadas, com um nome formado por partes separadas por ponto. O <strong>nome completo</strong> de uma classe (o <em>fully qualified name</em>, "nome totalmente qualificado") é o pacote + ponto + o nome da classe. E cada parte do pacote corresponde a uma <strong>pasta</strong> no disco: o pacote <code>java.util</code> é a pasta <code>java/util</code>.</p>
+
+<p>Pacotes servem para três coisas:</p>
+<ol>
+  <li><strong>Organizar</strong>: classes do mesmo assunto ficam juntas (tudo de datas em <code>java.time</code>, tudo de arquivos em <code>java.nio.file</code>).</li>
+  <li><strong>Evitar conflito de nomes</strong>: o seu <code>Produto</code> não briga com o <code>Produto</code> de outra empresa.</li>
+  <li><strong>Controlar o acesso</strong>: uma classe pode ser visível só dentro do próprio pacote (você viu isso em <a href="modificadores.html">Modificadores de Acesso</a>; aqui vai ver o erro real).</li>
+</ol>
+
+<h3>Os programas que você fez até agora não tinham pacote?</h3>
+<p>Não tinham. Uma classe sem a linha <code>package</code> fica no <strong>pacote padrão</strong> (<em>default package</em>), um pacote sem nome. Para exercícios de um arquivo só, isso é ótimo, e o guia continua usando assim. Em qualquer projeto de verdade, toda classe fica num pacote com nome.</p>
+
+<hr>
+
+<h2>Como escolher o nome do pacote</h2>
+<p>A convenção do Java é usar o <strong>domínio da internet ao contrário</strong>, todo em minúsculas. Se a Ana tivesse o site <code>ana.com.br</code>, os pacotes dela começariam com <code>br.com.ana</code>. Como domínios são únicos no mundo, os nomes de pacotes também ficam únicos. Depois do domínio, vêm as partes do sistema:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pacote</th><th>O que guardaria</th></tr>
+<tr><td><code>br.com.ana</code></td><td>A classe principal, com o <code>main</code></td></tr>
+<tr><td><code>br.com.ana.modelo</code></td><td>As classes de dados: <code>Produto</code>, <code>Cliente</code></td></tr>
+<tr><td><code>br.com.ana.relatorio</code></td><td>Classes que geram relatórios</td></tr>
+<tr><td><code>org.junit.jupiter.api</code></td><td>Um exemplo real: a biblioteca de testes JUnit (site <code>junit.org</code>)</td></tr>
+</table>
+</div>
+
+<p>Regras práticas: só letras minúsculas, números e ponto; nada de acento, espaço ou hífen; pacotes que começam com <code>java.</code> são reservados ao próprio Java: o <code>javac</code> até compila, mas a JVM se recusa a carregar a classe (<code>java.lang.SecurityException: Prohibited package name: java.ana</code>, "nome de pacote proibido"). Evite também <code>javax.</code>, usado por bibliotecas oficiais.</p>
+
+<hr>
+
+<h2>Um projeto com dois pacotes</h2>
+<p>A Ana vai montar a loja dela com duas classes: <code>Produto</code>, no pacote <code>br.com.ana.modelo</code>, e <code>Main</code>, no pacote <code>br.com.ana</code>. O código-fonte fica numa pasta <code>src</code> (de <em>source</em>, "fonte"), e as pastas dentro dela seguem o nome dos pacotes:</p>
+
+<pre class="term">$ cd java/loja
+$ find src
+src
+src/br
+src/br/com
+src/br/com/ana
+src/br/com/ana/modelo
+src/br/com/ana/modelo/Produto.java
+src/br/com/ana/Main.java</pre>
+
+<p>O <code>find</code> mostra tudo o que há dentro de <code>src</code>, pasta por pasta. Repare: o pacote <code>br.com.ana.modelo</code> virou o caminho <code>br/com/ana/modelo</code>. Agora, o conteúdo dos arquivos:</p>
+
+<pre class="file" data-file="src/br/com/ana/modelo/Produto.java">package br.com.ana.modelo;
+
+public class Produto {
+    private String nome;
+    private double preco;
+
+    public Produto(String nome, double preco) {
+        this.nome = nome;
+        this.preco = preco;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public double getPreco() {
+        return preco;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>package</dt><dd>"Pacote": diz a que pacote esta classe pertence. Tem que ser a <strong>primeira</strong> linha de código do arquivo (antes só podem vir comentários).</dd>
+  <dt>br.com.ana.modelo</dt><dd>O nome do pacote. Deve combinar com a pasta onde o arquivo está.</dd>
+  <dt>;</dt><dd>Termina a declaração, como qualquer comando Java.</dd>
+  <dt>public class Produto</dt><dd>O <code>public</code> aqui é essencial: sem ele, a classe só seria visível <strong>dentro</strong> do pacote <code>br.com.ana.modelo</code>, e o <code>Main</code>, que está em outro pacote, não poderia usá-la.</dd>
+</dl>
+
+<pre class="file" data-file="src/br/com/ana/Main.java">package br.com.ana;
+
+import br.com.ana.modelo.Produto;
+
+public class Main {
+    public static void main(String[] args) {
+        Produto p = new Produto("Café", 18.90);
+        System.out.println(p.getNome() + ": R$ " + p.getPreco());
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>package br.com.ana;</dt><dd>O <code>Main</code> fica no pacote <code>br.com.ana</code>, a pasta "de cima".</dd>
+  <dt>import</dt><dd>"Importar": avisa que, neste arquivo, <code>Produto</code> quer dizer <code>br.com.ana.modelo.Produto</code>. Vem depois do <code>package</code> e antes da classe.</dd>
+  <dt>br.com.ana.modelo.Produto</dt><dd>O nome completo da classe importada.</dd>
+</dl>
+
+<div class="note">
+<strong>Pacotes não são "um dentro do outro"</strong>
+<p>Apesar das pastas, para o Java <code>br.com.ana</code> e <code>br.com.ana.modelo</code> são dois pacotes <strong>independentes</strong>. Estar "embaixo" não dá nenhum acesso especial: o <code>Main</code> precisa importar o <code>Produto</code> como importaria qualquer classe de fora.</p>
+</div>
+
+<hr>
+
+<h2>Compilar com <code>javac -d out</code></h2>
+<p>Com pacotes, a forma de compilar muda um pouco. A opção <code>-d</code> (de <em>directory</em>, "diretório") diz ao <code>javac</code> em que pasta colocar os arquivos <code>.class</code>. Ele cria lá dentro as pastas dos pacotes sozinho:</p>
+
+<pre class="term" data-cwd="~/java/loja">$ javac -d out src/br/com/ana/Main.java src/br/com/ana/modelo/Produto.java
+$ find out
+out
+out/br
+out/br/com
+out/br/com/ana
+out/br/com/ana/modelo
+out/br/com/ana/modelo/Produto.class
+out/br/com/ana/Main.class</pre>
+
+<dl class="anatomy">
+  <dt>javac</dt><dd>O compilador (veja <a href="compilar-executar.html">javac e java</a>).</dd>
+  <dt>-d out</dt><dd>Coloque os <code>.class</code> na pasta <code>out</code> (de <em>output</em>, "saída"), criando a pasta se preciso.</dd>
+  <dt>src/br/com/ana/Main.java …</dt><dd>Os arquivos a compilar, com o caminho a partir da pasta atual.</dd>
+</dl>
+
+<p>Os fontes (<code>.java</code>) ficam em <code>src</code>; os compilados (<code>.class</code>), em <code>out</code>, com a mesma árvore de pacotes. Separar as duas coisas é o padrão em todo projeto Java (o Maven usa <code>target/classes</code> no lugar de <code>out</code>; veja <a href="maven.html">Maven</a>).</p>
+
+<p>Digitar todos os arquivos cansa. Há duas formas mais práticas:</p>
+
+<pre class="term" data-cwd="~/java/loja">$ javac -d out $(find src -name "*.java")          « o find lista todos os .java
+$ javac -d out -sourcepath src src/br/com/ana/Main.java   « o javac acha o resto sozinho</pre>
+
+<ul>
+  <li><code>$(find src -name "*.java")</code>: o Bash roda o <code>find</code> e coloca a lista de arquivos no lugar. É um recurso do terminal, não do Java.</li>
+  <li><code>-sourcepath src</code>: diz ao <code>javac</code> "os fontes começam em <code>src</code>". Ao ver o <code>import br.com.ana.modelo.Produto</code>, ele procura <code>src/br/com/ana/modelo/Produto.java</code> e compila também. É aqui que a regra "pasta = pacote" fica obrigatória: se o arquivo estiver em outra pasta, o <code>javac</code> não o encontra.</li>
+</ul>
+
+<hr>
+
+<h2>Rodar com <code>java -cp out</code></h2>
+<p>Para rodar, você passa ao <code>java</code> duas informações: <strong>onde</strong> estão os <code>.class</code> e o <strong>nome completo</strong> da classe que tem o <code>main</code>.</p>
+
+<pre class="term" data-cwd="~/java/loja">$ java -cp out br.com.ana.Main
+Café: R$ 18.9</pre>
+
+<dl class="anatomy">
+  <dt>java</dt><dd>O lançador, que inicia a JVM.</dd>
+  <dt>-cp out</dt><dd><em>Classpath</em> ("caminho das classes"): a pasta onde a JVM começa a procurar. <code>-cp</code> é a abreviação de <code>-classpath</code> (as duas funcionam).</dd>
+  <dt>br.com.ana.Main</dt><dd>O nome completo da classe, com pontos. A JVM converte em <code>out/br/com/ana/Main.class</code>. Sem <code>.class</code> no fim.</dd>
+</dl>
+
+<p>O programa mostrou <code>18.9</code>, e não <code>18.90</code>: um <code>double</code> é impresso sem os zeros que não fazem diferença. Para mostrar dinheiro com duas casas, veja <a href="formatacao.html">Formatar Texto</a>.</p>
+
+<p>Sem o <code>-cp</code>, a JVM procura na <strong>pasta atual</strong>. Por isso, de dentro de <code>out</code>, também funciona, com pontos ou com barras:</p>
+
+<pre class="term" data-cwd="~/java/loja">$ cd out
+$ java br.com.ana.Main
+Café: R$ 18.9
+$ java br/com/ana/Main
+Café: R$ 18.9
+$ cd ..</pre>
+
+<p>O que <strong>não</strong> funciona é usar só o nome curto, ou esquecer onde estão as classes. O lançador <code>java</code> responde em português:</p>
+
+<pre class="term" data-cwd="~/java/loja">$ java -cp out Main
+Erro: Não foi possível localizar nem carregar a classe principal Main
+Causada por: java.lang.ClassNotFoundException: Main</pre>
+
+<p>A classe se chama <code>br.com.ana.Main</code>; uma classe chamada só <code>Main</code>, no pacote padrão, não existe em <code>out</code>. <em>ClassNotFoundException</em> = "exceção de classe não encontrada".</p>
+
+<h3>Atalho: rodar direto o fonte</h3>
+<p><span class="versao">Java 22+</span> O modo "arquivo-fonte" (<code>java Arquivo.java</code>, que você usa desde <a href="compilar-executar.html">javac e java</a>) passou a entender pacotes e vários arquivos: ele descobre, pelo <code>package</code>, onde fica a raiz dos fontes e compila na memória as outras classes que o programa usa.</p>
+
+<pre class="term" data-cwd="~/java/loja">$ java src/br/com/ana/Main.java
+Café: R$ 18.9</pre>
+
+<p>Ótimo para testar. Mas nada é gravado em disco; para distribuir o programa você ainda compila com <code>javac -d</code> (e depois empacota num <a href="jar.html">JAR</a>). No JDK 21 ou anterior, esse comando só funciona com programas de um arquivo.</p>
+
+<hr>
+
+<h2>As formas de <code>import</code></h2>
+<p>O <code>import</code> não "carrega" nada nem deixa o programa maior. Ele é só um <strong>atalho de nome</strong>: em vez de escrever o nome completo toda vez, você avisa uma vez no topo do arquivo. Prova disso: dá para não usar <code>import</code> nenhum e escrever os nomes completos:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        java.util.List&lt;String&gt; frutas = java.util.List.of("maçã", "uva");
+        java.lang.String nome = "Ana";
+        java.lang.System.out.println(nome + " " + frutas);
+        System.out.println(java.time.LocalDate.of(2026, 10, 16).getDayOfWeek());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+Ana [maçã, uva]
+FRIDAY                « 16/10/2026 é uma sexta-feira</pre>
+
+<p>Funciona, mas é cansativo de ler. Por isso existem os imports:</p>
+
+<h3>1. Uma classe: <code>import pacote.Classe;</code></h3>
+<p>A forma mais comum, e a recomendada. Uma linha por classe:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Scanner;
+</pre>
+
+<p>Lendo o topo do arquivo, você sabe exatamente de onde vem cada classe. Os editores (IntelliJ, VS Code) escrevem e organizam essas linhas para você.</p>
+
+<h3>2. O pacote inteiro: <code>import pacote.*;</code></h3>
+<p>O asterisco (<code>*</code>, o "curinga") importa <strong>todas</strong> as classes de um pacote:</p>
+
+<pre class="file" data-file="Main.java">import java.util.*;     // ArrayList, List, Scanner, Random, HashMap…
+</pre>
+
+<p>Duas coisas que o <code>*</code> <strong>não</strong> faz: ele não importa os "subpacotes" (<code>import java.util.*;</code> não traz <code>java.util.function.Function</code>, porque são pacotes independentes) e ele não deixa o programa mais lento (continua sendo só atalho de nome). A desvantagem é outra: fica difícil saber de onde vem cada classe, e aparecem conflitos de nome, como você vai ver logo abaixo.</p>
+
+<h3>3. Membros <code>static</code>: <code>import static</code></h3>
+<p>Na aula <a href="static.html">static</a> você viu que <code>Math.sqrt</code> e <code>Math.PI</code> são da classe <code>Math</code>. O <code>import static</code> traz esses membros para usar <strong>sem o nome da classe</strong>:</p>
+
+<pre class="file" data-file="Main.java">import static java.lang.Math.PI;
+import static java.lang.Math.sqrt;
+
+public class Main {
+    public static void main(String[] args) {
+        double raio = 2;
+        System.out.println(PI * raio * raio);
+        System.out.println(sqrt(144));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+12.566370614359172      « a área do círculo de raio 2
+12.0</pre>
+
+<p>Também existe <code>import static java.lang.Math.*;</code>, que traz todos os membros <code>static</code> de <code>Math</code>. Use com moderação: num código grande, um <code>sqrt</code> solto faz o leitor perguntar "de onde veio isso?". Onde ele brilha é nos testes: <code>import static org.junit.jupiter.api.Assertions.*;</code> (veja <a href="junit.html">Testes com JUnit</a>).</p>
+
+<h3>4. Um módulo inteiro: <code>import module</code></h3>
+<p><span class="versao">Java 25+</span> Uma novidade do Java 25: <code>import module java.base;</code> importa de uma vez todos os pacotes públicos do módulo <code>java.base</code>, que contém <code>java.util</code>, <code>java.time</code>, <code>java.io</code>, <code>java.nio.file</code>, <code>java.math</code> e outros.</p>
+
+<pre class="file" data-file="Main.java">import module java.base;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("uva", "maçã"));
+        Collections.sort(frutas);
+        System.out.println(frutas + " " + LocalDate.of(2026, 10, 16));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+[maçã, uva] 2026-10-16</pre>
+
+<p>É prático em programas pequenos e scripts. Em projetos, os imports de uma classe continuam sendo o padrão. Módulos são assunto de <a href="modulos.html">Módulos (JPMS)</a>.</p>
+
+<div class="tryjava" data-goal="out:[Ana\, Bruno\, Carla],compila,src:import\s+java\.util">
+<p class="try-task"><strong>Missão:</strong> este programa não compila: o <code>javac</code> não sabe o que são <code>ArrayList</code> e <code>Collections</code>. Rode para ver os três erros <code>cannot find symbol</code>. Depois acrescente, no topo, os <code>import</code> que faltam (as duas classes estão no pacote <code>java.util</code>). A saída deve ser <code>[Ana, Bruno, Carla]</code>, em ordem alfabética.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Carla");
+        alunos.add("Ana");
+        alunos.add("Bruno");
+        Collections.sort(alunos);
+        System.out.println(alunos);
+    }
+}
+</pre>
+<pre class="solucao">import java.util.ArrayList;
+import java.util.Collections;
+
+public class Main {
+    public static void main(String[] args) {
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        alunos.add("Carla");
+        alunos.add("Ana");
+        alunos.add("Bruno");
+        Collections.sort(alunos);
+        System.out.println(alunos);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2><code>java.lang</code>: o pacote que vem de graça</h2>
+<p>Se todo nome precisa de pacote, por que você nunca importou <code>String</code>, <code>System</code>, <code>Math</code> ou <code>Integer</code>? Porque elas moram no pacote <code>java.lang</code> (de <em>language</em>, "linguagem"), e o compilador acrescenta sozinho, em todo arquivo, um <code>import java.lang.*;</code> invisível. São as classes tão básicas que seria chato importá-las sempre.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Precisa de <code>import</code>?</th><th>Exemplos</th></tr>
+<tr><td>Não: pacote <code>java.lang</code></td><td><code>String</code>, <code>System</code>, <code>Math</code>, <code>Integer</code>, <code>Double</code>, <code>Character</code>, <code>Object</code>, <code>StringBuilder</code>, <code>Thread</code>, as exceções comuns</td></tr>
+<tr><td>Não: o mesmo pacote da sua classe</td><td>As outras classes do seu pacote (no pacote padrão, as do mesmo arquivo ou da mesma pasta)</td></tr>
+<tr><td><strong>Sim</strong>: qualquer outro pacote</td><td><code>java.util.Scanner</code>, <code>java.util.ArrayList</code>, <code>java.time.LocalDate</code>, <code>java.math.BigDecimal</code></td></tr>
+</table>
+</div>
+
+<p>Repare que <code>java.lang</code> vale só para o próprio pacote: <code>java.lang.reflect.Method</code>, por exemplo, precisa de import. Um mapa dos pacotes mais usados está na próxima aula, <a href="api-java.html">A Biblioteca Padrão</a>.</p>
+
+<hr>
+
+<h2>Conflito de nomes</h2>
+<p>A Ana importou dois pacotes inteiros, e os dois têm uma classe <code>Date</code>:</p>
+
+<div class="warning">
+<strong>Este código tem um erro de propósito</strong>
+<pre class="file" data-file="Main.java">import java.util.*;
+import java.sql.*;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;();
+        Date hoje = new Date();
+    }
+}
+</pre>
+</div>
+
+<pre class="term">$ javac Main.java
+Main.java:7: error: reference to Date is ambiguous
+        Date hoje = new Date();
+        ^
+  both class java.sql.Date in java.sql and class java.util.Date in java.util match
+Main.java:7: error: reference to Date is ambiguous
+        Date hoje = new Date();
+                        ^
+  both class java.sql.Date in java.sql and class java.util.Date in java.util match
+2 errors</pre>
+
+<p><em>Reference to Date is ambiguous</em> = "a referência a <code>Date</code> é ambígua", e a linha de baixo explica: "tanto <code>java.sql.Date</code> quanto <code>java.util.Date</code> combinam". Repare que o <code>List</code> não deu problema: só existe um <code>List</code> nesses dois pacotes. Duas formas de resolver:</p>
+
+<ol>
+  <li><strong>Importe a classe pelo nome</strong>: um import de uma classe sempre vence o <code>*</code>. Acrescentar <code>import java.util.Date;</code> resolve.</li>
+  <li><strong>Use o nome completo</strong> para a outra: quando o mesmo arquivo precisa das duas, uma fica com o import e a outra é escrita por extenso.</li>
+</ol>
+
+<pre class="file" data-file="Main.java">import java.util.*;
+import java.sql.*;
+import java.util.Date;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; nomes = new ArrayList&lt;&gt;();
+        Date hoje = new Date(0);
+        java.sql.Date dia = java.sql.Date.valueOf("2026-10-16");
+        System.out.println(hoje.getClass().getName());
+        System.out.println(dia.getClass().getName() + " " + dia);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+java.util.Date                « Date, sem pacote, agora é a de java.util
+java.sql.Date 2026-10-16      « a outra, pelo nome completo</pre>
+
+<p>O <code>getClass().getName()</code> mostra o nome completo da classe de um objeto (mais em <a href="object.html">A Classe Object</a>). Não existe "import com apelido" em Java (<code>import … as …</code>, como em outras linguagens): o nome completo é a única saída.</p>
+
+<hr>
+
+<h2>Pacotes e visibilidade</h2>
+<p>Lembra do <code>public</code> obrigatório em <code>public class Produto</code>? Veja o que acontece sem ele:</p>
+
+<pre class="term" data-cwd="~/java/loja">$ javac -d out $(find src -name "*.java")
+src/br/com/ana/Main.java:3: error: Produto is not public in br.com.ana.modelo; cannot be accessed from outside package
+import br.com.ana.modelo.Produto;
+                        ^
+src/br/com/ana/Main.java:7: error: Produto is not public in br.com.ana.modelo; cannot be accessed from outside package
+        Produto p = new Produto("Café", 18.90);
+        ^
+src/br/com/ana/Main.java:7: error: Produto is not public in br.com.ana.modelo; cannot be accessed from outside package
+        Produto p = new Produto("Café", 18.90);
+                        ^
+3 errors</pre>
+
+<p>"<code>Produto</code> não é pública em <code>br.com.ana.modelo</code>; não pode ser acessada de fora do pacote." Uma classe (ou atributo, ou método) sem modificador de acesso tem acesso de <strong>pacote</strong> (<em>package-private</em>): só as classes do mesmo pacote a enxergam. A tabela completa está em <a href="modificadores.html">Modificadores de Acesso</a>; o que importa aqui é que, com pacotes, a diferença entre <code>public</code> e "nada" passa a valer de verdade.</p>
+
+<div class="tip">
+<strong>Uma classe <code>public</code> por arquivo</strong>
+<p>Um arquivo <code>.java</code> pode ter várias classes, mas só uma <code>public</code>, com o mesmo nome do arquivo. As outras ficam com acesso de pacote: servem de "ajudantes" daquele arquivo. Por isso os exemplos do guia escrevem <code>class Aluno</code> (sem <code>public</code>) embaixo de <code>public class Main</code>.</p>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot find symbol … class ArrayList" (faltou o import)</strong>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+        ^
+  symbol:   class ArrayList
+  location: class Main
+Main.java:3: error: cannot find symbol
+        ArrayList&lt;String&gt; alunos = new ArrayList&lt;&gt;();
+                                       ^
+  symbol:   class ArrayList
+  location: class Main
+Main.java:7: error: cannot find symbol
+        Collections.sort(alunos);
+        ^
+  symbol:   variable Collections
+  location: class Main
+3 errors</pre>
+<p><strong>O que aconteceu:</strong> a classe existe, mas está em outro pacote, e o arquivo não a importou. O <code>symbol: class ArrayList</code> diz o nome que o compilador não reconheceu.</p>
+<p><strong>Como resolver:</strong> acrescente <code>import java.util.ArrayList;</code>. Se não souber o pacote, procure na documentação (veja <a href="api-java.html">A Biblioteca Padrão</a>) ou deixe o editor sugerir.</p>
+</div>
+
+<div class="cenario">
+<strong>"package … does not exist"</strong>
+<pre class="term" data-cwd="~/java/loja">$ javac -d out src/br/com/ana/Main.java
+src/br/com/ana/Main.java:3: error: package br.com.ana.modelo does not exist
+import br.com.ana.modelo.Produto;
+                        ^
+src/br/com/ana/Main.java:7: error: cannot find symbol
+        Produto p = new Produto("Café", 18.90);
+        ^
+  symbol:   class Produto
+  location: class Main
+src/br/com/ana/Main.java:7: error: cannot find symbol
+        Produto p = new Produto("Café", 18.90);
+                        ^
+  symbol:   class Produto
+  location: class Main
+3 errors</pre>
+<p><strong>O que aconteceu:</strong> o <code>javac</code> não achou nenhuma classe daquele pacote. Três causas comuns: (1) você compilou só o <code>Main.java</code>, sem o <code>Produto.java</code> e sem <code>-sourcepath</code>; (2) há um erro de digitação no <code>import</code> ou no <code>package</code> (<code>modelos</code> × <code>modelo</code>); (3) o arquivo está numa pasta que não combina com o pacote.</p>
+<p><strong>Como resolver:</strong> compile todos os arquivos juntos (<code>javac -d out $(find src -name "*.java")</code>) ou use <code>-sourcepath src</code>, e confira se a linha <code>package</code> e a pasta dizem a mesma coisa.</p>
+</div>
+
+<div class="cenario">
+<strong>"Não foi possível localizar nem carregar a classe principal"</strong>
+<pre class="term" data-cwd="~/java/loja">$ java br.com.ana.Main
+Erro: Não foi possível localizar nem carregar a classe principal br.com.ana.Main
+Causada por: java.lang.ClassNotFoundException: br.com.ana.Main</pre>
+<p><strong>O que aconteceu:</strong> o nome está certo, mas a JVM procurou na pasta atual (<code>loja</code>), e os <code>.class</code> estão em <code>out</code>. A outra causa clássica é usar o nome curto (<code>java -cp out Main</code>).</p>
+<p><strong>Como resolver:</strong> <code>java -cp out br.com.ana.Main</code>: a pasta de onde começam os pacotes no <code>-cp</code>, o nome completo no fim.</p>
+</div>
+
+<div class="cenario">
+<strong>"reference to … is ambiguous"</strong>
+<p><strong>O que aconteceu:</strong> dois <code>import …*;</code> trouxeram classes com o mesmo nome (<code>java.util.Date</code> e <code>java.sql.Date</code>, <code>java.util.List</code> e <code>java.awt.List</code>).</p>
+<p><strong>Como resolver:</strong> importe pelo nome a classe que você quer (<code>import java.util.Date;</code>) e, se precisar da outra, escreva o nome completo.</p>
+</div>
+
+<div class="cenario">
+<strong>"… is not public in …; cannot be accessed from outside package"</strong>
+<p><strong>O que aconteceu:</strong> a classe (ou o construtor, ou o método) não tem <code>public</code> e está em outro pacote.</p>
+<p><strong>Como resolver:</strong> acrescente <code>public</code> no que precisa ser usado de fora, ou mova as duas classes para o mesmo pacote.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>package br.com.ana.modelo;</code></td><td>Primeira linha: a classe pertence a esse pacote (pasta <code>br/com/ana/modelo</code>)</td></tr>
+<tr><td><code>import java.util.Scanner;</code></td><td>Atalho para uma classe</td></tr>
+<tr><td><code>import java.util.*;</code></td><td>Atalho para todas as classes do pacote (não os subpacotes)</td></tr>
+<tr><td><code>import static java.lang.Math.sqrt;</code></td><td>Usar um membro <code>static</code> sem o nome da classe</td></tr>
+<tr><td><code>import module java.base;</code> <span class="versao">Java 25+</span></td><td>Todos os pacotes de um módulo</td></tr>
+<tr><td><code>java.util.List</code> (no código)</td><td>Nome completo, sem import</td></tr>
+<tr><td><code>javac -d out arquivos…</code></td><td>Compila e grava os <code>.class</code> em <code>out/</code>, com as pastas dos pacotes</td></tr>
+<tr><td><code>javac -d out -sourcepath src src/…/Main.java</code></td><td>Compila o <code>Main</code> e as classes que ele usa</td></tr>
+<tr><td><code>java -cp out br.com.ana.Main</code></td><td>Roda a classe pelo nome completo, procurando em <code>out</code></td></tr>
+<tr><td><code>java src/br/com/ana/Main.java</code> <span class="versao">Java 22+</span></td><td>Roda direto dos fontes, com pacotes</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A primeira linha</h3>
+<p>Complete a primeira linha de uma classe que fica na pasta <code>src/br/com/ana/relatorio</code>:</p>
+<div class="ex-code"><input data-answer="package br.com.ana.relatorio;" aria-label="declaração do pacote"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Importar uma classe</h3>
+<p>Complete para poder usar <code>LocalDate</code>, do pacote <code>java.time</code>:</p>
+<div class="ex-code">import <input data-answer="java.time.LocalDate;|java.time.LocalDate|java.time.*;" aria-label="classe"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Rodar com pacote</h3>
+<p>Os <code>.class</code> estão em <code>out</code>, e a classe principal é <code>Main</code>, do pacote <code>br.com.ana</code>. Complete o comando:</p>
+<div class="ex-code">java -cp out <input data-answer="br.com.ana.Main" aria-label="nome da classe"></div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual destas classes pode ser usada sem nenhum <code>import</code>?</p>
+<label><input type="radio" name="q4"> <code>Scanner</code></label>
+<label><input type="radio" name="q4"> <code>ArrayList</code></label>
+<label><input type="radio" name="q4"> <code>LocalDate</code></label>
+<label><input type="radio" name="q4"> <code>Math</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O arquivo tem <code>import java.util.*;</code>. Ele pode usar <code>java.util.function.Predicate</code> só como <code>Predicate</code>?</p>
+<label><input type="radio" name="q5"> Sim, o <code>*</code> traz tudo que começa com <code>java.util</code></label>
+<label><input type="radio" name="q5"> Não: <code>java.util.function</code> é outro pacote e precisa do próprio import</label>
+<label><input type="radio" name="q5"> Só se a classe estiver em <code>java.lang</code></label>
+<label><input type="radio" name="q5"> Só com <code>-sourcepath</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O que o <code>-d out</code> faz em <code>javac -d out …</code>?</p>
+<label><input type="radio" name="q6"> Grava os <code>.class</code> na pasta <code>out</code>, criando as pastas dos pacotes</label>
+<label><input type="radio" name="q6"> Apaga a pasta <code>out</code></label>
+<label><input type="radio" name="q6"> Liga o modo de depuração</label>
+<label><input type="radio" name="q6"> Diz onde estão os arquivos <code>.java</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:12.0,out:12.566370614359172,src:import\s+static">
+<p class="try-task"><strong>Missão final:</strong> o programa abaixo usa <code>sqrt</code> e <code>PI</code> sem o <code>Math.</code> na frente, e por isso não compila (rode e veja os <code>cannot find symbol</code>). Sem mexer no <code>main</code>, acrescente no topo os <code>import static</code> necessários (um para <code>java.lang.Math.PI</code> e outro para <code>java.lang.Math.sqrt</code>, ou um só com <code>*</code>). A saída deve ter <code>12.566370614359172</code> e <code>12.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double raio = 2;
+        System.out.println(PI * raio * raio);
+        System.out.println(sqrt(144));
+    }
+}
+</pre>
+<pre class="solucao">import static java.lang.Math.PI;
+import static java.lang.Math.sqrt;
+
+public class Main {
+    public static void main(String[] args) {
+        double raio = 2;
+        System.out.println(PI * raio * raio);
+        System.out.println(sqrt(144));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Pacote = grupo de classes com nome (<code>br.com.ana.modelo</code>), que vira pasta (<code>br/com/ana/modelo</code>). O nome completo de uma classe inclui o pacote.</li>
+  <li><code>package …;</code> é a primeira linha do arquivo. Por convenção, o nome começa com o domínio ao contrário e é todo em minúsculas.</li>
+  <li>Compile com <code>javac -d out …</code> e rode com <code>java -cp out pacote.Classe</code>. No Java 22+, <code>java src/…/Main.java</code> roda direto.</li>
+  <li><code>import</code> é só atalho de nome. Prefira uma classe por linha; <code>*</code> não inclui subpacotes; <code>import static</code> traz membros <code>static</code>.</li>
+  <li>Dois imports com o mesmo nome de classe: <code>reference to … is ambiguous</code>. Importe pelo nome ou use o nome completo.</li>
+  <li><code>java.lang</code> (<code>String</code>, <code>Math</code>, <code>System</code>…) é importado automaticamente.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
