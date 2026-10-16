@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Laços Aninhados — um laço dentro de outro | Guia Java</title>
+<meta name="description" content="Aula de laços aninhados em Java para iniciantes: um laço dentro de outro, a ordem das voltas, desenhar retângulos, triângulos e pirâmides de asteriscos, a tabela de multiplicação, contar iterações e os erros mais comuns, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Laços Aninhados</span></h1>
+
+<p class="intro">O corpo de um laço pode ter qualquer instrução, inclusive <strong>outro laço</strong>. Isso se chama <strong>laços aninhados</strong> (como ninhos, um dentro do outro). É o jeito de trabalhar com coisas que têm <strong>duas dimensões</strong>: linhas e colunas, fileiras e cadeiras, dias e horários, a tabela de multiplicação inteira.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como um laço dentro de outro funciona, volta por volta.</li>
+  <li>A regra que resolve quase todo exercício: <strong>o de fora são as linhas, o de dentro são as colunas</strong>.</li>
+  <li>Desenhar retângulos, triângulos e pirâmides com <code>*</code>.</li>
+  <li>Montar a tabela de multiplicação de 1 a 10.</li>
+  <li>Contar quantas vezes o corpo de dentro roda, e por que isso cresce rápido.</li>
+  <li>Os erros mais comuns: mesmo nome de variável, passo trocado, <code>println</code> no lugar de <code>print</code>.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25) com <code>java Main.java</code>. Usamos o <a href="for.html">for</a> em quase todos, mas a ideia vale para qualquer laço.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>Pense num relógio. O ponteiro das horas anda <strong>uma</strong> vez; enquanto isso, o ponteiro dos minutos dá <strong>uma volta inteira</strong> (60 passos). Só então as horas andam de novo, e os minutos começam outra volta completa.</p>
+<p>Laços aninhados são exatamente isso:</p>
+<ul>
+  <li>O laço <strong>de fora</strong> é o ponteiro das horas: anda devagar.</li>
+  <li>O laço <strong>de dentro</strong> é o ponteiro dos minutos: a cada passo do de fora, ele recomeça do zero e vai até o fim.</li>
+</ul>
+
+<p>Veja um relógio simplificado, de 15 em 15 minutos, por duas horas:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int h = 0; h &lt;= 1; h++) {
+            for (int m = 0; m &lt; 60; m += 15) {
+                System.out.println(h + "h" + m + "min");
+            }
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+0h0min
+0h15min
+0h30min
+0h45min
+1h0min                       « o laço das horas andou; os minutos recomeçaram do 0
+1h15min
+1h30min
+1h45min</pre>
+
+<hr>
+
+<h2>Volta por volta</h2>
+<p>Para enxergar a ordem exata, vamos fazer cada laço "se apresentar". O de dentro tem um recuo de quatro espaços na mensagem, só para ficar visível:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 2; i++) {
+            System.out.println("Laço de fora: i = " + i);
+            for (int j = 1; j &lt;= 3; j++) {
+                System.out.println("    laço de dentro: i = " + i + ", j = " + j);
+            }
+        }
+        System.out.println("Fim");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Laço de fora: i = 1
+    laço de dentro: i = 1, j = 1
+    laço de dentro: i = 1, j = 2
+    laço de dentro: i = 1, j = 3
+Laço de fora: i = 2
+    laço de dentro: i = 2, j = 1     « o j recomeçou do 1
+    laço de dentro: i = 2, j = 2
+    laço de dentro: i = 2, j = 3
+Fim</pre>
+
+<p>Três fatos para guardar:</p>
+<ol>
+  <li>Para <strong>cada</strong> volta do de fora, o de dentro roda <strong>inteiro</strong> (aqui, 3 voltas).</li>
+  <li>O <code>j</code> <strong>recomeça</strong> do 1 a cada volta do de fora. Isso acontece porque o <code>int j = 1</code> está no cabeçalho do laço de dentro, e esse cabeçalho é executado de novo cada vez que o programa chega nele.</li>
+  <li>O de dentro <strong>enxerga</strong> o <code>i</code> do de fora (ele aparece na mensagem), mas o de fora não enxerga o <code>j</code>: ele só existe dentro do laço de dentro (veja o escopo em <a href="for.html">for</a>).</li>
+</ol>
+
+<h3>Linhas e colunas</h3>
+<p>O uso mais comum: o laço de fora escolhe a <strong>linha</strong>, o de dentro escreve as <strong>colunas</strong> dessa linha. A sala de cinema da cidade tem as fileiras A, B e C, com 4 cadeiras cada:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (char fileira = 'A'; fileira &lt;= 'C'; fileira++) {
+            for (int cadeira = 1; cadeira &lt;= 4; cadeira++) {
+                System.out.print(fileira + "" + cadeira + " ");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+A1 A2 A3 A4
+B1 B2 B3 B4
+C1 C2 C3 C4</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Linha</th><th>O que faz</th></tr>
+<tr><td><code>for (char fileira = 'A'; fileira &lt;= 'C'; fileira++)</code></td><td>Laço de fora: uma volta por fileira (A, B, C). Um <code>char</code> pode contar, veja <a href="char-boolean.html">char e boolean</a>.</td></tr>
+<tr><td><code>for (int cadeira = 1; cadeira &lt;= 4; cadeira++)</code></td><td>Laço de dentro: uma volta por cadeira da fileira atual.</td></tr>
+<tr><td><code>System.out.print(fileira + "" + cadeira + " ");</code></td><td><code>print</code>, sem "ln": escreve a cadeira e <strong>fica na mesma linha</strong>. O <code>""</code> no meio força a junção como texto (sem ele, <code>'A' + 1</code> seria a soma do código da letra com 1; veja <a href="concatenacao.html">Concatenação</a>).</td></tr>
+<tr><td><code>System.out.println();</code></td><td>Está no laço de <strong>fora</strong>, depois do de dentro: terminada a fileira, pula para a próxima linha.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>A receita das figuras</strong>
+<p>Laço de fora = linhas. Laço de dentro = o que vai <strong>em</strong> cada linha, com <code>print</code>. Depois do laço de dentro, um <code>println()</code> para fechar a linha. Com essa receita você desenha qualquer figura dos exercícios clássicos.</p>
+</div>
+
+<hr>
+
+<h2>Desenhando com <code>*</code></h2>
+
+<h3>Retângulo</h3>
+<p>3 linhas, 5 estrelas em cada:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int linha = 1; linha &lt;= 3; linha++) {
+            for (int coluna = 1; coluna &lt;= 5; coluna++) {
+                System.out.print("*");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+*****
+*****
+*****</pre>
+
+<div class="tryjava" data-goal="outre:######\n######\n######\n######,src:\bfor\b[\s\S]*\bfor\b">
+<p class="try-task"><strong>Missão:</strong> desenhe um retângulo de <strong>4 linhas</strong> com <strong>6</strong> símbolos <code>#</code> em cada. Mantenha os dois laços.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        for (int linha = 1; linha &lt;= 3; linha++) {
+            for (int coluna = 1; coluna &lt;= 5; coluna++) {
+                System.out.print("*");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        for (int linha = 1; linha &lt;= 4; linha++) {
+            for (int coluna = 1; coluna &lt;= 6; coluna++) {
+                System.out.print("#");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+</div>
+
+<h3>Triângulo</h3>
+<p>Agora a linha 1 tem 1 estrela, a linha 2 tem 2, e assim por diante. O truque é um só: o limite do laço de dentro deixa de ser um número fixo e passa a ser <strong>a variável do laço de fora</strong>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int linha = 1; linha &lt;= 5; linha++) {
+            for (int coluna = 1; coluna &lt;= linha; coluna++) {
+                System.out.print("*");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+*
+**
+***
+****
+*****</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>linha</code></th><th>O de dentro vai de 1 até…</th><th>Estrelas</th></tr>
+<tr><td>1</td><td>1</td><td><code>*</code></td></tr>
+<tr><td>2</td><td>2</td><td><code>**</code></td></tr>
+<tr><td>3</td><td>3</td><td><code>***</code></td></tr>
+<tr><td>4</td><td>4</td><td><code>****</code></td></tr>
+<tr><td>5</td><td>5</td><td><code>*****</code></td></tr>
+</table>
+</div>
+
+<h3>Triângulo de cabeça para baixo</h3>
+<p>Basta o laço de fora contar <strong>para baixo</strong>, de 5 até 1. O de dentro continua igual:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int linha = 5; linha &gt;= 1; linha--) {
+            for (int coluna = 1; coluna &lt;= linha; coluna++) {
+                System.out.print("*");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+*****
+****
+***
+**
+*</pre>
+
+<h3>Pirâmide</h3>
+<p>Uma pirâmide centralizada precisa de <strong>dois</strong> laços de dentro, um depois do outro: primeiro os espaços da esquerda, depois as estrelas. Na linha <code>linha</code> de uma pirâmide de altura 4, há <code>4 - linha</code> espaços e <code>2 * linha - 1</code> estrelas (1, 3, 5, 7):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int altura = 4;
+        for (int linha = 1; linha &lt;= altura; linha++) {
+            for (int espaco = 1; espaco &lt;= altura - linha; espaco++) {
+                System.out.print(" ");
+            }
+            for (int estrela = 1; estrela &lt;= 2 * linha - 1; estrela++) {
+                System.out.print("*");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+   *
+  ***
+ *****
+*******</pre>
+
+<p>Os dois laços de dentro estão <strong>lado a lado</strong>, não um dentro do outro: a cada linha, primeiro roda o dos espaços inteiro, depois o das estrelas inteiro. Trocar <code>altura</code> por 10 desenha uma pirâmide maior sem mexer em mais nada.</p>
+
+<hr>
+
+<h2>A tabela de multiplicação</h2>
+<p>Na aula de <a href="for.html">for</a>, um laço fez a tabuada de um número. Com dois laços, saem todas, de 1 a 10, numa tabela: a linha é o <code>i</code>, a coluna é o <code>j</code>, e cada célula é <code>i * j</code>. Para alinhar as colunas, cada número é seguido de um <code>"\t"</code>, o caractere de <strong>tabulação</strong> (o <kbd>Tab</kbd>, veja <a href="escapes.html">Caracteres Especiais</a>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 10; i++) {
+            for (int j = 1; j &lt;= 10; j++) {
+                System.out.print(i * j + "\t");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+1	2	3	4	5	6	7	8	9	10
+2	4	6	8	10	12	14	16	18	20
+3	6	9	12	15	18	21	24	27	30
+4	8	12	16	20	24	28	32	36	40
+5	10	15	20	25	30	35	40	45	50
+6	12	18	24	30	36	42	48	54	60
+7	14	21	28	35	42	49	56	63	70
+8	16	24	32	40	48	56	64	72	80
+9	18	27	36	45	54	63	72	81	90
+10	20	30	40	50	60	70	80	90	100	</pre>
+
+<p>Aqui <code>i * j + "\t"</code> funciona sem parênteses porque a multiplicação vem antes da soma (veja <a href="precedencia.html">Precedência</a>): primeiro <code>i * j</code> vira um número, depois ele é juntado com o <code>"\t"</code>. Para alinhar com mais controle, existe o <code>printf</code>, que você verá em <a href="formatacao.html">Formatar Texto</a>.</p>
+
+<h3>Do jeito "livro": uma tabuada embaixo da outra</h3>
+<p>O laço de dentro não precisa escrever na mesma linha. Aqui, o de fora escreve um título e o de dentro escreve cinco linhas:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        for (int n = 1; n &lt;= 3; n++) {
+            System.out.println("Tabuada do " + n + ":");
+            for (int i = 1; i &lt;= 5; i++) {
+                System.out.println("  " + n + " x " + i + " = " + (n * i));
+            }
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Tabuada do 1:
+  1 x 1 = 1
+  1 x 2 = 2
+  1 x 3 = 3
+  1 x 4 = 4
+  1 x 5 = 5
+Tabuada do 2:
+  2 x 1 = 2
+  2 x 2 = 4
+  2 x 3 = 6
+  2 x 4 = 8
+  2 x 5 = 10
+Tabuada do 3:
+  3 x 1 = 3
+  3 x 2 = 6
+  3 x 3 = 9
+  3 x 4 = 12
+  3 x 5 = 15</pre>
+
+<hr>
+
+<h2>Contando as voltas</h2>
+<p>Quantas vezes o corpo de dentro roda? Vamos perguntar ao próprio programa, com um contador:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int voltas = 0;
+        for (int i = 1; i &lt;= 3; i++) {
+            for (int j = 1; j &lt;= 4; j++) {
+                voltas++;
+            }
+        }
+        System.out.println("O corpo de dentro rodou " + voltas + " vezes");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+O corpo de dentro rodou 12 vezes</pre>
+
+<p>3 voltas de fora × 4 de dentro = <strong>12</strong>. A regra geral: quando os limites são fixos, <strong>multiplique</strong>. Foi assim que a tabela de multiplicação escreveu 10 × 10 = 100 números.</p>
+<p>No triângulo, o de dentro roda cada vez mais. Comparando os dois formatos com <code>n = 10</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int n = 10;
+        int quadrado = 0;
+        for (int i = 1; i &lt;= n; i++) {
+            for (int j = 1; j &lt;= n; j++) {
+                quadrado++;
+            }
+        }
+        int triangulo = 0;
+        for (int i = 1; i &lt;= n; i++) {
+            for (int j = 1; j &lt;= i; j++) {
+                triangulo++;
+            }
+        }
+        System.out.println("n = " + n);
+        System.out.println("Quadrado (j até n): " + quadrado + " voltas");
+        System.out.println("Triângulo (j até i): " + triangulo + " voltas");
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+n = 10
+Quadrado (j até n): 100 voltas
+Triângulo (j até i): 55 voltas      « 1 + 2 + 3 + ... + 10</pre>
+
+<div class="note">
+<strong>Por que contar importa</strong>
+<p>Laços aninhados crescem rápido. Com <code>n = 10</code>, o quadrado dá 100 voltas; com <code>n = 1000</code>, dá <strong>um milhão</strong>; com três laços aninhados de 1000, <strong>um bilhão</strong>. Quando um programa com laços aninhados fica lento com muitos dados, é por isso. Por enquanto, basta lembrar: cada laço a mais <strong>multiplica</strong> o trabalho.</p>
+</div>
+
+<h3><code>break</code> e <code>continue</code> nos laços aninhados</h3>
+<p>Dentro de laços aninhados, <code>break</code> e <code>continue</code> agem só no laço <strong>onde estão escritos</strong> (o mais de dentro). Para sair dos dois de uma vez, use um rótulo, como <code>break externo;</code>. Tudo isso está explicado com exemplos reais em <a href="break-continue.html">break e continue</a>.</p>
+
+<hr>
+
+<h2>Formas diferentes</h2>
+<p>Qualquer laço pode ficar dentro de qualquer outro. Os mais comuns:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Combinação</th><th>Exemplo de uso</th></tr>
+<tr><td><code>for</code> dentro de <code>for</code></td><td>Figuras, tabelas, as linhas e colunas de uma <a href="arrays-multidimensionais.html">matriz</a>.</td></tr>
+<tr><td>for-each dentro de for-each</td><td>Para cada turma, para cada aluno da turma.</td></tr>
+<tr><td><code>for</code> dentro de <code>while</code></td><td>Enquanto o usuário quiser continuar, desenhar uma linha de N estrelas.</td></tr>
+<tr><td>Dois laços de dentro lado a lado</td><td>A pirâmide: espaços e depois estrelas, na mesma linha.</td></tr>
+<tr><td>Três laços</td><td>Raros: horas, minutos e segundos; cubos de dados. Cuidado com o número de voltas.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"variable i is already defined": o mesmo nome nos dois laços</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 3; i++) {
+            for (int i = 1; i &lt;= 4; i++) {
+                System.out.print("*");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: variable i is already defined in method main(String[])
+            for (int i = 1; i &lt;= 4; i++) {
+                     ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "a variável i já foi definida no método main". O <code>i</code> do laço de fora ainda está vivo dentro do laço de dentro, então não dá para criar outro com o mesmo nome.</p>
+<p><strong>Como consertar:</strong> use um nome diferente no de dentro: <code>j</code> (a tradição) ou, melhor ainda, nomes que digam o que contam: <code>linha</code> e <code>coluna</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma fila infinita de estrelas: o passo errado no laço de dentro</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int i = 1; i &lt;= 3; i++) {
+            for (int j = 1; j &lt;= 4; i++) {
+                System.out.print("*");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+************************************************************   « … uma linha só, sem fim …
+$ echo $?                    « depois do Ctrl+C
+130</pre>
+<p><strong>O que aconteceu:</strong> o laço de dentro testa <code>j</code>, mas o passo soma em <code>i</code> (copiar e colar o cabeçalho do laço de fora é a causa clássica). O <code>j</code> fica 1 para sempre, a condição <code>j &lt;= 4</code> nunca fica falsa e o programa escreve estrelas sem parar, todas na mesma linha (o <code>println</code> nunca é alcançado). Em um segundo, foram mais de 200 mil estrelas até a Ana apertar <kbd>Ctrl</kbd>+<kbd>C</kbd>.</p>
+<p><strong>Como consertar:</strong> confira as <strong>três</strong> partes do cabeçalho de dentro: todas devem usar a mesma variável (<code>j = 1; j &lt;= 4; j++</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Todas as estrelas numa coluna só: <code>println</code> no lugar de <code>print</code></strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        for (int linha = 1; linha &lt;= 3; linha++) {
+            for (int coluna = 1; coluna &lt;= 5; coluna++) {
+                System.out.println("*");
+            }
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*</pre>
+<p><strong>O que aconteceu:</strong> as 15 estrelas estão certas (3 × 5), mas cada <code>println</code> pula a linha. O retângulo virou uma coluna.</p>
+<p><strong>Como consertar:</strong> dentro do laço de dentro, <code>print</code>; depois dele, no laço de fora, um <code>println()</code> para fechar a linha.</p>
+</div>
+
+<div class="cenario">
+<strong>O desenho sai "torto" ou com uma linha a mais</strong>
+<p>Confira o lugar do <code>println()</code>: se ele estiver <strong>dentro</strong> do laço de dentro, cada estrela fica numa linha; se estiver <strong>fora dos dois</strong> laços, tudo sai numa linha só. O lugar certo é dentro do de fora, logo depois do <code>}</code> do de dentro. Uma boa <strong>indentação</strong> (o recuo das linhas) mostra isso de relance; mantenha cada laço quatro espaços mais para dentro que o anterior.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Padrão</th><th>Laço de fora</th><th>Laço de dentro</th><th>Voltas do de dentro (total)</th></tr>
+<tr><td>Retângulo L × C</td><td><code>linha</code> de 1 a L</td><td><code>coluna</code> de 1 a C</td><td>L × C</td></tr>
+<tr><td>Triângulo</td><td><code>linha</code> de 1 a N</td><td><code>coluna</code> de 1 a <code>linha</code></td><td>1 + 2 + … + N</td></tr>
+<tr><td>Triângulo invertido</td><td><code>linha</code> de N a 1</td><td><code>coluna</code> de 1 a <code>linha</code></td><td>N + … + 2 + 1</td></tr>
+<tr><td>Pirâmide de altura A</td><td><code>linha</code> de 1 a A</td><td><code>A - linha</code> espaços, depois <code>2*linha - 1</code> estrelas</td><td>A² estrelas</td></tr>
+<tr><td>Tabela de multiplicação</td><td><code>i</code> de 1 a 10</td><td><code>j</code> de 1 a 10, mostra <code>i * j</code></td><td>100</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O limite do triângulo</h3>
+<p>Complete o laço de dentro para desenhar um triângulo (1, 2, 3… estrelas por linha):</p>
+<div class="ex-code">for (int coluna = 1; coluna &lt;= <input data-answer="linha" aria-label="limite">; coluna++)</div>
+</div>
+
+<div class="exercise">
+<h3>2. Fechar a linha</h3>
+<p>Complete a instrução que vai logo depois do laço de dentro, para cada linha do desenho terminar:</p>
+<div class="ex-code"><input data-answer="System.out.println();" aria-label="instrução"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Quantas voltas?</h3>
+<p>Quantas vezes o <code>print</code> roda em <code>for (int i = 0; i &lt; 4; i++) for (int j = 0; j &lt; 6; j++) System.out.print("*");</code>?</p>
+<div class="ex-code"><input data-answer="24" aria-label="número de voltas"> vezes</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Em dois laços aninhados, quando o laço de dentro "recomeça do início"?</p>
+<label><input type="radio" name="q4"> Nunca: ele continua de onde parou.</label>
+<label><input type="radio" name="q4"> A cada volta do laço de fora.</label>
+<label><input type="radio" name="q4"> Só quando o programa termina.</label>
+<label><input type="radio" name="q4"> Só quando há um <code>break</code>.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual figura este código desenha? <code>for (int l = 3; l &gt;= 1; l--) { for (int c = 1; c &lt;= l; c++) System.out.print("*"); System.out.println(); }</code></p>
+<label><input type="radio" name="q5"> Um quadrado 3 × 3</label>
+<label><input type="radio" name="q5"> Um triângulo com a ponta em cima</label>
+<label><input type="radio" name="q5"> Um triângulo com a ponta embaixo (3, 2, 1 estrelas)</label>
+<label><input type="radio" name="q5"> Uma linha com 6 estrelas</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Com três laços aninhados, cada um de 1 a 100, quantas vezes o corpo mais de dentro roda?</p>
+<label><input type="radio" name="q6"> 300</label>
+<label><input type="radio" name="q6"> 10.000</label>
+<label><input type="radio" name="q6"> 100</label>
+<label><input type="radio" name="q6"> 1.000.000</label>
+</div>
+
+<div class="tryjava" data-goal="outre:1 \n1 2 \n1 2 3 \n1 2 3 4,src:\bfor\b[\s\S]*\bfor\b">
+<p class="try-task"><strong>Missão final:</strong> desenhe um triângulo de <strong>números</strong> com 4 linhas: a linha 1 mostra <code>1 </code>, a linha 2 mostra <code>1 2 </code>, a linha 3 mostra <code>1 2 3 </code> e a linha 4 mostra <code>1 2 3 4 </code> (cada número seguido de um espaço). Dica: é o triângulo de estrelas, trocando <code>"*"</code> pela variável do laço de dentro.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        for (int linha = 1; linha &lt;= 4; linha++) {
+            // laço de dentro aqui
+
+            System.out.println();
+        }
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        for (int linha = 1; linha &lt;= 4; linha++) {
+            for (int coluna = 1; coluna &lt;= linha; coluna++) {
+                System.out.print(coluna + " ");
+            }
+            System.out.println();
+        }
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um laço dentro de outro: para <strong>cada</strong> volta do de fora, o de dentro roda <strong>inteiro</strong>, recomeçando do início.</li>
+  <li>Para figuras e tabelas: o de fora são as <strong>linhas</strong>, o de dentro são as <strong>colunas</strong> (com <code>print</code>), e um <code>println()</code> fecha cada linha.</li>
+  <li>Triângulo: o limite do de dentro é a variável do de fora (<code>coluna &lt;= linha</code>).</li>
+  <li>Total de voltas com limites fixos = multiplicação dos limites. Cada laço a mais multiplica o trabalho.</li>
+  <li>Use nomes diferentes em cada laço (<code>i</code>/<code>j</code>, ou melhor, <code>linha</code>/<code>coluna</code>) e confira se as três partes de cada cabeçalho usam a mesma variável.</li>
+  <li><code>break</code> e <code>continue</code> agem no laço mais de dentro; para sair dos dois, use um rótulo (<a href="break-continue.html">break e continue</a>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
