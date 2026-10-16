@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Sobrecarga de Métodos — mesmo nome, parâmetros diferentes | Guia Java</title>
+<meta name="description" content="Sobrecarga (overloading) em Java: vários métodos com o mesmo nome e parâmetros diferentes, como o compilador escolhe entre int e double, o que não é sobrecarga (só o retorno diferente) e os erros reais already defined, ambiguous e no suitable method found.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Sobrecarga</span></h1>
+
+<p class="intro">Em Java, dois métodos da mesma classe podem ter o <strong>mesmo nome</strong>, desde que recebam <strong>parâmetros diferentes</strong>. Isso se chama <strong>sobrecarga</strong> (em inglês, <em>overloading</em>). Você já usa sem perceber: o <code>System.out.println</code> aceita números, textos, letras e <code>true</code>/<code>false</code> porque existem várias versões dele, todas com o mesmo nome.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar vários métodos com o mesmo nome e listas de parâmetros diferentes.</li>
+  <li>O que é a <strong>assinatura</strong> de um método e por que ela decide tudo.</li>
+  <li>Como o Java escolhe qual versão chamar, inclusive quando o argumento é <code>int</code> e só existe a versão <code>double</code>.</li>
+  <li>O que <strong>não</strong> é sobrecarga: mudar só o tipo de retorno ou só o nome do parâmetro.</li>
+  <li>Os erros reais <code>already defined</code>, <code>reference … is ambiguous</code> e <code>no suitable method found</code>.</li>
+</ul>
+</div>
+
+<p>Antes, revise <a href="parametros.html">Parâmetros e Argumentos</a> e <a href="retorno.html">Valores de Retorno</a>: a sobrecarga é toda sobre listas de parâmetros.</p>
+
+<hr>
+
+<h2>A ideia antes do código: o verbo "abrir"</h2>
+<p>Em português, você "abre" uma porta, "abre" um pote, "abre" um arquivo e "abre" uma conta no banco. É o mesmo verbo, mas a ação muda conforme o que vem depois. Ninguém inventa "abrirPorta", "abrirPote" e "abrirConta" na conversa: o objeto da frase já deixa claro qual "abrir" é.</p>
+<p>A sobrecarga é isso no Java: um nome só (<code>somar</code>) para a mesma <strong>ideia</strong>, e o Java descobre qual versão usar pelo que você passa entre os parênteses.</p>
+
+<hr>
+
+<h2>O problema: nomes diferentes para a mesma coisa</h2>
+<p>A Ana quer somar dois inteiros, três inteiros e dois números com vírgula. Sem sobrecarga, ela teria de inventar um nome para cada caso: <code>somarDois</code>, <code>somarTres</code>, <code>somarDecimais</code>… e lembrar qual é qual. Com sobrecarga, todos se chamam <code>somar</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static int somar(int a, int b) {
+        return a + b;
+    }
+
+    static int somar(int a, int b, int c) {
+        return a + b + c;
+    }
+
+    static double somar(double a, double b) {
+        return a + b;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(somar(2, 3));
+        System.out.println(somar(2, 3, 4));
+        System.out.println(somar(2.5, 3.5));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+5          « somar(int, int)
+9          « somar(int, int, int)
+6.0        « somar(double, double): o resultado é double</pre>
+
+<dl class="anatomy">
+  <dt>somar(int a, int b)</dt><dd>Primeira versão: dois <code>int</code>.</dd>
+  <dt>somar(int a, int b, int c)</dt><dd>Segunda versão: a <strong>quantidade</strong> de parâmetros é diferente (três).</dd>
+  <dt>somar(double a, double b)</dt><dd>Terceira versão: a quantidade é igual à da primeira, mas os <strong>tipos</strong> são diferentes.</dd>
+  <dt>somar(2, 3)</dt><dd>Na chamada, o compilador olha os argumentos (dois <code>int</code>) e escolhe a versão que combina. A escolha é feita na <strong>compilação</strong>, não durante a execução.</dd>
+</dl>
+
+<h3>A assinatura do método</h3>
+<p>O que o Java usa para diferenciar métodos é a <strong>assinatura</strong>: o <strong>nome</strong> mais os <strong>tipos dos parâmetros, na ordem</strong>. As três versões acima têm assinaturas diferentes:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Declaração</th><th>Assinatura</th><th>Faz parte da assinatura?</th></tr>
+<tr><td><code>static int somar(int a, int b)</code></td><td><code>somar(int, int)</code></td><td rowspan="3">Sim: nome, quantidade, tipos e ordem dos parâmetros.<br>Não: o tipo de retorno, os nomes dos parâmetros, o <code>static</code>.</td></tr>
+<tr><td><code>static int somar(int a, int b, int c)</code></td><td><code>somar(int, int, int)</code></td></tr>
+<tr><td><code>static double somar(double a, double b)</code></td><td><code>somar(double, double)</code></td></tr>
+</table>
+</div>
+
+<p>Regra de ouro: <strong>numa classe, não podem existir dois métodos com a mesma assinatura</strong>. Para sobrecarregar, a lista de parâmetros tem de mudar em pelo menos um destes pontos: quantidade, tipo ou ordem dos tipos.</p>
+
+<div class="tryjava" data-goal="out:15,out:9.0,src:static\s+int\s+maior\s*\(\s*int\s+\w+\s*\,\s*int\s+\w+\s*\,\s*int\s+\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> já existem <code>maior(int, int)</code> e <code>maior(double, double)</code>. Crie uma terceira versão, <code>maior(int a, int b, int c)</code>, que devolva o maior dos três. Dica: ela pode usar a versão de dois: <code>return maior(maior(a, b), c);</code>.</p>
+<pre class="script">public class Main {
+    static int maior(int a, int b) {
+        return a &gt; b ? a : b;
+    }
+
+    static double maior(double a, double b) {
+        return a &gt; b ? a : b;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(maior(7, 15, 3));
+        System.out.println(maior(8.5, 9.0));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static int maior(int a, int b) {
+        return a &gt; b ? a : b;
+    }
+
+    static int maior(int a, int b, int c) {
+        return maior(maior(a, b), c);
+    }
+
+    static double maior(double a, double b) {
+        return a &gt; b ? a : b;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(maior(7, 15, 3));
+        System.out.println(maior(8.5, 9.0));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Como o Java escolhe a versão</h2>
+<p>Quando há várias versões, o compilador procura a que combina <strong>melhor</strong> com os argumentos. Veja um experimento com uma versão <code>int</code> e uma <code>double</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void mostrar(int x) {
+        System.out.println("versão int: " + x);
+    }
+
+    static void mostrar(double x) {
+        System.out.println("versão double: " + x);
+    }
+
+    public static void main(String[] args) {
+        mostrar(5);
+        mostrar(5.0);
+        mostrar(5L);
+        mostrar('A');
+        mostrar(2.5f);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+versão int: 5          « 5 é int: combinação exata
+versão double: 5.0     « 5.0 é double: combinação exata
+versão double: 5.0     « 5L é long: não cabe em int sem perda, mas cabe em double
+versão int: 65         « 'A' é char: o char vira int (o código da letra A é 65)
+versão double: 2.5     « 2.5f é float: vira double</pre>
+
+<p>O raciocínio do compilador, simplificado, é este:</p>
+<ol class="passo">
+  <li><strong>Existe uma versão com os tipos exatos?</strong> Use essa. (<code>mostrar(5)</code> → <code>int</code>; <code>mostrar(5.0)</code> → <code>double</code>.)</li>
+  <li><strong>Não? Existe uma versão em que os argumentos cabem por conversão automática, sem perda?</strong> Essa conversão se chama <em>ampliação</em> (<em>widening</em>): <code>byte</code> → <code>short</code> → <code>int</code> → <code>long</code> → <code>float</code> → <code>double</code>, e <code>char</code> → <code>int</code>. Se várias servem, use a mais "próxima": por isso o <code>'A'</code> foi para <code>int</code> e não para <code>double</code>.</li>
+  <li><strong>Ainda não?</strong> O Java tenta converter primitivos em objetos (<code>int</code> → <code>Integer</code>, veja <a href="wrappers.html">Wrappers</a>) e, por último, versões com <a href="parametros.html">varargs</a>.</li>
+  <li><strong>Nada serviu?</strong> Erro: <code>no suitable method found</code>. <strong>Duas serviram igualmente bem?</strong> Erro: <code>ambiguous</code>.</li>
+</ol>
+
+<div class="tryjava">
+<p class="try-task"><strong>Brinque com o código:</strong> rode e confira as cinco linhas. Depois acrescente uma versão <code>static void mostrar(char x)</code> e veja qual chamada muda de versão. Por fim, apague a versão <code>int</code>: para onde vão o <code>5</code> e o <code>'A'</code>?</p>
+<pre class="script">public class Main {
+    static void mostrar(int x) {
+        System.out.println("versão int: " + x);
+    }
+
+    static void mostrar(double x) {
+        System.out.println("versão double: " + x);
+    }
+
+    public static void main(String[] args) {
+        mostrar(5);
+        mostrar(5.0);
+        mostrar(5L);
+        mostrar('A');
+        mostrar(2.5f);
+    }
+}
+</pre>
+</div>
+
+<p>O caminho contrário (estreitamento) <strong>nunca</strong> é automático: um <code>double</code> não entra num parâmetro <code>int</code>. Agora veja o que acontece quando só existe a versão <code>double</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void mostrar(double x) {
+        System.out.println("versão double: " + x);
+    }
+
+    public static void main(String[] args) {
+        mostrar(5);
+        mostrar(5.0);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+versão double: 5.0     « o 5 (int) foi ampliado para 5.0
+versão double: 5.0</pre>
+
+<p>Sem a versão <code>int</code>, o <code>5</code> é convertido para <code>double</code> e entra na única que existe. É a mesma conversão que você viu em <a href="conversao-tipos.html">Conversão de Tipos</a>.</p>
+
+<h3>A ordem dos tipos também conta</h3>
+<p>Mudar só a <strong>ordem</strong> dos tipos já cria uma assinatura nova:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void cadastrar(int idade, double altura) {
+        System.out.println("idade e altura");
+    }
+
+    static void cadastrar(double altura, int idade) {
+        System.out.println("altura e idade");
+    }
+
+    public static void main(String[] args) {
+        cadastrar(30, 1.65);
+        cadastrar(1.65, 30);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+idade e altura
+altura e idade</pre>
+
+<p>Funciona, mas é uma armadilha: basta alguém chamar <code>cadastrar(30, 2)</code> (dois <code>int</code>) para o compilador não saber qual escolher. Você verá o erro em <a href="#erros">Quando dá errado</a>. Em código real, evite sobrecargas que diferem só na ordem.</p>
+
+<hr>
+
+<h2>Você já usa sobrecarga: o <code>println</code></h2>
+<p>O <code>System.out.println</code> tem uma versão para cada tipo: <code>println(int)</code>, <code>println(double)</code>, <code>println(char)</code>, <code>println(boolean)</code>, <code>println(String)</code>, <code>println(char[])</code>, <code>println(Object)</code> e <code>println()</code> sem nada. Cada uma sabe escrever o seu tipo:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(42);
+        System.out.println(3.14);
+        System.out.println('A');
+        System.out.println(true);
+        System.out.println("texto");
+        char[] letras = {'o', 'i'};
+        System.out.println(letras);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+42
+3.14
+A
+true
+texto
+oi          « println(char[]) escreve as letras do array</pre>
+
+<p>Outros exemplos da biblioteca do Java: <code>Math.max</code> e <code>Math.abs</code> (versões para <code>int</code>, <code>long</code>, <code>float</code>, <code>double</code>; veja <a href="math.html">Math</a>) e <code>texto.indexOf</code>, que aceita um caractere ou um texto (veja <a href="metodos-string.html">Métodos de String</a>).</p>
+
+<hr>
+
+<h2>Formas diferentes: sobrecarga para "valores padrão"</h2>
+<p>Algumas linguagens deixam escrever <code>saudar(nome = "visitante")</code>, com um valor padrão para o parâmetro. Java <strong>não tem</strong> isso. O jeito Java é a sobrecarga: as versões curtas chamam a versão completa, preenchendo o que falta.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static void saudar() {
+        saudar("visitante");
+    }
+
+    static void saudar(String nome) {
+        saudar(nome, "Bom dia");
+    }
+
+    static void saudar(String nome, String cumprimento) {
+        System.out.println(cumprimento + ", " + nome + "!");
+    }
+
+    public static void main(String[] args) {
+        saudar();
+        saudar("Ana");
+        saudar("Bruno", "Boa noite");
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Bom dia, visitante!     « saudar() → saudar("visitante") → saudar("visitante", "Bom dia")
+Bom dia, Ana!
+Boa noite, Bruno!</pre>
+
+<p>Só a última versão tem o <code>println</code>. Se a Ana quiser mudar o formato da saudação, muda num lugar só. Você vai ver a mesma técnica com construtores, em <a href="construtores.html">Construtores</a> (<code>this(…)</code>).</p>
+
+<h3>Qual usar?</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>A mesma ideia com tipos diferentes (<code>somar</code> para <code>int</code> e <code>double</code>)</td><td>Sobrecarga por tipo</td></tr>
+<tr><td>A mesma ideia com mais ou menos informações (<code>saudar()</code>, <code>saudar(nome)</code>)</td><td>Sobrecarga por quantidade, com as versões curtas chamando a completa</td></tr>
+<tr><td>Uma quantidade qualquer de valores do mesmo tipo</td><td><a href="parametros.html">Varargs</a> (<code>int... numeros</code>), em vez de várias versões</td></tr>
+<tr><td>Ações realmente diferentes</td><td>Nomes diferentes: <code>abrirConta</code> e <code>fecharConta</code>, não dois <code>conta(…)</code></td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>Sobrecarga não é sobrescrita</strong>
+<p>Os nomes parecem, mas são coisas diferentes. <strong>Sobrecarga</strong> (<em>overloading</em>, esta aula): mesmo nome, parâmetros diferentes, na mesma classe. <strong>Sobrescrita</strong> (<em>overriding</em>): uma classe filha substitui um método herdado, com a mesma assinatura; é o assunto de <a href="sobrescrita.html">Sobrescrita (@Override)</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="nao-e">O que não é sobrecarga</h2>
+
+<h3>Mudar só o tipo de retorno</h3>
+<p>A Ana quis duas médias: uma inteira e uma com vírgula, ambas com dois <code>int</code>:</p>
+
+<pre class="file" data-file="Main.java — com erro de propósito">public class Main {
+    static int media(int a, int b) {
+        return (a + b) / 2;
+    }
+
+    static double media(int a, int b) {
+        return (a + b) / 2.0;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(media(7, 8));
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:6: error: method media(int,int) is already defined in class Main
+    static double media(int a, int b) {
+                  ^
+1 error</pre>
+
+<p>"O método <code>media(int,int)</code> já está definido na classe <code>Main</code>". Repare que a mensagem mostra a assinatura, <code>media(int,int)</code>, <strong>sem</strong> o tipo de retorno: para o Java, os dois métodos são o mesmo. E faz sentido: na chamada <code>media(7, 8)</code> não há nada que diga qual dos dois você quer, já que o retorno só aparece <strong>depois</strong> da chamada (e pode até ser ignorado).</p>
+<p><strong>Como resolver:</strong> use nomes diferentes (<code>mediaInteira</code> e <code>media</code>) ou mantenha só a versão <code>double</code>.</p>
+
+<h3>Mudar só o nome do parâmetro</h3>
+<pre class="term">$ javac Main.java
+Main.java:6: error: method saudar(String) is already defined in class Main
+    static void saudar(String apelido) {
+                ^
+1 error</pre>
+<p><code>saudar(String nome)</code> e <code>saudar(String apelido)</code> têm a mesma assinatura, <code>saudar(String)</code>. O nome do parâmetro só existe dentro do método; quem chama não o vê.</p>
+
+<hr>
+
+<h2 id="erros">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"method … is already defined in class …"</strong>
+<p><strong>O que aconteceu:</strong> dois métodos com a mesma assinatura. Ou você mudou só o tipo de retorno, só o nome do parâmetro, ou colou o método duas vezes.</p>
+<p><strong>Como resolver:</strong> mude a lista de parâmetros (quantidade, tipo ou ordem), use outro nome ou apague a cópia.</p>
+</div>
+
+<div class="cenario">
+<strong>"reference to … is ambiguous"</strong>
+<pre class="term">$ javac Main.java
+Main.java:13: error: reference to cadastrar is ambiguous
+        cadastrar(30, 2);
+        ^
+  both method cadastrar(int,double) in Main and method cadastrar(double,int) in Main match
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "a referência a <code>cadastrar</code> é ambígua: os dois métodos combinam". Com <code>cadastrar(30, 2)</code>, o <code>30</code> serve para a primeira versão (como <code>int</code>) e o <code>2</code> serve virando <code>double</code>; na segunda versão, é o contrário. Nenhuma é melhor que a outra, e o compilador se recusa a sortear.</p>
+<p><strong>Como resolver:</strong> deixe a chamada exata (<code>cadastrar(30, 2.0)</code>) ou, melhor, elimine as sobrecargas que só trocam a ordem dos tipos.</p>
+</div>
+
+<div class="cenario">
+<strong>"no suitable method found for …"</strong>
+<pre class="term">$ javac Main.java
+Main.java:11: error: no suitable method found for mostrar(String)
+        mostrar("cinco");
+        ^
+    method Main.mostrar(int) is not applicable
+      (argument mismatch; String cannot be converted to int)
+    method Main.mostrar(double) is not applicable
+      (argument mismatch; String cannot be converted to double)
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "nenhum método adequado para <code>mostrar(String)</code>". Quando há sobrecarga, o <code>javac</code> lista <strong>cada versão</strong> que tentou e o motivo de cada uma não servir: a versão <code>int</code> não aceita texto, a versão <code>double</code> também não.</p>
+<p><strong>Como resolver:</strong> mande um argumento de um tipo aceito (<code>mostrar(5)</code>) ou crie a versão que falta: <code>static void mostrar(String x)</code>. Com uma versão só, o erro seria o mais curto <code>incompatible types</code> (veja <a href="parametros.html">Parâmetros</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Foi chamada a versão "errada"</strong>
+<pre class="term">$ java Main.java
+versão int: 65</pre>
+<p><strong>O que aconteceu:</strong> não é erro do Java. A Ana chamou <code>mostrar('A')</code> esperando ver a letra, mas não existe <code>mostrar(char)</code>; o <code>char</code> foi ampliado para <code>int</code> (o código 65).</p>
+<p><strong>Como resolver:</strong> crie a versão para o tipo que você quer tratar de forma especial (<code>mostrar(char x)</code>) ou converta o argumento de propósito na chamada.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pode coexistir com <code>void f(int a, double b)</code>?</th><th>Resposta</th><th>Por quê</th></tr>
+<tr><td><code>void f(int a)</code></td><td>Sim</td><td>Quantidade diferente</td></tr>
+<tr><td><code>void f(int a, int b)</code></td><td>Sim</td><td>Tipo diferente</td></tr>
+<tr><td><code>void f(double a, int b)</code></td><td>Sim (mas cuidado: chamadas ambíguas)</td><td>Ordem dos tipos diferente</td></tr>
+<tr><td><code>int f(int a, double b)</code></td><td>Não: <code>already defined</code></td><td>Só o retorno mudou</td></tr>
+<tr><td><code>void f(int x, double y)</code></td><td>Não: <code>already defined</code></td><td>Só os nomes mudaram</td></tr>
+<tr><td><code>void f(int... a)</code></td><td>Sim</td><td>Varargs é <code>int[]</code>, outro tipo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Missão final: área com sobrecarga</h2>
+<div class="tryjava" data-goal="out:Quadrado: 16.0,out:Retângulo: 15.0,src:static\s+double\s+area\s*\(\s*double\s+\w+\s*\)\s*\{,src:static\s+double\s+area\s*\(\s*double\s+\w+\s*\,\s*double\s+\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> crie duas versões de <code>area</code>: <code>area(double lado)</code>, que devolve a área do quadrado (lado × lado), e <code>area(double largura, double altura)</code>, que devolve a do retângulo. O <code>main</code> já chama as duas.</p>
+<pre class="script">public class Main {
+    // escreva as duas versões de area aqui
+
+    public static void main(String[] args) {
+        System.out.println("Quadrado: " + area(4));
+        System.out.println("Retângulo: " + area(3, 5));
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static double area(double lado) {
+        return lado * lado;
+    }
+
+    static double area(double largura, double altura) {
+        return largura * altura;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Quadrado: " + area(4));
+        System.out.println("Retângulo: " + area(3, 5));
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A assinatura</h3>
+<p>Escreva a assinatura (nome e tipos, sem espaços) de <code>static String juntar(String a, int vezes)</code>:</p>
+<div class="ex-code"><input data-answer="juntar(String,int)|juntar(String, int)" aria-label="assinatura"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual versão?</h3>
+<p>Existem <code>f(int x)</code> e <code>f(double x)</code>. Qual tipo de parâmetro recebe a chamada <code>f(10L)</code>?</p>
+<div class="ex-code"><input data-answer="double" aria-label="tipo"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Complete a sobrecarga</h3>
+<p>Complete a versão sem parâmetros para que ela chame a versão com nome, usando <code>"visitante"</code>:</p>
+<div class="ex-code">static void saudar() { <input data-answer="saudar(&quot;visitante&quot;);" aria-label="chamada"> }</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual par de métodos <strong>não</strong> compila na mesma classe?</p>
+<label><input type="radio" name="q4"> <code>void a(int x)</code> e <code>void a(String x)</code></label>
+<label><input type="radio" name="q4"> <code>void a(int x)</code> e <code>void a(int x, int y)</code></label>
+<label><input type="radio" name="q4"> <code>void a(int x)</code> e <code>int a(int y)</code></label>
+<label><input type="radio" name="q4"> <code>void a(int x, String s)</code> e <code>void a(String s, int x)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Existem <code>mostrar(int)</code> e <code>mostrar(double)</code>. O que <code>mostrar('B')</code> faz?</p>
+<label><input type="radio" name="q5"> Chama <code>mostrar(int)</code> com 66.</label>
+<label><input type="radio" name="q5"> Chama <code>mostrar(double)</code> com 66.0.</label>
+<label><input type="radio" name="q5"> Erro: <code>ambiguous</code>.</label>
+<label><input type="radio" name="q5"> Erro: <code>no suitable method found</code>.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">6. Quando o Java escolhe qual versão sobrecarregada chamar?</p>
+<label><input type="radio" name="q6"> Durante a execução, conforme o valor do argumento.</label>
+<label><input type="radio" name="q6"> Na compilação, conforme os tipos dos argumentos.</label>
+<label><input type="radio" name="q6"> Sorteando entre as versões possíveis.</label>
+<label><input type="radio" name="q6"> Sempre a primeira declarada na classe.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Sobrecarga</strong>: vários métodos com o mesmo nome e listas de parâmetros diferentes (quantidade, tipo ou ordem dos tipos).</li>
+  <li>A <strong>assinatura</strong> é o nome + os tipos dos parâmetros. Não entram o retorno nem os nomes dos parâmetros.</li>
+  <li>O compilador escolhe a versão pelos tipos dos argumentos: primeiro a exata, depois por ampliação (<code>int</code> → <code>long</code> → <code>double</code>, <code>char</code> → <code>int</code>), depois wrappers e varargs.</li>
+  <li>Só o retorno diferente não é sobrecarga: <code>method … is already defined</code>.</li>
+  <li>Duas versões igualmente boas: <code>reference … is ambiguous</code>. Nenhuma serve: <code>no suitable method found</code>, com a lista de tentativas.</li>
+  <li>Java não tem parâmetros com valor padrão; use versões curtas que chamam a completa.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
