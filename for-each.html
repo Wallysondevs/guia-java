@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java for-each — percorrer arrays e listas item por item | Guia Java</title>
+<meta name="description" content="Aula do for-each (for aprimorado) em Java para iniciantes: percorrer arrays, listas e as letras de um texto, somar e contar, quando ele não serve (precisa do índice, modificar, remover), var no for-each e os erros reais do javac.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">for-each</span></h1>
+
+<p class="intro">Muitas vezes você não quer "contar de 1 a 10": quer <strong>passar por cada item</strong> de um grupo de valores, como cada fruta da lista de compras ou cada nota da turma. Para isso o Java tem uma forma mais curta do <code>for</code>, o <strong>for-each</strong> ("para cada"). Nele não há contador, nem condição, nem passo: só "para cada item deste grupo, faça isto".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um array, o suficiente para usá-lo num laço.</li>
+  <li>A anatomia do for-each: <code>for (tipo item : grupo)</code>.</li>
+  <li>Percorrer arrays, listas e as letras de um texto; somar e contar com ele.</li>
+  <li>Quando o for-each <strong>não</strong> serve: quando você precisa da posição, quer mudar os valores ou remover itens.</li>
+  <li>Como usar <code>var</code> no for-each.</li>
+</ul>
+</div>
+
+<p>Os exemplos rodam no terminal da Ana (máquina fictícia <strong>notebook</strong>, pasta <code>~/java</code>, JDK 25) com <code>java Main.java</code>.</p>
+
+<hr>
+
+<h2>A ideia antes do código</h2>
+<p>A Ana chega do mercado com uma sacola e vai guardando as compras: tira um item, guarda; tira o próximo, guarda; até a sacola ficar vazia. Ela não numera os itens nem conta quantos são. Só pensa: <strong>para cada item da sacola, guarde-o</strong>.</p>
+<p>O for-each é essa sacola. Você entrega a ele um <strong>grupo de valores</strong> e ele te dá um item por vez, do primeiro ao último, sem você precisar saber quantos são nem em que posição cada um está.</p>
+
+<h3>Um array em 30 segundos</h3>
+<p>Para ter um "grupo de valores", vamos usar um <strong>array</strong>: uma variável que guarda vários valores do mesmo tipo, um atrás do outro. Ele tem uma aula inteira, <a href="arrays.html">Arrays</a>, logo depois deste bloco. Por enquanto basta isto:</p>
+
+<pre class="file" data-file="trecho">String[] frutas = {"maçã", "banana", "uva", "laranja"};</pre>
+
+<dl class="anatomy">
+  <dt>String[]</dt><dd>O tipo: "vários <code>String</code>". Os colchetes <code>[]</code> dizem que é um array.</dd>
+  <dt>frutas</dt><dd>O nome da variável.</dd>
+  <dt>= {…};</dt><dd>Os valores, entre chaves, separados por vírgula. Aqui são 4.</dd>
+</dl>
+
+<hr>
+
+<h2>O primeiro for-each</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"maçã", "banana", "uva", "laranja"};
+        for (String fruta : frutas) {
+            System.out.println("Eu gosto de " + fruta);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Eu gosto de maçã
+Eu gosto de banana
+Eu gosto de uva
+Eu gosto de laranja</pre>
+
+<h3>Anatomia do for-each</h3>
+<dl class="anatomy">
+  <dt>for</dt><dd>A mesma palavra-chave do <code>for</code> comum.</dd>
+  <dt>(String</dt><dd>O <strong>tipo</strong> de cada item. Tem que combinar com o tipo do array: array de <code>String</code>, item <code>String</code>.</dd>
+  <dt>fruta</dt><dd>O <strong>nome</strong> que você escolhe para o item da vez. A cada volta, ele recebe o próximo valor.</dd>
+  <dt>:</dt><dd>Os dois-pontos. Leia como "<strong>em</strong>": "para cada <code>fruta</code> <strong>em</strong> <code>frutas</code>".</dd>
+  <dt>frutas)</dt><dd>O <strong>grupo</strong> a percorrer: um array ou uma lista.</dd>
+  <dt>{ … }</dt><dd>O corpo, que roda uma vez para cada item.</dd>
+</dl>
+
+<p>A tabela mostra o que a variável <code>fruta</code> vale em cada volta:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Volta</th><th><code>fruta</code> vale</th><th>Saída</th></tr>
+<tr><td>1ª</td><td><code>"maçã"</code></td><td>Eu gosto de maçã</td></tr>
+<tr><td>2ª</td><td><code>"banana"</code></td><td>Eu gosto de banana</td></tr>
+<tr><td>3ª</td><td><code>"uva"</code></td><td>Eu gosto de uva</td></tr>
+<tr><td>4ª</td><td><code>"laranja"</code></td><td>Eu gosto de laranja</td></tr>
+<tr><td>—</td><td>acabaram os itens</td><td>o laço termina sozinho</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Dica de nome</strong>
+<p>Use o <strong>plural</strong> para o grupo e o <strong>singular</strong> para o item: <code>frutas</code> / <code>fruta</code>, <code>notas</code> / <code>nota</code>, <code>alunos</code> / <code>aluno</code>. O laço fica legível como uma frase: "para cada nota em notas".</p>
+</div>
+
+<h3>O mesmo laço com o <code>for</code> comum</h3>
+<p>Antes do for-each existir (ele chegou no Java 5, em 2004), percorrer um array era assim:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"maçã", "banana", "uva", "laranja"};
+        for (int i = 0; i &lt; frutas.length; i++) {
+            System.out.println("Eu gosto de " + frutas[i]);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Eu gosto de maçã
+Eu gosto de banana
+Eu gosto de uva
+Eu gosto de laranja</pre>
+
+<p>A saída é idêntica. Mas repare em quanta coisa a mais: o contador <code>i</code> começando em 0, o <code>frutas.length</code> (o tamanho do array), o <code>frutas[i]</code> (o item na posição <code>i</code>). Tudo isso é explicado em <a href="arrays.html">Arrays</a> e <a href="percorrer-arrays.html">Percorrer Arrays</a>. No for-each, o Java faz esse trabalho por você, e não há como errar o início ou o limite. Por isso o nome oficial dele é <strong>for aprimorado</strong> (<em>enhanced for</em>).</p>
+
+<hr>
+
+<h2>Somar e contar com o for-each</h2>
+<p>Os padrões do <a href="for.html">for</a> funcionam igualzinho: um acumulador criado <strong>antes</strong> do laço e atualizado dentro.</p>
+
+<h3>Somar e tirar a média</h3>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double[] notas = {7.5, 8.0, 6.5, 9.0};
+        double soma = 0;
+        for (double nota : notas) {
+            soma += nota;
+        }
+        System.out.println("Soma: " + soma);
+        System.out.println("Média: " + soma / notas.length);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Soma: 31.0
+Média: 7.75</pre>
+
+<p>O array agora é de <code>double</code> (números com vírgula), então o item também é <code>double</code>. O <code>notas.length</code> é a quantidade de notas (4), usada para a média.</p>
+
+<h3>Contar quem passa num teste</h3>
+<p>Quantas pessoas desta lista de idades são maiores de idade? Um contador que só sobe quando o <code>if</code> deixa:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int[] idades = {12, 17, 25, 30, 15, 42};
+        int maiores = 0;
+        for (int idade : idades) {
+            if (idade &gt;= 18) {
+                maiores++;
+            }
+        }
+        System.out.println("Maiores de idade: " + maiores);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Maiores de idade: 3</pre>
+
+<div class="tryjava" data-goal="out:Total da compra: R$ 55,src:for\s*\(\s*(int|var)\s+\w+\s*:">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou itens de R$ 12, R$ 5, R$ 30 e R$ 8. Complete o for-each para somar os preços e mostrar <code>Total da compra: R$ 55</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        int[] precos = {12, 5, 30, 8};
+        int total = 0;
+        // escreva o for-each aqui
+
+        System.out.println("Total da compra: R$ " + total);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        int[] precos = {12, 5, 30, 8};
+        int total = 0;
+        for (int preco : precos) {
+            total += preco;
+        }
+        System.out.println("Total da compra: R$ " + total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Não é só para arrays</h2>
+
+<h3>Listas</h3>
+<p>O for-each percorre qualquer coleção do Java, como as listas. Uma lista é parecida com um array, mas pode crescer e diminuir; você vai conhecê-las em <a href="arraylist.html">ArrayList</a>, no Nível 3. Aqui usamos <code>List.of</code>, que cria uma lista pronta (o <code>&lt;String&gt;</code> diz que é uma lista de textos):</p>
+
+<pre class="file" data-file="Main.java">import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; alunos = List.of("Ana", "Bruno", "Carla");
+        for (String aluno : alunos) {
+            System.out.println("Bom dia, " + aluno + "!");
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Bom dia, Ana!
+Bom dia, Bruno!
+Bom dia, Carla!</pre>
+
+<p>O laço é escrito <strong>exatamente igual</strong> ao do array. Essa é uma das vantagens do for-each: se um dia você trocar o array por uma lista, o laço não muda.</p>
+
+<h3>As letras de um texto</h3>
+<p>Uma <code>String</code> não pode ir direto no for-each, mas o método <code>toCharArray()</code> transforma o texto num array de <code>char</code> (uma letra por posição, veja <a href="metodos-string.html">Métodos de String</a>):</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String palavra = "Java";
+        for (char letra : palavra.toCharArray()) {
+            System.out.println(letra);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+J
+a
+v
+a</pre>
+
+<hr>
+
+<h2><code>var</code> no for-each</h2>
+<p>Em vez de escrever o tipo do item, você pode usar <code>var</code> e deixar o Java descobrir pelo tipo do grupo (veja <a href="var.html">var</a>). <span class="versao">Java 10+</span></p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"maçã", "banana", "uva"};
+        for (var fruta : frutas) {
+            System.out.println(fruta.toUpperCase());
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+MAÇÃ
+BANANA
+UVA</pre>
+
+<p>Como <code>frutas</code> é um <code>String[]</code>, o Java sabe que cada <code>fruta</code> é uma <code>String</code>, e por isso o <code>toUpperCase()</code> (passar para maiúsculas) funciona. O <code>var</code> ajuda quando o tipo é comprido, como <code>Map.Entry&lt;String, Integer&gt;</code>, que você verá em <a href="hashmap.html">HashMap</a>. Com tipos curtos como <code>String</code> e <code>int</code>, escrever o tipo deixa o código mais claro para quem está aprendendo. Em Java 8 ou anterior, <code>var</code> não existe: escreva o tipo.</p>
+
+<hr>
+
+<h2>Quando o for-each não serve</h2>
+<p>O for-each é simples justamente porque esconde a posição de cada item. Isso cobra um preço em três situações.</p>
+
+<h3>1. Você precisa da posição (o índice)</h3>
+<p>No pódio de uma corrida, a posição <strong>é</strong> a informação. O for-each não sabe se o item é o primeiro ou o terceiro; o <code>for</code> com contador sabe:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        String[] podio = {"Ana", "Bruno", "Carla"};
+        for (int i = 0; i &lt; podio.length; i++) {
+            System.out.println((i + 1) + "º lugar: " + podio[i]);
+        }
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+1º lugar: Ana
+2º lugar: Bruno
+3º lugar: Carla</pre>
+
+<p>O mesmo vale para percorrer <strong>de trás para frente</strong>, <strong>pular itens</strong> (de 2 em 2) ou comparar <strong>dois arrays ao mesmo tempo</strong> (o item 0 de um com o item 0 do outro): tudo isso precisa do índice, então use o <code>for</code> comum.</p>
+
+<h3>2. Você quer mudar os valores do array</h3>
+<p>A professora decidiu dar 1 ponto a mais para todos. Parece fácil com for-each…</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {6, 7, 8};
+        for (int nota : notas) {
+            nota = nota + 1;
+        }
+        System.out.println(Arrays.toString(notas));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[6, 7, 8]                    « nada mudou!</pre>
+
+<p>(<code>Arrays.toString</code> mostra o array inteiro entre colchetes; veja <a href="classe-arrays.html">A Classe Arrays</a>.) Compilou, rodou, não deu erro… e as notas continuam as mesmas. Por quê? A variável <code>nota</code> é uma <strong>cópia</strong> do valor da vez, como um papel onde o Java anotou "6". Você somou 1 no papel, mas o array não ficou sabendo. Para mudar o array, é preciso escrever <strong>na posição</strong> dele, e para isso, de novo, você precisa do índice:</p>
+
+<pre class="file" data-file="Main.java">import java.util.Arrays;
+
+public class Main {
+    public static void main(String[] args) {
+        int[] notas = {6, 7, 8};
+        for (int i = 0; i &lt; notas.length; i++) {
+            notas[i] = notas[i] + 1;
+        }
+        System.out.println(Arrays.toString(notas));
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[7, 8, 9]</pre>
+
+<h3>3. Você quer remover itens de uma lista</h3>
+<p>Com uma lista que pode mudar de tamanho (<code>ArrayList</code>), remover um item <strong>durante</strong> o for-each estraga o laço. A Ana quer tirar a maçã da lista de frutas:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("maçã", "banana", "uva"));
+        for (String fruta : frutas) {
+            if (fruta.equals("maçã")) {
+                frutas.remove(fruta);
+            }
+        }
+        System.out.println(frutas);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+Exception in thread "main" java.util.ConcurrentModificationException
+	at java.base/java.util.ArrayList$Itr.checkForComodification(ArrayList.java:1096)
+	at java.base/java.util.ArrayList$Itr.next(ArrayList.java:1050)
+	at Main.main(Main.java:7)</pre>
+
+<p><code>ConcurrentModificationException</code> quer dizer "modificação simultânea": a lista mudou enquanto estava sendo percorrida. A última linha, <code>at Main.main(Main.java:7)</code>, aponta para a linha do <code>for</code>, onde o laço tentou pegar o próximo item e percebeu a mudança. (As linhas com <code>java.base</code> são o código do próprio Java, por dentro da lista. Você vai aprender a ler esse "rastro" em <a href="excecoes.html">O que são Exceções</a>.)</p>
+<p>Pior: com outro item, o erro pode nem aparecer. Trocando <code>"maçã"</code> por <code>"banana"</code> (o penúltimo), o mesmo programa mostra <code>[maçã, uva]</code> sem reclamar, por pura coincidência de como a lista funciona por dentro. Não confie: <strong>nunca remova itens de uma coleção dentro do for-each dela</strong>. O jeito certo é o <code>removeIf</code> (que usa uma <a href="lambdas.html">lambda</a>) ou um <a href="iterator.html">Iterator</a>, ambos do Nível 3:</p>
+
+<pre class="file" data-file="Main.java">import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+    public static void main(String[] args) {
+        List&lt;String&gt; frutas = new ArrayList&lt;&gt;(List.of("maçã", "banana", "uva"));
+        frutas.removeIf(fruta -&gt; fruta.equals("maçã"));
+        System.out.println(frutas);
+    }
+}
+</pre>
+
+<pre class="term" data-cwd="~/java">$ java Main.java
+[banana, uva]</pre>
+
+<h3>Qual usar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>Ler cada item, do primeiro ao último</td><td><strong>for-each</strong></td></tr>
+<tr><td>Somar, contar, achar o maior, procurar um item</td><td><strong>for-each</strong></td></tr>
+<tr><td>Saber a posição de cada item (1º, 2º…)</td><td><code>for</code> com índice</td></tr>
+<tr><td>Mudar os valores do array</td><td><code>for</code> com índice</td></tr>
+<tr><td>Percorrer de trás para frente ou pulando itens</td><td><code>for</code> com índice</td></tr>
+<tr><td>Percorrer dois arrays juntos</td><td><code>for</code> com índice</td></tr>
+<tr><td>Remover itens de uma lista</td><td><code>removeIf</code> ou <code>Iterator</code> (Nível 3)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"incompatible types: String cannot be converted to int"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"maçã", "banana", "uva"};
+        for (int fruta : frutas) {
+            System.out.println(fruta);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: incompatible types: String cannot be converted to int
+        for (int fruta : frutas) {
+                         ^
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "tipos incompatíveis: String não pode ser convertida em int". O array é de <code>String</code>, mas a variável do item foi declarada <code>int</code>. O <code>^</code> aponta para o grupo, de onde vêm os itens do tipo errado.</p>
+<p><strong>Como consertar:</strong> use o mesmo tipo do array (<code>String fruta</code>) ou <code>var fruta</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"for-each not applicable to expression type"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        int total = 10;
+        for (int n : total) {
+            System.out.println(n);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: for-each not applicable to expression type
+        for (int n : total) {
+                     ^
+  required: array or java.lang.Iterable
+  found:    int
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> "o for-each não se aplica a este tipo". Depois dos dois-pontos tem que vir um grupo: <code>required: array or java.lang.Iterable</code> ("é preciso um array ou algo percorrível", como uma lista). Veio um <code>int</code>, um número só (<code>found: int</code>). Quem vem do Python costuma tentar "percorrer o número 10". Uma <code>String</code> direta também dá esse erro: use <code>texto.toCharArray()</code>.</p>
+<p><strong>Como consertar:</strong> para repetir 10 vezes, use o <code>for</code> com contador: <code>for (int n = 1; n &lt;= total; n++)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>in</code> no lugar dos dois-pontos</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"maçã", "banana", "uva"};
+        for (String fruta in frutas) {
+            System.out.println(fruta);
+        }
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:4: error: ';' expected
+        for (String fruta in frutas) {
+                         ^
+Main.java:4: error: ';' expected
+        for (String fruta in frutas) {
+                            ^
+Main.java:4: error: not a statement
+        for (String fruta in frutas) {
+                             ^
+3 errors
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> outras linguagens (Python, JavaScript) escrevem "for fruta <em>in</em> frutas". Em Java, <code>in</code> não é palavra-chave; o <code>javac</code> não entende a linha e tenta adivinhar que faltam <code>;</code>. Três erros, uma causa só.</p>
+<p><strong>Como consertar:</strong> troque <code>in</code> por <code>:</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usar o item depois do laço: "cannot find symbol"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"maçã", "banana", "uva"};
+        for (String fruta : frutas) {
+            System.out.println(fruta);
+        }
+        System.out.println(fruta);
+    }
+}
+</pre>
+<pre class="term" data-cwd="~/java">$ java Main.java
+Main.java:7: error: cannot find symbol
+        System.out.println(fruta);
+                           ^
+  symbol:   variable fruta
+  location: class Main
+1 error
+error: compilation failed</pre>
+<p><strong>O que quer dizer:</strong> como no <code>for</code> comum, a variável do item só existe dentro do laço (veja o escopo em <a href="for.html">for</a>). Se você quer guardar um item para depois (o último, o maior…), crie uma variável <strong>antes</strong> do laço e copie o valor para ela lá dentro.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Percorre</th></tr>
+<tr><td><code>for (String f : frutas)</code></td><td>Cada item de um <code>String[]</code></td></tr>
+<tr><td><code>for (int n : numeros)</code></td><td>Cada item de um <code>int[]</code></td></tr>
+<tr><td><code>for (double nota : notas)</code></td><td>Cada item de um <code>double[]</code></td></tr>
+<tr><td><code>for (String a : lista)</code></td><td>Cada item de uma <code>List&lt;String&gt;</code></td></tr>
+<tr><td><code>for (char c : texto.toCharArray())</code></td><td>Cada letra de uma <code>String</code></td></tr>
+<tr><td><code>for (var item : grupo)</code></td><td>Qualquer um deles, com o tipo deduzido <span class="versao">Java 10+</span></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o for-each</h3>
+<p>Complete para percorrer o array <code>String[] cores</code>:</p>
+<div class="ex-code">for (String cor <input data-answer=":" aria-label="separador"> cores)</div>
+</div>
+
+<div class="exercise">
+<h3>2. O tipo do item</h3>
+<p>Complete o tipo do item para percorrer <code>double[] precos</code>:</p>
+<div class="ex-code">for (<input data-answer="double|var" aria-label="tipo"> preco : precos)</div>
+</div>
+
+<div class="exercise">
+<h3>3. As letras</h3>
+<p>Complete para percorrer cada letra da <code>String nome</code>:</p>
+<div class="ex-code">for (char c : <input data-answer="nome.toCharArray()" aria-label="grupo">)</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Depois de <code>int[] v = {1, 2, 3}; for (int x : v) { x = x * 10; }</code>, quanto vale o array <code>v</code>?</p>
+<label><input type="radio" name="q4"> <code>[10, 20, 30]</code></label>
+<label><input type="radio" name="q4"> <code>[10, 2, 3]</code></label>
+<label><input type="radio" name="q4"> <code>[1, 2, 3]</code></label>
+<label><input type="radio" name="q4"> Não compila.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Você quer mostrar "Aluno 1: Ana", "Aluno 2: Bruno"… Qual laço é o mais adequado?</p>
+<label><input type="radio" name="q5"> for-each, porque é mais curto.</label>
+<label><input type="radio" name="q5"> <code>for</code> com índice, porque precisa da posição.</label>
+<label><input type="radio" name="q5"> <code>do-while</code>, porque roda pelo menos uma vez.</label>
+<label><input type="radio" name="q5"> Nenhum: não dá para numerar.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. O que o for-each <strong>não</strong> aceita depois dos dois-pontos?</p>
+<label><input type="radio" name="q6"> Um <code>int[]</code></label>
+<label><input type="radio" name="q6"> Uma <code>List&lt;String&gt;</code></label>
+<label><input type="radio" name="q6"> <code>texto.toCharArray()</code></label>
+<label><input type="radio" name="q6"> Um <code>int</code> sozinho, como <code>10</code></label>
+</div>
+
+<div class="tryjava" data-goal="out:Frutas com mais de 4 letras: 3,src:for\s*\(\s*(String|var)\s+\w+\s*:">
+<p class="try-task"><strong>Missão final:</strong> conte quantas frutas do array têm <strong>mais de 4 letras</strong> e mostre <code>Frutas com mais de 4 letras: </code> seguido do número. Use um for-each e o método <code>length()</code> da <code>String</code> (por exemplo, <code>"uva".length()</code> vale 3).</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"uva", "banana", "kiwi", "laranja", "pera", "manga"};
+        int quantas = 0;
+        // escreva o for-each aqui
+
+        System.out.println("Frutas com mais de 4 letras: " + quantas);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String[] frutas = {"uva", "banana", "kiwi", "laranja", "pera", "manga"};
+        int quantas = 0;
+        for (String fruta : frutas) {
+            if (fruta.length() &gt; 4) {
+                quantas++;
+            }
+        }
+        System.out.println("Frutas com mais de 4 letras: " + quantas);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>for (Tipo item : grupo) { … }</code> roda o corpo uma vez para cada item, do primeiro ao último. Leia o <code>:</code> como "em".</li>
+  <li>Funciona com arrays, listas e qualquer coleção; para as letras de um texto, use <code>texto.toCharArray()</code>.</li>
+  <li>O tipo do item precisa combinar com o do grupo, ou use <code>var</code> (Java 10+).</li>
+  <li>Não há índice: para saber a posição, percorrer ao contrário ou pular itens, use o <code>for</code> comum.</li>
+  <li>A variável do item é uma <strong>cópia</strong>: mudar ela não muda o array.</li>
+  <li>Nunca remova itens de uma lista dentro do for-each dela (<code>ConcurrentModificationException</code>); use <code>removeIf</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
