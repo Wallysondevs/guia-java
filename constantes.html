@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Constantes — final, static final e números mágicos | Guia Java</title>
+<meta name="description" content="Constantes em Java: variáveis final que não mudam, o erro real cannot assign a value to final variable, constantes da classe com static final e a convenção de MAIÚSCULAS, e por que trocar números mágicos por constantes, com saídas reais do JDK 25.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Constantes (final)</span></h1>
+
+<p class="intro">Algumas informações de um programa não devem mudar nunca: o número de vagas de uma turma, a taxa de entrega da loja, o valor de π. Em Java, você marca essas variáveis com a palavra <code>final</code>, e o compilador passa a <strong>proibir</strong> qualquer tentativa de mudá-las. Nesta aula você vai criar constantes, ver o erro que o Java dá ao tentar alterá-las e aprender por que elas deixam o código mais fácil de entender e de manter.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar uma variável <code>final</code> e o que acontece ao tentar mudá-la.</li>
+  <li>Que uma variável <code>final</code> pode receber o valor depois, mas uma vez só.</li>
+  <li>As constantes da classe, com <code>static final</code>, e a convenção <code>MAIÚSCULAS_COM_SUBLINHADO</code>.</li>
+  <li>O que são "números mágicos" e por que trocá-los por constantes.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: escrito à caneta</h2>
+<p>Numa folha de cadastro, alguns campos você preenche a lápis, porque podem mudar (endereço, telefone), e outros à caneta, porque são definitivos (data de nascimento). Uma variável comum é o campo a lápis: você apaga e escreve de novo quantas vezes quiser. Uma variável <code>final</code> é o campo à caneta: depois de escrita, fica.</p>
+
+<p><code>final</code> quer dizer "final, definitivo": o valor que a variável recebe é o valor final dela. Uma variável que nunca muda é chamada de <strong>constante</strong>.</p>
+
+<hr>
+
+<h2>1. Variáveis <code>final</code></h2>
+<p>Basta escrever <code>final</code> antes do tipo:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        final int LIMITE_DE_ALUNOS = 30;
+        System.out.println("Vagas: " + LIMITE_DE_ALUNOS);
+        LIMITE_DE_ALUNOS = 35;
+    }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>final</dt><dd>Modificador: "esta variável recebe valor uma única vez".</dd>
+  <dt>int</dt><dd>O tipo, como em qualquer variável.</dd>
+  <dt>LIMITE_DE_ALUNOS</dt><dd>O nome. Constantes costumam ser escritas em maiúsculas, com <code>_</code> entre as palavras (veja a convenção adiante).</dd>
+  <dt>= 30;</dt><dd>O valor, que nunca mais muda.</dd>
+</dl>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: cannot assign a value to final variable LIMITE_DE_ALUNOS
+        LIMITE_DE_ALUNOS = 35;
+        ^
+1 error</pre>
+
+<p>"Não é possível atribuir um valor à variável final LIMITE_DE_ALUNOS". O erro acontece na <strong>compilação</strong>: o programa nem chega a rodar. É exatamente o que queremos: se alguém (inclusive você, daqui a seis meses) tentar mudar o limite por engano, o Java avisa na hora.</p>
+
+<p>Sem a linha 5, o programa compila e mostra <code>Vagas: 30</code>. Ler uma constante é igual a ler qualquer variável; só <strong>atribuir</strong> é proibido.</p>
+
+<div class="tryjava" data-goal="erro-javac:cannot assign a value to final variable">
+<p class="try-task"><strong>Missão (provoque o erro):</strong> a taxa de entrega é uma constante. Acrescente, depois do <code>println</code>, uma linha que tenta mudar <code>TAXA_DE_ENTREGA</code> para <code>9.0</code> e veja o <code>javac</code> recusar.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        final double TAXA_DE_ENTREGA = 7.50;
+        System.out.println("Entrega: " + TAXA_DE_ENTREGA);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        final double TAXA_DE_ENTREGA = 7.50;
+        System.out.println("Entrega: " + TAXA_DE_ENTREGA);
+        TAXA_DE_ENTREGA = 9.0;
+    }
+}
+</pre>
+</div>
+
+<h3>Atribuir depois, mas só uma vez</h3>
+<p>Uma variável <code>final</code> não precisa receber o valor na mesma linha. O que o Java garante é que ela recebe valor <strong>exatamente uma vez</strong>. Isso é útil quando o valor depende de uma decisão:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        final double desconto;
+        int idade = 70;
+        if (idade &gt;= 65) {
+            desconto = 0.5;
+        } else {
+            desconto = 0.0;
+        }
+        System.out.println(desconto);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+0.5</pre>
+
+<p>O <code>if</code>/<code>else</code> (assunto de <a href="if-else.html">if, else if, else</a>) escolhe <strong>um</strong> dos dois caminhos; em qualquer deles, <code>desconto</code> recebe valor uma vez só, e o Java aceita. Repare que aqui o nome está em <code>camelCase</code>: <code>desconto</code> é <code>final</code> para não ser alterado por engano no resto do método, mas não é uma "constante do programa" como uma taxa fixa. Veja a diferença na convenção de nomes, mais adiante.</p>
+
+<p>Se o Java perceber que a variável pode receber valor <strong>duas</strong> vezes, recusa:</p>
+
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        final int x;
+        x = 1;
+        x = 2;
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java
+Main.java:5: error: variable x might already have been assigned
+        x = 2;
+        ^
+1 error</pre>
+
+<p>"A variável x pode já ter sido atribuída". E, como qualquer variável local, uma <code>final</code> sem valor também não pode ser lida: <code>final int TOTAL;</code> seguido de <code>println(TOTAL)</code> dá <code>variable TOTAL might not have been initialized</code>, o mesmo erro visto em <a href="variaveis.html">Variáveis</a>.</p>
+
+<div class="tip">
+<strong><code>final</code> combina com <code>var</code></strong>
+<p><code>final var cidade = "Recife";</code> é válido: o tipo é inferido (<code>String</code>) e a variável não pode mudar. Veja <a href="var.html">var</a>.</p>
+</div>
+
+<hr>
+
+<h2>2. Constantes da classe: <code>static final</code></h2>
+<p>As constantes mais comuns não ficam dentro do <code>main</code>, e sim <strong>no topo da classe</strong>, fora de qualquer método. Assim, qualquer parte do programa pode usá-las, e quem abre o arquivo vê logo de cara os valores fixos. Para isso, elas levam também a palavra <code>static</code>:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static final double TAXA_DE_ENTREGA = 7.50;
+    static final int ESTOQUE_MINIMO = 5;
+
+    public static void main(String[] args) {
+        double compra = 42.0;
+        System.out.println("Total: " + (compra + TAXA_DE_ENTREGA));
+        System.out.println("Estoque mínimo: " + ESTOQUE_MINIMO);
+        System.out.println(Math.PI);
+        System.out.println(Integer.MAX_VALUE);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+Total: 49.5
+Estoque mínimo: 5
+3.141592653589793
+2147483647</pre>
+
+<dl class="anatomy">
+  <dt>static</dt><dd>"Da classe": existe uma só cópia, compartilhada por todo o programa. O <code>static</code> é assunto do Nível 2 (<a href="static.html">static</a>); por enquanto, aceite a regra: <strong>constante no topo da classe leva <code>static final</code></strong>.</dd>
+  <dt>final</dt><dd>Não pode mudar.</dd>
+  <dt>double</dt><dd>O tipo.</dd>
+  <dt>TAXA_DE_ENTREGA</dt><dd>O nome, em maiúsculas.</dd>
+  <dt>= 7.50;</dt><dd>O valor. Uma constante <code>static final</code> <strong>precisa</strong> receber o valor aqui mesmo.</dd>
+</dl>
+
+<p>Os parênteses em <code>"Total: " + (compra + TAXA_DE_ENTREGA)</code> fazem a soma acontecer antes de juntar com o texto; sem eles, o Java colaria os dois números no texto e mostraria <code>Total: 42.07.5</code> (o porquê está em <a href="precedencia.html">Precedência</a>).</p>
+
+<h3>Você já usou constantes do Java</h3>
+<p><code>Math.PI</code> (π) e <code>Integer.MAX_VALUE</code>, que apareceram na saída acima, são constantes <code>static final</code> declaradas pelo próprio Java, nas classes <code>Math</code> e <code>Integer</code>. É por isso que se escreve o <strong>nome da classe</strong>, um ponto e o nome da constante. Dentro da classe <code>Main</code>, as suas constantes podem ser usadas só pelo nome (<code>TAXA_DE_ENTREGA</code>); de fora, seria <code>Main.TAXA_DE_ENTREGA</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Constante do Java</th><th>Valor</th><th>Aula</th></tr>
+<tr><td><code>Math.PI</code></td><td>3.141592653589793</td><td><a href="math.html">Math</a></td></tr>
+<tr><td><code>Math.E</code></td><td>2.718281828459045 (número de Euler)</td><td><a href="math.html">Math</a></td></tr>
+<tr><td><code>Integer.MAX_VALUE</code></td><td>2147483647</td><td><a href="inteiros.html">int, long, short, byte</a></td></tr>
+<tr><td><code>Double.MAX_VALUE</code></td><td>1.7976931348623157E308</td><td><a href="decimais.html">double e float</a></td></tr>
+</table>
+</div>
+
+<h3>A convenção de nomes</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que é</th><th>Convenção</th><th>Exemplo</th></tr>
+<tr><td>Constante <code>static final</code> (valor fixo do programa)</td><td><code>MAIÚSCULAS_COM_SUBLINHADO</code> (chamado <em>SCREAMING_SNAKE_CASE</em>, "cobra gritando")</td><td><code>TAXA_DE_ENTREGA</code>, <code>MAX_VALUE</code>, <code>PI</code></td></tr>
+<tr><td>Variável local <code>final</code> calculada no programa</td><td><code>camelCase</code>, como qualquer variável</td><td><code>final double desconto</code></td></tr>
+<tr><td>Variável comum</td><td><code>camelCase</code></td><td><code>totalDaCompra</code></td></tr>
+</table>
+</div>
+
+<p>Quando você lê <code>TAXA_DE_ENTREGA</code> no meio de uma conta, as maiúsculas avisam: "isto é fixo, definido lá no topo". O Java não obriga a convenção (compila com qualquer nome), mas todo programador Java espera vê-la. Neste guia, constantes locais com valor fixo (como <code>LIMITE_DE_ALUNOS</code> no primeiro exemplo) também usam maiúsculas, para destacar que são valores de configuração.</p>
+
+<hr>
+
+<h2>3. Números mágicos</h2>
+<p>Olhe este cálculo de salário:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double salario = 3000;
+        double desconto = salario * 0.075;
+        double liquido = salario - desconto;
+        System.out.println(liquido);
+    }
+}
+</pre>
+
+<p>O que é <code>0.075</code>? Uma taxa de imposto? Uma comissão? Juros? Só quem escreveu sabe. Um número que aparece no código sem explicação se chama <strong>número mágico</strong>: funciona "por mágica", ninguém sabe de onde veio. Agora a mesma conta com uma constante:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    static final double ALIQUOTA_INSS = 0.075;
+
+    public static void main(String[] args) {
+        double salario = 3000;
+        double desconto = salario * ALIQUOTA_INSS;
+        double liquido = salario - desconto;
+        System.out.println(liquido);
+    }
+}
+</pre>
+
+<pre class="term">$ javac Main.java &amp;&amp; java Main
+2775.0</pre>
+
+<p>As duas versões dão exatamente o mesmo resultado (<code>2775.0</code>), mas a segunda tem três vantagens:</p>
+
+<ol>
+  <li><strong>Explica a si mesma:</strong> <code>salario * ALIQUOTA_INSS</code> se lê como uma frase.</li>
+  <li><strong>Muda num lugar só:</strong> se a alíquota mudar, você troca uma linha no topo. Com o número mágico, teria de caçar todos os <code>0.075</code> do programa e torcer para não esquecer nenhum (nem trocar um <code>0.075</code> que era outra coisa).</li>
+  <li><strong>Evita erro de digitação:</strong> errar <code>0.075</code> como <code>0.75</code> compila e dá resultado errado em silêncio; errar <code>ALIQUOTA_INSS</code> dá <code>cannot find symbol</code> na hora.</li>
+</ol>
+
+<div class="note">
+<strong>Nem todo número é mágico</strong>
+<p><code>0</code>, <code>1</code>, <code>2</code> em contas óbvias (<code>contador + 1</code>, <code>n / 2</code> para metade, <code>n % 2</code> para par ou ímpar) não precisam de constante. A pergunta é: "alguém que leia esta linha sabe de onde veio o número?". Se não sabe, crie uma constante.</p>
+</div>
+
+<div class="tryjava" data-goal="out:Com desconto: 180.0,src:static\s+final\s+double\s+[A-Z_]+\s*=">
+<p class="try-task"><strong>Missão:</strong> o <code>0.10</code> é um número mágico (o desconto da loja). Crie no topo da classe a constante <code>static final double DESCONTO = 0.10;</code> e use-a na conta. A saída deve continuar <code>Com desconto: 180.0</code>.</p>
+<pre class="script">public class Main {
+
+    public static void main(String[] args) {
+        double compra = 200.0;
+        double total = compra - compra * 0.10;
+        System.out.println("Com desconto: " + total);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    static final double DESCONTO = 0.10;
+
+    public static void main(String[] args) {
+        double compra = 200.0;
+        double total = compra - compra * DESCONTO;
+        System.out.println("Com desconto: " + total);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"cannot assign a value to final variable"</strong>
+<pre class="term">$ javac Main.java
+Main.java:5: error: cannot assign a value to final variable LIMITE_DE_ALUNOS
+        LIMITE_DE_ALUNOS = 35;
+        ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> você tentou mudar uma variável <code>final</code>. Para as constantes da classe, a mensagem diz <code>cannot assign a value to static final variable TAXA</code>.</p>
+<p><strong>Como consertar:</strong> pergunte-se se o valor realmente deve mudar. Se sim, ele não é constante: tire o <code>final</code> (e use um nome em <code>camelCase</code>). Se não, a linha que tenta mudar é que está errada.</p>
+</div>
+
+<div class="cenario">
+<strong>"variable x might already have been assigned"</strong>
+<p><strong>O que quer dizer:</strong> uma variável <code>final</code> declarada sem valor pode receber valor mais de uma vez no caminho do programa.</p>
+<p><strong>Como consertar:</strong> garanta uma única atribuição em cada caminho (como no exemplo do <code>if</code>/<code>else</code>) ou tire o <code>final</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>static final</code> dentro do <code>main</code>: "illegal start of expression"</strong>
+<pre class="file" data-file="Main.java · erro de propósito">public class Main {
+    public static void main(String[] args) {
+        static final double TAXA = 7.50;
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: illegal start of expression
+        static final double TAXA = 7.50;
+        ^
+Main.java:5: error: class, interface, annotation type, enum, record, method or field expected
+}
+^
+2 errors</pre>
+<p><strong>O que quer dizer:</strong> "início de expressão ilegal". <code>static</code> só existe para coisas da classe; dentro de um método ele não faz sentido. O segundo erro é consequência do primeiro: o Java se perdeu e não reconheceu mais o fim das chaves.</p>
+<p><strong>Como consertar:</strong> dentro do método, use só <code>final double TAXA = 7.50;</code>. Para uma constante da classe, mova a linha para fora do <code>main</code>, logo abaixo de <code>public class Main {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Constante da classe sem valor: "variable MAX might not have been initialized"</strong>
+<pre class="term">$ javac Main.java
+Main.java:2: error: variable MAX might not have been initialized
+    static final int MAX;
+                     ^
+1 error</pre>
+<p><strong>O que quer dizer:</strong> uma constante <code>static final</code> declarada sem valor nunca recebe um (não há <code>if</code> no topo da classe para decidir).</p>
+<p><strong>Como consertar:</strong> dê o valor na declaração: <code>static final int MAX = 100;</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Onde</th><th>Exemplo</th></tr>
+<tr><td><code>final tipo NOME = valor;</code></td><td>Dentro de um método</td><td><code>final int LIMITE_DE_ALUNOS = 30;</code></td></tr>
+<tr><td><code>final tipo nome;</code> + uma atribuição</td><td>Dentro de um método</td><td><code>final double desconto;</code> … <code>desconto = 0.5;</code></td></tr>
+<tr><td><code>final var nome = valor;</code></td><td>Dentro de um método</td><td><code>final var cidade = "Recife";</code></td></tr>
+<tr><td><code>static final tipo NOME = valor;</code></td><td>No topo da classe, fora dos métodos</td><td><code>static final double TAXA_DE_ENTREGA = 7.50;</code></td></tr>
+<tr><td><code>Classe.CONSTANTE</code></td><td>Usar a constante de outra classe</td><td><code>Math.PI</code>, <code>Integer.MAX_VALUE</code></td></tr>
+</table>
+</div>
+
+<p>O <code>final</code> também se aplica a parâmetros, atributos, métodos e classes, cada um com um sentido próprio; isso é o assunto de <a href="final.html">final</a>, no Nível 2.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Tornar constante</h3>
+<p>Complete para que <code>VAGAS</code> não possa mais ser alterada:</p>
+<div class="ex-code"><input data-answer="final" aria-label="modificador"> int VAGAS = 40;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Constante da classe</h3>
+<p>Complete a declaração da constante no topo da classe:</p>
+<div class="ex-code"><input data-answer="static final|final static" aria-label="modificadores"> double FRETE = 12.0;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Convenção de nome</h3>
+<p>Escreva o nome da constante "taxa de juros" seguindo a convenção do Java:</p>
+<div class="ex-code">static final double <input data-answer="TAXA_DE_JUROS|TAXA_JUROS" aria-label="nome"> = 0.02;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que acontece ao compilar <code>final int X = 1; X = 2;</code>?</p>
+<label><input type="radio" name="q4"> Compila e <code>X</code> passa a valer 2.</label>
+<label><input type="radio" name="q4"> Não compila: <code>cannot assign a value to final variable X</code>.</label>
+<label><input type="radio" name="q4"> Compila, mas dá erro ao executar.</label>
+<label><input type="radio" name="q4"> Compila e <code>X</code> continua valendo 1.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual é a principal vantagem de trocar <code>0.075</code> por <code>ALIQUOTA_INSS</code>?</p>
+<label><input type="radio" name="q5"> O programa fica mais rápido.</label>
+<label><input type="radio" name="q5"> O resultado da conta fica mais preciso.</label>
+<label><input type="radio" name="q5"> O Java exige constantes em contas.</label>
+<label><input type="radio" name="q5"> O código explica o que o número é, e ele muda num lugar só.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Onde se declara uma constante <code>static final</code>?</p>
+<label><input type="radio" name="q6"> Dentro da classe, fora dos métodos (normalmente no topo).</label>
+<label><input type="radio" name="q6"> Dentro do <code>main</code>.</label>
+<label><input type="radio" name="q6"> Antes de <code>public class Main</code>.</label>
+<label><input type="radio" name="q6"> Em qualquer lugar.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>final</code> antes do tipo faz a variável receber valor <strong>uma vez só</strong>; mudar depois dá <code>cannot assign a value to final variable</code>.</li>
+  <li>A atribuição pode vir depois da declaração, desde que aconteça exatamente uma vez em cada caminho.</li>
+  <li>Constantes do programa ficam no topo da classe com <code>static final</code> e nomes em <code>MAIÚSCULAS_COM_SUBLINHADO</code>.</li>
+  <li><code>Math.PI</code> e <code>Integer.MAX_VALUE</code> são constantes do próprio Java.</li>
+  <li>Troque números mágicos por constantes com nome: o código se explica e muda num lugar só.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
