@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Math — max, min, abs, sqrt, pow, round, floor, ceil | Guia Java</title>
+<meta name="description" content="A classe Math do Java: max, min, abs, sqrt, pow, round, floor, ceil, random, Math.PI, arredondar com casas decimais, por que Math.round(-2.5) dá -2, floorDiv e floorMod, com saídas reais do JDK 25 e os erros mais comuns.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Math</span></h1>
+
+<p class="intro">Os <a href="operadores-aritmeticos.html">operadores aritméticos</a> fazem as quatro operações e o resto. Para todo o resto da calculadora (raiz quadrada, potência, arredondar, maior e menor, valor absoluto) o Java traz a classe <strong><code>Math</code></strong> ("matemática"), uma caixa de ferramentas pronta, que você usa sem instalar nem importar nada.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como chamar um método de <code>Math</code> e o que ele devolve.</li>
+  <li><code>Math.max</code>, <code>min</code>, <code>abs</code>, <code>sqrt</code>, <code>pow</code>, e as constantes <code>Math.PI</code> e <code>Math.E</code>.</li>
+  <li>Arredondar: <code>round</code>, <code>floor</code>, <code>ceil</code>, e por que <code>Math.round(2.5)</code> dá 3 mas <code>Math.round(-2.5)</code> dá -2.</li>
+  <li>Arredondar com casas decimais (e a armadilha do <code>double</code>).</li>
+  <li><code>Math.random</code>, <code>floorDiv</code> e <code>floorMod</code>, e o que fazer com números negativos.</li>
+  <li>Os erros de tipo mais comuns (<code>possible lossy conversion</code>).</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma calculadora científica embutida</h2>
+<p>Pense na tecla de raiz quadrada de uma calculadora: você digita 64, aperta √ e aparece 8. Em Java, cada "tecla" é um <strong>método</strong> da classe <code>Math</code>. Você chama assim:</p>
+
+<dl class="anatomy">
+  <dt>Math</dt><dd>O nome da classe, com <strong>M maiúsculo</strong>. Ela faz parte do pacote <code>java.lang</code>, que o Java já carrega em todo programa; por isso não precisa de <code>import</code> (veja <a href="pacotes.html">Pacotes e import</a>).</dd>
+  <dt>.sqrt</dt><dd>O método (a "tecla"): <em>square root</em>, raiz quadrada.</dd>
+  <dt>(64)</dt><dd>O valor que você entrega, chamado <strong>argumento</strong>. Alguns métodos pedem dois (<code>Math.pow(2, 10)</code>), outros nenhum (<code>Math.random()</code>).</dd>
+  <dt>resultado</dt><dd>O método <strong>devolve</strong> um valor, que você imprime, guarda numa variável ou usa numa conta: <code>double r = Math.sqrt(64);</code>.</dd>
+</dl>
+
+<p>Repare que você chama o método <strong>na própria classe</strong> (<code>Math.sqrt</code>), e não numa variável, como fazia com Strings (<code>nome.length()</code>). Métodos assim se chamam <strong>estáticos</strong> (<code>static</code>); o assunto tem aula própria em <a href="static.html">static</a>.</p>
+
+<hr>
+
+<h2>Maior, menor e valor absoluto: <code>max</code>, <code>min</code>, <code>abs</code></h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.max(3, 7));
+        System.out.println(Math.min(3, 7));
+        System.out.println(Math.max(2.5, 1.5));
+        System.out.println(Math.max(4, 2.5));
+        System.out.println(Math.abs(-10));
+        System.out.println(Math.abs(-3.7));
+        System.out.println(Math.abs(5));
+        int nota1 = 7, nota2 = 9, nota3 = 6;
+        System.out.println(Math.max(nota1, Math.max(nota2, nota3)));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+7       « o maior de 3 e 7
+3       « o menor
+2.5
+4.0     « int com double: o resultado é double, por isso 4.0
+10      « abs = valor absoluto: tira o sinal de menos
+3.7
+5       « positivo continua igual
+9       « o maior de três números: um max dentro do outro</pre>
+
+<dl class="anatomy">
+  <dt>Math.max(a, b) / Math.min(a, b)</dt><dd>O maior / o menor de <strong>dois</strong> números. O tipo do resultado acompanha os argumentos: dois <code>int</code> dão <code>int</code>; se um for <code>double</code>, dá <code>double</code>.</dd>
+  <dt>Math.abs(x)</dt><dd><em>Absolute value</em>: a "distância até o zero", sempre positiva. Útil para diferenças: <code>Math.abs(a - b)</code> é a diferença entre <code>a</code> e <code>b</code>, não importa qual é maior.</dd>
+  <dt>Math.max(nota1, Math.max(nota2, nota3))</dt><dd>Para três números, chame um <code>max</code> dentro do outro. O de dentro roda primeiro (o maior entre <code>nota2</code> e <code>nota3</code>) e o resultado vira argumento do de fora.</dd>
+</dl>
+
+<div class="tryjava" data-goal="out:Maior: 9.0,out:Menor: 6.0,src:Math\.max,src:Math\.min">
+<p class="try-task"><strong>Missão:</strong> mostre a maior e a menor das três notas usando <code>Math.max</code> e <code>Math.min</code>. A saída deve ser <code>Maior: 9.0</code> e <code>Menor: 6.0</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double nota1 = 7.5;
+        double nota2 = 9.0;
+        double nota3 = 6.0;
+        // calcule a maior e a menor
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double nota1 = 7.5;
+        double nota2 = 9.0;
+        double nota3 = 6.0;
+        double maior = Math.max(nota1, Math.max(nota2, nota3));
+        double menor = Math.min(nota1, Math.min(nota2, nota3));
+        System.out.println("Maior: " + maior);
+        System.out.println("Menor: " + menor);
+    }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Raiz e potência: <code>sqrt</code> e <code>pow</code></h2>
+<p>Java não tem um operador de potência (o <code>^</code> existe, mas é outra coisa, uma operação com bits). Para "2 elevado a 10", use <code>Math.pow(2, 10)</code> (<em>power</em>, potência).</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.sqrt(64));
+        System.out.println(Math.sqrt(2));
+        System.out.println(Math.pow(2, 10));
+        System.out.println(Math.pow(9, 0.5));
+        System.out.println(Math.pow(10, -2));
+        System.out.println(Math.cbrt(27));
+        System.out.println(Math.sqrt(-1));
+        int kb = (int) Math.pow(2, 10);
+        System.out.println(kb);
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+8.0                   « raiz quadrada de 64
+1.4142135623730951    « raiz de 2, com toda a precisão do double
+1024.0                « 2 elevado a 10
+3.0                   « elevar a 0.5 é tirar a raiz quadrada
+0.01                  « 10 elevado a -2 = 1/100
+3.0                   « cbrt = raiz cúbica (cube root)
+NaN                   « raiz de número negativo: "não é um número"
+1024                  « convertido para int</pre>
+
+<p>Três coisas para guardar:</p>
+<ul>
+  <li><code>sqrt</code> e <code>pow</code> <strong>sempre devolvem <code>double</code></strong>, mesmo quando a conta dá um número inteiro (<code>8.0</code>, <code>1024.0</code>). Para guardar num <code>int</code>, converta com <code>(int)</code> (veja <a href="conversao-tipos.html">Conversão de Tipos</a>).</li>
+  <li><code>NaN</code> (<em>Not a Number</em>, "não é um número") é o jeito do <code>double</code> dizer "essa conta não tem resposta". Não é um erro: o programa continua, mas qualquer conta com <code>NaN</code> dá <code>NaN</code>. Veja <a href="decimais.html">double e float</a>.</li>
+  <li>Para elevar ao quadrado, <code>x * x</code> é mais simples e exato que <code>Math.pow(x, 2)</code>; o <code>pow</code> vale a pena para expoentes maiores ou quebrados.</li>
+</ul>
+
+<hr>
+
+<h2>Constantes: <code>Math.PI</code> e <code>Math.E</code></h2>
+<p><code>Math.PI</code> é o π (3,14159…), com a maior precisão que um <code>double</code> guarda. <code>Math.E</code> é o número de Euler (2,71828…), base dos logaritmos naturais. Elas não têm parênteses: não são métodos, são <a href="constantes.html">constantes</a> (valores fixos, escritos em maiúsculas).</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.PI);
+        System.out.println(Math.E);
+        double raio = 3;
+        double area = Math.PI * Math.pow(raio, 2);
+        System.out.println(area);
+        System.out.println(Math.round(area * 100) / 100.0);
+        System.out.println(Math.hypot(3, 4));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+3.141592653589793
+2.718281828459045
+28.274333882308138     « área do círculo de raio 3: π × r²
+28.27                  « a mesma área com 2 casas (explicado logo abaixo)
+5.0                    « hypot: a hipotenusa de um triângulo de lados 3 e 4</pre>
+
+<hr>
+
+<h2>Arredondar: <code>round</code>, <code>floor</code>, <code>ceil</code></h2>
+<p>Há três jeitos de transformar um número quebrado num número "redondo":</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Nome</th><th>Faz</th><th>Devolve</th></tr>
+<tr><td><code>Math.round(x)</code></td><td><em>round</em>, arredondar</td><td>Vai para o inteiro <strong>mais próximo</strong>; no empate (.5), para cima</td><td><code>long</code> (inteiro)</td></tr>
+<tr><td><code>Math.floor(x)</code></td><td><em>floor</em>, chão</td><td>Sempre para <strong>baixo</strong> (o inteiro menor ou igual)</td><td><code>double</code></td></tr>
+<tr><td><code>Math.ceil(x)</code></td><td><em>ceiling</em>, teto</td><td>Sempre para <strong>cima</strong> (o inteiro maior ou igual)</td><td><code>double</code></td></tr>
+</table>
+</div>
+
+<p>Pense numa escada: <code>floor</code> desce para o degrau de baixo, <code>ceil</code> sobe para o de cima e <code>round</code> vai para o degrau mais perto. Agora a prova, incluindo os negativos:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.round(2.4));
+        System.out.println(Math.round(2.5));
+        System.out.println(Math.round(2.6));
+        System.out.println(Math.round(-2.4));
+        System.out.println(Math.round(-2.5));
+        System.out.println(Math.round(-2.6));
+        System.out.println(Math.floor(2.7));
+        System.out.println(Math.ceil(2.1));
+        System.out.println(Math.floor(-2.5));
+        System.out.println(Math.ceil(-2.5));
+        System.out.println(Math.rint(2.5));
+        System.out.println(Math.rint(3.5));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+2       « 2.4 → mais perto do 2
+3       « 2.5 → empate: vai para 3
+3
+-2
+-2      « -2.5 → empate: vai para -2 (e não -3!)
+-3
+2.0     « floor: para baixo
+3.0     « ceil: para cima, mesmo com .1
+-3.0    « floor de -2.5: "para baixo" nos negativos é -3
+-2.0    « ceil de -2.5: "para cima" é -2
+2.0     « rint: no empate, vai para o PAR mais próximo
+4.0</pre>
+
+<h3>Por que <code>Math.round(-2.5)</code> dá <code>-2</code>?</h3>
+<p>Na escola, aprendemos "no 5, arredonda para cima", e para positivos o Java faz exatamente isso. A surpresa é que "para cima" quer dizer <strong>na direção do maior número</strong>, e nos negativos o maior é o que está mais perto do zero: -2 é maior que -3. Na reta numérica:</p>
+
+<pre>  -3 ─── -2.5 ─── -2 ─── … ─── 2 ─── 2.5 ─── 3
+          └──────→ "para cima" ←      └──────→ "para cima"</pre>
+
+<p>Por dentro, o <code>Math.round(x)</code> funciona como <code>Math.floor(x + 0.5)</code>: <code>2.5 + 0.5 = 3.0</code> → chão = <code>3</code>; <code>-2.5 + 0.5 = -2.0</code> → chão = <code>-2</code>. Se você precisa que o empate se afaste do zero (-2.5 → -3) ou siga outra regra (como a dos bancos), use <code>BigDecimal</code>, que permite escolher o modo de arredondamento (veja <a href="bigdecimal.html">BigDecimal e Dinheiro</a>). O <code>Math.rint</code> usa a regra "do par" (2.5 → 2, 3.5 → 4), que evita puxar sempre para o mesmo lado.</p>
+
+<div class="warning">
+<strong><code>round</code> devolve <code>long</code>; <code>floor</code> e <code>ceil</code> devolvem <code>double</code></strong>
+<p>Por isso <code>Math.round(2.5)</code> aparece como <code>3</code> e <code>Math.floor(2.7)</code> como <code>2.0</code>. E por isso <code>int x = Math.round(2.5);</code> não compila (veja "Quando dá errado"). Cortar a parte decimal com <code>(int)</code> é ainda outra regra: <code>(int) 2.9</code> é <code>2</code> e <code>(int) -2.9</code> é <code>-2</code> (corta em direção ao zero).</p>
+</div>
+
+<hr>
+
+<h2>Arredondar com casas decimais</h2>
+<p>O <code>Math.round</code> só arredonda para inteiro. Para 2 casas, o truque é: multiplique por 100, arredonde, divida por 100.0.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        double preco = 3.14159;
+        System.out.println(Math.round(preco * 100) / 100.0);
+        System.out.println(Math.round(preco * 100) / 100);
+        System.out.println(Math.round(preco * 10) / 10.0);
+        System.out.println(Math.round(preco * 1000) / 1000.0);
+        System.out.println(String.format("%.2f", preco));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+3.14     « 314.159 → round → 314 → / 100.0 → 3.14
+3        « dividido por 100 (inteiro): divisão inteira, perdeu tudo!
+3.1      « 1 casa: × 10 e / 10.0
+3.142    « 3 casas: × 1000 e / 1000.0
+3,14     « String.format: vira TEXTO, com a vírgula do pt_BR</pre>
+
+<dl class="anatomy">
+  <dt>preco * 100</dt><dd>Empurra a vírgula duas casas: <code>314.159</code>.</dd>
+  <dt>Math.round(…)</dt><dd>Arredonda para o inteiro mais próximo: <code>314</code> (um <code>long</code>).</dd>
+  <dt>/ 100.0</dt><dd>Puxa a vírgula de volta: <code>3.14</code>. O <code>.0</code> é essencial: <code>314 / 100</code> é divisão de inteiros e dá <code>3</code> (veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>).</dd>
+</dl>
+
+<p>Se o objetivo é só <strong>mostrar</strong> o número com 2 casas, <code>String.format("%.2f", x)</code> ou <code>printf</code> são melhores (veja <a href="formatacao.html">Formatar Texto</a>): o resultado é um texto, pronto para a tela, com vírgula no Brasil.</p>
+
+<h3>A armadilha do <code>double</code></h3>
+<p>O <code>double</code> guarda os números em binário, e muitos decimais "redondos" para nós não têm representação exata (veja <a href="decimais.html">double e float</a>). Às vezes isso aparece no arredondamento:</p>
+
+<pre class="term">$ jshell
+|  Welcome to JShell -- Version 25.0.4.1
+|  For an introduction type: /help intro
+
+jshell&gt; 1.005 * 100
+$1 ==&gt; 100.49999999999999
+
+jshell&gt; Math.round(1.005 * 100) / 100.0
+$2 ==&gt; 1.0
+
+jshell&gt; String.format("%.2f", 1.005)
+$3 ==&gt; "1,01"
+
+jshell&gt; /exit
+|  Goodbye</pre>
+
+<p>Esperávamos <code>1.01</code>, mas <code>1.005 * 100</code> deu <code>100.49999999999999</code>, que arredonda para 100. Para contas com dinheiro, onde cada centavo importa, use <a href="bigdecimal.html">BigDecimal</a>. Para mostrar na tela, <code>String.format</code>.</p>
+
+<hr>
+
+<h2>Números aleatórios: <code>Math.random()</code></h2>
+<p><code>Math.random()</code> devolve um <code>double</code> "sorteado" entre <code>0.0</code> (pode sair) e <code>1.0</code> (nunca sai). Cada execução dá valores diferentes:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.random());
+        System.out.println(Math.random());
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+0.5897360548361562
+0.08252130589441309      « na sua vez, serão outros números</pre>
+
+<p>Transformar isso num dado de 1 a 6, num sorteio ou numa senha é assunto da próxima aula: <a href="aleatorios.html">Números Aleatórios</a>.</p>
+
+<hr>
+
+<h2>Divisão com negativos: <code>floorDiv</code> e <code>floorMod</code></h2>
+<p>A divisão inteira <code>/</code> do Java <strong>corta</strong> a parte decimal (em direção ao zero), e o resto <code>%</code> fica com o sinal do primeiro número. Com positivos, tudo bem. Com negativos, o resultado pode não ser o que você quer. <code>Math.floorDiv</code> arredonda a divisão <strong>para baixo</strong>, e <code>Math.floorMod</code> dá um resto que é <strong>sempre positivo</strong> quando o divisor é positivo.</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(-7 / 2);
+        System.out.println(Math.floorDiv(-7, 2));
+        System.out.println(-7 % 2);
+        System.out.println(Math.floorMod(-7, 2));
+        System.out.println(7 / 2 + " " + Math.floorDiv(7, 2));
+        int hora = 2;
+        System.out.println((hora - 5) % 24);
+        System.out.println(Math.floorMod(hora - 5, 24));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+-3       « -3.5 cortado em direção ao zero
+-4       « -3.5 arredondado para baixo
+-1       « resto com o sinal do -7
+1        « floorMod: resto sempre entre 0 e 1
+3 3      « com positivos, os dois dão o mesmo
+-3       « "5 horas antes das 2h" com %: -3 horas?!
+21       « com floorMod: 21h, a resposta certa</pre>
+
+<p>O exemplo do relógio mostra onde isso importa: contas que "dão a volta" (horas, dias da semana, posições num círculo). São 2h da manhã; cinco horas antes eram 21h do dia anterior. O <code>%</code> responde <code>-3</code>, que não é hora nenhuma; o <code>floorMod</code> responde <code>21</code>. Regra prática: <strong>quando o número da esquerda pode ser negativo e você quer "dar a volta", use <code>floorMod</code></strong>.</p>
+
+<hr>
+
+<h2>Outros métodos úteis</h2>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.signum(-8.0));
+        System.out.println(Math.clamp(120, 0, 100));
+        System.out.println(Math.clamp(-5, 0, 100));
+        System.out.println(Math.clamp(42, 0, 100));
+        System.out.println(Math.log10(1000));
+        System.out.println(Math.sin(Math.PI / 2));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+-1.0     « signum: o sinal (-1, 0 ou 1)
+100      « clamp(120, 0, 100): prende entre 0 e 100
+0        « clamp(-5, 0, 100)
+42       « clamp(42, 0, 100): já estava dentro, fica igual
+3.0      « log10(1000): 10 elevado a 3 dá 1000
+1.0      « seno de 90 graus (π/2 radianos)</pre>
+
+<p><code>Math.clamp(valor, mínimo, máximo)</code> <span class="versao">Java 21+</span> "prende" um valor numa faixa: abaixo do mínimo vira o mínimo, acima do máximo vira o máximo. Ótimo para porcentagens, volume, notas de 0 a 10. Antes do Java 21, escreva <code>Math.max(0, Math.min(valor, 100))</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Faz</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>Math.cbrt(x)</code></td><td>Raiz cúbica</td><td><code>Math.cbrt(27)</code> → <code>3.0</code></td></tr>
+<tr><td><code>Math.hypot(a, b)</code></td><td>√(a² + b²), a hipotenusa</td><td><code>Math.hypot(3, 4)</code> → <code>5.0</code></td></tr>
+<tr><td><code>Math.signum(x)</code></td><td>Sinal: -1.0, 0.0 ou 1.0</td><td><code>Math.signum(-8.0)</code> → <code>-1.0</code></td></tr>
+<tr><td><code>Math.clamp(v, min, max)</code></td><td>Prende <code>v</code> na faixa (Java 21+)</td><td><code>Math.clamp(120, 0, 100)</code> → <code>100</code></td></tr>
+<tr><td><code>Math.log(x)</code>, <code>Math.log10(x)</code></td><td>Logaritmo natural / na base 10</td><td><code>Math.log10(1000)</code> → <code>3.0</code></td></tr>
+<tr><td><code>Math.sin</code>, <code>cos</code>, <code>tan</code></td><td>Trigonometria (ângulos em radianos)</td><td><code>Math.sin(Math.PI / 2)</code> → <code>1.0</code></td></tr>
+<tr><td><code>Math.toRadians(g)</code></td><td>Graus para radianos</td><td><code>Math.toRadians(180)</code> → π</td></tr>
+<tr><td><code>Math.addExact(a, b)</code></td><td>Soma que <strong>avisa</strong> se estourar o <code>int</code></td><td>veja abaixo</td></tr>
+</table>
+</div>
+
+<h3>Contas que avisam o estouro: <code>addExact</code></h3>
+<p>Você viu em <a href="inteiros.html">int, long, short, byte</a> que um <code>int</code> que passa do limite "dá a volta" sem avisar. As versões <code>Exact</code> (<code>addExact</code>, <code>subtractExact</code>, <code>multiplyExact</code>) fazem a mesma conta, mas lançam uma exceção em vez de dar um resultado errado:</p>
+
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int grande = Integer.MAX_VALUE;
+        System.out.println(grande + 1);
+        System.out.println(Math.abs(Integer.MIN_VALUE));
+        System.out.println(Math.addExact(grande, 1));
+    }
+}
+</pre>
+
+<pre class="term">$ java Main.java
+-2147483648       « o + estourou e deu a volta, sem aviso
+-2147483648       « nem o abs escapa: o positivo não cabe no int
+Exception in thread "main" java.lang.ArithmeticException: integer overflow
+	at java.base/java.lang.Math.addExact(Math.java:915)
+	at Main.main(Main.java:6)</pre>
+
+<p><code>integer overflow</code> = "estouro de inteiro". Melhor um programa que para com uma mensagem clara do que um que segue com um número errado.</p>
+
+<hr>
+
+<h2>Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>error: incompatible types: possible lossy conversion from double to int</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int raiz = Math.sqrt(16);
+        System.out.println(raiz);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from double to int
+        int raiz = Math.sqrt(16);
+                            ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> <code>Math.sqrt</code> devolve <code>double</code>, e guardar um <code>double</code> num <code>int</code> pode perder a parte decimal ("possível conversão com perda"). O <code>javac</code> não faz isso escondido. O mesmo vale para <code>pow</code>, <code>floor</code> e <code>ceil</code>.</p>
+<p><strong>Como resolver:</strong> guarde num <code>double</code> (<code>double raiz = Math.sqrt(16);</code>) ou converta de propósito: <code>int raiz = (int) Math.sqrt(16);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: incompatible types: possible lossy conversion from long to int</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        int arredondado = Math.round(2.5);
+        System.out.println(arredondado);
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: incompatible types: possible lossy conversion from long to int
+        int arredondado = Math.round(2.5);
+                                    ^
+1 error</pre>
+<p><strong>O que aconteceu:</strong> <code>Math.round</code> de um <code>double</code> devolve <code>long</code>. (De um <code>float</code>, como <code>Math.round(2.5f)</code>, devolve <code>int</code>.)</p>
+<p><strong>Como resolver:</strong> <code>long arredondado = Math.round(2.5);</code> ou <code>int arredondado = (int) Math.round(2.5);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: cannot find symbol … symbol: variable math</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(math.max(1, 2));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: cannot find symbol
+        System.out.println(math.max(1, 2));
+                           ^
+  symbol:   variable math
+  location: class Main
+1 error</pre>
+<p><strong>O que aconteceu:</strong> com <code>m</code> minúsculo, o <code>javac</code> achou que <code>math</code> fosse uma variável sua, e ela não existe.</p>
+<p><strong>Como resolver:</strong> <code>Math</code>, com M maiúsculo.</p>
+</div>
+
+<div class="cenario">
+<strong><code>error: method pow in class Math cannot be applied to given types;</code></strong>
+<p><em>Este código tem um erro de propósito.</em></p>
+<pre class="file" data-file="Main.java">public class Main {
+    public static void main(String[] args) {
+        System.out.println(Math.pow(2));
+    }
+}
+</pre>
+<pre class="term">$ javac Main.java
+Main.java:3: error: method pow in class Math cannot be applied to given types;
+        System.out.println(Math.pow(2));
+                               ^
+  required: double,double
+  found:    int
+  reason: actual and formal argument lists differ in length
+1 error</pre>
+<p><strong>O que aconteceu:</strong> "o método pow não pode ser aplicado a esses tipos". O <code>javac</code> mostra o que o método exige (<code>required: double,double</code>, dois números) e o que recebeu (<code>found: int</code>, um só). O motivo: as listas de argumentos têm tamanhos diferentes.</p>
+<p><strong>Como resolver:</strong> passe a base e o expoente: <code>Math.pow(2, 2)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O arredondamento com casas deu um número inteiro</strong>
+<p><strong>O que aconteceu:</strong> você dividiu por <code>100</code> em vez de <code>100.0</code>, e a divisão foi de inteiros: <code>Math.round(3.14159 * 100) / 100</code> → <code>3</code>.</p>
+<p><strong>Como resolver:</strong> <code>/ 100.0</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>Exemplo → resultado</th></tr>
+<tr><td><code>Math.max(a, b)</code></td><td>tipo dos argumentos</td><td><code>Math.max(3, 7)</code> → <code>7</code></td></tr>
+<tr><td><code>Math.min(a, b)</code></td><td>tipo dos argumentos</td><td><code>Math.min(3, 7)</code> → <code>3</code></td></tr>
+<tr><td><code>Math.abs(x)</code></td><td>tipo do argumento</td><td><code>Math.abs(-10)</code> → <code>10</code></td></tr>
+<tr><td><code>Math.sqrt(x)</code></td><td><code>double</code></td><td><code>Math.sqrt(64)</code> → <code>8.0</code></td></tr>
+<tr><td><code>Math.pow(b, e)</code></td><td><code>double</code></td><td><code>Math.pow(2, 10)</code> → <code>1024.0</code></td></tr>
+<tr><td><code>Math.round(x)</code></td><td><code>long</code></td><td><code>Math.round(-2.5)</code> → <code>-2</code></td></tr>
+<tr><td><code>Math.floor(x)</code></td><td><code>double</code></td><td><code>Math.floor(-2.5)</code> → <code>-3.0</code></td></tr>
+<tr><td><code>Math.ceil(x)</code></td><td><code>double</code></td><td><code>Math.ceil(2.1)</code> → <code>3.0</code></td></tr>
+<tr><td><code>Math.random()</code></td><td><code>double</code> em [0, 1)</td><td><code>0.5897360548361562</code></td></tr>
+<tr><td><code>Math.floorDiv(a, b)</code></td><td><code>int</code>/<code>long</code></td><td><code>Math.floorDiv(-7, 2)</code> → <code>-4</code></td></tr>
+<tr><td><code>Math.floorMod(a, b)</code></td><td><code>int</code>/<code>long</code></td><td><code>Math.floorMod(-7, 2)</code> → <code>1</code></td></tr>
+<tr><td><code>Math.PI</code>, <code>Math.E</code></td><td><code>double</code></td><td><code>3.141592653589793</code></td></tr>
+</table>
+</div>
+<p>Todos os métodos, com mais exemplos, em <a href="ref-math.html">Referência: Métodos de Math</a>.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="tryjava" data-goal="out:Área: 19.63,src:Math\.PI,src:Math\.round">
+<p class="try-task"><strong>Missão final:</strong> calcule a área de um círculo de raio <code>2.5</code> (π × raio²) e mostre-a <strong>arredondada para 2 casas</strong> com <code>Math.round</code>. A saída deve ser <code>Área: 19.63</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        double raio = 2.5;
+        // calcule e mostre a área
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        double raio = 2.5;
+        double area = Math.PI * Math.pow(raio, 2);
+        System.out.println("Área: " + Math.round(area * 100) / 100.0);
+    }
+}
+</pre>
+</div>
+
+<div class="tryjshell">
+<p class="try-task"><strong>Brinque no JShell:</strong> antes de apertar <kbd>Enter</kbd>, adivinhe: <code>Math.round(3.5)</code>, <code>Math.round(-3.5)</code>, <code>Math.floor(-0.1)</code>, <code>Math.ceil(-0.9)</code>, <code>Math.floorMod(-1, 7)</code>.</p>
+</div>
+
+<div class="exercise">
+<h3>1. Potência</h3>
+<p>Complete para calcular 3 elevado a 4:</p>
+<div class="ex-code">double r = Math.<input data-answer="pow(3, 4)|pow(3,4)" aria-label="chamada">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Sempre para cima</h3>
+<p>Uma van leva 8 pessoas. Para levar 30 pessoas, quantas vans? Complete com o método que arredonda <strong>para cima</strong>:</p>
+<div class="ex-code">double vans = Math.<input data-answer="ceil" aria-label="método">(30 / 8.0);</div>
+</div>
+
+<div class="exercise">
+<h3>3. O resultado</h3>
+<p>Quanto vale <code>Math.round(-4.5)</code>?</p>
+<div class="ex-code"><input data-answer="-4" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual é o tipo do resultado de <code>Math.sqrt(25)</code>?</p>
+<label><input type="radio" name="q4"> <code>int</code>, porque a raiz de 25 é exata</label>
+<label><input type="radio" name="q4"> <code>double</code></label>
+<label><input type="radio" name="q4"> <code>long</code></label>
+<label><input type="radio" name="q4"> <code>String</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. São 1h. Que hora era 3 horas antes? Qual expressão dá a resposta certa (22)?</p>
+<label><input type="radio" name="q5"> <code>(1 - 3) % 24</code></label>
+<label><input type="radio" name="q5"> <code>Math.abs(1 - 3)</code></label>
+<label><input type="radio" name="q5"> <code>Math.floorMod(1 - 3, 24)</code></label>
+<label><input type="radio" name="q5"> <code>Math.floorDiv(1 - 3, 24)</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>Math</code> (M maiúsculo) é uma caixa de métodos estáticos: <code>Math.nome(argumentos)</code>. Não precisa de <code>import</code>.</li>
+  <li><code>max</code>, <code>min</code>, <code>abs</code> mantêm o tipo; <code>sqrt</code>, <code>pow</code>, <code>floor</code>, <code>ceil</code> devolvem <code>double</code>; <code>round</code> devolve <code>long</code>.</li>
+  <li><code>round</code> vai para o mais próximo e, no empate, "para cima" (para o maior): 2.5 → 3, -2.5 → -2. <code>floor</code> desce, <code>ceil</code> sobe.</li>
+  <li>Duas casas: <code>Math.round(x * 100) / 100.0</code> (com <code>.0</code>!). Para mostrar, <code>String.format("%.2f", x)</code>; para dinheiro, <code>BigDecimal</code>.</li>
+  <li><code>floorMod</code> dá um resto positivo: use em contas que "dão a volta" com negativos.</li>
+  <li><code>Math.PI</code> e <code>Math.E</code> são constantes; <code>Math.random()</code> sorteia em [0, 1).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
