@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Glossário — termos de Java explicados em português | Guia Java</title>
+<meta name="description" content="Glossário do Guia Java: 120 termos (JDK, JVM, bytecode, classe, objeto, instância, construtor, herança, interface, polimorfismo, encapsulamento, exceção, stack trace, generics, lambda, stream, autoboxing, imutável, LTS, Maven, JAR…) explicados em uma ou duas frases, com link para a aula.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Java <span class="hl">Glossário</span></h1>
+
+<p class="intro">Os 120 termos que aparecem no guia, em ordem alfabética, explicados em uma ou duas frases. Cada um tem o link para a aula em que é explicado com calma. Os nomes em inglês que o Java usa (como <em>overriding</em> e <em>stack trace</em>) estão aqui com a tradução.</p>
+
+<div class="tip">
+<strong>Dica</strong>
+<p>Use <kbd>Ctrl</kbd>+<kbd>F</kbd> no navegador para achar um termo, ou o índice de letras abaixo. Palavras reservadas da linguagem têm a sua própria página: <a href="ref-palavras-chave.html">Palavras-chave</a>.</p>
+</div>
+
+<p class="indice-letras"><a href="#g-A">A</a> · <a href="#g-B">B</a> · <a href="#g-C">C</a> · <a href="#g-D">D</a> · <a href="#g-E">E</a> · <a href="#g-F">F</a> · <a href="#g-G">G</a> · <a href="#g-H">H</a> · <a href="#g-I">I</a> · <a href="#g-J">J</a> · <a href="#g-L">L</a> · <a href="#g-M">M</a> · <a href="#g-N">N</a> · <a href="#g-O">O</a> · <a href="#g-P">P</a> · <a href="#g-R">R</a> · <a href="#g-S">S</a> · <a href="#g-T">T</a> · <a href="#g-U">U</a> · <a href="#g-V">V</a> · <a href="#g-W">W</a> · <a href="#g-Y">Y</a></p>
+<h2 id="g-A">A</h2>
+<dl class="glossario">
+<dt><strong>Abstrata (classe)</strong></dt>
+<dd>Classe marcada com <code>abstract</code>: não pode virar objeto direto e pode ter métodos sem corpo, que as filhas são obrigadas a escrever. Veja: <a href="abstratas.html">Classes Abstratas</a>.</dd>
+<dt><strong>Anotação</strong></dt>
+<dd>Uma etiqueta com <code>@</code> que dá informação extra ao compilador ou a ferramentas: <code>@Override</code>, <code>@Test</code>, <code>@FunctionalInterface</code>. Veja: <a href="anotacoes.html">Anotações</a>.</dd>
+<dt><strong>API</strong></dt>
+<dd><em>Application Programming Interface</em>: o conjunto de classes e métodos que uma biblioteca oferece para você usar. "A API do Java" é a biblioteca padrão inteira. Veja: <a href="api-java.html">A Biblioteca Padrão</a>.</dd>
+<dt><strong>args</strong></dt>
+<dd>O parâmetro <code>String[] args</code> do <code>main</code>: as palavras digitadas depois do nome do programa na linha de comando. Veja: <a href="args.html">Argumentos da Linha de Comando</a>.</dd>
+<dt><strong>Argumento</strong></dt>
+<dd>O valor que você passa ao chamar um método: em <code>somar(2, 3)</code>, 2 e 3 são argumentos. Não confunda com parâmetro (a variável que recebe). Veja: <a href="parametros.html">Parâmetros e Argumentos</a>.</dd>
+<dt><strong>Array</strong></dt>
+<dd>Uma sequência de tamanho fixo de valores do mesmo tipo, acessados por índice a partir de 0: <code>int[] notas = {7, 8, 9};</code>. Veja: <a href="arrays.html">Arrays</a>.</dd>
+<dt><strong>ArrayList</strong></dt>
+<dd>A lista mais usada do Java: cresce sozinha, guarda a ordem e aceita repetidos. Veja: <a href="arraylist.html">ArrayList</a>.</dd>
+<dt><strong>Atributo</strong></dt>
+<dd>Uma variável que pertence a um objeto (ou à classe, se for <code>static</code>): o <code>saldo</code> de uma <code>Conta</code>. Também chamado de campo. Veja: <a href="atributos.html">Atributos</a>.</dd>
+<dt><strong>Autoboxing</strong></dt>
+<dd>A conversão automática entre um primitivo e o seu wrapper: <code>int</code> vira <code>Integer</code> ao entrar numa <code>List&lt;Integer&gt;</code> (e o contrário, <em>unboxing</em>). Veja: <a href="wrappers.html">Wrappers e Autoboxing</a>.</dd>
+</dl>
+<h2 id="g-B">B</h2>
+<dl class="glossario">
+<dt><strong>Biblioteca padrão</strong></dt>
+<dd>As milhares de classes que já vêm com o JDK (<code>String</code>, <code>ArrayList</code>, <code>Files</code>, <code>LocalDate</code>…), organizadas em pacotes. Veja: <a href="api-java.html">A Biblioteca Padrão</a>.</dd>
+<dt><strong>BigDecimal</strong></dt>
+<dd>Classe para números decimais exatos, usada para dinheiro: <code>0.1 + 0.2</code> dá exatamente <code>0.3</code>. Veja: <a href="bigdecimal.html">BigDecimal e Dinheiro</a>.</dd>
+<dt><strong>Bloco</strong></dt>
+<dd>Um trecho de código entre chaves <code>{ }</code>. Variáveis declaradas num bloco só existem dentro dele. Veja: <a href="escopo.html">Escopo</a>.</dd>
+<dt><strong>boolean</strong></dt>
+<dd>Tipo primitivo com dois valores: <code>true</code> e <code>false</code>. É o resultado das comparações. Veja: <a href="char-boolean.html">char e boolean</a>.</dd>
+<dt><strong>Build</strong></dt>
+<dd>O processo de transformar o código-fonte no programa pronto: compilar, testar e empacotar. Ferramentas de build: Maven e Gradle. Veja: <a href="maven.html">Maven</a>.</dd>
+<dt><strong>Bytecode</strong></dt>
+<dd>O código intermediário que o <code>javac</code> gera nos arquivos <code>.class</code>. Não é código de máquina: é lido pela JVM, em qualquer sistema. Veja: <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>.</dd>
+</dl>
+<h2 id="g-C">C</h2>
+<dl class="glossario">
+<dt><strong>Casting (conversão)</strong></dt>
+<dd>Converter um valor para outro tipo, explicitamente: <code>(int) 7.9</code> dá 7. Também vale para objetos: <code>(Gato) animal</code>. Veja: <a href="conversao-tipos.html">Conversão de Tipos</a>.</dd>
+<dt><strong>char</strong></dt>
+<dd>Tipo primitivo para um caractere Unicode, entre aspas simples: <code>'A'</code>. Por dentro, é um número. Veja: <a href="char-boolean.html">char e boolean</a>.</dd>
+<dt><strong>Checked exception</strong></dt>
+<dd>Exceção que o compilador obriga a tratar (<code>try/catch</code>) ou declarar (<code>throws</code>), como <code>IOException</code>. Filhas de <code>Exception</code> que não são <code>RuntimeException</code>. Veja: <a href="checked-unchecked.html">Checked × Unchecked</a>.</dd>
+<dt><strong>Classe</strong></dt>
+<dd>O "molde" de um tipo de objeto: diz que dados (atributos) e que ações (métodos) cada objeto tem. <code>class Conta { … }</code>. Veja: <a href="classes-objetos.html">Classes e Objetos</a>.</dd>
+<dt><strong>Classpath</strong></dt>
+<dd>A lista de pastas e JARs onde a JVM procura as classes: <code>java -cp target/classes …</code>. Veja: <a href="jar.html">Empacotar em JAR</a>.</dd>
+<dt><strong>Coleção</strong></dt>
+<dd>Um objeto que guarda vários outros: listas (<code>List</code>), conjuntos (<code>Set</code>), mapas (<code>Map</code>), filas (<code>Deque</code>). Veja: <a href="colecoes.html">Visão Geral das Coleções</a>.</dd>
+<dt><strong>Comentário</strong></dt>
+<dd>Texto no código que o compilador ignora: <code>// linha</code>, <code>/* bloco */</code> e <code>/** Javadoc */</code>. Veja: <a href="comentarios.html">Comentários</a>.</dd>
+<dt><strong>Comparable / Comparator</strong></dt>
+<dd><code>Comparable</code>: a ordem "natural" de uma classe (<code>compareTo</code>). <code>Comparator</code>: uma ordem extra, escolhida na hora de ordenar. Veja: <a href="comparable-comparator.html">Comparable e Comparator</a>.</dd>
+<dt><strong>Compilador</strong></dt>
+<dd>Programa que traduz o código-fonte em outra forma. O do Java é o <code>javac</code>, que gera bytecode e recusa código com erros. Veja: <a href="compilar-executar.html">javac e java</a>.</dd>
+<dt><strong>Concatenação</strong></dt>
+<dd>Juntar textos com <code>+</code>: <code>"Olá, " + nome</code>. Veja: <a href="concatenacao.html">Concatenação</a>.</dd>
+<dt><strong>Concorrência</strong></dt>
+<dd>Várias tarefas andando ao mesmo tempo (threads). Exige cuidado com dados compartilhados. Veja: <a href="threads.html">Threads</a>.</dd>
+<dt><strong>Constante</strong></dt>
+<dd>Um valor com nome que não muda: <code>static final double TAXA = 0.05;</code>. Por costume, em MAIÚSCULAS. Veja: <a href="constantes.html">Constantes (final)</a>.</dd>
+<dt><strong>Construtor</strong></dt>
+<dd>O "método" especial, com o nome da classe e sem tipo de retorno, que roda no <code>new</code> para preparar o objeto. Veja: <a href="construtores.html">Construtores</a>.</dd>
+</dl>
+<h2 id="g-D">D</h2>
+<dl class="glossario">
+<dt><strong>Dependência</strong></dt>
+<dd>Uma biblioteca de terceiros que o seu projeto usa (JUnit, Gson…). O Maven baixa e organiza as dependências declaradas no <code>pom.xml</code>. Veja: <a href="maven.html">Maven</a>.</dd>
+<dt><strong>Depurar (debug)</strong></dt>
+<dd>Investigar um defeito rodando o programa passo a passo, olhando os valores das variáveis. Veja: <a href="depuracao.html">Depurar</a>.</dd>
+<dt><strong>Diamante</strong></dt>
+<dd>O <code>&lt;&gt;</code> vazio em <code>new ArrayList&lt;&gt;()</code>: o compilador repete o tipo declarado à esquerda. Veja: <a href="generics.html">Generics</a>.</dd>
+<dt><strong>double</strong></dt>
+<dd>Tipo primitivo para números com casas decimais (64 bits). É o padrão para decimais, mas não é exato: <code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>. Veja: <a href="decimais.html">double e float</a>.</dd>
+</dl>
+<h2 id="g-E">E</h2>
+<dl class="glossario">
+<dt><strong>Encapsulamento</strong></dt>
+<dd>Esconder os dados de um objeto (<code>private</code>) e só permitir mudanças por métodos que respeitam as regras. Veja: <a href="encapsulamento.html">Encapsulamento</a>.</dd>
+<dt><strong>enum</strong></dt>
+<dd>Um tipo com uma lista fechada de constantes: <code>enum Nivel { FACIL, MEDIO, DIFICIL }</code>. Pode ter atributos e métodos. Veja: <a href="enums.html">Enums</a>.</dd>
+<dt><strong>equals</strong></dt>
+<dd>O método que compara o <strong>conteúdo</strong> de dois objetos. Para <code>String</code>, use sempre <code>equals</code>, nunca <code>==</code>. Veja: <a href="object.html">A Classe Object</a>.</dd>
+<dt><strong>Escopo</strong></dt>
+<dd>A região do código em que uma variável existe: do ponto em que foi declarada até o fim do seu bloco. Veja: <a href="escopo.html">Escopo</a>.</dd>
+<dt><strong>Exceção</strong></dt>
+<dd>Um objeto que representa um problema durante a execução (<code>ArithmeticException</code>, <code>NullPointerException</code>…). Se ninguém trata, o programa para e mostra o stack trace. Veja: <a href="excecoes.html">O que são Exceções</a>.</dd>
+<dt><strong>Expressão</strong></dt>
+<dd>Qualquer pedaço de código que produz um valor: <code>2 + 3</code>, <code>nome.length()</code>, <code>idade &gt;= 18</code>. Veja: <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</dd>
+</dl>
+<h2 id="g-F">F</h2>
+<dl class="glossario">
+<dt><strong>final</strong></dt>
+<dd>Modificador que "trava": variável que não muda, método que não pode ser sobrescrito, classe que não pode ser herdada. Veja: <a href="final.html">final</a>.</dd>
+<dt><strong>for-each</strong></dt>
+<dd>O laço <code>for (Tipo x : colecao)</code>, que passa por cada item de um array ou coleção sem índice. Veja: <a href="for-each.html">for-each</a>.</dd>
+</dl>
+<h2 id="g-G">G</h2>
+<dl class="glossario">
+<dt><strong>Garbage collector</strong></dt>
+<dd>O "coletor de lixo" da JVM: apaga sozinho da memória os objetos que ninguém mais usa. Por isso não existe <code>free</code> em Java. Veja: <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>.</dd>
+<dt><strong>Generics</strong></dt>
+<dd>Parâmetros de tipo entre <code>&lt; &gt;</code>: <code>List&lt;String&gt;</code> é uma lista que só aceita <code>String</code>, conferida pelo compilador. Veja: <a href="generics.html">Generics</a>.</dd>
+<dt><strong>Getter e setter</strong></dt>
+<dd>Métodos que leem (<code>getSaldo()</code>) e alteram (<code>setNome(…)</code>) um atributo privado. Veja: <a href="encapsulamento.html">Encapsulamento</a>.</dd>
+<dt><strong>Gradle</strong></dt>
+<dd>Ferramenta de build, alternativa ao Maven, configurada com um script (<code>build.gradle.kts</code>). Veja: <a href="gradle.html">Gradle</a>.</dd>
+</dl>
+<h2 id="g-H">H</h2>
+<dl class="glossario">
+<dt><strong>hashCode</strong></dt>
+<dd>Um número calculado do conteúdo do objeto, usado por <code>HashMap</code> e <code>HashSet</code>. Quem sobrescreve <code>equals</code> deve sobrescrever <code>hashCode</code>. Veja: <a href="object.html">A Classe Object</a>.</dd>
+<dt><strong>HashMap</strong></dt>
+<dd>O mapa mais usado: guarda pares chave → valor e acha pela chave muito rápido, sem ordem garantida. Veja: <a href="hashmap.html">HashMap</a>.</dd>
+<dt><strong>Heap</strong></dt>
+<dd>A área de memória onde ficam os objetos. Se acabar: <code>OutOfMemoryError: Java heap space</code>. Veja: <a href="ref-excecoes.html#errors">Exceções Comuns</a>.</dd>
+<dt><strong>Herança</strong></dt>
+<dd>Uma classe filha (<code>extends</code>) recebe os atributos e métodos da classe mãe e pode acrescentar ou mudar comportamentos. Veja: <a href="heranca.html">Herança</a>.</dd>
+</dl>
+<h2 id="g-I">I</h2>
+<dl class="glossario">
+<dt><strong>IDE</strong></dt>
+<dd><em>Integrated Development Environment</em>: editor com compilador, depurador e ajudas integrados (IntelliJ IDEA, Eclipse, VS Code). Veja: <a href="editores-ide.html">Editores e IDEs</a>.</dd>
+<dt><strong>import</strong></dt>
+<dd>Instrução no topo do arquivo que permite usar uma classe de outro pacote pelo nome curto: <code>import java.util.Scanner;</code>. Veja: <a href="pacotes.html">Pacotes e import</a>.</dd>
+<dt><strong>Imutável</strong></dt>
+<dd>Um objeto que não muda depois de criado: <code>String</code>, records, <code>BigDecimal</code>, <code>List.of(…)</code>. Métodos devolvem um objeto novo. Veja: <a href="strings.html">Strings</a>.</dd>
+<dt><strong>Instância</strong></dt>
+<dd>Um objeto criado a partir de uma classe. "Instanciar" = criar com <code>new</code>. Veja: <a href="classes-objetos.html">Classes e Objetos</a>.</dd>
+<dt><strong>Interface</strong></dt>
+<dd>Um contrato: a lista de métodos que uma classe promete ter (<code>implements</code>). Permite tratar objetos diferentes do mesmo jeito. Veja: <a href="interfaces.html">Interfaces</a>.</dd>
+<dt><strong>Interface funcional</strong></dt>
+<dd>Interface com um único método abstrato (<code>Function</code>, <code>Predicate</code>, <code>Runnable</code>…). Pode ser implementada por uma lambda. Veja: <a href="interfaces-funcionais.html">Interfaces Funcionais</a>.</dd>
+<dt><strong>Iterator</strong></dt>
+<dd>Objeto que percorre uma coleção item por item (<code>hasNext()</code>, <code>next()</code>) e permite remover com segurança. Veja: <a href="iterator.html">Iterator</a>.</dd>
+</dl>
+<h2 id="g-J">J</h2>
+<dl class="glossario">
+<dt><strong>JAR</strong></dt>
+<dd><em>Java ARchive</em>: um arquivo (um zip) com as classes de um programa ou biblioteca. Um JAR executável roda com <code>java -jar</code>. Veja: <a href="jar.html">Empacotar em JAR</a>.</dd>
+<dt><strong>javac</strong></dt>
+<dd>O compilador do Java: lê os <code>.java</code> e gera os <code>.class</code>. Veja: <a href="compilar-executar.html">javac e java</a>.</dd>
+<dt><strong>Javadoc</strong></dt>
+<dd>Comentários <code>/** … */</code> que documentam classes e métodos, e a ferramenta que gera páginas HTML com eles. Veja: <a href="javadoc.html">Javadoc</a>.</dd>
+<dt><strong>JDK</strong></dt>
+<dd><em>Java Development Kit</em>: tudo para programar em Java: o compilador (<code>javac</code>), a JVM, o JShell e a biblioteca padrão. Veja: <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>.</dd>
+<dt><strong>JIT</strong></dt>
+<dd><em>Just-In-Time compiler</em>: a parte da JVM que, durante a execução, traduz o bytecode mais usado para código de máquina, deixando o programa rápido. Veja: <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>.</dd>
+<dt><strong>JRE</strong></dt>
+<dd><em>Java Runtime Environment</em>: só o necessário para rodar programas (JVM + biblioteca). Hoje vem dentro do JDK. Veja: <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>.</dd>
+<dt><strong>JShell</strong></dt>
+<dd>O console interativo do Java: você digita uma linha e vê o resultado na hora (<code>jshell&gt; 2 + 3</code>). Veja: <a href="jshell.html">JShell</a>.</dd>
+<dt><strong>JUnit</strong></dt>
+<dd>A biblioteca de testes automáticos mais usada no Java: <code>@Test</code>, <code>assertEquals</code>, <code>assertThrows</code>. Veja: <a href="junit.html">Testes com JUnit</a>.</dd>
+<dt><strong>JVM</strong></dt>
+<dd><em>Java Virtual Machine</em>: o programa que executa o bytecode. Existe uma JVM para cada sistema; o mesmo <code>.class</code> roda em todas. Veja: <a href="jdk-jre-jvm.html">JDK, JRE e JVM</a>.</dd>
+</dl>
+<h2 id="g-L">L</h2>
+<dl class="glossario">
+<dt><strong>Laço (loop)</strong></dt>
+<dd>Uma estrutura que repete código: <code>while</code>, <code>do-while</code>, <code>for</code>, for-each. Veja: <a href="while.html">while e do-while</a>.</dd>
+<dt><strong>Lambda</strong></dt>
+<dd>Uma função curta escrita no lugar onde é usada: <code>n -&gt; n * 2</code>. Implementa uma interface funcional. Veja: <a href="lambdas.html">Lambdas</a>.</dd>
+<dt><strong>List</strong></dt>
+<dd>A interface das listas: sequência com posições, que aceita repetidos. Implementações: <code>ArrayList</code>, <code>LinkedList</code>. Veja: <a href="colecoes.html">Visão Geral das Coleções</a>.</dd>
+<dt><strong>LTS</strong></dt>
+<dd><em>Long-Term Support</em>: versão com suporte por muitos anos. LTS do Java: 8, 11, 17, 21 e 25 (a deste guia). Veja: <a href="versoes.html">Versões e LTS</a>.</dd>
+</dl>
+<h2 id="g-M">M</h2>
+<dl class="glossario">
+<dt><strong>main</strong></dt>
+<dd>O método por onde o programa começa: <code>public static void main(String[] args)</code>. Veja: <a href="primeiro-programa.html">Olá, Mundo</a>.</dd>
+<dt><strong>Map</strong></dt>
+<dd>A interface dos mapas: pares chave → valor, chaves sem repetição. Implementações: <code>HashMap</code>, <code>TreeMap</code>, <code>LinkedHashMap</code>. Veja: <a href="hashmap.html">HashMap</a>.</dd>
+<dt><strong>Maven</strong></dt>
+<dd>Ferramenta de build e de dependências: lê o <code>pom.xml</code>, baixa bibliotecas, compila, testa (<code>mvn test</code>) e empacota (<code>mvn package</code>). Veja: <a href="maven.html">Maven</a>.</dd>
+<dt><strong>Método</strong></dt>
+<dd>Um bloco de código com nome, que pode receber parâmetros e devolver um valor. É uma "ação" de uma classe ou objeto. Veja: <a href="metodos.html">Métodos</a>.</dd>
+<dt><strong>Modificador de acesso</strong></dt>
+<dd><code>public</code>, <code>protected</code>, <code>private</code> (ou nenhum): quem pode ver uma classe, atributo ou método. Veja: <a href="modificadores.html">Modificadores de Acesso</a>.</dd>
+<dt><strong>Módulo</strong></dt>
+<dd>Um conjunto de pacotes com nome e regras de dependência (<code>module-info.java</code>). O JDK é dividido em módulos. Veja: <a href="modulos.html">Módulos (JPMS)</a>.</dd>
+</dl>
+<h2 id="g-N">N</h2>
+<dl class="glossario">
+<dt><strong>null</strong></dt>
+<dd>O valor de uma referência que não aponta para objeto nenhum. Usar um <code>null</code> causa <code>NullPointerException</code>. Veja: <a href="ref-excecoes.html#npe">Exceções Comuns</a>.</dd>
+</dl>
+<h2 id="g-O">O</h2>
+<dl class="glossario">
+<dt><strong>Object</strong></dt>
+<dd>A classe mãe de todas as classes do Java. Dela vêm <code>equals</code>, <code>hashCode</code> e <code>toString</code>. Veja: <a href="object.html">A Classe Object</a>.</dd>
+<dt><strong>Objeto</strong></dt>
+<dd>Uma "coisa" concreta criada a partir de uma classe, com os seus próprios valores: <code>new Conta("Ana")</code>. Veja: <a href="classes-objetos.html">Classes e Objetos</a>.</dd>
+<dt><strong>Operador</strong></dt>
+<dd>Símbolo que faz uma operação: aritméticos (<code>+ - * / %</code>), de comparação (<code>== &lt; &gt;=</code>), lógicos (<code>&amp;&amp; || !</code>), de atribuição (<code>= +=</code>). Veja: <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</dd>
+<dt><strong>Optional</strong></dt>
+<dd>Uma "caixa" que pode ter um valor ou estar vazia, para métodos que podem não ter resposta, no lugar de devolver <code>null</code>. Veja: <a href="optional.html">Optional</a>.</dd>
+<dt><strong>Overflow</strong></dt>
+<dd>Quando o resultado não cabe no tipo e "dá a volta": <code>Integer.MAX_VALUE + 1</code> vira um número negativo. Veja: <a href="inteiros.html">int, long, short, byte</a>.</dd>
+</dl>
+<h2 id="g-P">P</h2>
+<dl class="glossario">
+<dt><strong>Pacote</strong></dt>
+<dd>Uma pasta lógica de classes, com nome invertido de domínio: <code>java.util</code>, <code>br.com.ana.banco</code>. Veja: <a href="pacotes.html">Pacotes e import</a>.</dd>
+<dt><strong>Parâmetro</strong></dt>
+<dd>A variável declarada na assinatura do método que recebe o argumento: em <code>somar(int a, int b)</code>, <code>a</code> e <code>b</code>. Veja: <a href="parametros.html">Parâmetros e Argumentos</a>.</dd>
+<dt><strong>Pattern matching</strong></dt>
+<dd>Testar o formato de um valor e já extrair as partes: <code>if (obj instanceof String s)</code>, <code>case Circulo c -&gt; …</code>. Veja: <a href="pattern-matching.html">Pattern Matching</a>.</dd>
+<dt><strong>Polimorfismo</strong></dt>
+<dd>"Muitas formas": a mesma chamada (<code>animal.som()</code>) se comporta de um jeito em cada tipo de objeto. Veja: <a href="polimorfismo.html">Polimorfismo</a>.</dd>
+<dt><strong>pom.xml</strong></dt>
+<dd>O arquivo que descreve um projeto Maven: nome, versão do Java, dependências e plugins. Veja: <a href="maven.html">Maven</a>.</dd>
+<dt><strong>POO</strong></dt>
+<dd>Programação Orientada a Objetos: organizar o programa em objetos que juntam dados e comportamento. Veja: <a href="poo.html">O que é POO</a>.</dd>
+<dt><strong>Primitivo (tipo)</strong></dt>
+<dd>Os 8 tipos básicos, que guardam o valor direto: <code>byte</code>, <code>short</code>, <code>int</code>, <code>long</code>, <code>float</code>, <code>double</code>, <code>char</code>, <code>boolean</code>. Veja: <a href="tipos-primitivos.html">Tipos Primitivos</a>.</dd>
+</dl>
+<h2 id="g-R">R</h2>
+<dl class="glossario">
+<dt><strong>record</strong></dt>
+<dd>Uma classe só de dados, declarada numa linha: <code>record Ponto(int x, int y) {}</code>. Ganha construtor, acessores, <code>equals</code> e <code>toString</code>. Veja: <a href="records.html">Records</a>.</dd>
+<dt><strong>Recursão</strong></dt>
+<dd>Um método que chama a si mesmo, com um caso base que para a repetição. Veja: <a href="recursao.html">Recursão</a>.</dd>
+<dt><strong>Referência (tipo de)</strong></dt>
+<dd>Todo tipo que não é primitivo (classes, arrays, interfaces). A variável guarda o "endereço" do objeto, não o objeto. Veja: <a href="tipos-primitivos.html">Tipos Primitivos</a>.</dd>
+<dt><strong>Referência de método</strong></dt>
+<dd>Atalho para uma lambda que só chama um método: <code>String::toUpperCase</code>, <code>System.out::println</code>. Veja: <a href="method-references.html">Referências de Métodos</a>.</dd>
+<dt><strong>Reflexão</strong></dt>
+<dd>A capacidade de um programa examinar e usar classes, métodos e atributos em tempo de execução, pelo nome. Veja: <a href="reflexao.html">Reflexão</a>.</dd>
+<dt><strong>Regex</strong></dt>
+<dd>Expressão regular: um padrão para procurar e validar textos (<code>"[0-9]+"</code>). Veja: <a href="regex.html">Expressões Regulares</a>.</dd>
+</dl>
+<h2 id="g-S">S</h2>
+<dl class="glossario">
+<dt><strong>Scanner</strong></dt>
+<dd>A classe que lê do teclado (ou de um texto): <code>nextLine()</code>, <code>nextInt()</code>, <code>hasNextInt()</code>. Veja: <a href="scanner.html">Ler do Teclado (Scanner)</a>.</dd>
+<dt><strong>Selada (classe)</strong></dt>
+<dd>Classe ou interface <code>sealed</code> que só pode ser estendida pelas classes listadas em <code>permits</code>. Veja: <a href="sealed.html">Classes Seladas</a>.</dd>
+<dt><strong>Set</strong></dt>
+<dd>A interface dos conjuntos: coleções sem repetidos. Implementações: <code>HashSet</code>, <code>TreeSet</code>, <code>LinkedHashSet</code>. Veja: <a href="hashset.html">HashSet</a>.</dd>
+<dt><strong>Sobrecarga (overloading)</strong></dt>
+<dd>Vários métodos com o mesmo nome e parâmetros diferentes: <code>somar(int, int)</code> e <code>somar(double, double)</code>. Veja: <a href="sobrecarga.html">Sobrecarga</a>.</dd>
+<dt><strong>Sobrescrita (overriding)</strong></dt>
+<dd>A classe filha reescreve um método herdado, com a mesma assinatura (<code>@Override</code>). Veja: <a href="sobrescrita.html">Sobrescrita (@Override)</a>.</dd>
+<dt><strong>Stack trace</strong></dt>
+<dd>A lista de chamadas mostrada junto com uma exceção (<code>at Main.main(Main.java:5)</code>): onde o problema aconteceu e quem chamou quem. Veja: <a href="ref-excecoes.html#ler">Exceções Comuns</a>.</dd>
+<dt><strong>static</strong></dt>
+<dd>Modificador que faz o atributo ou método pertencer à classe, e não a cada objeto: <code>Math.sqrt</code>, <code>main</code>. Veja: <a href="static.html">static</a>.</dd>
+<dt><strong>Stream</strong></dt>
+<dd>Uma sequência de itens processada em etapas (<code>filter</code>, <code>map</code>, <code>toList</code>), no estilo funcional. Não confundir com fluxos de arquivo. Veja: <a href="streams.html">Streams</a>.</dd>
+<dt><strong>String</strong></dt>
+<dd>O tipo para textos: <code>"Olá"</code>. É uma classe (com métodos) e é imutável. Veja: <a href="strings.html">Strings</a>.</dd>
+<dt><strong>StringBuilder</strong></dt>
+<dd>Um texto que pode ser alterado (<code>append</code>, <code>insert</code>, <code>reverse</code>), mais eficiente que juntar muitas <code>String</code> com <code>+</code>. Veja: <a href="stringbuilder.html">StringBuilder</a>.</dd>
+<dt><strong>super</strong></dt>
+<dd>Palavra que se refere à classe mãe: <code>super(…)</code> chama o construtor dela; <code>super.metodo()</code>, um método dela. Veja: <a href="super.html">super</a>.</dd>
+<dt><strong>switch</strong></dt>
+<dd>Escolhe um caminho pelo valor. Com setas (<code>case 1 -&gt; …</code>), pode devolver um valor. Veja: <a href="switch-expressoes.html">switch com Setas</a>.</dd>
+</dl>
+<h2 id="g-T">T</h2>
+<dl class="glossario">
+<dt><strong>Teste automático</strong></dt>
+<dd>Código que verifica outro código, rodado com um comando (<code>mvn test</code>). Um teste unitário confere uma pequena parte isolada. Veja: <a href="junit.html">Testes com JUnit</a>.</dd>
+<dt><strong>Text block</strong></dt>
+<dd>Texto de várias linhas entre três aspas (<code>"""</code>). <span class="versao">Java 15+</span> Veja: <a href="text-blocks.html">Text Blocks</a>.</dd>
+<dt><strong>this</strong></dt>
+<dd>Referência ao próprio objeto: <code>this.nome = nome</code> separa o atributo do parâmetro. Veja: <a href="this.html">this</a>.</dd>
+<dt><strong>Thread</strong></dt>
+<dd>Uma linha de execução. Um programa pode ter várias threads trabalhando ao mesmo tempo. Veja: <a href="threads.html">Threads</a>.</dd>
+<dt><strong>Thread virtual</strong></dt>
+<dd>Thread leve, gerenciada pela JVM, que permite milhares de tarefas simultâneas. <span class="versao">Java 21+</span> Veja: <a href="virtual-threads.html">Threads Virtuais</a>.</dd>
+<dt><strong>throw / throws</strong></dt>
+<dd><code>throw</code> lança uma exceção agora; <code>throws</code>, na assinatura, avisa que o método pode lançá-la. Veja: <a href="throw-throws.html">throw e throws</a>.</dd>
+<dt><strong>toString</strong></dt>
+<dd>O método que transforma um objeto em texto; é chamado pelo <code>println</code> e pela concatenação. Veja: <a href="object.html">A Classe Object</a>.</dd>
+<dt><strong>try / catch / finally</strong></dt>
+<dd>Blocos para tratar exceções: <code>try</code> tenta, <code>catch</code> trata, <code>finally</code> roda sempre. Veja: <a href="try-catch.html">try e catch</a>.</dd>
+</dl>
+<h2 id="g-U">U</h2>
+<dl class="glossario">
+<dt><strong>Unchecked exception</strong></dt>
+<dd>Exceção que o compilador não obriga a tratar: <code>RuntimeException</code> e filhas (<code>NullPointerException</code>, <code>ArithmeticException</code>…). Veja: <a href="checked-unchecked.html">Checked × Unchecked</a>.</dd>
+<dt><strong>Unicode</strong></dt>
+<dd>O padrão que dá um número a cada caractere de todas as línguas. O <code>char</code> e a <code>String</code> do Java usam Unicode. Veja: <a href="char-boolean.html">char e boolean</a>.</dd>
+</dl>
+<h2 id="g-V">V</h2>
+<dl class="glossario">
+<dt><strong>var</strong></dt>
+<dd>Deixa o compilador deduzir o tipo de uma variável local: <code>var lista = new ArrayList&lt;String&gt;();</code>. <span class="versao">Java 10+</span> Veja: <a href="var.html">var</a>.</dd>
+<dt><strong>Variável</strong></dt>
+<dd>Um nome que guarda um valor de um tipo: <code>int idade = 29;</code>. Veja: <a href="variaveis.html">Variáveis</a>.</dd>
+<dt><strong>void</strong></dt>
+<dd>"Vazio": indica que um método não devolve nada. Veja: <a href="metodos.html">Métodos</a>.</dd>
+</dl>
+<h2 id="g-W">W</h2>
+<dl class="glossario">
+<dt><strong>Wrapper</strong></dt>
+<dd>A classe que "embrulha" um primitivo: <code>Integer</code> para <code>int</code>, <code>Double</code> para <code>double</code>… Necessária em coleções. Veja: <a href="wrappers.html">Wrappers e Autoboxing</a>.</dd>
+</dl>
+<h2 id="g-Y">Y</h2>
+<dl class="glossario">
+<dt><strong>yield</strong></dt>
+<dd>Entrega o valor de um bloco <code>{ }</code> num <code>switch</code> que devolve valor. Veja: <a href="switch-expressoes.html">switch com Setas</a>.</dd>
+</dl>
+
+<hr>
+
+<h2>Experimente dois termos</h2>
+
+<div class="tryjshell" data-goal="out:Ponto[x=1\, y=2]">
+<p class="try-task"><strong>record:</strong> declare <code>record Ponto(int x, int y) {}</code> no JShell e crie <code>new Ponto(1, 2)</code>. Repare no <code>toString</code> que o record ganhou de graça.</p>
+<pre class="solucao">record Ponto(int x, int y) {}
+new Ponto(1, 2)</pre>
+</div>
+
+<div class="tryjava" data-goal="out:ANA,src:nome\s*=\s*nome\.toUpperCase">
+<p class="try-task"><strong>Imutável:</strong> o programa chama <code>toUpperCase()</code>, mas continua mostrando <code>ana</code>, porque <code>String</code> é imutável e o resultado foi jogado fora. Guarde o resultado em <code>nome</code> para mostrar <code>ANA</code>.</p>
+<pre class="script">public class Main {
+    public static void main(String[] args) {
+        String nome = "ana";
+        nome.toUpperCase();
+        System.out.println(nome);
+    }
+}
+</pre>
+<pre class="solucao">public class Main {
+    public static void main(String[] args) {
+        String nome = "ana";
+        nome = nome.toUpperCase();
+        System.out.println(nome);
+    }
+}
+</pre>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">Qual a diferença entre JDK e JVM?</p>
+<label><input type="radio" name="q1"> Nenhuma, são sinônimos.</label>
+<label><input type="radio" name="q1"> A JVM executa o bytecode; o JDK é o kit completo para programar, que inclui a JVM, o <code>javac</code> e o JShell.</label>
+<label><input type="radio" name="q1"> O JDK executa e a JVM compila.</label>
+<label><input type="radio" name="q1"> A JVM só existe no Windows.</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">Sobrecarga (<em>overloading</em>) é…</p>
+<label><input type="radio" name="q2"> a classe filha reescrever um método da mãe.</label>
+<label><input type="radio" name="q2"> passar do limite de um <code>int</code>.</label>
+<label><input type="radio" name="q2"> ter vários métodos com o mesmo nome e parâmetros diferentes.</label>
+<label><input type="radio" name="q2"> chamar um método dentro dele mesmo.</label>
+</div>
+
+<p>Para se testar em todos os assuntos, faça o <a href="quiz.html">Quiz</a>.</p>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
