@@ -30,7 +30,7 @@
 "use strict";
 var fs = require("fs"), path = require("path"), cp = require("child_process"), crypto = require("crypto");
 var DIR = __dirname, CACHE = path.join(DIR, "..", ".cache-bateria.json");
-var LAB = path.join(process.env.HOME || "/home/wallyson", "guia-java-lab", "lab");
+var LAB = path.join(process.env.HOME || "/home/ana", "guia-java-lab", "lab");
 
 function lerCasos(filtro) {
   var casos = [];
