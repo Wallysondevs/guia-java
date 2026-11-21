@@ -1,3 +1,5 @@
+<p align="center"><img src="capa.png" alt="Capa do guia-java" width="100%"></p>
+
 # Guia Java
 
 Site: https://wallysondevs.github.io/guia-java/
