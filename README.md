@@ -40,6 +40,7 @@ node tools/testar-missoes.js                 # idem, comparando com o JDK real (
 node tools/testes/rodar.js                   # bateria diferencial (usa as saídas do JDK real guardadas do laboratório; --diff mostra as diferenças)
 node tools/sim.js Main.java                  # roda um programa como o editor
 node tools/sim.js --jshell sessao.txt        # idem, no JShell
+bash tools/checar-privacidade.sh             # páginas e histórico; lista extra: PROIBIDO=lista.txt
 ```
 
 ## Publicar no GitHub Pages
